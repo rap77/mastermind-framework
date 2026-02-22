@@ -1,0 +1,30 @@
+[project]
+name = "mastermind-cli"
+version = "0.1.0"
+description = "MasterMind Framework CLI - Expert brain management"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "click>=8.3.1",
+    "gitpython>=3.1.46",
+    "pyyaml>=6.0.3",
+    "rich>=14.3.3",
+    "semver>=3.0.4",
+]
+
+[project.scripts]
+mastermind = "mastermind_cli.main:cli"
+mm = "mastermind_cli.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]

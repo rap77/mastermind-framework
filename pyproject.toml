@@ -14,3 +14,8 @@ dependencies = [
 
 [project.scripts]
 mastermind = "mastermind_cli.cli:main"
+
+[tool.uv.workspace]
+members = [
+    "tools/mastermind-cli",
+]
