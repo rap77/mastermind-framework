@@ -99,6 +99,7 @@ mastermind-framework/
 - [Filesystem Structure](docs/design/09-Filesystem-Structure.md)
 - [Plan de Implementación](docs/design/10-Plan-Implementacion-Claude-Code.md)
 - [Cerebro #1: Product Strategy](docs/design/05-Cerebro-01-Product-Strategy.md)
+- **[MCP Setup Guide](docs/design/11-MCP-Setup.md)** ← Configuración de servidores MCP
 
 ## Roadmap
 
