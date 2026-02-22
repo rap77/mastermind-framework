@@ -1,24 +1,24 @@
 # Plan de Implementación — MasterMind Framework (mente-maestra)
 
-**Documento para Claude Code**  
+**Documento para Claude Code**
 **Instrucción:** Lee este documento completo con la habilidad superpower o superclaude. Luego ejecuta las fases en orden, haciendo preguntas de clarificación cuando sea necesario.
 
 ---
 
 ## Contexto del Proyecto
 
-**Nombre del repo:** mastermind  
-**Ubicación:** WSL (Linux)  
-**Creado con:** `uv --init mastermind`  
-**Runtime:** Python (uv), Node.js (nvm)  
-**LLM:** Claude Code (suscripción)  
-**MCP Servers:** NotebookLM, Context7, Sequential Thinking  
-**Skills disponibles:** superpower, superclaude, Vercel best practices  
+**Nombre del repo:** mastermind
+**Ubicación:** WSL (Linux)
+**Creado con:** `uv --init mastermind`
+**Runtime:** Python (uv), Node.js (nvm)
+**LLM:** Claude Code (suscripción)
+**MCP Servers:** NotebookLM, Context7, Sequential Thinking
+**Skills disponibles:** superpower, superclaude, Vercel best practices
 
 **Qué es:** Un framework de cerebros especializados alimentados con conocimiento destilado de expertos mundiales, consultables por agentes autónomos vía NotebookLM (hoy) y RAG propio (futuro).
 
-**Nicho inicial:** Desarrollo de Software  
-**Primer cerebro:** Product Strategy  
+**Nicho inicial:** Desarrollo de Software
+**Primer cerebro:** Product Strategy
 
 ---
 
@@ -232,29 +232,29 @@ mastermind framework release → Crear release con git tag + changelog
 def source_update(source_id, change_description):
     # 1. Encontrar la ficha por ID
     filepath = find_source_file(source_id)
-    
+
     # 2. Leer YAML front matter
     metadata = read_yaml_frontmatter(filepath)
-    
+
     # 3. Auto-incrementar versión
     old_version = metadata.get('version', '1.0.0')
     new_version = increment_patch(old_version)  # 1.0.0 → 1.0.1
-    
+
     # 4. Actualizar campos automáticos
     metadata['version'] = new_version
     metadata['last_updated'] = today()
-    
+
     # 5. Agregar al changelog
     changelog = metadata.get('changelog', [])
     changelog.append(f"v{new_version}: {change_description}")
     metadata['changelog'] = changelog
-    
+
     # 6. Escribir de vuelta al archivo
     write_yaml_frontmatter(filepath, metadata)
-    
+
     # 7. Git commit automático
     git_commit(filepath, f"update({source_id}): {change_description}")
-    
+
     # 8. Mostrar confirmación
     print(f"✅ {source_id} actualizado: v{old_version} → v{new_version}")
 ```
@@ -265,18 +265,18 @@ def source_update(source_id, change_description):
 def source_validate(brain_id):
     sources = find_all_sources(brain_id)
     errors = []
-    
+
     for source in sources:
         metadata = read_yaml_frontmatter(source)
         content = read_content(source)
-        
+
         # Validar YAML obligatorio
-        required_fields = ['source_id', 'brain', 'title', 'author', 'type', 
+        required_fields = ['source_id', 'brain', 'title', 'author', 'type',
                           'skills_covered', 'distillation_quality']
         for field in required_fields:
             if field not in metadata:
                 errors.append(f"❌ {source}: falta campo '{field}' en YAML")
-        
+
         # Validar contenido mínimo
         if content.count('### 1. Principios') == 0:
             errors.append(f"⚠️ {source}: sin sección de Principios")
@@ -286,12 +286,12 @@ def source_validate(brain_id):
             errors.append(f"⚠️ {source}: sin sección de Criterios de Decisión")
         if content.count('### 5. Anti-patrones') == 0:
             errors.append(f"⚠️ {source}: sin sección de Anti-patrones")
-        
+
         # Validar mínimos de calidad
         principles_count = content.count('> **P')
         if principles_count < 3:
             errors.append(f"⚠️ {source}: solo {principles_count} principios (mínimo 3)")
-    
+
     if errors:
         for e in errors:
             print(e)
@@ -308,13 +308,13 @@ def brain_package(brain_id, version):
     if not validate_result.passed:
         print("❌ No se puede empaquetar. Hay errores de validación.")
         return
-    
+
     # 2. Crear carpeta de distribución
     dist_path = f"dist/{brain_id}-v{version}/"
-    
+
     # 3. Copiar archivos del cerebro
     copy_brain_files(brain_id, dist_path)
-    
+
     # 4. Generar manifest.yaml
     manifest = {
         'brain_id': brain_id,
@@ -331,10 +331,10 @@ def brain_package(brain_id, version):
         }
     }
     write_yaml(f"{dist_path}/manifest.yaml", manifest)
-    
+
     # 5. Crear ZIP distribuible
     create_zip(dist_path, f"dist/{brain_id}-v{version}.zip")
-    
+
     print(f"📦 Paquete creado: dist/{brain_id}-v{version}.zip")
 ```
 
@@ -526,18 +526,18 @@ def source_export_notebooklm(brain_id, only=None):
     """
     sources = find_sources(brain_id, only=only)
     output_dir = f"dist/notebooklm/{brain_id}/"
-    
+
     for source in sources:
         # Leer archivo completo
         content = read_file(source)
-        
+
         # Remover YAML front matter (todo entre --- y ---)
         clean_content = remove_yaml_frontmatter(content)
-        
+
         # Guardar versión limpia
         output_path = f"{output_dir}/{source.filename}"
         write_file(output_path, clean_content)
-    
+
     print(f"📤 {len(sources)} fuentes exportadas a {output_dir}")
 ```
 

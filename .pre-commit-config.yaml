@@ -1,0 +1,28 @@
+repos:
+  # ============================================
+  # Gentleman Guardian Angel (AI Code Review)
+  # Runs FIRST - blocks commit on critical issues
+  # ============================================
+  - repo: local
+    hooks:
+      - id: gga
+        name: Gentleman Guardian Angel
+        entry: bash -c 'unset CLAUDECODE && unset CLAUDE_CODE_ENTRYPOINT && gga run'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ============================================
+  # General - Pre-commit hooks
+  # ============================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-toml

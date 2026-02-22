@@ -2,7 +2,7 @@
 
 Esta plantilla define el formato estándar para documentar cada fuente de conocimiento. Cada ficha es un documento independiente que se carga como fuente en NotebookLM y en el futuro será ingestado por el sistema RAG propio.
 
-**Convención de nombre:** `FUENTE-{NNN}-{titulo-corto}.md`  
+**Convención de nombre:** `FUENTE-{NNN}-{titulo-corto}.md`
 **Ubicación:** `docs/{nicho}/{cerebro}/sources/`
 
 ---
@@ -56,7 +56,7 @@ loaded_in_notebook: true | false
 
 ## Experto Asociado
 
-**{Nombre del experto}** — {Especialidad}  
+**{Nombre del experto}** — {Especialidad}
 Ver ficha completa: `experts-directory.md → EXP-{NNN}`
 
 ## Habilidades que Cubre
@@ -76,24 +76,24 @@ Ver ficha completa: `experts-directory.md → EXP-{NNN}`
 
 ### 1. Principios Fundamentales
 
-> **P1: {Nombre del principio}**  
-> {Descripción clara y accionable del principio}  
+> **P1: {Nombre del principio}**
+> {Descripción clara y accionable del principio}
 > *Contexto de aplicación: {cuándo aplica}*
 
-> **P2: {Nombre del principio}**  
-> {Descripción}  
+> **P2: {Nombre del principio}**
+> {Descripción}
 > *Contexto: {cuándo aplica}*
 
-> **P3: {Nombre del principio}**  
-> {Descripción}  
+> **P3: {Nombre del principio}**
+> {Descripción}
 > *Contexto: {cuándo aplica}*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: {Nombre del Framework}
 
-**Propósito:** {Qué problema resuelve}  
-**Cuándo usar:** {Situación específica}  
+**Propósito:** {Qué problema resuelve}
+**Cuándo usar:** {Situación específica}
 
 **Pasos:**
 1. {Paso 1}

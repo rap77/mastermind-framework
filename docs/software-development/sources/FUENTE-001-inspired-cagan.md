@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Marty Cagan** — Product Management, equipos de producto empoderados  
+**Marty Cagan** — Product Management, equipos de producto empoderados
 Ver ficha completa: `experts-directory.md → EXP-001`
 
 ## Habilidades que Cubre
@@ -57,31 +57,31 @@ Este libro es la referencia mundial en product management moderno. Define cómo 
 
 ### 1. Principios Fundamentales
 
-> **P1: Discovery y Delivery son paralelos, no secuenciales**  
-> Los mejores equipos no hacen discovery primero y delivery después. Ambos ocurren simultáneamente. Mientras se entrega una solución validada, ya se está descubriendo la siguiente.  
+> **P1: Discovery y Delivery son paralelos, no secuenciales**
+> Los mejores equipos no hacen discovery primero y delivery después. Ambos ocurren simultáneamente. Mientras se entrega una solución validada, ya se está descubriendo la siguiente.
 > *Contexto: Aplica siempre. Es la diferencia entre equipos ágiles reales y waterfall disfrazado.*
 
-> **P2: El rol del PM es resolver riesgos de valor y viabilidad, no gestionar features**  
-> El Product Manager no es un tomador de requisitos ni un project manager. Su trabajo es asegurar que lo que se construye sea valioso para el cliente Y viable para el negocio.  
+> **P2: El rol del PM es resolver riesgos de valor y viabilidad, no gestionar features**
+> El Product Manager no es un tomador de requisitos ni un project manager. Su trabajo es asegurar que lo que se construye sea valioso para el cliente Y viable para el negocio.
 > *Contexto: Aplica al definir cualquier nueva funcionalidad o producto.*
 
-> **P3: Los outputs (features) no son lo mismo que outcomes (resultados)**  
-> Medir éxito por features entregadas es una trampa. El éxito real se mide por impacto en el comportamiento del usuario y en métricas de negocio.  
+> **P3: Los outputs (features) no son lo mismo que outcomes (resultados)**
+> Medir éxito por features entregadas es una trampa. El éxito real se mide por impacto en el comportamiento del usuario y en métricas de negocio.
 > *Contexto: Aplica en toda planificación, priorización, y evaluación de resultados.*
 
-> **P4: Equipos empoderados vs Feature Teams**  
-> Los equipos empoderados reciben problemas a resolver y tienen autonomía para encontrar la mejor solución. Los feature teams reciben una lista de features y solo ejecutan. Los primeros innovan, los segundos solo producen.  
+> **P4: Equipos empoderados vs Feature Teams**
+> Los equipos empoderados reciben problemas a resolver y tienen autonomía para encontrar la mejor solución. Los feature teams reciben una lista de features y solo ejecutan. Los primeros innovan, los segundos solo producen.
 > *Contexto: Aplica al estructurar equipos y asignar responsabilidades.*
 
-> **P5: El propósito del prototipo es aprender, no entregar**  
-> Un prototipo no es una versión beta. Es una herramienta para validar hipótesis al menor costo posible. Si no aprendes algo nuevo con cada prototipo, estás desperdiciando tiempo.  
+> **P5: El propósito del prototipo es aprender, no entregar**
+> Un prototipo no es una versión beta. Es una herramienta para validar hipótesis al menor costo posible. Si no aprendes algo nuevo con cada prototipo, estás desperdiciando tiempo.
 > *Contexto: Aplica en la fase de discovery antes de comprometer ingeniería.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Los 4 Riesgos de Product Discovery
 
-**Propósito:** Evaluar toda idea de producto antes de construirla.  
+**Propósito:** Evaluar toda idea de producto antes de construirla.
 **Cuándo usar:** Antes de comprometer recursos de ingeniería a cualquier iniciativa.
 
 **Los 4 riesgos:**
@@ -99,7 +99,7 @@ Este libro es la referencia mundial en product management moderno. Define cómo 
 
 #### FM2: Opportunity Assessment
 
-**Propósito:** Evaluar rápidamente si una oportunidad merece inversión de discovery.  
+**Propósito:** Evaluar rápidamente si una oportunidad merece inversión de discovery.
 **Cuándo usar:** Cuando surge una nueva idea, petición de stakeholder, o señal de mercado.
 
 **Preguntas clave:**
@@ -114,7 +114,7 @@ Este libro es la referencia mundial en product management moderno. Define cómo 
 
 #### FM3: Programa de Reference Customers
 
-**Propósito:** Encontrar y desarrollar clientes reales que validen el producto antes del lanzamiento amplio.  
+**Propósito:** Encontrar y desarrollar clientes reales que validen el producto antes del lanzamiento amplio.
 **Cuándo usar:** Al crear un producto nuevo o entrar a un segmento nuevo.
 
 **Pasos:**

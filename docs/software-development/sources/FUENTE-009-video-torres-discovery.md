@@ -48,12 +48,12 @@ Torres presenta el Opportunity Solution Tree en formato visual, explicando cómo
 
 ### 1. Principios Fundamentales
 
-> **P1: La mayoría de equipos viven en el espacio de soluciones y nunca exploran el espacio de oportunidades**  
-> Llegan a la reunión pensando "¿qué construimos?" en vez de "¿qué problemas resolvemos?". El OST obliga a mapear oportunidades antes de proponer soluciones.  
+> **P1: La mayoría de equipos viven en el espacio de soluciones y nunca exploran el espacio de oportunidades**
+> Llegan a la reunión pensando "¿qué construimos?" en vez de "¿qué problemas resolvemos?". El OST obliga a mapear oportunidades antes de proponer soluciones.
 > *Contexto: Aplica al inicio de cualquier sesión de planificación.*
 
-> **P2: Las oportunidades se descubren, no se inventan**  
-> Las oportunidades vienen de entrevistas con clientes, no de brainstorms internos. Si no hablas con usuarios, inventas problemas.  
+> **P2: Las oportunidades se descubren, no se inventan**
+> Las oportunidades vienen de entrevistas con clientes, no de brainstorms internos. Si no hablas con usuarios, inventas problemas.
 > *Contexto: Aplica como regla: ninguna oportunidad se agrega al OST sin evidencia de entrevista.*
 
 ### 2. Frameworks y Metodologías

@@ -49,12 +49,12 @@ Perri presenta los conceptos clave de su libro en formato keynote. Enfatiza los 
 
 ### 1. Principios Fundamentales
 
-> **P1: El síntoma más claro del build trap es celebrar launches en vez de outcomes**  
-> Si la empresa hace "launch parties" para cada release pero nadie mide si el release mejoró alguna métrica, estás en el build trap.  
+> **P1: El síntoma más claro del build trap es celebrar launches en vez de outcomes**
+> Si la empresa hace "launch parties" para cada release pero nadie mide si el release mejoró alguna métrica, estás en el build trap.
 > *Contexto: Aplica como diagnóstico rápido de cultura organizacional.*
 
-> **P2: Los 3 arquetipos de PM — y solo 1 funciona**  
-> Mini-CEO (dicta sin datos), Camarero (toma pedidos), Estratega (sintetiza y experimenta). Solo el estratega produce resultados sostenibles.  
+> **P2: Los 3 arquetipos de PM — y solo 1 funciona**
+> Mini-CEO (dicta sin datos), Camarero (toma pedidos), Estratega (sintetiza y experimenta). Solo el estratega produce resultados sostenibles.
 > *Contexto: Aplica como herramienta de auto-evaluación del rol del PM.*
 
 ### 2. Frameworks

@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Donella Meadows** — Pensamiento sistémico, sistemas complejos  
+**Donella Meadows** — Pensamiento sistémico, sistemas complejos
 Ver ficha completa: `experts-directory.md → EXP-006`
 
 ## Habilidades que Cubre
@@ -54,27 +54,27 @@ El texto fundacional del pensamiento sistémico accesible. Meadows enseña a ver
 
 ### 1. Principios Fundamentales
 
-> **P1: Un sistema es más que la suma de sus partes**  
-> Un producto no es la suma de sus features. Es la interacción entre features, usuarios, mercado, competencia, y cultura interna. Cambiar una parte cambia todo el sistema.  
+> **P1: Un sistema es más que la suma de sus partes**
+> Un producto no es la suma de sus features. Es la interacción entre features, usuarios, mercado, competencia, y cultura interna. Cambiar una parte cambia todo el sistema.
 > *Contexto: Aplica al evaluar cualquier cambio de producto. Pregunta: "¿Qué más afecta esto?"*
 
-> **P2: El comportamiento de un sistema surge de su estructura, no de sus componentes**  
-> Si un equipo produce malos resultados, no cambies a las personas. Cambia la estructura (incentivos, procesos, métricas). La estructura determina el comportamiento.  
+> **P2: El comportamiento de un sistema surge de su estructura, no de sus componentes**
+> Si un equipo produce malos resultados, no cambies a las personas. Cambia la estructura (incentivos, procesos, métricas). La estructura determina el comportamiento.
 > *Contexto: Aplica al diagnosticar problemas organizacionales o de producto.*
 
-> **P3: Los feedback loops dominan el comportamiento del sistema**  
-> Hay dos tipos: reforzadores (growth loops: más usuarios → más contenido → más usuarios) y balanceadores (frenos: más usuarios → más carga → más lentitud → menos usuarios). Entenderlos es poder.  
+> **P3: Los feedback loops dominan el comportamiento del sistema**
+> Hay dos tipos: reforzadores (growth loops: más usuarios → más contenido → más usuarios) y balanceadores (frenos: más usuarios → más carga → más lentitud → menos usuarios). Entenderlos es poder.
 > *Contexto: Aplica al diseñar crecimiento y al diagnosticar problemas de escalabilidad.*
 
-> **P4: Los sistemas contraintuitivos: las soluciones obvias frecuentemente empeoran el problema**  
-> Ejemplo: agregar más features para retener usuarios genera complejidad que los ahuyenta. La solución intuitiva (más features) agrava el problema real (complejidad).  
+> **P4: Los sistemas contraintuitivos: las soluciones obvias frecuentemente empeoran el problema**
+> Ejemplo: agregar más features para retener usuarios genera complejidad que los ahuyenta. La solución intuitiva (más features) agrava el problema real (complejidad).
 > *Contexto: Aplica antes de implementar cualquier "solución obvia". Pregunta: "¿Esto podría empeorar las cosas?"*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Stocks, Flows, y Feedback Loops
 
-**Propósito:** Mapear cómo funciona un sistema para identificar dónde intervenir.  
+**Propósito:** Mapear cómo funciona un sistema para identificar dónde intervenir.
 **Cuándo usar:** Al analizar un producto, mercado, o proceso.
 
 **Componentes:**
@@ -97,7 +97,7 @@ Loop balanceador: Más usuarios → más soporte necesario → peor servicio →
 
 #### FM2: Puntos de Apalancamiento (Leverage Points)
 
-**Propósito:** Identificar dónde una pequeña intervención produce el mayor cambio en el sistema.  
+**Propósito:** Identificar dónde una pequeña intervención produce el mayor cambio en el sistema.
 **Cuándo usar:** Al priorizar qué mejorar en un producto o proceso.
 
 **12 puntos de apalancamiento (de menor a mayor poder):**

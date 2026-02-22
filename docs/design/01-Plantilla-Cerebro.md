@@ -29,10 +29,10 @@ docs/{nicho}/{##-nombre-brain}/
 ```markdown
 # Cerebro #{número} — {Nombre}
 
-**Nicho:** {Desarrollo de Software | Marketing Digital | etc.}  
-**Nombre NotebookLM:** [CEREBRO] {Nombre} — {Nicho}  
-**Versión:** 1.0  
-**Última actualización:** {fecha}  
+**Nicho:** {Desarrollo de Software | Marketing Digital | etc.}
+**Nombre NotebookLM:** [CEREBRO] {Nombre} — {Nicho}
+**Versión:** 1.0
+**Última actualización:** {fecha}
 
 ## Rol en el Flujo
 
@@ -81,7 +81,7 @@ brain:
 role:
   description: "{Descripción del rol en una oración}"
   central_question: "{La pregunta que responde}"
-  
+
   # Esto es lo que separa un experto de un asistente
   can_reject: true
   can_request_info: true
@@ -95,25 +95,25 @@ five_layers:
       - "{Principio 1}"
       - "{Principio 2}"
       - "{Principio 3}"
-  
+
   2_operational_frameworks:
     description: "Métodos y herramientas prácticas"
     content:
       - "{Framework 1}"
       - "{Framework 2}"
-  
+
   3_mental_models:
     description: "Formas de pensar y analizar"
     content:
       - "{Modelo 1}"
       - "{Modelo 2}"
-  
+
   4_decision_criteria:
     description: "Cómo resolver trade-offs profesionales"
     content:
       - "{Trade-off 1: A vs B}"
       - "{Trade-off 2: C vs D}"
-  
+
   5_feedback_mechanism:
     description: "Cómo mide y mejora su desempeño"
     metrics:
@@ -202,14 +202,14 @@ Resumen: Cada experto fue seleccionado cumpliendo mínimo 4 de 6 criterios oblig
 
 ## EXP-001: {Nombre Completo}
 
-**Especialidad:** {Área principal}  
-**Relevancia para este cerebro:** {Qué habilidades cubre}  
+**Especialidad:** {Área principal}
+**Relevancia para este cerebro:** {Qué habilidades cubre}
 **Credenciales:**
 - {Cargo, empresa, logro}
 - {Publicaciones, conferencias}
 - {Años de experiencia, clientes notables}
 
-**Justificación de selección:**  
+**Justificación de selección:**
 {Por qué esta persona y no otra. Qué aporta que es único.}
 
 **Fuentes maestras asociadas:**

@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Teresa Torres** — Continuous Discovery, investigación de producto  
+**Teresa Torres** — Continuous Discovery, investigación de producto
 Ver ficha completa: `experts-directory.md → EXP-002`
 
 ## Habilidades que Cubre
@@ -55,31 +55,31 @@ Este libro es la guía práctica más completa sobre cómo integrar el discovery
 
 ### 1. Principios Fundamentales
 
-> **P1: Discovery debe ser continuo, no un proyecto**  
-> Las necesidades de los clientes cambian, los mercados evolucionan, y la competencia se mueve. El discovery no termina cuando lanzas. Es un hábito semanal, no un sprint trimestral.  
+> **P1: Discovery debe ser continuo, no un proyecto**
+> Las necesidades de los clientes cambian, los mercados evolucionan, y la competencia se mueve. El discovery no termina cuando lanzas. Es un hábito semanal, no un sprint trimestral.
 > *Contexto: Aplica siempre. El descubrimiento debe ser parte del ritmo semanal del equipo.*
 
-> **P2: El product trio es la unidad mínima de discovery**  
-> Discovery no es responsabilidad solo del PM. Es un trabajo conjunto del PM + Designer + Tech Lead. Los tres aportan perspectivas distintas (negocio, experiencia, factibilidad) y los tres deben estar en las entrevistas y decisiones.  
+> **P2: El product trio es la unidad mínima de discovery**
+> Discovery no es responsabilidad solo del PM. Es un trabajo conjunto del PM + Designer + Tech Lead. Los tres aportan perspectivas distintas (negocio, experiencia, factibilidad) y los tres deben estar en las entrevistas y decisiones.
 > *Contexto: Aplica al estructurar equipos y planificar actividades de discovery.*
 
-> **P3: Empieza por el outcome, no por la solución**  
-> La mayoría de equipos empiezan pensando en qué construir. Los mejores equipos empiezan definiendo qué resultado de negocio quieren lograr, y desde ahí descubren oportunidades y soluciones.  
+> **P3: Empieza por el outcome, no por la solución**
+> La mayoría de equipos empiezan pensando en qué construir. Los mejores equipos empiezan definiendo qué resultado de negocio quieren lograr, y desde ahí descubren oportunidades y soluciones.
 > *Contexto: Aplica al inicio de cualquier ciclo de planificación o al recibir un brief.*
 
-> **P4: Entrevistar clientes semanalmente, no solo al inicio del proyecto**  
-> Un equipo que no habla con clientes cada semana está tomando decisiones a ciegas. La entrevista semanal es el hábito más importante del discovery continuo.  
+> **P4: Entrevistar clientes semanalmente, no solo al inicio del proyecto**
+> Un equipo que no habla con clientes cada semana está tomando decisiones a ciegas. La entrevista semanal es el hábito más importante del discovery continuo.
 > *Contexto: Aplica como hábito permanente del equipo.*
 
-> **P5: Las oportunidades son necesidades, dolores, y deseos del cliente — NO son features**  
-> Una oportunidad es un espacio de problema del cliente. Una feature es una posible solución. Confundirlos es la raíz de malos productos.  
+> **P5: Las oportunidades son necesidades, dolores, y deseos del cliente — NO son features**
+> Una oportunidad es un espacio de problema del cliente. Una feature es una posible solución. Confundirlos es la raíz de malos productos.
 > *Contexto: Aplica al mapear lo que se descubre en entrevistas.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Opportunity Solution Tree (OST)
 
-**Propósito:** Visualizar la relación entre un outcome de negocio, las oportunidades descubiertas, y las soluciones propuestas. Mantener al equipo alineado y enfocado.  
+**Propósito:** Visualizar la relación entre un outcome de negocio, las oportunidades descubiertas, y las soluciones propuestas. Mantener al equipo alineado y enfocado.
 **Cuándo usar:** Siempre. Es la herramienta central del discovery continuo.
 
 **Estructura del árbol:**
@@ -98,7 +98,7 @@ Este libro es la guía práctica más completa sobre cómo integrar el discovery
 
 #### FM2: Entrevistas de Descubrimiento (Story-Based Interviews)
 
-**Propósito:** Extraer oportunidades reales de los clientes sin sesgar sus respuestas.  
+**Propósito:** Extraer oportunidades reales de los clientes sin sesgar sus respuestas.
 **Cuándo usar:** Semanalmente. Mínimo 1 entrevista por semana.
 
 **Pasos:**
@@ -112,7 +112,7 @@ Este libro es la guía práctica más completa sobre cómo integrar el discovery
 
 #### FM3: Assumption Testing
 
-**Propósito:** Validar las suposiciones más riesgosas de una solución antes de construirla.  
+**Propósito:** Validar las suposiciones más riesgosas de una solución antes de construirla.
 **Cuándo usar:** Antes de comprometer ingeniería a cualquier solución.
 
 **Pasos:**

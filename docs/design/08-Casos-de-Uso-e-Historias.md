@@ -6,8 +6,8 @@
 
 ### CU-001: Crear un Producto desde Cero
 
-**Actor:** CEO / Usuario  
-**Precondición:** Tiene una idea o problema identificado  
+**Actor:** CEO / Usuario
+**Precondición:** Tiene una idea o problema identificado
 **Flujo:**
 
 1. Usuario da un brief al Orquestador: "Quiero crear una app de citas para barberos"
@@ -29,8 +29,8 @@
 
 ### CU-002: Validar una Idea antes de Construir
 
-**Actor:** CEO / Emprendedor  
-**Precondición:** Tiene una idea pero no sabe si vale la pena  
+**Actor:** CEO / Emprendedor
+**Precondición:** Tiene una idea pero no sabe si vale la pena
 **Flujo:**
 
 1. Usuario: "Quiero saber si tiene sentido crear un CRM para coaches de fitness"
@@ -45,8 +45,8 @@
 
 ### CU-003: Diseñar una Feature Nueva para Producto Existente
 
-**Actor:** Product Manager (o CEO)  
-**Precondición:** Producto existente necesita nueva funcionalidad  
+**Actor:** Product Manager (o CEO)
+**Precondición:** Producto existente necesita nueva funcionalidad
 **Flujo:**
 
 1. Usuario: "Necesito agregar sistema de notificaciones push a mi app"
@@ -62,8 +62,8 @@
 
 ### CU-004: Optimizar un Producto que No Crece
 
-**Actor:** CEO  
-**Precondición:** Producto lanzado pero métricas estancadas  
+**Actor:** CEO
+**Precondición:** Producto lanzado pero métricas estancadas
 **Flujo:**
 
 1. Usuario: "Mi app tiene 500 usuarios pero nadie paga. ¿Qué hago?"
@@ -79,8 +79,8 @@
 
 ### CU-005: Resolver Conflicto entre Cerebros
 
-**Actor:** Orquestador (automático)  
-**Precondición:** Dos cerebros producen outputs contradictorios  
+**Actor:** Orquestador (automático)
+**Precondición:** Dos cerebros producen outputs contradictorios
 **Flujo:**
 
 1. Cerebro #3 (UI) diseña una animación compleja de transición
@@ -98,8 +98,8 @@
 
 ### CU-006: Auditoría de Landing Page para Cliente de la Agencia
 
-**Actor:** Hija (Agencia) / Cliente  
-**Precondición:** Cliente tiene landing page que no convierte  
+**Actor:** Hija (Agencia) / Cliente
+**Precondición:** Cliente tiene landing page que no convierte
 **Flujo:**
 
 1. Usuario: "Este cliente tiene una landing de nutrición pero nadie se registra"
@@ -117,7 +117,7 @@
 
 ### Formato
 
-> **Como** {rol}, **quiero** {acción}, **para** {beneficio}.  
+> **Como** {rol}, **quiero** {acción}, **para** {beneficio}.
 > **Criterios de aceptación:** {lista de condiciones que deben cumplirse}
 
 ---

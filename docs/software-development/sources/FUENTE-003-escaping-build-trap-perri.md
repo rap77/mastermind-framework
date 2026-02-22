@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Melissa Perri** — Estrategia de producto, organizaciones product-led  
+**Melissa Perri** — Estrategia de producto, organizaciones product-led
 Ver ficha completa: `experts-directory.md → EXP-003`
 
 ## Habilidades que Cubre
@@ -56,27 +56,27 @@ Este libro diagnostica y resuelve el problema más común en empresas de tecnolo
 
 ### 1. Principios Fundamentales
 
-> **P1: El Build Trap es medir éxito por lo que produces, no por el valor que generas**  
-> Las empresas atrapadas en el build trap celebran "lanzamos 47 features este trimestre" sin preguntarse si alguna generó impacto. Producir features no es crear valor.  
+> **P1: El Build Trap es medir éxito por lo que produces, no por el valor que generas**
+> Las empresas atrapadas en el build trap celebran "lanzamos 47 features este trimestre" sin preguntarse si alguna generó impacto. Producir features no es crear valor.
 > *Contexto: Aplica como diagnóstico. Si el equipo celebra outputs, está en el build trap.*
 
-> **P2: Las empresas product-led superan a las sales-led, tech-led, y visionary-led**  
-> En una empresa product-led, el producto impulsa el crecimiento a través de uso y retención, no solo por ventas o visión del fundador. Es el modelo más sostenible.  
+> **P2: Las empresas product-led superan a las sales-led, tech-led, y visionary-led**
+> En una empresa product-led, el producto impulsa el crecimiento a través de uso y retención, no solo por ventas o visión del fundador. Es el modelo más sostenible.
 > *Contexto: Aplica al evaluar la cultura organizacional y definir hacia dónde evolucionar.*
 
-> **P3: Estrategia no es un plan. Es un framework para tomar decisiones.**  
-> Un plan dice "haz X, luego Y, luego Z". Una estrategia dice "dado que queremos lograr A, y el contexto es B, priorizamos C". La estrategia se adapta; el plan se rompe.  
+> **P3: Estrategia no es un plan. Es un framework para tomar decisiones.**
+> Un plan dice "haz X, luego Y, luego Z". Una estrategia dice "dado que queremos lograr A, y el contexto es B, priorizamos C". La estrategia se adapta; el plan se rompe.
 > *Contexto: Aplica al definir roadmap y al comunicar con stakeholders.*
 
-> **P4: El Product Manager sintetiza negocio + usuario + tecnología**  
-> El PM no es "la voz del cliente" ni "el dueño del backlog". Es quien sintetiza lo que el negocio necesita, lo que el usuario quiere, y lo que la tecnología permite, para crear algo viable.  
+> **P4: El Product Manager sintetiza negocio + usuario + tecnología**
+> El PM no es "la voz del cliente" ni "el dueño del backlog". Es quien sintetiza lo que el negocio necesita, lo que el usuario quiere, y lo que la tecnología permite, para crear algo viable.
 > *Contexto: Aplica al definir el rol del PM y al reclutar.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Product Kata
 
-**Propósito:** Proceso iterativo para avanzar del estado actual al estado deseado a través de experimentación.  
+**Propósito:** Proceso iterativo para avanzar del estado actual al estado deseado a través de experimentación.
 **Cuándo usar:** Al ejecutar estrategia de producto en ciclos cortos.
 
 **Pasos (loop continuo):**
@@ -90,7 +90,7 @@ Este libro diagnostica y resuelve el problema más común en empresas de tecnolo
 
 #### FM2: Marco Estratégico de Producto (Strategy Deployment)
 
-**Propósito:** Conectar la visión de la empresa con la ejecución diaria del equipo de producto.  
+**Propósito:** Conectar la visión de la empresa con la ejecución diaria del equipo de producto.
 **Cuándo usar:** Al definir o re-evaluar la estrategia de producto.
 
 **Niveles (de arriba a abajo):**

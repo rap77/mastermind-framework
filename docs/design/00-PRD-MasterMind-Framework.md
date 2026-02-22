@@ -1,10 +1,10 @@
 # MasterMind Framework — PRD (Product Requirements Document)
 
-**Versión:** 1.0  
-**Fecha:** Febrero 2026  
-**Nicho Inicial:** Desarrollo de Software  
-**Fase:** 1 — Diseño Arquitectónico  
-**Clasificación:** Confidencial — Uso Interno  
+**Versión:** 1.0
+**Fecha:** Febrero 2026
+**Nicho Inicial:** Desarrollo de Software
+**Fase:** 1 — Diseño Arquitectónico
+**Clasificación:** Confidencial — Uso Interno
 
 ---
 
@@ -163,11 +163,11 @@ orchestrator_logic:
         - deploy_test (→ Cerebro 6)
         - optimize (→ Cerebro 7)
         - multi_phase (→ secuencia de cerebros)
-    
+
     2_decompose:
       action: "Si es multi_phase, descomponer en tareas atómicas"
       output: "Lista ordenada de tareas con cerebro asignado"
-    
+
     3_execute:
       action: "Invocar cerebro(s) en orden"
       rules:
@@ -175,7 +175,7 @@ orchestrator_logic:
         - Cerebro #7 evalúa cada output en tiempo real
         - Si #7 rechaza, el cerebro original itera
         - Si después de 3 iteraciones no pasa, escalar a humano
-    
+
     4_deliver:
       action: "Consolidar outputs y entregar al usuario"
 ```
@@ -237,7 +237,7 @@ brain_7_evaluation:
       - "¿Contradice outputs anteriores de otros cerebros?"
       - "¿Hay información faltante crítica?"
       - "¿El nivel de detalle es suficiente para el siguiente cerebro?"
-    
+
     possible_actions:
       APPROVE: "Output pasa al siguiente cerebro"
       REQUEST_ITERATION: "Devolver al cerebro con feedback específico"

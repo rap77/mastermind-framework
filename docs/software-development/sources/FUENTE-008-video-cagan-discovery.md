@@ -34,7 +34,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Marty Cagan** — Product Management  
+**Marty Cagan** — Product Management
 Ver ficha completa: `experts-directory.md → EXP-001`
 
 ## Habilidades que Cubre
@@ -54,23 +54,23 @@ Charla condensada donde Cagan explica el proceso de product discovery en ~55 min
 
 ### 1. Principios Fundamentales
 
-> **P1: El mayor riesgo en producto es construir algo que nadie quiere**  
-> La mayoría de ideas fallan. Eso no es un bug, es una feature del proceso. El discovery existe para fallar rápido y barato, no para evitar el fracaso.  
+> **P1: El mayor riesgo en producto es construir algo que nadie quiere**
+> La mayoría de ideas fallan. Eso no es un bug, es una feature del proceso. El discovery existe para fallar rápido y barato, no para evitar el fracaso.
 > *Contexto: Refuerza el principio central de Inspired. Usar como recordatorio constante.*
 
-> **P2: Discovery es el trabajo más importante del PM — y el más ignorado**  
-> La mayoría de PMs pasan su tiempo en reuniones de sprint y gestión de backlog. El PM debería pasar la mayor parte de su tiempo con clientes y datos, no en Jira.  
+> **P2: Discovery es el trabajo más importante del PM — y el más ignorado**
+> La mayoría de PMs pasan su tiempo en reuniones de sprint y gestión de backlog. El PM debería pasar la mayor parte de su tiempo con clientes y datos, no en Jira.
 > *Contexto: Aplica como regla de distribución de tiempo del PM.*
 
-> **P3: Prototipos baratos antes de código costoso**  
-> Un prototipo de alta fidelidad se puede construir en horas o días. Si no puedes validar con un prototipo, no lo valides con ingeniería.  
+> **P3: Prototipos baratos antes de código costoso**
+> Un prototipo de alta fidelidad se puede construir en horas o días. Si no puedes validar con un prototipo, no lo valides con ingeniería.
 > *Contexto: Aplica antes de cada decisión de "empezar a construir".*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Discovery Sprint (versión Cagan)
 
-**Propósito:** Validar una idea de producto en 1-2 semanas sin escribir código de producción.  
+**Propósito:** Validar una idea de producto en 1-2 semanas sin escribir código de producción.
 **Cuándo usar:** Cuando hay una idea prometedora que necesita validación rápida.
 
 **Pasos:**

@@ -6,8 +6,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #2 — UX Research & Strategy
 
-**Nombre NotebookLM:** [CEREBRO] UX Research — Software Development  
-**Rol:** Define CÓMO debe funcionar la experiencia para que el usuario logre su objetivo sin fricción.  
+**Nombre NotebookLM:** [CEREBRO] UX Research — Software Development
+**Rol:** Define CÓMO debe funcionar la experiencia para que el usuario logre su objetivo sin fricción.
 **Pregunta Central:** ¿Cómo debe sentirse y funcionar esta experiencia para el usuario?
 
 ### 5 Capas
@@ -40,8 +40,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #3 — UI Design
 
-**Nombre NotebookLM:** [CEREBRO] UI Design — Software Development  
-**Rol:** Convierte la experiencia en interfaz visual atractiva, coherente, y escalable.  
+**Nombre NotebookLM:** [CEREBRO] UI Design — Software Development
+**Rol:** Convierte la experiencia en interfaz visual atractiva, coherente, y escalable.
 **Pregunta Central:** ¿Cómo se ve y se comunica visualmente este producto?
 
 ### 5 Capas
@@ -73,8 +73,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #4 — Frontend Architecture
 
-**Nombre NotebookLM:** [CEREBRO] Frontend — Software Development  
-**Rol:** Convierte diseño en experiencia interactiva real. Si falla, el producto se siente lento o roto.  
+**Nombre NotebookLM:** [CEREBRO] Frontend — Software Development
+**Rol:** Convierte diseño en experiencia interactiva real. Si falla, el producto se siente lento o roto.
 **Pregunta Central:** ¿Cómo construimos una interfaz que sea rápida, accesible, y mantenible?
 
 ### 5 Capas
@@ -107,8 +107,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #5 — Backend & Systems Architecture
 
-**Nombre NotebookLM:** [CEREBRO] Backend — Software Development  
-**Rol:** Construye la lógica, datos, y seguridad del sistema. Si falla, el sistema colapsa al crecer.  
+**Nombre NotebookLM:** [CEREBRO] Backend — Software Development
+**Rol:** Construye la lógica, datos, y seguridad del sistema. Si falla, el sistema colapsa al crecer.
 **Pregunta Central:** ¿Cómo diseñamos un sistema que sea seguro, escalable, y mantenible?
 
 ### 5 Capas
@@ -140,8 +140,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #6 — QA & DevOps
 
-**Nombre NotebookLM:** [CEREBRO] QA DevOps — Software Development  
-**Rol:** Garantiza estabilidad y despliegue continuo. Sin este cerebro, el producto se vuelve inestable.  
+**Nombre NotebookLM:** [CEREBRO] QA DevOps — Software Development
+**Rol:** Garantiza estabilidad y despliegue continuo. Sin este cerebro, el producto se vuelve inestable.
 **Pregunta Central:** ¿Cómo desplegamos y mantenemos este sistema de forma segura y confiable?
 
 ### 5 Capas
@@ -173,8 +173,8 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #7 — Growth & Data (Meta-Cerebro Evolutivo)
 
-**Nombre NotebookLM:** [CEREBRO] Growth Data — Software Development  
-**Rol:** No construye. **Observa todos los cerebros en tiempo real, cuestiona, evalúa, y obliga a evolucionar.** Es el único cerebro que tiene autoridad sobre todos los demás.  
+**Nombre NotebookLM:** [CEREBRO] Growth Data — Software Development
+**Rol:** No construye. **Observa todos los cerebros en tiempo real, cuestiona, evalúa, y obliga a evolucionar.** Es el único cerebro que tiene autoridad sobre todos los demás.
 **Pregunta Central:** ¿Está funcionando? ¿Dónde se rompe? ¿Qué optimizamos?
 
 ### 5 Capas

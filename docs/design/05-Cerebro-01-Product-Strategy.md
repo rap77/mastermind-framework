@@ -1,8 +1,8 @@
 # Cerebro #1 — Product Strategy (Especificación Completa)
 
-**Nicho:** Desarrollo de Software  
-**Nombre NotebookLM:** [CEREBRO] Product Strategy — Software Development  
-**Versión:** 1.0  
+**Nicho:** Desarrollo de Software
+**Nombre NotebookLM:** [CEREBRO] Product Strategy — Software Development
+**Versión:** 1.0
 **Orden en el flujo:** 1 (primer cerebro, todo nace aquí)
 
 ---
@@ -92,78 +92,78 @@ Define **QUÉ se va a construir y POR QUÉ**. Si este cerebro falla, todo el pro
 
 ### EXP-001: Marty Cagan
 
-**Especialidad:** Product Management, equipos de producto empoderados  
-**Credenciales:** Fundador de SVPG. Ex-VP Producto en eBay, Netscape, HP. Autor de la serie más vendida de product management.  
+**Especialidad:** Product Management, equipos de producto empoderados
+**Credenciales:** Fundador de SVPG. Ex-VP Producto en eBay, Netscape, HP. Autor de la serie más vendida de product management.
 **Relevancia:** Cubre H1, H3, H5, H7. Es el estándar de oro en product management moderno.
 
 **Justificación:** No hay autor más citado ni más influyente en product management. Su framework de product discovery y empowered teams es el estándar de la industria. Cada empresa de Silicon Valley que hace producto bien sigue sus principios.
 
-**Cuándo usarlo:** Estructura de equipos, discovery, priorización, relación PM-ingeniería.  
+**Cuándo usarlo:** Estructura de equipos, discovery, priorización, relación PM-ingeniería.
 **Cuándo NO usarlo:** Métricas cuantitativas profundas, OKRs detallados.
 
 ---
 
 ### EXP-002: Teresa Torres
 
-**Especialidad:** Continuous Discovery, investigación de producto  
-**Credenciales:** Coach de product discovery. Ha entrenado +8,500 product managers. Fundadora de Product Talk Academy.  
+**Especialidad:** Continuous Discovery, investigación de producto
+**Credenciales:** Coach de product discovery. Ha entrenado +8,500 product managers. Fundadora de Product Talk Academy.
 **Relevancia:** Cubre H2, H4. El mejor framework práctico para integrar research en el día a día.
 
 **Justificación:** Donde Cagan define el "qué" del discovery, Torres define el "cómo" con pasos concretos, ejercicios, y el Opportunity Solution Tree. Es el complemento práctico perfecto.
 
-**Cuándo usarlo:** Discovery continuo, entrevistas, mapeo de oportunidades, validación.  
+**Cuándo usarlo:** Discovery continuo, entrevistas, mapeo de oportunidades, validación.
 **Cuándo NO usarlo:** Estrategia de negocio de alto nivel, priorización ejecutiva.
 
 ---
 
 ### EXP-003: Melissa Perri
 
-**Especialidad:** Estrategia de producto, organizaciones product-led  
-**Credenciales:** CEO de Produx Labs. Profesora de Harvard Business School (MBA). Asesora de Fortune 500.  
+**Especialidad:** Estrategia de producto, organizaciones product-led
+**Credenciales:** CEO de Produx Labs. Profesora de Harvard Business School (MBA). Asesora de Fortune 500.
 **Relevancia:** Cubre H1, H3, H8. Especialista en evitar la "trampa de construir" (build trap).
 
 **Justificación:** Aborda el problema más común: empresas que construyen features sin estrategia. Su framework de Product Kata y su enfoque en outcomes vs outputs complementa a Cagan con un ángulo más organizacional.
 
-**Cuándo usarlo:** Estrategia de producto, alineación org, escapar de feature factories.  
+**Cuándo usarlo:** Estrategia de producto, alineación org, escapar de feature factories.
 **Cuándo NO usarlo:** Research de usuario detallado, aspectos técnicos.
 
 ---
 
 ### EXP-004: Eric Ries
 
-**Especialidad:** Lean Startup, validación de hipótesis  
-**Credenciales:** Creador del movimiento Lean Startup. Cofundador de LTSE. Asesor de GE, Toyota.  
+**Especialidad:** Lean Startup, validación de hipótesis
+**Credenciales:** Creador del movimiento Lean Startup. Cofundador de LTSE. Asesor de GE, Toyota.
 **Relevancia:** Cubre H2, H8. El framework fundacional de validar antes de construir.
 
 **Justificación:** Aunque el libro tiene más de 10 años, los principios de Build-Measure-Learn, MVP, y pivoteo siguen siendo la base de cualquier strategy. Sin Lean Startup, el cerebro no tendría fundamento de validación.
 
-**Cuándo usarlo:** Validación de ideas, MVPs, pivotes, experimentación.  
+**Cuándo usarlo:** Validación de ideas, MVPs, pivotes, experimentación.
 **Cuándo NO usarlo:** Estrategia de producto maduro, escalamiento.
 
 ---
 
 ### EXP-005: John Doerr
 
-**Especialidad:** OKRs, alineación de equipos  
-**Credenciales:** Chairman de Kleiner Perkins. Implementó OKRs en Google, Intel, Amazon. Inversor legendario.  
+**Especialidad:** OKRs, alineación de equipos
+**Credenciales:** Chairman de Kleiner Perkins. Implementó OKRs en Google, Intel, Amazon. Inversor legendario.
 **Relevancia:** Cubre H4. La referencia mundial en cómo medir y alinear equipos.
 
 **Justificación:** OKRs son el sistema de métricas más adoptado en tech. Doerr lo implementó en las empresas más exitosas del mundo. Sin esto, el cerebro no sabría cómo medir progreso.
 
-**Cuándo usarlo:** Definición de objetivos, alineación de equipos, tracking de progreso.  
+**Cuándo usarlo:** Definición de objetivos, alineación de equipos, tracking de progreso.
 **Cuándo NO usarlo:** Discovery, research de usuario, diseño de producto.
 
 ---
 
 ### EXP-006: Donella Meadows
 
-**Especialidad:** Pensamiento sistémico, sistemas complejos  
-**Credenciales:** Científica de sistemas del MIT. Autora fundacional en pensamiento sistémico.  
+**Especialidad:** Pensamiento sistémico, sistemas complejos
+**Credenciales:** Científica de sistemas del MIT. Autora fundacional en pensamiento sistémico.
 **Relevancia:** Cubre H6. La base teórica para pensar en productos como sistemas.
 
 **Justificación:** Un PM sin pensamiento sistémico toma decisiones lineales en un mundo no-lineal. Meadows enseña a ver feedback loops, puntos de leverage, y efectos emergentes. Es la capa que separa un PM promedio de uno estratégico.
 
-**Cuándo usarlo:** Análisis de causa raíz, efectos secundarios, diseño de sistemas.  
+**Cuándo usarlo:** Análisis de causa raíz, efectos secundarios, diseño de sistemas.
 **Cuándo NO usarlo:** Ejecución táctica, priorización de features.
 
 ---

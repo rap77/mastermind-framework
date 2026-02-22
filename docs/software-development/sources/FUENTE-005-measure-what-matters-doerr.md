@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**John Doerr** — OKRs, alineación estratégica  
+**John Doerr** — OKRs, alineación estratégica
 Ver ficha completa: `experts-directory.md → EXP-005`
 
 ## Habilidades que Cubre
@@ -54,27 +54,27 @@ La referencia definitiva sobre OKRs (Objectives and Key Results). Doerr llevó e
 
 ### 1. Principios Fundamentales
 
-> **P1: Lo que mides es lo que obtienes**  
-> Si mides features entregadas, obtendrás features. Si mides retención de usuarios, obtendrás retención. Los OKRs obligan a definir qué importa de verdad.  
+> **P1: Lo que mides es lo que obtienes**
+> Si mides features entregadas, obtendrás features. Si mides retención de usuarios, obtendrás retención. Los OKRs obligan a definir qué importa de verdad.
 > *Contexto: Aplica al inicio de cualquier ciclo de planificación.*
 
-> **P2: Los OKRs son aspiracionales, no compromisos contractuales**  
-> Un OKR aspiracional (moonshot) debería lograrse al 60-70%. Si siempre alcanzas el 100%, tus objetivos no son lo suficientemente ambiciosos.  
+> **P2: Los OKRs son aspiracionales, no compromisos contractuales**
+> Un OKR aspiracional (moonshot) debería lograrse al 60-70%. Si siempre alcanzas el 100%, tus objetivos no son lo suficientemente ambiciosos.
 > *Contexto: Aplica al definir objetivos. Si el equipo siempre cumple 100%, están jugando seguro.*
 
-> **P3: Menos es más. Máximo 3-5 OKRs por ciclo.**  
-> Si todo es prioridad, nada es prioridad. Limitar los OKRs obliga a elegir qué importa de verdad y decir no a lo demás.  
+> **P3: Menos es más. Máximo 3-5 OKRs por ciclo.**
+> Si todo es prioridad, nada es prioridad. Limitar los OKRs obliga a elegir qué importa de verdad y decir no a lo demás.
 > *Contexto: Aplica en cada planificación trimestral.*
 
-> **P4: Los OKRs se definen bottom-up Y top-down**  
-> Cerca del 50% de los OKRs deben venir del equipo (bottom-up), no solo de liderazgo (top-down). Esto genera ownership y creatividad.  
+> **P4: Los OKRs se definen bottom-up Y top-down**
+> Cerca del 50% de los OKRs deben venir del equipo (bottom-up), no solo de liderazgo (top-down). Esto genera ownership y creatividad.
 > *Contexto: Aplica al distribuir objetivos entre equipos.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Estructura de OKRs
 
-**Propósito:** Definir objetivos claros con resultados medibles.  
+**Propósito:** Definir objetivos claros con resultados medibles.
 **Cuándo usar:** Al inicio de cada trimestre o ciclo de planificación.
 
 **Estructura:**
@@ -98,7 +98,7 @@ Objective: Hacer que los nuevos usuarios amen la experiencia de onboarding
 
 #### FM2: CFRs (Conversations, Feedback, Recognition)
 
-**Propósito:** Complementar los OKRs con gestión humana continua.  
+**Propósito:** Complementar los OKRs con gestión humana continua.
 **Cuándo usar:** Semanal/quincenal como complemento a los OKRs trimestrales.
 
 **Componentes:**

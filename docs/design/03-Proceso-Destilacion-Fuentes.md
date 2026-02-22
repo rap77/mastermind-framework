@@ -8,8 +8,8 @@ Definir **cómo extraer el conocimiento esencial** de cada fuente (libro, video,
 
 ## Principio Fundamental
 
-> **Destila principios, no información masiva.**  
-> Un cerebro alimentado con 5 libros completos tiene ruido.  
+> **Destila principios, no información masiva.**
+> Un cerebro alimentado con 5 libros completos tiene ruido.
 > Un cerebro alimentado con los 50 principios destilados de esos 5 libros tiene criterio.
 
 ---
@@ -70,7 +70,7 @@ De cada fuente, extraer y organizar en:
 1. PRINCIPIOS FUNDAMENTALES
    Lo que el experto considera verdades universales de su campo.
    Formato: Afirmación clara + contexto breve.
-   
+
 2. FRAMEWORKS Y METODOLOGÍAS
    Procesos estructurados que el experto propone.
    Formato: Nombre del framework + pasos + cuándo usarlo.

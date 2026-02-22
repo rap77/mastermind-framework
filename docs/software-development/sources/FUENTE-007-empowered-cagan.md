@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Marty Cagan** — Product Management, liderazgo de producto  
+**Marty Cagan** — Product Management, liderazgo de producto
 Ver ficha completa: `experts-directory.md → EXP-001`
 
 ## Habilidades que Cubre
@@ -55,27 +55,27 @@ Complemento directo de Inspired. Si Inspired dice CÓMO hacer discovery y delive
 
 ### 1. Principios Fundamentales
 
-> **P1: La diferencia entre grandes y mediocres empresas de producto es el liderazgo, no el talento**  
-> Las mejores empresas no tienen personas más inteligentes. Tienen líderes que crean el entorno donde personas normales hacen trabajo extraordinario. El liderazgo es el multiplicador.  
+> **P1: La diferencia entre grandes y mediocres empresas de producto es el liderazgo, no el talento**
+> Las mejores empresas no tienen personas más inteligentes. Tienen líderes que crean el entorno donde personas normales hacen trabajo extraordinario. El liderazgo es el multiplicador.
 > *Contexto: Aplica al evaluar por qué un equipo no produce buenos resultados. El problema casi nunca es el equipo.*
 
-> **P2: Dar problemas a resolver, no features a construir**  
-> El trabajo del líder es proveer contexto estratégico (visión, métricas, restricciones) y un problema claro. El equipo descubre la mejor solución. Si el líder dicta la solución, mata la innovación.  
+> **P2: Dar problemas a resolver, no features a construir**
+> El trabajo del líder es proveer contexto estratégico (visión, métricas, restricciones) y un problema claro. El equipo descubre la mejor solución. Si el líder dicta la solución, mata la innovación.
 > *Contexto: Aplica al comunicar briefs y al relacionarse con equipos de ejecución.*
 
-> **P3: Coaching > Management**  
-> Los mejores líderes de producto son coaches: desarrollan las competencias de su equipo, no les dicen qué hacer. Un PM bien coached resuelve problemas solo. Un PM bien managed necesita que le digan qué hacer siempre.  
+> **P3: Coaching > Management**
+> Los mejores líderes de producto son coaches: desarrollan las competencias de su equipo, no les dicen qué hacer. Un PM bien coached resuelve problemas solo. Un PM bien managed necesita que le digan qué hacer siempre.
 > *Contexto: Aplica al definir la relación entre el estratega y los equipos de ejecución.*
 
-> **P4: La product vision es el pegamento emocional del equipo**  
-> La visión no es un documento. Es una historia convincente del futuro que inspira al equipo a dar su mejor esfuerzo. Sin visión, los equipos ejecutan sin pasión.  
+> **P4: La product vision es el pegamento emocional del equipo**
+> La visión no es un documento. Es una historia convincente del futuro que inspira al equipo a dar su mejor esfuerzo. Sin visión, los equipos ejecutan sin pasión.
 > *Contexto: Aplica al iniciar cualquier proyecto o al re-motivar un equipo estancado.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Product Vision & Strategy
 
-**Propósito:** Definir hacia dónde va el producto (visión) y cómo llegar (estrategia).  
+**Propósito:** Definir hacia dónde va el producto (visión) y cómo llegar (estrategia).
 **Cuándo usar:** Al inicio de un producto nuevo o al re-enfocar uno existente.
 
 **Product Vision:**
@@ -94,7 +94,7 @@ Complemento directo de Inspired. Si Inspired dice CÓMO hacer discovery y delive
 
 #### FM2: Stakeholder Management
 
-**Propósito:** Gestionar la relación con stakeholders sin perder autonomía de producto.  
+**Propósito:** Gestionar la relación con stakeholders sin perder autonomía de producto.
 **Cuándo usar:** Permanentemente, especialmente cuando hay presión por features específicas.
 
 **Principios:**

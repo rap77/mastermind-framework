@@ -35,7 +35,7 @@ loaded_in_notebook: false
 
 ## Experto Asociado
 
-**Eric Ries** — Lean Startup, validación de hipótesis  
+**Eric Ries** — Lean Startup, validación de hipótesis
 Ver ficha completa: `experts-directory.md → EXP-004`
 
 ## Habilidades que Cubre
@@ -55,27 +55,27 @@ El libro fundacional del movimiento Lean Startup. Propone tratar cada nuevo prod
 
 ### 1. Principios Fundamentales
 
-> **P1: Un startup es una institución humana diseñada para crear bajo condiciones de extrema incertidumbre**  
-> No se define por tamaño, sector, ni tecnología. Se define por la incertidumbre. Si no sabes quién es tu cliente ni si tu producto funciona, estás en modo startup — y necesitas gestión de startup, no corporativa.  
+> **P1: Un startup es una institución humana diseñada para crear bajo condiciones de extrema incertidumbre**
+> No se define por tamaño, sector, ni tecnología. Se define por la incertidumbre. Si no sabes quién es tu cliente ni si tu producto funciona, estás en modo startup — y necesitas gestión de startup, no corporativa.
 > *Contexto: Aplica al evaluar si un proyecto requiere modo "exploración" o modo "ejecución".*
 
-> **P2: La unidad de progreso en un startup es el aprendizaje validado, no el código entregado**  
-> Si construiste algo y no aprendiste nada nuevo sobre tus clientes, desperdiciaste tiempo. El progreso real es aprender qué funciona y qué no, con evidencia.  
+> **P2: La unidad de progreso en un startup es el aprendizaje validado, no el código entregado**
+> Si construiste algo y no aprendiste nada nuevo sobre tus clientes, desperdiciaste tiempo. El progreso real es aprender qué funciona y qué no, con evidencia.
 > *Contexto: Aplica al evaluar el progreso de cualquier proyecto en fase temprana.*
 
-> **P3: La pregunta no es "¿podemos construirlo?" sino "¿debemos construirlo?"**  
-> La factibilidad técnica rara vez es el problema. El problema es construir algo que nadie quiere. Valida la demanda antes de invertir en la solución.  
+> **P3: La pregunta no es "¿podemos construirlo?" sino "¿debemos construirlo?"**
+> La factibilidad técnica rara vez es el problema. El problema es construir algo que nadie quiere. Valida la demanda antes de invertir en la solución.
 > *Contexto: Aplica antes de cualquier compromiso de ingeniería.*
 
-> **P4: El runway real no es dinero, es número de pivotes que puedes hacer**  
-> Una empresa no muere cuando se acaba el dinero. Muere cuando se acaban las oportunidades de pivotar. Cada pivote es un intento de encontrar un modelo sostenible.  
+> **P4: El runway real no es dinero, es número de pivotes que puedes hacer**
+> Una empresa no muere cuando se acaba el dinero. Muere cuando se acaban las oportunidades de pivotar. Cada pivote es un intento de encontrar un modelo sostenible.
 > *Contexto: Aplica al planificar recursos y velocidad de experimentación.*
 
 ### 2. Frameworks y Metodologías
 
 #### FM1: Build-Measure-Learn Feedback Loop
 
-**Propósito:** Ciclo iterativo para convertir ideas en productos validados al menor costo posible.  
+**Propósito:** Ciclo iterativo para convertir ideas en productos validados al menor costo posible.
 **Cuándo usar:** Siempre que se esté creando algo nuevo bajo incertidumbre.
 
 **Pasos (loop continuo):**
@@ -89,7 +89,7 @@ El libro fundacional del movimiento Lean Startup. Propone tratar cada nuevo prod
 
 #### FM2: MVP (Minimum Viable Product)
 
-**Propósito:** Testear la hipótesis más riesgosa con el menor esfuerzo posible.  
+**Propósito:** Testear la hipótesis más riesgosa con el menor esfuerzo posible.
 **Cuándo usar:** Al inicio de cualquier producto o feature nueva.
 
 **Tipos de MVP:**
@@ -105,7 +105,7 @@ El libro fundacional del movimiento Lean Startup. Propone tratar cada nuevo prod
 
 #### FM3: Innovation Accounting
 
-**Propósito:** Medir progreso real en un startup, donde las métricas tradicionales (ingresos, usuarios totales) engañan.  
+**Propósito:** Medir progreso real en un startup, donde las métricas tradicionales (ingresos, usuarios totales) engañan.
 **Cuándo usar:** Al establecer métricas de éxito para productos en fase temprana.
 
 **Pasos:**
@@ -122,7 +122,7 @@ El libro fundacional del movimiento Lean Startup. Propone tratar cada nuevo prod
 
 #### FM4: Pivot or Persevere
 
-**Propósito:** Decidir si cambiar de rumbo estratégico o seguir optimizando.  
+**Propósito:** Decidir si cambiar de rumbo estratégico o seguir optimizando.
 **Cuándo usar:** En reuniones regulares de "pivot or persevere" (cada 4-8 semanas).
 
 **Tipos de pivote:**
