@@ -1,7 +1,16 @@
 [project]
-name = "mente-maestra"
+name = "mastermind-framework"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered framework for specialized expert brains"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+    "gitpython>=3.1.0",
+    "semver>=3.0.0",
+]
+
+[project.scripts]
+mastermind = "mastermind_cli.cli:main"
