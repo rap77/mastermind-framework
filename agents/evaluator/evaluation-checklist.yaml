@@ -1,0 +1,28 @@
+criteria:
+  brief_addressed:
+    description: "Output directly addresses the brief"
+    weight: critical
+
+  evidence_provided:
+    description: "Claims are supported by evidence"
+    weight: high
+
+  actionability:
+    description: "Next steps are specific and actionable"
+    weight: high
+
+  specificity:
+    description: "Output is specific, not generic"
+    weight: medium
+
+  risk_acknowledged:
+    description: "Risks and limitations are acknowledged"
+    weight: medium
+
+  metrics_defined:
+    description: "Success metrics are proposed where applicable"
+    weight: low
+
+escalation:
+  max_rejections: 3
+  action: "escalate_to_human"

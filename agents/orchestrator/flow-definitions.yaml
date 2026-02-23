@@ -1,0 +1,15 @@
+flows:
+  full_product:
+    name: "Complete Product Development"
+    brains: [1, 2, 3, 4, 5, 6, 7]
+    description: "From idea to deployed product"
+
+  validation_only:
+    name: "Quick Validation"
+    brains: [1, 7]
+    description: "Validate idea without building"
+
+  product_strategy:
+    name: "Product Strategy Only"
+    brains: [1]
+    description: "Define strategy, defer execution"
