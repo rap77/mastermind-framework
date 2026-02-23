@@ -42,7 +42,7 @@ head -5 dist/notebooklm/01-product-strategy/FUENTE-001-*.md
 
 1. Ir a https://notebooklm.google.com/
 2. Click "New notebook"
-3. Nombre: `[MM] Product Strategy — Software Development`
+3. Nombre: `[CEREBRO] Product Strategy - Software Development`
 4. Opcional: Agregar descripción
 
 ---

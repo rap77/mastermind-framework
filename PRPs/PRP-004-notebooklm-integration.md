@@ -18,7 +18,7 @@ Configurar NotebookLM para el Cerebro #1, crear el proceso de carga de fuentes, 
 ### Decisiones Críticas
 
 1. **NotebookLM MCP:** Está configurado en otro proyecto - validar que funcione en este
-2. **Nombre del cuaderno:** `[MM] Product Strategy — Software Development`
+2. **Nombre del cuaderno:** `[CEREBRO] Product Strategy - Software Development`
 3. **Carga:** Híbrida - export manual (drag&drop) + opción auto-load vía MCP
 4. **Verificación:** 3 consultas de prueba para validar la carga
 
@@ -64,7 +64,7 @@ def setup_notebooklm():
 
     # 3. Crear notebook-config.json
     config = {
-        "notebook_name": "[MM] Product Strategy — Software Development",
+        "notebook_name": "[CEREBRO] Product Strategy - Software Development",
         "brain_id": "01-product-strategy",
         "sources_count": 10,
         "sources_loaded": [],
@@ -89,7 +89,7 @@ def manual_verification_guide():
     print("""
     Manual Verification Steps:
     1. Go to https://notebooklm.google.com/
-    2. Create notebook: [MM] Product Strategy — Software Development
+    2. Create notebook: [CEREBRO] Product Strategy - Software Development
     3. Upload all files from dist/notebooklm/01-product-strategy/
     4. Run test queries (see notebook-config.json)
     5. Update notebook-config.json with notebook_id and verification status
@@ -123,7 +123,7 @@ def manual_verification_guide():
 
 ### Task 5: NotebookLM Setup (20 min)
 - [ ] Ir a https://notebooklm.google.com/
-- [ ] Crear notebook: `[MM] Product Strategy — Software Development`
+- [ ] Crear notebook: `[CEREBRO] Product Strategy - Software Development`
 - [ ] Subir 10 archivos desde `dist/notebooklm/01-product-strategy/`
 - [ ] Esperar a que NotebookLM procese las fuentes
 - [ ] Anotar notebook_id en config
@@ -152,7 +152,7 @@ def manual_verification_guide():
 
 ```json
 {
-  "notebook_name": "[MM] Product Strategy — Software Development",
+  "notebook_name": "[CEREBRO] Product Strategy - Software Development",
   "notebook_id": "NB-ID-FROM-URL",
   "brain_id": "01-product-strategy",
   "version": "1.0.0",
@@ -286,7 +286,7 @@ ls docs/NOTEBOOKLM-GUIDE.md
 
 2. **Codificación de caracteres:** Asegurarse de que los archivos estén en UTF-8. Los acentos en español pueden causar problemas.
 
-3. **Nombre del notebook:** Usar el prefijo `[MM]` para distinguir los cuadernos de MasterMind de otros usos de NotebookLM.
+3. **Nombre del notebook:** Usar el prefijo `[CEREBRO]` para distinguir los cuadernos de MasterMind de otros usos de NotebookLM.
 
 4. **Procesamiento de NotebookLM:** Puede tomar varios minutos después de subir las fuentes. Esperar a que el indicador de "processing" desaparezca.
 
@@ -331,7 +331,7 @@ This creates clean Markdown files in `dist/notebooklm/01-product-strategy/`.
 ### Step 2: Create Notebook
 1. Go to https://notebooklm.google.com/
 2. Click "New notebook"
-3. Name it: `[MM] Product Strategy — Software Development`
+3. Name it: `[CEREBRO] Product Strategy - Software Development`
 
 ### Step 3: Upload Sources
 1. Click "Add sources"

@@ -446,30 +446,30 @@ Igual para los demás agentes. Cada uno en su archivo en `agents/brains/`.
 
 **Convención de nombres para cuadernos:**
 ```
-[MM] {Cerebro} — {Nicho}
+[CEREBRO] {Cerebro} - {Nicho}
 ```
 
 **Cuadernos a crear (solo Cerebro #1 ahora, los demás se crean cuando se implementen):**
 ```
-[MM] Product Strategy — Software Development
+[CEREBRO] Product Strategy - Software Development
 ```
 
 **Pasos de creación:**
 1. Ir a https://notebooklm.google.com/
-2. Crear nuevo cuaderno con nombre: `[MM] Product Strategy — Software Development`
+2. Crear nuevo cuaderno con nombre: `[CEREBRO] Product Strategy - Software Development`
 3. NO cargar fuentes todavía (primero exportar con el CLI)
 4. Anotar el URL/ID del cuaderno en `notebook-config.json`
 
 **Estructura futura de cuadernos (no crear aún):**
 ```
-[MM] Product Strategy — Software Development    ← CREAR AHORA
-[MM] UX Research — Software Development         ← Fase 6+
-[MM] UI Design — Software Development           ← Fase 6+
-[MM] Frontend — Software Development            ← Fase 6+
-[MM] Backend — Software Development             ← Fase 6+
-[MM] QA/DevOps — Software Development           ← Fase 6+
-[MM] Growth/Data — Software Development         ← Fase 6+
-[MM] Orquestador — Software Development         ← Cuando se implemente
+[CEREBRO] Product Strategy - Software Development    ← CREAR AHORA
+[CEREBRO] UX Research - Software Development         ← Fase 6+
+[CEREBRO] UI Design - Software Development           ← Fase 6+
+[CEREBRO] Frontend - Software Development            ← Fase 6+
+[CEREBRO] Backend - Software Development             ← Fase 6+
+[CEREBRO] QA/DevOps - Software Development           ← Fase 6+
+[CEREBRO] Growth/Data - Software Development         ← Fase 6+
+[CEREBRO] Orquestador - Software Development         ← Cuando se implemente
 ```
 
 #### 5.1 Proceso documentado
