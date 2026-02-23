@@ -15,6 +15,15 @@ skills_covered: ["H1", "H3"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
+version: "1.0.0"
+last_updated: "2026-02-22"
+changelog:
+  - version: "1.0.0"
+    date: "2026-02-22"
+    changes:
+      - "Destilación inicial completa"
+      - "Agregadas secciones 3, 4, 5 según estándar"
+status: "active"
 ---
 
 # FUENTE-008: Product Discovery — Marty Cagan (SVPG Talk)
@@ -82,14 +91,21 @@ Charla condensada donde Cagan explica el proceso de product discovery en ~55 min
 
 **Output esperado:** Decisión informada con evidencia cualitativa de usuarios reales.
 
-### 3. Criterios de Decisión
+### 3. Modelos Mentales
+
+| Modelo | Descripción | Aplicación Práctica |
+|--------|-------------|-------------------|
+| Producto como experimento continuo | Cada feature es una hipótesis por validar, no un entregable | Al planificar: preguntar "¿qué aprendemos?" en vez de "¿qué entregamos?" |
+| Fallo rápido y barato | El éxito en producto requiere eliminar rápido las malas ideas | Celebrar cuando un prototipo descarta una mala idea: ahorramos meses de desarrollo |
+
+### 4. Criterios de Decisión
 
 | Cuando... | Prioriza... | Sobre... | Porque... |
 |-----------|-------------|----------|-----------|
 | El equipo quiere "probar con el MVP" | Prototipo que no requiere código | MVP que requiere semanas de desarrollo | Un prototipo valida en días lo que un MVP tarda semanas |
 | Alguien dice "los usuarios nos lo pidieron" | Observar qué hacen (comportamiento) | Creer lo que dicen (opinión) | Las personas dicen una cosa y hacen otra |
 
-### 4. Anti-patrones (Qué NO Hacer)
+### 5. Anti-patrones (Qué NO Hacer)
 
 | Anti-patrón | Por qué es malo | Qué hacer en su lugar |
 |-------------|----------------|----------------------|

@@ -1,5 +1,3 @@
-# FUENTE-009: Continuous Discovery — Teresa Torres (Mind the Product Talk)
-
 ---
 source_id: "FUENTE-009"
 brain: "brain-software-01-product-strategy"
@@ -17,7 +15,18 @@ skills_covered: ["H2"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
+version: "1.0.0"
+last_updated: "2026-02-22"
+changelog:
+  - version: "1.0.0"
+    date: "2026-02-22"
+    changes:
+      - "Destilación inicial completa"
+      - "Movido YAML al inicio con delimitadores correctos"
+status: "active"
 ---
+
+# FUENTE-009: Continuous Discovery — Teresa Torres (Mind the Product Talk)
 
 ## Datos de la Fuente
 
@@ -65,7 +74,28 @@ Refuerza el framework de FUENTE-002 con énfasis visual en:
 - **Cómo generar soluciones:** Compare & Contrast — siempre mínimo 3 opciones
 - **Cómo validar:** Assumption tests rápidos antes de construir
 
-### 3. Casos y Ejemplos Reales
+### 3. Modelos Mentales
+
+| Modelo | Descripción | Aplicación Práctica |
+|--------|-------------|-------------------|
+| Espacio de oportunidad vs espacio de solución | Dos mundos diferentes: el de los problemas del usuario y el de nuestras soluciones | Cada reunión empieza mapeando oportunidades, nunca proponiendo soluciones directamente |
+| Árboles crecen hacia abajo, no hacia arriba | Los outcomes generan oportunidades, que generan soluciones, que generan假设 | Nunca empieces por la solución. Siempre desde el outcome hacia abajo |
+
+### 4. Criterios de Decisión
+
+| Cuando... | Prioriza... | Sobre... | Porque... |
+|-----------|-------------|----------|-----------|
+| El equipo quiere "empezar a construir" | Mapear el árbol de oportunidades completo | Proponer soluciones directas | Las soluciones sin contexto de oportunidad son características aleatorias |
+| Alguien propone una solución | Pedir "¿qué oportunidad resuelve?" | Aceptar la propuesta | Sin oportunidad clara, no hay criterio para evaluar si la solución es buena |
+
+### 5. Anti-patrones (Qué NO Hacer)
+
+| Anti-patrón | Por qué es malo | Qué hacer en su lugar |
+|-------------|----------------|----------------------|
+| Solicitar features directamente a clientes | Los clientes diseñan soluciones, no identifican oportunidades | Preguntar por problemas que experimentan, no qué quieren que construyas |
+| Llenar el OST con soluciones sin oportunidades | Es un roadmap disfrazado, no un árbol de descubrimiento | Cada solución debe conectar a una oportunidad con evidencia de entrevistas |
+
+### 6. Casos y Ejemplos Reales
 
 #### Caso: Equipo que descubrió oportunidad inesperada
 

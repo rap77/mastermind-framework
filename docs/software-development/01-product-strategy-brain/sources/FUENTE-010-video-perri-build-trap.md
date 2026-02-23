@@ -1,5 +1,3 @@
-# FUENTE-010: Escaping the Build Trap — Melissa Perri (Keynote)
-
 ---
 source_id: "FUENTE-010"
 brain: "brain-software-01-product-strategy"
@@ -17,7 +15,19 @@ skills_covered: ["H3", "H8"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
+version: "1.0.0"
+last_updated: "2026-02-22"
+changelog:
+  - version: "1.0.0"
+    date: "2026-02-22"
+    changes:
+      - "Destilación inicial completa"
+      - "Movido YAML al inicio con delimitadores correctos"
+      - "Agregadas secciones 3, 4, 5 según estándar"
+status: "active"
 ---
+
+# FUENTE-010: Escaping the Build Trap — Melissa Perri (Keynote)
 
 ## Datos de la Fuente
 
@@ -57,7 +67,7 @@ Perri presenta los conceptos clave de su libro en formato keynote. Enfatiza los 
 > Mini-CEO (dicta sin datos), Camarero (toma pedidos), Estratega (sintetiza y experimenta). Solo el estratega produce resultados sostenibles.
 > *Contexto: Aplica como herramienta de auto-evaluación del rol del PM.*
 
-### 2. Frameworks
+### 2. Frameworks y Metodologías
 
 #### FM1: Checklist de diagnóstico del Build Trap
 
@@ -71,7 +81,32 @@ Señales de que una organización está atrapada:
 
 **Si 3+ aplican:** la organización necesita transformación product-led.
 
-### 3. Casos y Ejemplos Reales
+### 3. Modelos Mentales
+
+| Modelo | Descripción | Aplicación Práctica |
+|--------|-------------|-------------------|
+| Output vs Outcome | Outputs son features que construyes; outcomes son cambios de comportamiento que generas | Cada iniciativa debe definir outcomes esperados antes de empezar |
+| Feature factory → Product factory | Las feature factories producen código. Las product factories producen valor medible. | Migrar roadmap de "qué features" a "qué outcomes queremos lograr" |
+| Producto como hipótesis | Todo feature es un experimento para validar algo sobre el usuario | Celebrar aprendizajes (incluyendo fracasos) tanto como éxitos |
+
+### 4. Criterios de Decisión
+
+| Cuando... | Prioriza... | Sobre... | Porque... |
+|-----------|-------------|----------|-----------|
+| El equipo celebra el lanzamiento | Medir outcomes del lanzamiento | Solo celebrar el ship | Lanzar sin impacto no es victoria, es desperdicio |
+| Stakeholders piden features por fecha | Pedir outcomes deseados | Aceptar fechas sin compromiso de resultado | Features sin outcomes = build trap |
+| Hay que elegir entre métricas | Outcome-based metrics (retención, activación) | Output-based metrics (features lanzadas) | Las primeras predicen éxito del negocio; las segundas solo miden actividad |
+
+### 5. Anti-patrones (Qué NO Hacer)
+
+| Anti-patrón | Por qué es malo | Qué hacer en su lugar |
+|-------------|----------------|----------------------|
+| Roadmaps de features con fechas fijas | Incentivan entregar a tiempo aunque no sirva para nada | Roadmaps de outcomes con hipótesis a validar |
+| Celebrar número de features lanzadas | Cuenta actividad, no valor | Celebrar mejoras en métricas de negocio |
+| PMs como project managers con otro nombre | Se enfocan en cuándo se entrega, no si sirve | PMs deben ser dueños de outcomes, no de timelines |
+| Pedir a stakeholders qué construir | Stakeholders proponen soluciones sin entender el problema | Entender el problema de negocio, co-crear soluciones con el equipo |
+
+### 6. Casos y Ejemplos Reales
 
 #### Caso: Empresa que lanzaba 50 features por trimestre sin impacto
 

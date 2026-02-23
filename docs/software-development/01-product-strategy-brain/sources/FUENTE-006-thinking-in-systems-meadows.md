@@ -16,6 +16,15 @@ skills_covered: ["H6"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
+version: "1.0.0"
+last_updated: "2026-02-22"
+changelog:
+  - version: "1.0.0"
+    date: "2026-02-22"
+    changes:
+      - "Destilación inicial completa"
+status: "active"
+
 ---
 
 # FUENTE-006: Thinking in Systems — A Primer
