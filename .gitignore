@@ -39,3 +39,6 @@ Thumbs.db
 # MasterMind Framework - Operative data (not in repo)
 logs/
 projects/
+
+# NotebookLM exports
+dist/

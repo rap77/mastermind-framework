@@ -1,0 +1,113 @@
+{
+  "notebook_name": "[MM] Product Strategy — Software Development",
+  "notebook_id": "",
+  "brain_id": "01-product-strategy",
+  "version": "1.0.0",
+  "created_at": "2026-02-22",
+  "sources": [
+    {
+      "source_id": "FUENTE-001",
+      "title": "Inspired: How to Create Tech Products Customers Love",
+      "author": "Marty Cagan",
+      "filename": "FUENTE-001-inspired-cagan.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-002",
+      "title": "Continuous Discovery Habits",
+      "author": "Teresa Torres",
+      "filename": "FUENTE-002-continuous-discovery-torres.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-003",
+      "title": "Escaping the Build Trap",
+      "author": "Melissa Perri",
+      "filename": "FUENTE-003-escaping-build-trap-perri.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-004",
+      "title": "The Lean Startup",
+      "author": "Eric Ries",
+      "filename": "FUENTE-004-lean-startup-ries.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-005",
+      "title": "Measure What Matters",
+      "author": "John Doerr",
+      "filename": "FUENTE-005-measure-what-matters-doerr.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-006",
+      "title": "Thinking in Systems",
+      "author": "Donella Meadows",
+      "filename": "FUENTE-006-thinking-in-systems-meadows.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-007",
+      "title": "Empowered",
+      "author": "Marty Cagan",
+      "filename": "FUENTE-007-empowered-cagan.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-008",
+      "title": "Product Discovery (Video)",
+      "author": "Marty Cagan",
+      "filename": "FUENTE-008-video-cagan-discovery.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-009",
+      "title": "Continuous Discovery (Video)",
+      "author": "Teresa Torres",
+      "filename": "FUENTE-009-video-torres-discovery.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    },
+    {
+      "source_id": "FUENTE-010",
+      "title": "Escaping the Build Trap (Video)",
+      "author": "Melissa Perri",
+      "filename": "FUENTE-010-video-perri-build-trap.md",
+      "loaded": false,
+      "notebook_source_id": ""
+    }
+  ],
+  "sources_count": 10,
+  "sources_loaded": 0,
+  "last_sync": null,
+  "verification_status": "pending",
+  "test_queries": [
+    {
+      "query": "¿Cuáles son los 4 riesgos de product discovery según Marty Cagan?",
+      "expected_answer": "Value, Usability, Feasibility, Viability",
+      "actual_answer": "",
+      "passed": false
+    },
+    {
+      "query": "¿Qué es el Opportunity Solution Tree de Teresa Torres?",
+      "expected_answer": "Outcomes → Opportunities → Solutions → Experiments",
+      "actual_answer": "",
+      "passed": false
+    },
+    {
+      "query": "¿Cuándo debería pivotar vs perseverar según Eric Ries?",
+      "expected_answer": "Based on Build-Measure-Learn data, not opinions",
+      "actual_answer": "",
+      "passed": false
+    }
+  ]
+}
