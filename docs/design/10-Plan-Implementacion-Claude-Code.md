@@ -7,9 +7,9 @@
 
 ## Contexto del Proyecto
 
-**Nombre del repo:** mastermind
+**Nombre del repo:** mente-maestra
 **Ubicación:** WSL (Linux)
-**Creado con:** `uv --init mastermind`
+**Creado con:** `uv --init mente-maestra`
 **Runtime:** Python (uv), Node.js (nvm)
 **LLM:** Claude Code (suscripción)
 **MCP Servers:** NotebookLM, Context7, Sequential Thinking
@@ -38,6 +38,7 @@ Todos los documentos de diseño están en la carpeta `docs/design/` del proyecto
 | `07-Orquestador-y-Evaluador.md` | Diseño del Orquestador Central y Evaluador Crítico |
 | `08-Casos-de-Uso-e-Historias.md` | Casos de uso e historias de usuario |
 | `09-Filesystem-Structure.md` | Estructura de carpetas completa |
+| `11-Cerebro-07-Evaluador-Critico.md` | Especificación completa del Cerebro #7: expertos, fuentes, evaluation protocol, skill, matrices, bias catalog, benchmarks, precedent system |
 
 Las fichas de fuentes maestras del Cerebro #1 están en:
 `docs/software-development/01-product-strategy-brain/sources/`
@@ -52,7 +53,7 @@ Las fichas de fuentes maestras del Cerebro #1 están en:
 
 ```bash
 # 1. Verificar que el repo existe
-cd ~/mastermind  # o la ruta correcta
+cd ~/mente-maestra  # o la ruta correcta
 ls -la
 
 # 2. Verificar Python/uv
@@ -78,7 +79,7 @@ git status
 ```
 
 **Decisiones a tomar:**
-- Si las skills son locales del otro proyecto → copiarlas a mastermind o instalarlas globalmente
+- Si las skills son locales del otro proyecto → copiarlas a mente-maestra o instalarlas globalmente
 - Si no hay .git → inicializar `git init`
 
 ---
@@ -91,7 +92,7 @@ git status
 
 ```bash
 #!/bin/bash
-# Ejecutar desde la raíz del proyecto mastermind
+# Ejecutar desde la raíz del proyecto mente-maestra
 
 # Documentación de diseño (los 10 docs del PRD)
 mkdir -p docs/design
@@ -359,9 +360,9 @@ Esto se puede hacer con un script one-time que actualice las 10 fichas automáti
 
 ---
 
-### FASE 4 — System Prompts de Agentes (1-2 horas)
+### FASE 4A — System Prompts de Agentes (1-2 horas)
 
-**Objetivo:** Crear los system prompts que Claude Code usará como agentes especializados.
+**Objetivo:** Crear los system prompts que Claude Code usará como agentes especializados (cerebros 1-6 + orquestador).
 
 #### 4.1 System Prompt del Orquestador
 
@@ -438,6 +439,59 @@ Igual para los demás agentes. Cada uno en su archivo en `agents/brains/`.
 
 ---
 
+### FASE 4B — Evaluator Skill + Cerebro #7 (2-3 horas)
+
+**Objetivo:** Implementar la skill de evaluación que permite al Cerebro #7 evaluar, aprobar, rechazar, y redirigir outputs de cualquier cerebro.
+
+**Documento de referencia:** `docs/design/11-Cerebro-07-Evaluador-Critico.md`
+
+#### 4B.1 Crear estructura de la skill
+
+```bash
+mkdir -p skills/evaluator/evaluation-matrices
+mkdir -p skills/evaluator/templates
+```
+
+#### 4B.2 Archivos a crear
+
+| Archivo | Contenido |
+|---------|-----------|
+| `skills/evaluator/SKILL.md` | System prompt completo del evaluador con protocolo de 5 pasos |
+| `skills/evaluator/protocol.md` | Protocolo documentado de evaluación (Intake → Evaluación → Scoring → Veredicto → Registro) |
+| `skills/evaluator/bias-catalog.yaml` | 10 sesgos cognitivos catalogados (Munger + Kahneman + Tetlock + Dobelli) |
+| `skills/evaluator/benchmarks.yaml` | Benchmarks de industria SaaS/Marketplace/Mobile (Lenny + Ellis) |
+| `skills/evaluator/evaluation-matrices/product-brief.yaml` | Matrix para evaluar product briefs del Cerebro #1 |
+| `skills/evaluator/templates/evaluation-report.yaml` | Template estructurado del reporte de evaluación |
+| `skills/evaluator/templates/escalation-report.yaml` | Template para cuando se escala al humano |
+
+#### 4B.3 Agregar comando al CLI
+
+```bash
+mastermind brain compile-radar --brain 07
+```
+
+Este comando:
+1. Lee `evaluation-criteria.md` de cada cerebro (1-6)
+2. Compila checklist consolidado → `FUENTE-709-checklist-evaluacion.md`
+3. Lee anti-patrones de cada cerebro (1-6)
+4. Compila anti-patrones consolidados → `FUENTE-710-antipatrones-consolidados.md`
+5. Deposita en `07-growth-data-brain/sources/`
+
+#### 4B.4 Test de verificación
+
+Crear un product-brief de prueba deliberadamente con defectos:
+- Sin métricas de éxito
+- Con confirmation bias evidente
+- Sin análisis de escenario de fallo
+
+Ejecutar la evaluación y verificar que el #7:
+- Detecta los 3 defectos
+- Produce un evaluation-report.yaml correcto
+- Da instrucciones específicas de corrección
+- Veredicto esperado: REJECT o CONDITIONAL
+
+---
+
 ### FASE 5 — Flujo de Carga a NotebookLM (1 hora)
 
 **Objetivo:** Crear los cuadernos desde cero en NotebookLM y sistematizar la carga de fuentes.
@@ -446,30 +500,30 @@ Igual para los demás agentes. Cada uno en su archivo en `agents/brains/`.
 
 **Convención de nombres para cuadernos:**
 ```
-[CEREBRO] {Cerebro} - {Nicho}
+[MM] {Cerebro} — {Nicho}
 ```
 
 **Cuadernos a crear (solo Cerebro #1 ahora, los demás se crean cuando se implementen):**
 ```
-[CEREBRO] Product Strategy - Software Development
+[MM] Product Strategy — Software Development
 ```
 
 **Pasos de creación:**
 1. Ir a https://notebooklm.google.com/
-2. Crear nuevo cuaderno con nombre: `[CEREBRO] Product Strategy - Software Development`
+2. Crear nuevo cuaderno con nombre: `[MM] Product Strategy — Software Development`
 3. NO cargar fuentes todavía (primero exportar con el CLI)
 4. Anotar el URL/ID del cuaderno en `notebook-config.json`
 
 **Estructura futura de cuadernos (no crear aún):**
 ```
-[CEREBRO] Product Strategy - Software Development    ← CREAR AHORA
-[CEREBRO] UX Research - Software Development         ← Fase 6+
-[CEREBRO] UI Design - Software Development           ← Fase 6+
-[CEREBRO] Frontend - Software Development            ← Fase 6+
-[CEREBRO] Backend - Software Development             ← Fase 6+
-[CEREBRO] QA/DevOps - Software Development           ← Fase 6+
-[CEREBRO] Growth/Data - Software Development         ← Fase 6+
-[CEREBRO] Orquestador - Software Development         ← Cuando se implemente
+[MM] Product Strategy — Software Development    ← CREAR AHORA
+[MM] UX Research — Software Development         ← Fase 6+
+[MM] UI Design — Software Development           ← Fase 6+
+[MM] Frontend — Software Development            ← Fase 6+
+[MM] Backend — Software Development             ← Fase 6+
+[MM] QA/DevOps — Software Development           ← Fase 6+
+[MM] Growth/Data — Software Development         ← Fase 6+
+[MM] Orquestador — Software Development         ← Cuando se implemente
 ```
 
 #### 5.1 Proceso documentado
@@ -592,17 +646,18 @@ Se genera un PRP por cerebro. Los cerebros se implementan en orden:
 | 1 | Estructura del proyecto | 30 min | Fase 0 |
 | 2 | mastermind-cli | 2-3 horas | Fase 1 |
 | 3 | YAML versionado en fichas existentes | 30 min | Fase 2 (usa el CLI) |
-| 4 | System prompts de agentes | 1-2 horas | Fase 1 |
+| 4A | System prompts de agentes (cerebros 1-6) | 1-2 horas | Fase 1 |
+| 4B | Evaluator Skill + Cerebro #7 | 2-3 horas | Fases 2 y 4A |
 | 5 | Flujo de carga NotebookLM | 1 hora | Fase 2 |
 | 6 | PRP del Cerebro #1 | 1-2 horas | Fases 1-5 |
 
-**Total estimado para tener Cerebro #1 operativo:** ~8-10 horas de trabajo.
+**Total estimado para tener Cerebro #1 + #7 operativos:** ~10-13 horas de trabajo.
 
 ---
 
 ## Instrucciones para Claude Code
 
-Cuando el usuario abra Claude Code en el directorio `mastermind`:
+Cuando el usuario abra Claude Code en el directorio `mente-maestra`:
 
 1. **Lee este documento completo** con la skill superpower o superclaude
 2. **Lee los 10 documentos de diseño** en `docs/design/`
@@ -613,7 +668,7 @@ Cuando el usuario abra Claude Code en el directorio `mastermind`:
 
 ### Preguntas que Claude Code DEBE hacer al usuario antes de empezar:
 
-1. ¿Cuál es la ruta exacta del proyecto mastermind en tu WSL?
+1. ¿Cuál es la ruta exacta del proyecto mente-maestra en tu WSL?
 2. ¿Las skills superpower/superclaude están en ~/.claude/skills/ o en otro proyecto? ¿Quieres que las copie?
 3. ¿Ya tienes cuadernos creados en NotebookLM para este proyecto o los creo?
 4. ¿Quieres empezar desde la Fase 0 o ya verificaste tu entorno?
