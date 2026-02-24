@@ -1,0 +1,175 @@
+# Bias Catalog — Catálogo de Sesgos Cognitivos
+# Cerebro #7 de Mente Maestra
+#
+# Este catálogo contiene 10 sesgos cognitivos comunes que el evaluador
+# debe detectar en los outputs de los cerebros 1-6.
+#
+# Cada sesgo tiene:
+#   - id: Identificador único del sesgo
+#   - name: Nombre del sesgo
+#   - signal: Qué buscar en el output para detectar el sesgo
+#   - question: Pregunta para hacer al cerebro evaluado
+#   - source: Fuente teórica del sesgo
+#   - counter_strategy: Estrategia para contrarrestar el sesgo
+#
+# Fuentes:
+#   - FUENTE-701: Poor Charlie's Almanack (Munger)
+#   - FUENTE-702: Thinking, Fast and Slow (Kahneman)
+#   - FUENTE-703: Superforecasting (Tetlock)
+#   - FUENTE-707: Art of Thinking Clearly (Dobelli)
+
+biases:
+  - id: "BIAS-01"
+    name: "Confirmation Bias (Sesgo de Confirmación)"
+    signal: "Solo presenta evidencia que confirma la idea, ninguna que la cuestione. Se ignoran datos que contradicen la conclusión."
+    question: "¿Qué evidencia contradice esta conclusión? ¿Por qué no se menciona?"
+    source: "Kahneman — Thinking, Fast and Slow"
+    counter_strategy: "Buscar activamente evidencia disprobatoria. Considerar: '¿Qué tendría que ser cierto para que esto sea FALSO?'"
+    examples:
+      - "Solo cita casos de éxito de discovery, no menciona proyectos donde discovery falló"
+      - "Solo incluye testimonios positivos de usuarios, ninguno negativo"
+      - "Solo analiza competidores que 'confirman' el mercado, ignora los que fracasaron"
+
+  - id: "BIAS-02"
+    name: "Anchoring (Anclaje)"
+    signal: "Se fijó en el primer número/dato y no exploró alternativas. Las estimaciones se ajustan insuficientemente desde el ancla inicial."
+    question: "¿De dónde viene este número? ¿Qué alternativas se consideraron? ¿Qué pasa si el ancla está mal?"
+    source: "Kahneman — Thinking, Fast and Slow"
+    counter_strategy: "Generar múltiples anclas independientes antes de converger. Usar 'reference class forecasting'."
+    examples:
+      - "Estima que el proyecto tomará 3 meses porque 'algo similar' tomó 3 meses, sin investigar otros proyectos"
+      - "Fija precio en $99 porque la competencia cobra $99, sin calcular willingness-to-pay real"
+
+  - id: "BIAS-03"
+    name: "Sunk Cost Fallacy (Costo Hundido)"
+    signal: "Defiende la idea porque ya se invirtió tiempo/dinero, no porque tenga mérito actual. 'Ya tanto esfuerzo invertido...'"
+    question: "Si empezáramos desde cero hoy, ¿elegiríamos este camino? ¿O seguimos porque ya invertimos?"
+    source: "Kahneman — Thinking, Fast and Slow"
+    counter_strategy: "Evaluar cada decisión como si fuera independiente del pasado. Solo considerar costos futuros, no pasados."
+    examples:
+      - "Seguir con una feature que nobody usa porque 'ya gastamos 3 meses desarrollándola'"
+      - "No cambiar de dirección porque 'ya escribimos todo el PRD'"
+
+  - id: "BIAS-04"
+    name: "Survivorship Bias (Sesgo de Supervivencia)"
+    signal: "Solo cita casos de éxito, ignora los fracasos. Las conclusiones se basan en quienes 'sobrevivieron', no en el total."
+    question: "¿Cuántos intentaron esto y fracasaron? ¿Por qué? ¿Qué difería los éxito de los fracasos?"
+    source: "Dobelli — Art of Thinking Clearly"
+    counter_strategy: "Investigar los 'casos muertos', no solo los éxitos. Considerar base rate de éxito en el dominio."
+    examples:
+      - "Cita Instagram como prueba de que 'las apps de fotos funcionan', ignora los 1000+ clones que fracasaron"
+      - "Analiza unicornios sin considerar que <1% de startups llega a ese nivel"
+
+  - id: "BIAS-05"
+    name: "Dunning-Kruger Effect"
+    signal: "Presenta certeza absoluta donde debería haber duda. Sobreconfianza sin base en expertise real."
+    question: "¿Qué tan seguros estamos de esto? ¿Es un hecho o una hipótesis? ¿Qué nivel de confianza le asignamos?"
+    source: "Tetlock — Superforecasting"
+    counter_strategy: "Expresar predicciones como probabilidades, no certezas. Calibrar confianza contra accuracy histórico."
+    examples:
+      - "'Estamos seguros de que el mercado es enorme' sin datos de mercado"
+      - "'Esto va a ser viral' sin evidencia de product-market fit"
+
+  - id: "BIAS-06"
+    name: "Authority Bias (Sesgo de Autoridad)"
+    signal: "Justifica con 'lo dice [persona famosa]' en vez de evidencia. Acepta claims de expertos sin cuestionar."
+    question: "¿Qué evidencia hay más allá de la opinión del experto? ¿El experto tiene data o solo opinión?"
+    source: "Munger — Poor Charlie's Almanack"
+    counter_strategy: "Evaluar argumentos, no autoridades. 'Even if Einstein said it, it still needs proof.'"
+    examples:
+      - "'Cagan dice que discovery es esencial' sin citar evidencia de por qué funciona"
+      - "'Hormozi recomienda X' sin analizar si X aplica al contexto específico"
+
+  - id: "BIAS-07"
+    name: "WYSIATI (What You See Is All There Is)"
+    signal: "Llega a conclusiones con información incompleta sin reconocerlo. Asume que lo que ve es todo lo que hay."
+    question: "¿Qué información nos falta? ¿Qué no estamos viendo? ¿Qué sabemos que NO sabemos?"
+    source: "Kahneman — Thinking, Fast and Slow"
+    counter_strategy: "Explicitar lo que NO se sabe. Listar missing info antes de concluir."
+    examples:
+      - "Concluye que 'el mercado es enorme' basado en 5 entrevistas, sin reconocer sample size insuficiente"
+      - "Asegura que 'no hay competencia' porque no encontró ninguna en Google, ignorando competencia indirecta"
+
+  - id: "BIAS-08"
+    name: "Planning Fallacy (Falacia de Planificación)"
+    signal: "Estima costos y tiempos de forma optimista sin base histórica. Asume 'esta vez será diferente'."
+    question: "¿Cuál fue el costo real de proyectos similares anteriores? ¿Por qué este sería diferente?"
+    source: "Kahneman — Thinking, Fast and Slow"
+    counter_strategy: "Usar reference class forecasting: mirar proyectos PASADOS similares, no intentions futuros."
+    examples:
+      - "'El MVP tomará 3 meses' sin investigar cuánto tomaron MVPs similares previamente"
+      - "'Lanzaremos en Q2' sin considerar que el 80% de proyectos se atrasan"
+
+  - id: "BIAS-09"
+    name: "Narrative Fallacy (Falacia Narrativa)"
+    signal: "Construye una historia coherente retroactiva que no predijo el resultado. Explica con 20/20 hindsight."
+    question: "¿Podríamos haber predicho esto antes de que ocurriera? ¿O es una explicación post-hoc?"
+    source: "Kahneman / Dobelli"
+    counter_strategy: "Distinguir entre predicción (antes) y explicación (después). No confundir storytelling con understanding."
+    examples:
+      - "'Éxito de X se debe a Y' cuando Y no se mencionó en el brief original"
+      - "Explica un failure post-hoc como 'obvio' cuando no se predijo"
+
+  - id: "BIAS-10"
+    name: "Inversion Failure (Fallo de Inversión)"
+    signal: "Solo piensa en cómo tener éxito, nunca en cómo fracasar. No aplica 'invert, always invert'."
+    question: "¿Qué tendría que ser verdad para que esto falle completamente? ¿Qué no estamos considerando?"
+    source: "Munger — Poor Charlie's Almanack"
+    counter_strategy: "Siempre hacer pre-mortem: 'Imaginen que es 1 año después y esto falló. ¿Por qué?'"
+    examples:
+      - "Brief sin sección de 'por qué esto podría fallar'"
+      - "Solo presenta upside, sin mencionar riesgos o failure modes"
+
+# Metadata del catálogo
+metadata:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+  total_biases: 10
+  primary_sources:
+    - "Kahneman, Daniel. Thinking, Fast and Slow. (2011)"
+    - "Munger, Charlie. Poor Charlie's Almanack. (2005)"
+    - "Tetlock, Philip. Superforecasting. (2015)"
+    - "Dobelli, Rolf. The Art of Thinking Clearly. (2013)"
+
+# Categorías de sesgos
+categories:
+  cognitive:
+    - "BIAS-01"  # Confirmation
+    - "BIAS-02"  # Anchoring
+    - "BIAS-05"  # Dunning-Kruger
+    - "BIAS-07"  # WYSIATI
+    - "BIAS-09"  # Narrative
+
+  motivational:
+    - "BIAS-03"  # Sunk Cost
+    - "BIAS-04"  # Survivorship
+
+  social:
+    - "BIAS-06"  # Authority
+
+  planning:
+    - "BIAS-08"  # Planning Fallacy
+
+  strategic:
+    - "BIAS-10"  # Inversion Failure
+
+# Sesgos más comunes por output type
+common_by_output_type:
+  product-brief:
+    - "BIAS-01"  # Confirmation: solo validación positiva
+    - "BIAS-07"  # WYSIATI: conclusión con poca data
+    - "BIAS-10"  # Inversion: sin pre-mortem
+
+  ux-research:
+    - "BIAS-01"  # Confirmation: solo confirming evidence
+    - "BIAS-06"  # Authority: "los usuarios dijeron X"
+    - "BIAS-04"  # Survivorship: solo usuarios felices
+
+  business-projections:
+    - "BIAS-02"  # Anchoring: primer número como verdad
+    - "BIAS-05"  # Dunning-Kruger: certeza sin data
+    - "BIAS-08"  # Planning Fallacy: estimaciones optimistas
+
+  post-mortem:
+    - "BIAS-09"  # Narrative: explicación post-hoc
+    - "BIAS-03"  # Sunk Cost: "ya invertimos tanto"

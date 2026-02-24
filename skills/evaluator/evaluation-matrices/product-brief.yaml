@@ -1,0 +1,298 @@
+# Evaluation Matrix: Product Brief
+# Para evaluar outputs del Cerebro #1 (Product Strategy)
+#
+# Matrix ID: MATRIX-product-brief
+# Applies to: 01-product-strategy
+# Output Type: product-brief
+# Version: 1.0.0
+
+matrix_id: "MATRIX-product-brief"
+applies_to: "01-product-strategy"
+output_type: "product-brief"
+version: "1.0.0"
+last_updated: "2026-02-23"
+
+# ============================================================================
+# CHECKS ORGANIZADOS POR CATEGORÍA
+# ============================================================================
+
+checks:
+  # ------------------------------------------------------------------------------
+  # CATEGORÍA 1: COMPLETITUD (¿tiene todo lo que debe tener?)
+  # ------------------------------------------------------------------------------
+  completeness:
+    - id: "C1"
+      check: "¿Define claramente el problema a resolver?"
+      weight: 10
+      fail_action: "REJECT"
+      description: "El brief debe explicitar el problema de forma clara y concisa. No debe describir una solución disfrazada de problema."
+      pass_criteria: "Problema declarado en 1-2 frases, understandable sin contexto adicional."
+      fail_message: "El 'problema' es en realidad una solución, es vago, o no está claramente definido."
+      fix_instruction: "Volver al discovery. El problema debe ser: 'Los usuarios no pueden X' no 'Vamos a construir una app para X'."
+
+    - id: "C2"
+      check: "¿Identifica persona/audiencia específica (no genérica)?"
+      weight: 8
+      fail_action: "REDIRECT"
+      description: "La audiencia debe estar basada en jobs-to-be-done o características específicas, no solo demografía."
+      pass_criteria: "Persona tiene:JTBD, contexto específico, y segmentación clara. No 'jóvenes 18-35'."
+      fail_message: "Audiencia es genérica ('millennials', 'profesionales') o basada solo en demografía."
+      fix_instruction: "Definir persona basada en problema, no demografía. Ejemplo: 'PMs en startups seed que no pueden priorizar' no 'jóvenes profesionales'."
+
+    - id: "C3"
+      check: "¿Tiene métricas de éxito definidas como OKRs con Key Results numéricos?"
+      weight: 9
+      fail_action: "REDIRECT"
+      description: "Las métricas deben ser outcomes (retención, activación), no outputs (features lanzadas)."
+      pass_criteria: "OKRs con Key Results específicos, medibles, numéricos. No 'ser la mejor app'."
+      fail_message: "Sin métricas, métricas genéricas, o métricas que son outputs no outcomes."
+      fix_instruction: "Definir OKRs con Key Results numéricos: 'D7 retention >35%', 'NPS >40', no '1M users' o 'launch feature X'."
+
+    - id: "C4"
+      check: "¿Evaluó los 4 riesgos de discovery (valor, usabilidad, factibilidad, viabilidad)?"
+      weight: 10
+      fail_action: "REJECT"
+      description: "Los 4 riesgos de Cagan/Torres deben estar explícitamente evaluados."
+      pass_criteria: "Cada uno de los 4 riesgos tiene análisis específico, no genérico."
+      fail_message: "Falta evaluación de uno o más riesgos, o evaluación es genérica ('todo se puede')."
+      fix_instruction: "Evaluar cada riesgo: ¿Existe valor real? ¿Pueden usarlo? ¿Podemos construirlo? ¿Es viable comercialmente?"
+
+    - id: "C5"
+      check: "¿Incluye análisis de alternativas existentes (competencia)?"
+      weight: 7
+      fail_action: "REDIRECT"
+      description: "Debe analizar soluciones actuales al problema, no solo competidores directos."
+      pass_criteria: "Menciona alternativas (incluyendo status quo) y por qué son insuficientes."
+      fail_message: "No menciona alternativas o asume que no hay competencia ('somos únicos')."
+      fix_instruction: "Investigar: ¿Cómo resuelven este problema hoy? ¿Qué han intentado antes? ¿Por qué no funcionó?"
+
+  # ------------------------------------------------------------------------------
+  # CATEGORÍA 2: CALIDAD (¿es bueno lo que tiene?)
+  # ------------------------------------------------------------------------------
+  quality:
+    - id: "Q1"
+      check: "¿El problema está respaldado con evidencia (entrevistas, datos, métricas), no solo opiniones?"
+      weight: 9
+      fail_action: "REDIRECT"
+      bias_check: "BIAS-01"  # Confirmation Bias
+      description: "Debe haber evidencia cuantitativa o cualitativa del problema, no solo 'creemos'."
+      pass_criteria: "Evidencia: entrevistas (N+5), datos públicos, métricas actuales, etc."
+      fail_message: "Problema declarado sin evidencia, o evidencia es solo 'nosotros pensamos'."
+      fix_instruction: "Incluir evidencia: N entrevistas realizadas, data de support tickets, métricas de problemas actuales, etc."
+
+    - id: "Q2"
+      check: "¿Las métricas son outcomes (retención, activación), no outputs (features lanzadas)?"
+      weight: 8
+      fail_action: "REDIRECT"
+      description: "Los outcomes miden valor, los outputs miden actividad. Debe ser outcomes."
+      pass_criteria: "Métricas como D7 retention, activation rate, NPS, engagement. No 'features launched'."
+      fail_message: "Métricas son outputs: 'usuarios registrados', 'features lanzadas', 'downloads'."
+      fix_instruction: "Reemplazar outputs por outcomes: 'D7 activation rate' no 'registered users', 'D30 retention' no 'downloads'."
+
+    - id: "Q3"
+      check: "¿La propuesta de valor se diferencia claramente de las alternativas?"
+      weight: 7
+      fail_action: "REDIRECT"
+      description: "Debe estar claro POR QUÉ esta solución es diferente/mejor que alternativas."
+      pass_criteria: "Diferenciación explícita vs alternativas: 'X es mejor porque Y', no 'somos mejores'."
+      fail_message: "No hay diferenciación clara, o diferenciación es genérica ('mejor UX', 'más fácil')."
+      fix_instruction: "Explicitar: 'Alternativas hacen X, nosotros hacemos Y. Esto es mejor porque Z'."
+
+    - id: "Q4"
+      check: "¿Los frameworks citados se aplicaron con profundidad, no solo se mencionaron?"
+      weight: 6
+      fail_action: "REDIRECT"
+      description: "Si cita un framework (Jobs-to-be-Done, etc.), debe mostrar aplicación."
+      pass_criteria: "Framework aplicado al problema específico con outputs del framework."
+      fail_message: "Framework mencionado pero no aplicado: 'Usaremos JTBD' sin mostrar jobs."
+      fix_instruction: "Aplicar el framework: mostrar los jobs, los pains, los gains. No solo mencionarlo."
+
+    - id: "Q5"
+      check: "¿El tamaño de mercado está cuantificado con fuentes?"
+      weight: 5
+      fail_action: "REDIRECT"
+      description: "Si menciona 'mercado enorme', debe cuantificarlo y citar fuentes."
+      pass_criteria: "TAM/SAM/SOM con números y fuentes. No 'billions' sin data."
+      fail_message: "'Mercado enorme' sin números, o números sin fuentes."
+      fix_instruction: "Cuadrificar mercado: TAM (total addressable) con source, SAM (serviceable), SOM (obtainable)."
+
+  # ------------------------------------------------------------------------------
+  # CATEGORÍA 3: HONESTIDAD INTELECTUAL (¿hay humo?)
+  # ------------------------------------------------------------------------------
+  intellectual_honesty:
+    - id: "H1"
+      check: "¿Reconoce explícitamente lo que NO sabe (sección 'Lo que no sabemos')?"
+      weight: 8
+      fail_action: "REDIRECT"
+      description: "Debe haber una sección de suposiciones no validadas o desconocidos."
+      pass_criteria: "Sección 'Lo que no sabemos' con lista de suposiciones."
+      fail_message: "No hay reconocimiento de incertidumbre; todo se presenta como cierto."
+      fix_instruction: "Agregar sección 'Lo que no sabemos': suposiciones no validadas, data faltante, riesgos no mitigados."
+
+    - id: "H2"
+      check: "¿Las suposiciones están marcadas como HIPÓTESIS, no como hechos?"
+      weight: 9
+      fail_action: "REDIRECT"
+      bias_check: "BIAS-07"  # WYSIATI
+      description: "Suposiciones deben estar explícitamente etiquetadas como tales."
+      pass_criteria: "Suposiciones marcadas como 'Hipótesis', 'Asumimos', 'Creemos pero no sabemos'."
+      fail_message: "Suposiciones presentadas como hechos sin evidencia."
+      fix_instruction: "Etiquetar suposiciones: 'Hipótesis: users will pay $X', no 'Users will pay $X'."
+
+    - id: "H3"
+      check: "¿Incluye análisis de escenario de fallo (pre-mortem / inversión de Munger)?"
+      weight: 8
+      fail_action: "REDIRECT"
+      bias_check: "BIAS-10"  # Inversion Failure
+      description: "Debe aplicar inversión: '¿Por qué esto fallaría?'"
+      pass_criteria: "Pre-mortem o sección 'Por qué esto podría fallar' con análisis específico."
+      fail_message: "Solo análisis de éxito, sin considerar failure modes."
+      fix_instruction: "Aplicar inversión de Munger: 'Imaginen que es 1 año después y esto falló. ¿Por qué?'"
+
+    - id: "H4"
+      check: "¿Las predicciones tienen nivel de confianza (alto/medio/bajo) explícito?"
+      weight: 7
+      fail_action: "REDIRECT"
+      bias_check: "BIAS-05"  # Dunning-Kruger
+      description: "Predicciones (métricas, timeline, budget) deben tener confidence level."
+      pass_criteria: "Cada predicción tiene nivel de confianza o rango, no solo número."
+      fail_message: "Predicciones presentadas como certezas sin confidence level."
+      fix_instruction: "Agregar confidence: 'D7 retention de 35% (confidence: medium, range 25-45%)'."
+
+    - id: "H5"
+      check: "¿Considera contra-evidencia (casos donde esto NO funcionó)?"
+      weight: 6
+      fail_action: "REDIRECT"
+      bias_check: "BIAS-01"  # Confirmation Bias
+      description: "Debe mencionar evidencia que contradice la hipótesis, no solo confirming evidence."
+      pass_criteria: "Menciona casos de fallo, counter-examples, o why this might be different."
+      fail_message: "Solo evidencia confirmatoria, sin considerar contra-ejemplos."
+      fix_instruction: "Investigar: ¿Quién intentó esto antes y falló? ¿Por qué? ¿Por qué seremos diferentes?"
+
+  # ------------------------------------------------------------------------------
+  # CATEGORÍA 4: VIABILIDAD COMERCIAL (¿alguien pagaría?)
+  # ------------------------------------------------------------------------------
+  commercial_viability:
+    - id: "V1"
+      check: "¿Hay evidencia de demanda real (no 'creemos que la gente lo querrá')?"
+      weight: 9
+      fail_action: "REDIRECT"
+      description: "Debe haber evidencia de willingness-to-pay o intención de uso."
+      pass_criteria: "Evidencia: entrevistas con intención de compra, pre-orders, waitlist, etc."
+      fail_message: "Asumo de demanda sin evidencia: 'la gente va a amar esto'."
+      fix_instruction: "Incluir evidencia de demanda: % de entrevistados que pagarían, pre-commit, waitlist size."
+
+    - id: "V2"
+      check: "¿La economía unitaria tiene sentido (LTV > CAC) o al menos está planteada?"
+      weight: 7
+      fail_action: "REDIRECT"
+      description: "Debe haber análisis unit economics aunque sea estimado."
+      pass_criteria: "LTV/CAC >3, o al menos acknowledgment de la necesidad de medirlo."
+      fail_message: "Sin análisis de economía unitaria."
+      fix_instruction: "Calcular: LTV (ARPU × retention), CAC (marketing + sales), verificar LTV > 3× CAC."
+
+    - id: "V3"
+      check: "¿El modelo de crecimiento es identificable (sticky, viral, o paid)?"
+      weight: 6
+      fail_action: "REDIRECT"
+      description: "Debe ser claro cómo crecerá: retention (sticky), word-of-mouth (viral), o ads (paid)."
+      pass_criteria: "Engine of growth explícito: sticky (high retention), viral (high k-factor), paid (viable CAC)."
+      fail_message: "Sin modelo de growth claro, o growth asume 'será viral' sin evidencia."
+      fix_instruction: "Definir engine of growth: ¿Es sticky product (retención)? ¿Tiene viral potential? ¿Pagamos por crecimiento?"
+
+    - id: "V4"
+      check: "¿Las métricas están dentro de benchmarks de industria (o se justifica por qué no)?"
+      weight: 5
+      fail_action: "REDIRECT"
+      description: "Si las métricas target son muy diferentes de benchmarks, debe justificar."
+      pass_criteria: "Métricas dentro de range razonable vs benchmarks, o justificación de por qué es diferente."
+      fail_message: "Métricas unrealistic vs benchmarks sin justificación."
+      fix_instruction: "Comparar vs benchmarks: ¿D7 retention de 50% es realista? (benchmark: 20-35%). Si fuera de range, justificar."
+
+    - id: "V5"
+      check: "¿Existe un camino claro a revenue (modelo de pricing o monetización)?"
+      weight: 6
+      fail_action: "REDIRECT"
+      description: "Debe estar claro cómo se monetiza, aunque sea early stage."
+      pass_criteria: "Modelo de pricing descrito: freemium, subscription, transactional, etc."
+      fail_message: "Sin mención de monetización o 'figuraremos monetización después'."
+      fix_instruction: "Describir modelo de monetización: ¿Freemium? ¿Subscription? ¿Qué willingness-to-pay justifica el precio?"
+
+# ============================================================================
+# SCORING SYSTEM
+# ============================================================================
+
+scoring:
+  total_possible: 156
+  total_by_category:
+    completeness: 44  # C1(10) + C2(8) + C3(9) + C4(10) + C5(7)
+    quality: 35       # Q1(9) + Q2(8) + Q3(7) + Q4(6) + Q5(5)
+    intellectual_honesty: 38  # H1(8) + H2(9) + H3(8) + H4(7) + H5(6)
+    commercial_viability: 33  # V1(9) + V2(7) + V3(6) + V4(5) + V5(6)
+
+  thresholds:
+    approve: 80      # 80%+ score → APPROVE
+    conditional: 60  # 60-79% → CONDITIONAL
+    reject: 60       # <60% → REJECT
+
+  # Pesos relativos de categorías (para scoring normalizado)
+  category_weights:
+    completeness: 0.28
+    quality: 0.22
+    intellectual_honesty: 0.25
+    commercial_viability: 0.25
+
+# ============================================================================
+# FAIL ACTIONS
+# ============================================================================
+
+fail_actions:
+  REJECT:
+    description: "Problema fundamental. Rehacer desde cero."
+    applies_to:
+      - "Checks críticos: C1, C4"
+    iteration_increments: true
+
+  REDIRECT:
+    description: "Corregir problemas específicos y resubmitir."
+    applies_to:
+      - "Checks no-críticos: C2, C3, C5, Q1-Q5, H1-H5, V1-V5"
+    iteration_increments: true
+
+# ============================================================================
+# ESCALATION CRITERIA
+# ============================================================================
+
+escalation_criteria:
+  max_iterations: 3
+  auto_escalate_if:
+    - "3er rechazo consecutivo del mismo brief"
+    - "Score < 40% (problemas graves en múltiples categorías)"
+    - "Bias detectado en 3+ checks (honesty intelectual comprometida)"
+
+# ============================================================================
+# NOTES FOR EVALUATOR
+# ============================================================================
+
+evaluator_notes: |
+  CRITICAL: Esta matrix es para PRODUCT BRIEF del Cerebro #1.
+
+  Para usar esta matrix:
+  1. Leer el brief completo
+  2. Por cada check, buscar evidencia en el brief
+  3. Si hay evidencia clara → PASS con justificación
+  4. Si no hay evidencia → FAIL con instrucción específica
+  5. Verificar bias_check si está presente
+  6. Comparar métricas vs benchmarks.yaml
+
+  Tips:
+  - No tengas miedo de REJECT si C1 o C4 fallan. Son fundamentales.
+  - Para CONDITIONAL, sé específico: "Agrega sección X", no "Mejora Y".
+  - Para biases, siempre pregunta: "¿Qué evidencia contradice esto?"
+
+  Common issues:
+  - Confusión entre problema y solución
+  - Métricas de output en vez de outcome
+  - Falta de pre-mortem
+  - Confirmation bias (solo evidencia positiva)
+  - WYSIATI (conclusiones con poca data)

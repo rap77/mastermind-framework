@@ -1,0 +1,275 @@
+# Template: Escalation Report
+# Usado por el Cerebro #7 para escalar evaluaciones al humano
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+escalation_id: ""  # FORMATO: ESCALATE-{YYYY-MM-DD}-{NNN}
+timestamp: ""      # FORMATO: ISO 8601
+evaluator: "brain-07-critical-evaluator"
+related_evaluation_id: ""  # ID de la evaluación original
+
+# ============================================================================
+# ESCALATION CONTEXT
+# ============================================================================
+
+escalation_type: ""  # MAX_ITERATIONS | UNRESOLVABLE_CONFLICT | MISSING_MATRIX | NO_PRECEDENT
+severity: ""  # low | medium | high | critical
+priority: ""  # low | medium | high | urgent
+
+# ============================================================================
+# CONFLICT DESCRIPTION
+# ============================================================================
+
+conflict_description: |
+  Descripción del conflicto que requiere intervención humana.
+
+  Incluir:
+  - Quiénes son las partes (brain X vs brain Y)
+  - Cuál es el desacuerdo específico
+  - Por qué el evaluator no puede resolverlo automáticamente
+
+  Ejemplo:
+  El Cerebro #1 (Product Strategy) propuso "usuarios registrados" como Key Result.
+  El Cerebro #7 (Evaluator) rechazó por ser vanity metric.
+  Tras 3 iteraciones, el Cerebro #1 insiste que "registrados" es la métrica correcta
+  porque "es lo que podemos medir con el tracking actual". ElEvaluator no puede
+  resolver este trade-off entre "métrica ideal" vs "métrica disponible".
+
+# ============================================================================
+# PARTIES INVOLVED
+# ============================================================================
+
+parties:
+  - role: "source_brain"
+    id: "01-product-strategy"
+    name: "Product Strategy Brain"
+    position: |
+      Resumen de la posición del cerebro evaluado.
+
+      Ejemplo: "Registrados es la única métrica que podemos medir con
+      certeza. Activación requiere tracking events que no tenemos."
+
+  - role: "evaluator"
+    id: "07-critical-evaluator"
+    name: "Critical Evaluator Brain"
+    position: |
+      Resumen de la posición del evaluador.
+
+      Ejemplo: "Usuarios registrados no indica valor generado. Pueden
+      registrarse y nunca usar el producto. Debe ser D7 activation rate."
+
+# ============================================================================
+# ITERATION HISTORY
+# ============================================================================
+
+iteration_history: []
+# - iteration: 1
+#   date: "2026-02-23T15:00:00Z"
+#   verdict: "REJECT"
+#   score: 42
+#   evaluator_feedback: "Métricas son outputs, no outcomes"
+#   brain_response: "No podemos medir outcomes sin tracking adicional"
+#
+# - iteration: 2
+#   date: "2026-02-23T17:30:00Z"
+#   verdict: "REJECT"
+#   score: 48
+#   evaluator_feedback: "Inaceptable. Agregar tracking o cambiar métrica."
+#   brain_response: "Tracking toma 2 semanas. ¿Podemos usar registrados por ahora?"
+#
+# - iteration: 3
+#   date: "2026-02-23T20:00:00Z"
+#   verdict: "ESCALATE"
+#   score: 45
+#   evaluator_feedback: "Trade-off no resuelto. Escalando a humano."
+
+# ============================================================================
+# EVALUATOR'S RECOMMENDATION
+# ============================================================================
+
+evaluator_recommendation: |
+  Recomendación del evaluador sobre cómo resolver el conflicto.
+
+  Debe incluir:
+  - Opción A recomendada con justificación
+  - Opción B (alternativa) con trade-offs
+  - Riesgos de cada opción
+  - Contexto adicional para la decisión
+
+  Ejemplo:
+  RECOMENDO OPCIÓN A: Implementar tracking de activación D7.
+
+  Justificación:
+  - D7 activation rate es la métrica correcta para product-market fit
+  - Registrar usuarios que no activan es vanity metric
+  - Invertir en tracking ahora paga dividendos en learning
+
+  Trade-offs:
+  - 2 semanas de delay en OKR definition
+  - Engineering effort para agregar tracking events
+  - Pérdida de data histórica (no hay baseline anterior)
+
+  OPCIÓN B (no recomendada): Aceptar "registrados" temporalmente.
+
+  Riesgos:
+  - Optimizando para metrica incorrecta
+  - False signal de progreso
+  - Tendencia a continuar usando métrica incorrecta (" sunk cost")
+
+  Contexto adicional:
+  - Sean Ellis (FUENTE-705) explícitamente advierte contra vanity metrics
+  - Lenny's benchmarks (FUENTE-708) se basan en activation/retention, no registration
+
+# ============================================================================
+# DECISION OPTIONS
+# ============================================================================
+
+decision_options: []
+# - option: "A"
+#   description: "Implementar tracking de D7 activation rate"
+#   pros: ["Métrica correcta", "Alineado con best practices", "Mejor learning"]
+#   cons: ["2 semanas delay", "Engineering effort", "No baseline histórico"]
+#   risk_level: "low"
+#   recommended: true
+#
+# - option: "B"
+#   description: "Aceptar 'usuarios registrados' temporalmente"
+#   pros: ["Inmediato", "Sin engineering effort", "Baseline existente"]
+#   cons: ["Vanity metric", "False signals", "Difícil de cambiar después"]
+#   risk_level: "high"
+#   recommended: false
+
+# ============================================================================
+# PRECEDENT SEARCH RESULTS
+# ============================================================================
+
+precedent_search:
+  searched_precedents_db: true
+  similar_cases_found: 0
+  applicable_precedents: []
+  # - precedent_id: "PREC-001"
+  #   description: "Vanity metrics vs outcomes"
+  #   resolution: "Outcome metrics prioritized"
+  #   applicable: true
+  notes: |
+    Notas sobre la búsqueda de precedentes.
+
+    Ejemplo: "No se encontraron precedentes directos para el trade-off
+    entre 'métrica disponible' vs 'métrica ideal'. Este es un nuevo
+    tipo de conflicto que requiere precedente."
+
+# ============================================================================
+# ATTACHMENTS
+# ============================================================================
+
+attachments:
+  - type: "original_evaluation"
+    path: "/logs/evaluations/EVAL-2026-02-23-001.yaml"
+    description: "Evaluación original del brief"
+
+  - type: "output_being_evaluated"
+    path: "/path/to/product-brief.md"
+    description: "Brief original del Cerebro #1"
+
+  - type: "iteration_history"
+    path: "/logs/evaluations/EVAL-2026-02-23-001.yaml"
+    description: "Historial completo de iteraciones"
+
+# ============================================================================
+# HUMAN DECISION
+# ============================================================================
+
+human_decision:
+  decided_by: ""  # Nombre del humano
+  decision_date: ""  # ISO 8601
+  decision_option: ""  # A | B | CUSTOM
+
+  reasoning: |
+    Explicación de la decisión del humano.
+
+    Debe incluir:
+    - Por qué se eligió esta opción
+    - Consideraciones adicionales no mencionadas por el evaluator
+    - Condiciones o excepciones
+
+    Ejemplo:
+    Decido OPCIÓN A con una modificación: aceptar "usuarios activos D3"
+    como métrica interina mientras se implementa D7.
+
+    Razones:
+    - D3 es mejor que "registrados" (indica algún uso)
+    - No requiere tracking events nuevo (ya tenemos login activity)
+    - Compromiso razonable entre velocidad y calidad de métrica
+
+    Condición:
+    - Transición a D7 activation rate en máximo 4 semanas
+    - Documentar了这个trade-off en el brief como "temporal"
+
+# ============================================================================
+# PRECEDENT CREATION (if applicable)
+# ============================================================================
+
+create_precedent: true  # Si esta decisión debe crear un precedente
+
+precedent_to_create:
+  precedent_id: "PREC-XXX"
+  title: ""  # Título corto del precedente
+  summary: ""  # Resumen de la situación
+
+  rule: ""  # Regla derivada de la decisión
+  # Ejemplo: "Cuando exista trade-off entre 'métrica disponible' vs 'métrica ideal',
+  # preferir métrica ideal a menos que el delay sea >3 semanas. En ese caso,
+  # usar proxy temporal con fecha de transición explícita."
+
+  applies_to_future: true
+  applicable_context: ""  # Cuándo aplica este precedente
+  # Ejemplo: "Aplica cuando: (1) Métrica ideal requiere tracking nuevo,
+  # (2) Delay es 2-4 semanas, (3) Métrica proxy es significativamente mejor que vanity"
+
+  expires: ""  # Fecha de expiración (opcional, para precedents temporales)
+
+# ============================================================================
+# FOLLOW-UP ACTIONS
+# ============================================================================
+
+follow_up_actions: []
+# - action: "Implement tracking D7 activation rate"
+#   assigned_to: "brain-05-backend"  # o "engineering"
+#   due_date: "2026-03-15"
+#   status: "pending"
+#
+# - action: "Documentar trade-off en brief"
+#   assigned_to: "brain-01-product-strategy"
+#   due_date: "2026-02-24"
+#   status: "pending"
+#
+# - action: "Crear precedent PREC-XXX"
+#   assigned_to: "brain-07-evaluator"
+#   due_date: "2026-02-24"
+#   status: "pending"
+
+# ============================================================================
+# SIGNOFF
+# ============================================================================
+
+signoff:
+  prepared_by: "brain-07-critical-evaluator"
+  prepared_at: ""  # ISO 8601
+
+  reviewed_by: ""  # Nombre del humano
+  reviewed_at: ""  # ISO 8601
+
+  approved_by: ""  # Si requiere approval adicional
+  approved_at: ""  # ISO 8601
+
+# ============================================================================
+# END OF TEMPLATE
+# ============================================================================
+# Notas para el evaluator:
+# - Escalar SOLO cuando sea necesario (3er rechazo o conflicto irresoluble)
+# - La recomendación debe ser específica y justificada
+# - Siempre buscar precedentes antes de escalar
+# - El precedente creado debe ser generalizable para situaciones futuras
+# ============================================================================

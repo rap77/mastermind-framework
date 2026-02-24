@@ -1,0 +1,227 @@
+# Template: Evaluation Report
+# Usado por el Cerebro #7 para documentar evaluaciones de outputs
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+evaluation_id: ""  # FORMATO: EVAL-{YYYY-MM-DD}-{NNN}
+timestamp: ""      # FORMATO: ISO 8601 (2026-02-23T23:45:00Z)
+evaluator: "brain-07-critical-evaluator"
+evaluator_version: "1.0.0"
+
+# ============================================================================
+# INPUT INFORMATION
+# ============================================================================
+
+source_brain: ""        # Ej: "01-product-strategy"
+output_type: ""         # Ej: "product-brief"
+output_file: ""         # Path al archivo evaluado
+output_title: ""        # Título del output (si aplica)
+project: ""             # Nombre del proyecto (si aplica)
+phase: ""               # Fase del proyecto (si aplica)
+iteration: 1            # Número de iteración (1 = primera evaluación)
+
+# Output content summary (para referencia)
+output_summary: |
+  Breve resumen del output evaluado (2-3 frases).
+
+# ============================================================================
+# SCORING
+# ============================================================================
+
+veredict: ""  # APPROVE | CONDITIONAL | REJECT | ESCALATE
+score_total: 0  # Puntaje total (0-100)
+score_percentage: 0  # Porcentaje
+
+scores_by_category:
+  completeness: 0      # 0-100
+  quality: 0           # 0-100
+  intellectual_honesty: 0  # 0-100
+  commercial_viability: 0  # 0-100
+
+# Scoring breakdown
+scoring_detail:
+  total_points_obtained: 0
+  total_points_possible: 0
+  checks_passed: 0
+  checks_failed: 0
+  checks_total: 0
+
+# ============================================================================
+# CHECKS RESULTS
+# ============================================================================
+
+passed_checks: []
+# - id: "C1"
+#   check: "¿Define claramente el problema?"
+#   category: "completeness"
+#   weight: 10
+#   justification: "Linea 15: 'El problema es que los product managers no pueden priorizar features porque no tienen un framework claro'"
+#   evidence_quote: "Cita directa del output que evidencia el pass"
+
+failed_checks: []
+# - id: "Q2"
+#   check: "¿Las métricas son outcomes?"
+#   category: "quality"
+#   weight: 8
+#   failure_reason: "Incluye 'features lanzadas' como métrica de éxito"
+#   fix_instruction: "Reemplazar por 'D7 retention rate' o 'D7 activation rate'"
+#   specific_action: "Reemplazar métricas de output por outcomes (retención, activación)"
+#   priority: "high"  # high | medium | low
+
+# ============================================================================
+# BIAS DETECTION
+# ============================================================================
+
+biases_detected: []
+# - bias_id: "BIAS-01"
+#   bias_name: "Confirmation Bias"
+#   source: "Kahneman — Thinking, Fast and Slow"
+#   evidence: "Solo cita casos de éxito de discovery, no menciona proyectos donde discovery falló"
+#   severity: "high"  # high | medium | low
+#   question_for_author: "¿Qué evidencia contradice esta conclusión?"
+#   impact_on_score: -5  # Puntos descontados por este bias
+
+total_bias_penalty: 0  # Suma de penalizaciones por sesgos
+
+# ============================================================================
+# BENCHMARK COMPARISON
+# ============================================================================
+
+benchmark_comparisons: []
+# - metric: "retention_d7"
+#   metric_description: "Day 7 retention rate"
+#   output_value: "15%"
+#   benchmark: "20-35%"
+#   benchmark_source: "Lenny's Newsletter"
+#   status: "below_benchmark"  # above_great | above_good | within_good | below_good | red_flag
+#   severity: "medium"  # high | medium | low
+#   note: "D7 retention de 15% está por debajo del range 'good' de 20-35%"
+
+# ============================================================================
+# REDIRECT INSTRUCTIONS (para CONDITIONAL o REJECT)
+# ============================================================================
+
+redirect_instructions:
+  enabled: false  # true si es CONDITIONAL o REJECT
+  to_brain: ""  # Ej: "01-product-strategy"
+  action: ""  # REVISE | REDO | EXPAND
+  max_iterations: 3
+  current_iteration: 1
+
+  specific_fixes: []
+  # - "Reemplazar métricas de output por outcomes"
+  # - "Agregar sección 'Lo que no sabemos'"
+  # - "Aplicar inversión de Munger: análisis de cómo esto podría fallar"
+
+  blocking_issues: []
+  # - check_id: "C1"
+  #   reason: "Problema no claramente definido"
+  # - check_id: "C4"
+  #   reason: "Riesgos de discovery no evaluados"
+
+  estimated_effort: ""  # Ej: "2-3 horas de revisión"
+  deadline: ""  # Ej: "2026-02-25"
+
+# ============================================================================
+# REASONING (Free-form explanation)
+# ============================================================================
+
+reasoning: |
+  Explicación libre de la evaluación.
+
+  Incluir:
+  - Resumen del output
+  - Puntos fuertes (si aplica)
+  - Problemas principales
+  - Riesgos identificados
+  - Recomendaciones generales
+
+  Ejemplo:
+  El product-brief define un problema real (PMs no pueden priorizar) y una
+  audiencia clara (PMs en startups seed). Sin embargo, tiene problemas
+  significativos: las métricas son outputs no outcomes, no hay análisis
+  de fallo (pre-mortem), y hay confirmation bias evidente (solo evidencia
+  positiva). Con las correcciones indicadas, puede llegar a APPROVE.
+
+# ============================================================================
+# LEARNING & PRECEDENTS
+# ============================================================================
+
+lessons_learned: []
+# - "Métricas de output en briefs es un patrón recurrente → considerar regla automática"
+# - "Pre-mortem consistentemente faltante → agregar como check obligatorio"
+
+precedents_created: []
+# - precedent_id: "PREC-001"
+#   description: "Métricas de registro/descarga como vanity metrics"
+#   rule: "Nunca aceptar métricas de registro como Key Results"
+
+# ============================================================================
+# EVALUATION METADATA
+# ============================================================================
+
+evaluation_metadata:
+  evaluation_duration_seconds: 0
+  matrix_used: "MATRIX-product-brief"
+  matrix_version: "1.0.0"
+  evaluator_mode: "standard"  # standard | strict | lenient
+
+  checks_performed: 0
+  checks_skipped: 0
+  checks_with_bias_check: 0
+
+  human_review_required: false
+  escalation_recommended: false
+
+# ============================================================================
+# HISTORY (para iteraciones)
+# ============================================================================
+
+history: []
+# - iteration: 1
+#   date: "2026-02-23T23:00:00Z"
+#   verdict: "REJECT"
+#   score: 42
+#   feedback: "Métricas son outputs, no hay pre-mortem, confirmation bias"
+# - iteration: 2
+#   date: "2026-02-24T10:30:00Z"
+#   verdict: "CONDITIONAL"
+#   score: 72
+#   feedback: "Métricas corregidas, pero falta sección 'Lo que no sabemos'"
+
+# ============================================================================
+# SIGNATURES
+# ============================================================================
+
+signatures:
+  evaluator: "brain-07-critical-evaluator"
+  evaluated_at: ""  # ISO 8601
+  evaluator_confidence: ""  # high | medium | low
+
+  reviewed_by_human: false
+  human_reviewer: ""
+  human_review_date: ""
+
+# ============================================================================
+# ATTACHMENTS (referencias a archivos relacionados)
+# ============================================================================
+
+attachments: []
+# - type: "output"
+#   path: "/path/to/original/output.md"
+# - type: "matrix"
+#   path: "/path/to/matrix/product-brief.yaml"
+# - type: "evidence"
+#   path: "/path/to/evidence/file.pdf"
+
+# ============================================================================
+# END OF TEMPLATE
+# ============================================================================
+# Notas para el evaluator:
+# - Todos los campos deben llenarse
+# - Los arrays vacíos [] se eliminan si no hay items
+# - El reasoning debe ser específico, no genérico
+# - Las fix_instructions deben ser accionables
+# ============================================================================

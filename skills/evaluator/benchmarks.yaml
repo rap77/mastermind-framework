@@ -1,0 +1,513 @@
+# Benchmarks Catalog — Benchmarks de Industria
+# Cerebro #7 de Mente Maestra
+#
+# Este catálogo contiene benchmarks de industria para comparar métricas
+# de productos SaaS, Marketplaces, y Mobile Apps.
+#
+# Fuentes:
+#   - FUENTE-708: Lenny's Newsletter — Compilación de Benchmarks (Lenny Rachitsky)
+#   - FUENTE-705: Hacking Growth (Sean Ellis)
+#   - FUENTE-704: $100M Offers (Alex Hormozi)
+#
+# Actualizado: 2026-02-23
+# Nota: Los números son referenciales y varían por industria, etapa, y geografía.
+
+# ============================================================================
+# SAAS B2C / B2B — Benchmarks Generales
+# ============================================================================
+
+saas_benchmarks:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+  source: "Lenny's Newsletter + Sean Ellis + Internal Data"
+
+  # Activation Metrics
+  activation_rate:
+    description: "Porcentaje de usuarios que completan el activation flow"
+    good: "40-60%"
+    great: ">60%"
+    red_flag: "<25%"
+    notes: "Varía por complejidad del producto. Productos simples >70%, complejos >30%"
+
+  time_to_value:
+    description: "Tiempo para que el usuario perciba valor (TTV)"
+    good: "<5 minutos"
+    great: "Inmediato"
+    red_flag: ">30 minutos"
+    notes: "El 'aha moment' debe ocurrir lo antes posible"
+
+  # Retention Metrics
+  day_1_retention:
+    description: "Porcentaje que retorna día 1 después de signup"
+    good: "40-60%"
+    great: ">60%"
+    red_flag: "<20%"
+    notes: "D1 es predictor fuerte de D7 y D30"
+
+  day_7_retention:
+    description: "Porcentaje que retorna día 7 después de signup"
+    good: "20-35%"
+    great: ">35%"
+    red_flag: "<10%"
+    notes: "D7 >40% generalmente indica strong product-market fit"
+
+  day_30_retention:
+    description: "Porcentaje que retorna día 30 después de signup"
+    good: "10-20%"
+    great: ">20%"
+    red_flag: "<5%"
+    notes: "Retention cohorts con >20% D30 es excelente para consumer apps"
+
+  month_1_retention:
+    description: "Porcentaje que retorna después de 1 mes"
+    good: "40-60%"
+    great: ">60%"
+    red_flag: "<30%"
+    notes: "Para B2B SaaS, M1 retention es clave"
+
+  month_12_retention:
+    description: "Porcentaje que retorna después de 12 meses (logo retention)"
+    good: "70-90%"
+    great: ">90%"
+    red_flag: "<60%"
+    notes: "Net dollar retention >100% es ideal (expand > churn)"
+
+  # Engagement Metrics
+  dau_mau_ratio:
+    description: "Daily Active Users / Monthly Active Users"
+    good: "10-20%"
+    great: ">20%"
+    red_flag: "<5%"
+    notes: "Varía por tipo: messaging >50%, productivity ~10-20%"
+
+  session_frequency:
+    description: "Veces que usuario activo usa el producto por semana"
+    good: "2-3x/week"
+    great: "Daily"
+    red_flag: "<1x/week"
+    notes: "Context-dependent: tax software puede ser 1x/year"
+
+  # Monetization Metrics
+  arpu:
+    description: "Average Revenue Per User (mensual)"
+    good: "$10-50/month B2C, $50-500/month B2B"
+    great: ">$100/month B2C, >$500/month B2B"
+    red_flag: "<$5/month (difícil de escalar)"
+    notes: "Depende de willingness-to-pay y cost-of-acquisition"
+
+  ltv_cac_ratio:
+    description: "Lifetime Value / Customer Acquisition Cost"
+    good: "3:1"
+    great: ">5:1"
+    red_flag: "<1:1 (perdiendo dinero en cada cliente)"
+    notes: "LTV debe ser al menos 3x CAC para ser sostenible"
+
+  payback_period_months:
+    description: "Meses para recuperar CAC"
+    good: "<12 meses"
+    great: "<6 meses"
+    red_flag: ">18 meses"
+    notes: "Más rápido = más cash para growth"
+
+  cac:
+    description: "Customer Acquisition Cost"
+    good: "<$50 B2C self-serve, <$500 B2B SMB, <$5000 B2B mid-market"
+    great: "<$20 B2C, <$200 B2B SMB"
+    red_flag: ">$500 B2C, >$5000 B2B SMB (difícil de escalar)"
+    notes: "Debe ser < LTV * gross_margin / 3"
+
+  arpa:
+    description: "Average Revenue Per Account (para B2B)"
+    good: "$1K-10K/month ARR"
+    great: ">$10K/month ARR"
+    red_flag: "<$500/month ARR (very high volume needed)"
+    notes: "SMB: <$1K, Mid-market: $1K-10K, Enterprise: >$10K"
+
+  # Satisfaction Metrics
+  nps:
+    description: "Net Promoter Score (-100 a +100)"
+    good: "30-50"
+    great: ">50"
+    red_flag: "<0 (más detractores que promotores)"
+    notes: "NPS >70 es world-class (Apple, Amazon level)"
+
+  pmf_survey:
+    description: "% de usuarios que estarían 'muy decepcionados' sin el producto (Sean Ellis 40% test)"
+    good: "40%+"
+    great: ">50%"
+    red_flag: "<25%"
+    notes: "40% es el umbral de PMF según Sean Ellis"
+
+  # Growth Metrics
+  monthly_churn_rate:
+    description: "Porcentaje de usuarios que cancelan por mes"
+    good: "<5%"
+    great: "<2%"
+    red_flag: ">10%"
+    notes: "B2B enterprise puede ser <2%, B2C consumer puede ser 5-10%"
+
+  annual_churn_rate:
+    description: "Porcentaje de usuarios que cancelan por año (logo churn)"
+    good: "<10%"
+    great: "<5%"
+    red_flag: ">20%"
+    notes: "Para B2B, <10% annual churn es saludable"
+
+  viral_coefficient:
+    description: "K-factor: cuántos nuevos usuarios trae cada usuario"
+    good: ">0.5"
+    great: ">1.0 (viral growth)"
+    red_flag: "<0.2 (no es viral)"
+    notes: "K >1 significa crecimiento exponencial sin paid acquisition"
+
+  # Conversion Metrics
+  free_to_paid_conversion:
+    description: "Porcentaje de usuarios free que convierten a paid"
+    good: "3-5%"
+    great: ">5%"
+    red_flag: "<1%"
+    notes: "Varía por tipo de freemium y pricing"
+
+  trial_to_paid_conversion:
+    description: "Porcentaje de trials que convierten a paid"
+    good: "15-25%"
+    great: ">25%"
+    red_flag: "<10%"
+    notes: "Trial conversion <15% indica problema con trial o producto"
+
+  lead_to_customer_conversion:
+    description: "Porcentaje de leads que se convierten en customers"
+    good: "5-10%"
+    great: ">10%"
+    red_flag: "<2%"
+    notes: "Para B2B outbound, 2-5% es normal"
+
+# ============================================================================
+# MARKETPLACE — Benchmarks Específicos
+# ============================================================================
+
+marketplace_benchmarks:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+  source: "Lenny's Newsletter + Andrew Chen (The Cold Start Problem)"
+
+  take_rate:
+    description: "Comisión que el marketplace retiene por transacción"
+    good: "10-20%"
+    great: ">20%"
+    red_flag: "<5% (muy bajo para ser sostenible)"
+    notes: "Varía por industria: servicios 10-20%, productos 5-15%"
+
+  gross_merchandise_value_gmv:
+    description: "Valor total de transacciones en el marketplace"
+    early_stage: "$10K-100K/month GMV"
+    growth_stage: "$100K-1M/month GMV"
+    scale: ">$1M/month GMV"
+    notes: "GMV growth rate >20% MoM es healthy para early stage"
+
+  liquidity:
+    description: "Porcentaje de listings que se convierten en transacción"
+    good: "15-30%"
+    great: ">30%"
+    red_flag: "<5%"
+    notes: "Low liquidity = chicken-and-egg problem"
+
+  supply_demand_balance:
+    description: "Ratio de supply vs demand healthy"
+    balanced: "1:1 a 1:2 (supply:demand)"
+    supply_constrained: "<1:2 (más demand que supply)"
+    demand_constrained: ">1:1 (más supply que demand)"
+    notes: "Cualquier extremo requiere strategy diferente"
+
+  repeat_purchase_rate:
+    description: "Porcentaje de buyers que hacen transacciones múltiples"
+    good: "30-50%"
+    great: ">50%"
+    red_flag: "<10%"
+    notes: "Marketplaces de servicios tienden a tener higher repeat rate"
+
+  provider earnings:
+    description: "Ganancias promedio mensual de providers"
+    good: "$500-2000/month"
+    great: ">$2000/month"
+    red_flag: "<$200/month (no es income sustitute)"
+    notes: "Providers deben poder ganar living wage"
+
+  match_rate:
+    description: "Porcentaje de searches que resultan en booking/purchase"
+    good: "20-40%"
+    great: ">40%"
+    red_flag: "<5%"
+    notes: "Low match rate indica problema de discovery o pricing"
+
+  time_to_first_transaction:
+    description: "Tiempo desde signup hasta primera transacción"
+    good: "<7 días"
+    great: "<24 horas"
+    red_flag: ">30 días"
+    notes: "Faster is better for engagement"
+
+# ============================================================================
+# MOBILE APP — Benchmarks Específicos
+# ============================================================================
+
+mobile_app_benchmarks:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+  source: "Lenny's Newsletter + Mobile App Analytics"
+
+  # Retention (Mobile es más difícil que web)
+  day_1_retention:
+    good: "25-40%"
+    great: ">40%"
+    red_flag: "<15%"
+    notes: "Mobile D1 es generalmente lower que web D1"
+
+  day_7_retention:
+    good: "10-20%"
+    great: ">20%"
+    red_flag: "<5%"
+    notes: "Mobile D7 >20% es excelente"
+
+  day_30_retention:
+    good: "5-10%"
+    great: ">10%"
+    red_flag: "<2%"
+    notes: "Retention en mobile cae rápido; <2% D30 es común"
+
+  # Acquisition
+  app_store_conversion:
+    description: "Porcentaje de page views que se convierten en install"
+    good: "20-40%"
+    great: ">40%"
+    red_flag: "<10%"
+    notes: "Depende de ASO, screenshots, reviews"
+
+  cost_per_install_cpi:
+    description: "Costo por install (paid acquisition)"
+    good: "$1-3"
+    great: "<$1"
+    red_flag: ">$5"
+    notes: "Varía mucho por category y geography"
+
+  # Engagement
+  session_duration:
+    description: "Duración promedio de sesión"
+    good: "3-5 minutos"
+    great: ">5 minutos"
+    red_flag: "<30 segundos"
+    notes: "Context-dependent: games >10 min, utilities <1 min"
+
+  sessions_per_user_per_day:
+    description: "Sesiones por usuario por día"
+    good: "1-2"
+    great: ">2"
+    red_flag: "<0.5"
+    notes: "Social/messaging puede ser 5-10 sessions/day"
+
+  screen_views_per_session:
+    description: "Pantallas vistas por sesión"
+    good: "5-10"
+    great: ">10"
+    red_flag: "<2"
+    notes: "Higher = more engaging"
+
+  # Monetization
+  arpu_mobile:
+    description: "Average Revenue Per User (mobile)"
+    good: "$0.10-0.50/month"
+    great: ">$0.50/month"
+    red_flag: "<$0.05/month"
+    notes: "Mobile ARPU es lower que desktop; volumen compensa"
+
+  paid_conversion_rate:
+    description: "Porcentaje de usuarios que hacen purchase in-app"
+    good: "2-5%"
+    great: ">5%"
+    red_flag: "<1%"
+    notes: "Freemium conversion >5% es excelente"
+
+  subscription_retention_month_1:
+    description: "Retención después de 1 mes de subscription"
+    good: "70-80%"
+    great: ">80%"
+    red_flag: "<60%"
+    notes: "Subscriptions tienen higher retention que one-time purchases"
+
+  # Ratings & Reviews
+  app_store_rating:
+    description: "Rating promedio en App Store / Play Store"
+    good: "4.0-4.5"
+    great: ">4.5"
+    red_flag: "<3.5"
+    notes: "Rating <4.0 afecta significativamente downloads"
+
+  number_of_ratings:
+    description: "Cantidad de ratings (indicador de madurez)"
+    early_stage: "10-100 ratings"
+    established: "100-1000 ratings"
+    mature: ">1000 ratings"
+    notes: "Más ratings = más confiable el rating promedio"
+
+# ============================================================================
+# B2B SAAS — Benchmarks Específicos
+# ============================================================================
+
+b2b_saaS_benchmarks:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+  source: "Lenny's Newsletter + OpenView Benchmark"
+
+  # Sales Metrics
+  sales_cycle_length:
+    description: "Días desde lead qualifier a closed-won"
+    smb: "<30 días"
+    mid_market: "30-90 días"
+    enterprise: "90-180 días"
+    red_flag: ">180 días para SMB, >365 para enterprise"
+    notes: "Sales cycle más largo = higher CAC, slower growth"
+
+  average_deal_size_arr:
+    description: "Tamaño promedio de deal en ARR"
+    smb: "$1K-10K"
+    mid_market: "$10K-50K"
+    enterprise: ">$50K"
+    notes: "Deal size debe justificar sales effort"
+
+  quota_attainment:
+    description: "Porcentaje de reps que cumplen quota"
+    good: "50-70%"
+    great: ">70%"
+    red_flag: "<30%"
+    notes: "<50% indica quota too high o product/problem"
+
+  lead_response_time:
+    description: "Tiempo para responder a lead inbound"
+    good: "<5 minutos"
+    great: "<1 minuto"
+    red_flag: ">1 hora"
+    notes: "Response time <5 min aumenta significativamente conversion"
+
+  # Customer Success
+  net_revenue_retention_nrr:
+    description: "Incluye expansion (upsell/cross-sell) menos churn"
+    good: "100-110%"
+    great: ">110%"
+    red_flag: "<90%"
+    notes: "NRR >100% significa existing customers crecen más que churn"
+
+  net_dollar_retention_ndr:
+    description: "Similar a NRR pero en dólares"
+    good: "100-110%"
+    great: ">110%"
+    red_flag: "<90%"
+    notes: "Best-in-class SaaS tiene 120%+ NDR"
+
+  customer_health_score:
+    description: "Porcentaje de customers en 'healthy' status"
+    good: "70-80%"
+    great: ">80%"
+    red_flag: "<60%"
+    notes: "More customers at risk = higher churn risk"
+
+# ============================================================================
+# STARTUP STAGE BENCHMARKS
+# ============================================================================
+
+startup_stage_benchmarks:
+  version: "1.0.0"
+  last_updated: "2026-02-23"
+
+  pre_seed:
+    description: "Pre-Seed: Idea validation"
+    target: "Problem-solution fit confirmado"
+    metrics:
+      interviews_conducted: "20-50 user interviews"
+      problem_validation: "70%+ confirman problema real"
+      solution_validation: "40%+ quieren usar solución propuesta"
+      team: "Founders committed full-time"
+
+  seed:
+    description: "Seed: Product-market fit hunting"
+    target: "PMF signals detectables"
+    metrics:
+      paying_customers: "10-100 paying customers"
+      mrr: "$1K-10K MRR"
+      pmf_survey: "40%+ 'very disappointed'"
+      month_over_month_growth: "10-20% MoM"
+      retention_d30: "10%+ D30 retention"
+
+  series_a:
+    description: "Series A: PMF achieved, scaling"
+    target: "Proven PMF + scalable growth"
+    metrics:
+      paying_customers: "100-1000 paying customers"
+      mrr: "$50K-200K MRR"
+      month_over_month_growth: "15-30% MoM"
+      net_dollar_retention: "100%+ NDR"
+      ltv_cac_ratio: "3:1+"
+
+  series_b:
+    description: "Series B: Scaling efficiently"
+    target: "Efficient growth engine"
+    metrics:
+      paying_customers: "1000+ paying customers"
+      mrr: "$200K-1M MRR"
+      month_over_month_growth: "10-20% MoM"
+      cac_payback: "<12 months"
+      gross_margin: "80%+"
+
+# ============================================================================
+# WARNING FLAGS — Red Flags que Requieren Atención
+# ============================================================================
+
+red_flags:
+  description: "Estos flags requieren acción inmediata"
+
+  activation:
+    - "Activation rate <20% = problema con onboarding o value proposition"
+    - "Time to value >30 min = producto es muy complejo o onboarding mal diseñado"
+
+  retention:
+    - "D1 retention <20% = users no entienden valor o wrong channel"
+    - "D7 retention <10% = producto no es sticky o problem not acute"
+    - "D30 retention <3% = churn disaster, pivoting required"
+    - "Churn rate >15% monthly = unsustainable business"
+
+  monetization:
+    - "LTV/CAC <1 = burning cash en cada customer"
+    - "CAC payback >18 months = very expensive to grow"
+    - "ARPU decreasing over time = pricing power decreasing"
+
+  unit_economics:
+    - "Gross margin <50% = difficult to be profitable"
+    - "Net revenue retention <90% = shrinking customer base"
+
+  growth:
+    - "MoM growth <5% = stagnant"
+    - "Organic share of growth <20% = addicted to paid marketing"
+    - "Viral coefficient <0.3 = not viral, don't call it viral"
+
+# ============================================================================
+# NOTAS IMPORTANTES
+# ============================================================================
+
+important_notes: |
+  CRITICAL: Estos benchmarks son REFERENCIALES, no absolutos.
+
+  Considerar contexto:
+  - Industry (Fintech tiene diferentes benchmarks que E-commerce)
+  - Business model (Marketplace vs SaaS vs Consumer App)
+  - Stage (Pre-seed vs Series B)
+  - Geography (US vs LatAm vs EU)
+  - Price point (B2B enterprise vs B2C SMB)
+
+  Si no hay benchmark aplicable:
+  - Exigir al cerebro que declare su baseline
+  - Comparar contra proyectos anteriores similares
+  - Usar reference class forecasting
+
+  Siempre preguntar:
+  - "¿De dónde vienen estos números?"
+  - "¿Son aspiracionales o basados en data?"
+  - "¿Qué tan confiables son las fuentes?"
