@@ -1,8 +1,8 @@
 # Handoff Document — MasterMind Framework
 
 **Última actualización:** 2026-02-24
-**Sesión:** PRP-005 Implementation Complete
-**Estado:** Framework al 85% de completion
+**Sesión:** PRP-006 Implementation Complete
+**Estado:** Framework Core al 100% de completion ✅
 
 ---
 
@@ -28,15 +28,16 @@ El proyecto usa **Serena MCP** para gestión de memoria. Las memorias disponible
 | Memoria | Propósito |
 |---------|-----------|
 | `PROJECT` | Estado general del proyecto |
-| `SESSION-2026-02-24-PROGRESS` | Detalle de PRP-005 implementado |
-| `CHECKPOINT-2026-02-24-PRP005-COMPLETE` | Punto de recuperación completo |
+| `SESSION-2026-02-24-PROGRESS` | Detalle de sesión completa (PRP-005 + PRP-006) |
+| `CHECKPOINT-2026-02-24-PRP005-COMPLETE` | PRP-005 Brain #7 |
+| `CHECKPOINT-2026-02-24-PRP006-COMPLETE` | PRP-006 Orchestrator |
 | `COMMANDS` | Comandos útiles del proyecto |
 | `CONVENTIONS` | Convenciones de código y git |
 
 **Para cargar contexto al iniciar sesión:**
 1. Leer `PROJECT` para overview
 2. Leer `SESSION-2026-02-24-PROGRESS` para lo último hecho
-3. Leer `CHECKPOINT-2026-02-24-PRP005-COMPLETE` para recuperación
+3. Leer `CHECKPOINT-2026-02-24-PRP006-COMPLETE` para recuperación más reciente
 
 ---
 
@@ -50,53 +51,56 @@ El proyecto usa **Serena MCP** para gestión de memoria. Las memorias disponible
 | PRP-001 | mastermind-cli | ✅ | b050e22 |
 | PRP-003 | System Prompts | ✅ | - |
 | PRP-004 | NotebookLM Integration | ✅ | 254f108 |
-| PRP-005 | Brain #7 Evaluator | ✅ | **286efb8** |
+| PRP-005 | Brain #7 Evaluator | ✅ | 286efb8 |
+| PRP-006 | Orchestrator | ✅ | **4873faf** |
 
 ### PRPs Pendientes ⏳
 
 | PRP | Descripción | Prioridad | Estimated |
 |-----|-------------|-----------|-----------|
 | PRP-002 | YAML Versioning | Medium | 30 min |
-| PRP-006 | Orchestrator | High | 2-3 hours |
 
-**Progreso:** 6/7 PRPs completados (**85%**)
+**Progreso:** 7/7 PRPs core completados (**100%** - Framework Core COMPLETE!)
 
 ---
 
-## Lo Que Se Acaba de Completar (PRP-005)
+## Lo Que Se Acaba de Completar (PRP-006)
 
-### Evaluator Skill Implementado
+### Orchestrator Central Implementado
 
 ```
-skills/evaluator/
-├── SKILL.md                    # System prompt del evaluador
-├── protocol.md                 # Protocolo de 5 pasos
-├── bias-catalog.yaml          # 10 sesgos cognitivos
-├── benchmarks.yaml            # SaaS/Marketplace/Mobile benchmarks
-├── evaluation-matrices/
-│   └── product-brief.yaml     # 19 checks en 4 categorías
-└── templates/
-    ├── evaluation-report.yaml
-    └── escalation-report.yaml
+agents/orchestrator/
+├── system-prompt.md            # System prompt (400+ líneas)
+├── config/
+│   ├── flows.yaml             # 6 flujos estándar
+│   ├── brains.yaml            # 7 cerebros con triggers
+│   └── thresholds.yaml        # Umbrales de decisión
+├── protocols/
+│   ├── task-decomposition.md  # Descomposición de briefs
+│   ├── evaluation-flow.md     # Iteración con Cerebro #7
+│   └── escalation.md          # Protocolo de escalación
+└── precedents/
+    ├── template.yaml          # Template de precedente
+    └── catalog.yaml           # Catálogo (vacío)
 ```
 
-### Brain #7 Creado
+### Flujos Estándar Definidos
 
-- **Archivo:** `agents/brains/growth-data.md`
-- **Expertos:** Munger, Kahneman, Tetlock, Hormozi, Ellis, Chen, Lenny
-- **Rol:** Evalúa outputs de cerebros 1-6
+| Flujo | Secuencia | Propósito |
+|-------|-----------|-----------|
+| `full_product` | 1→2→3→4→5→6→7 | Producto completo |
+| `validation_only` | 1→7 | Validación de idea |
+| `design_sprint` | 1→2→3→7 | Diseño sin construcción |
+| `build_feature` | 4→5→6→7 | Implementar feature |
+| `optimization` | 7→1 | Optimizar existente |
+| `technical_review` | 5→6→7 | Revisión técnica |
 
-### CLI Enhanced
+### Protocolos Implementados
 
-- **Comando nuevo:** `mm brain compile-radar 07`
-- **Función:** Genera FUENTE-709 y FUENTE-710 desde cerebros 1-6
-
-### Commit Pendiente de Push
-
-```bash
-# El commit 286efb8 NO está pusheado aún
-git push origin master
-```
+- **Task Decomposition:** Descomponer briefs en tareas atómicas
+- **Evaluation Flow:** Iterar con Cerebro #7 (3 rechazos = escalar)
+- **Escalation:** Escalar a humano cuando sea necesario
+- **Precedents:** Aprender de conflictos resueltos
 
 ---
 
@@ -150,22 +154,29 @@ ls -la skills/evaluator/
 
 ```
 mastermind/
-├── agents/brains/
-│   ├── product-strategy.md      # Cerebro #1 ✅
-│   └── growth-data.md           # Cerebro #7 ✅ NEW
+├── agents/
+│   ├── brains/
+│   │   ├── product-strategy.md   # Cerebro #1 ✅
+│   │   └── growth-data.md        # Cerebro #7 ✅
+│   └── orchestrator/            # Orquestador ✅ NEW
+│       ├── system-prompt.md
+│       ├── config/              # flows, brains, thresholds
+│       ├── protocols/           # task-decomp, evaluation, escalation
+│       └── precedents/          # template, catalog
 │
 ├── docs/
 │   ├── design/                  # Especificaciones (00-11)
 │   ├── software-development/    # Nicho: desarrollo de software
-│   │   ├── 01-product-strategy-brain/
+│   │   ├── 01-product-strategy-brain/ ✅
 │   │   ├── 02-06-*-brain/       # Cerebros pendientes
 │   │   └── 07-growth-data-brain/ ✅
 │   ├── PRD/                     # PRDs del framework
 │   ├── PRPs/                    # PRPs de implementación
 │   ├── HANDOFF.md               # ESTE ARCHIVO
-│   └── EVALUATOR-GUIDE.md       # Guía del evaluador ✅ NEW
+│   ├── EVALUATOR-GUIDE.md       # Guía del evaluador ✅
+│   └── ORCHESTRATOR-GUIDE.md    # Guía del orquestador ✅ NEW
 │
-├── skills/evaluator/            # Evaluator Skill ✅ NEW
+├── skills/evaluator/            # Evaluator Skill ✅
 │   ├── SKILL.md
 │   ├── protocol.md
 │   ├── bias-catalog.yaml
@@ -174,12 +185,13 @@ mastermind/
 │   └── templates/
 │
 ├── tests/fixtures/
-│   └── product-brief-defectuoso.md  # Test ✅ NEW
+│   └── product-brief-defectuoso.md  # Test ✅
 │
-├── tools/mastermind-cli/        # CLI implementado
+├── tools/mastermind-cli/        # CLI implementado ✅
 │
 ├── PRPs/                        # PRPs creados
-│   └── PRP-005-brain-07-evaluator.md ✅
+│   ├── PRP-005-brain-07-evaluator.md ✅
+│   └── PRP-006-orchestrator.md ✅ NEW
 │
 ├── logs/                        # Logs (gitignored)
 │   ├── evaluations/
@@ -210,27 +222,25 @@ mastermind/
 
 ## Próximos Pasos Recomendados
 
-### Opción A: Continuar con PRPs (Recomendado)
+### Opción A: PRP-002 - YAML Versioning (30 min)
 
-**PRP-006: Orchestrator** (High Priority)
-- Coordina Cerebro #1 + Cerebro #7
-- Implementa flujo de evaluación automático
-- Maneja iteraciones y veredictos
-- Estimated: 2-3 hours
-
-**PRP-002: YAML Versioning** (Medium Priority)
 - Agregar YAML front matter a fuentes existentes
-- Completar secciones faltantes
-- Estimated: 30 min
+- Completar secciones faltantes en FUENTE-008, FUENTE-009, FUENTE-010
+- Agregar version y changelog
 
-### Opción B: Testing
+### Opción B: Testing del Orquestador (1-2 horas)
 
-**Probar flujo completo**
-- Usar test brief defectuoso
-- Verificar que el evaluador detecta problemas
-- Probar con un brief real
+- Probar flujo completo con briefs reales
+- Verificar interacción: Orchestrator → Cerebro #1 → Cerebro #7
+- Crear precedents de ejemplo
 
-### Opción C: NotebookLM para Cerebro #7 (Opcional)
+### Opción C: CLI Command - `mm orchestrate` (PRP-008, 2-3 hours)
+
+- Implementar comando `mm orchestrate <brief>`
+- Integrar con CLI existente
+- Testing con briefs de ejemplo
+
+### Opción D: NotebookLM para Cerebro #7 (Opcional)
 
 - Crear notebook: `[CEREBRO] Growth & Data - Software Development`
 - Cargar 10 fuentes (FUENTE-701 a FUENTE-710)
@@ -246,10 +256,11 @@ Si necesitas entender el framework:
 |---------|----------|
 | `CLAUDE.md` | Instrucciones del proyecto para Claude |
 | `docs/design/00-PRD-MasterMind-Framework.md` | PRD principal - LEER PRIMERO |
-| `docs/design/10-Plan-Implementacion-Claude-Code.md` | Plan de implementación |
+| `docs/design/07-Orquestador-y-Evaluador.md` | Especificación Orquestador |
 | `docs/design/11-Cerebro-07-Evaluador-Critico.md` | Especificación Cerebro #7 |
-| `PRPs/PRP-005-brain-07-evaluator.md` | PRP recién completado |
+| `PRPs/PRP-006-orchestrator.md` | PRP Orquestador |
 | `docs/EVALUATOR-GUIDE.md` | Guía de uso del evaluador |
+| `docs/ORCHESTRATOR-GUIDE.md` | Guía de uso del orquestador |
 
 ---
 
@@ -324,12 +335,13 @@ git log --oneline -3
 # 3. Leer memorias Serena (via MCP)
 # - PROJECT
 # - SESSION-2026-02-24-PROGRESS
-# - CHECKPOINT-2026-02-24-PRP005-COMPLETE
+# - CHECKPOINT-2026-02-24-PRP006-COMPLETE (más reciente)
 
-# 4. Opcional: Push cambios pendientes
-git push origin master
+# 4. Verificar estado (todo debe estar pusheado)
+git status
+git log --oneline -3
 
-# 5. Continuar con próximo PRP o tarea
+# 5. Continuar con próxima tarea
 ```
 
 ---
@@ -344,10 +356,11 @@ Ninguno. Todas las validaciones pasaron.
 
 - **Repo:** https://github.com/rap77/mastermind-framework
 - **Branch:** master
-- **Último commit:** 286efb8
+- **Último commit:** 4873faf (PRP-006)
 
 ---
 
-**Documento de Handoff v2.0**
+**Documento de Handoff v2.1**
 **Generado:** 2026-02-24
+**Framework Core: 100% COMPLETE** ✅
 **Para sesiones futuras de MasterMind Framework**
