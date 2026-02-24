@@ -1,8 +1,8 @@
 # Handoff Document — MasterMind Framework
 
 **Última actualización:** 2026-02-24
-**Sesión:** PRP-006 Implementation Complete
-**Estado:** Framework Core al 100% de completion ✅
+**Sesión:** PRP-006 + PRP-008 Complete + CLI Automation
+**Estado:** Framework Core 100% + CLI Automation ✅
 
 ---
 
@@ -52,15 +52,21 @@ El proyecto usa **Serena MCP** para gestión de memoria. Las memorias disponible
 | PRP-003 | System Prompts | ✅ | - |
 | PRP-004 | NotebookLM Integration | ✅ | 254f108 |
 | PRP-005 | Brain #7 Evaluator | ✅ | 286efb8 |
-| PRP-006 | Orchestrator | ✅ | **4873faf** |
+| PRP-006 | Orchestrator | ✅ | 4873faf |
+| PRP-008 | CLI Orchestrate | ✅ | **bb1ec26** |
 
 ### PRPs Pendientes ⏳
 
-| PRP | Descripción | Prioridad | Estimated |
-|-----|-------------|-----------|-----------|
-| PRP-002 | YAML Versioning | Medium | 30 min |
+| Componente | Prioridad | Estimated |
+|------------|----------|-----------|
+| Cerebro #2 (UX Research) | Medium | 2-3 hours |
+| Cerebro #3 (UI Design) | Low | 2-3 hours |
+| Cerebro #4 (Frontend) | Low | 2-3 hours |
+| Cerebro #5 (Backend) | Low | 2-3 hours |
+| Cerebro #6 (QA/DevOps) | Low | 2-3 hours |
+| NotebookLM para Cerebro #7 | Low | 1 hour |
 
-**Progreso:** 7/7 PRPs core completados (**100%** - Framework Core COMPLETE!)
+**Progreso:** 8/8 core PRPs completados (**100%** - Framework Core + CLI COMPLETE!)
 
 ---
 
@@ -104,6 +110,46 @@ agents/orchestrator/
 
 ---
 
+## Lo Que Se Acaba de Completar (PRP-008)
+
+### CLI `mm orchestrate` Implementado
+
+```
+tools/mastermind-cli/mastermind_cli/
+├── commands/orchestrate.py      # Comando CLI principal
+└── orchestrator/
+    ├── flow_detector.py          # Detección automática de flujo
+    ├── plan_generator.py         # Generación de execution plans
+    ├── brain_executor.py         # Ejecución de cerebros (placeholder)
+    ├── output_formatter.py       # Formato de outputs legibles
+    └── coordinator.py            # Coordinador principal
+```
+
+### Comandos Disponibles
+
+| Comando | Descripción |
+|---------|-------------|
+| `mm orchestrate run "brief"` | Orquestra brief completo |
+| `mm orchestrate run --dry-run "brief"` | Genera plan sin ejecutar |
+| `mm orchestrate run --flow validation_only "brief"` | Fuerza flujo específico |
+| `mm orchestrate run --file brief.md` | Lee brief desde archivo |
+| `mm orchestrate run -o output.yaml "brief"` | Guarda output en archivo |
+
+### Ejemplos de Uso
+
+```bash
+# Validación de idea (flow automático)
+mm orchestrate run "validar idea de app de viajes"
+
+# Producto completo (solo ver plan)
+mm orchestrate run --dry-run "quiero crear una app de delivery"
+
+# Forzar flujo de validación
+mm orchestrate run --flow validation_only "es buena idea esta app?"
+```
+
+---
+
 ## Comandos Útiles
 
 ### CLI mastermind
@@ -123,6 +169,11 @@ mm brain validate 01             # Validar cerebro
 # Framework
 mm framework status              # Status general
 mm info                          # System info
+
+# Orchestrate
+mm orchestrate run "brief"       # Orquestrar brief
+mm orchestrate run --dry-run     # Ver plan sin ejecutar
+mm orchestrate run --flow validation_only "brief"  # Forzar flujo
 ```
 
 ### Git
