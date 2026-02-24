@@ -9,6 +9,7 @@ from . import __version__
 from .commands.source import source
 from .commands.brain import brain
 from .commands.framework import framework
+from .commands.orchestrate import orchestrate
 
 console = Console()
 
@@ -28,6 +29,7 @@ def cli():
 cli.add_command(source)
 cli.add_command(brain)
 cli.add_command(framework)
+cli.add_command(orchestrate)
 
 
 @cli.command()
