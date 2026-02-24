@@ -1,0 +1,108 @@
+# Umbrales de Decisión del MasterMind Framework
+# Definen los límites para acciones automáticas vs intervención humana
+
+evaluation:
+  # Número máximo de rechazos consecutivos antes de escalar
+  max_rejections: 3
+
+  # Cuándo resetear el contador de rechazos
+  rejection_counter_reset: "per_brain_output"  # Options: per_brain_output, per_task, per_session
+
+  # Score mínimo para aprobar sin condiciones
+  approval_threshold: 80
+
+  # Score mínimo para aprobación condicional
+  conditional_threshold: 60
+
+  # Bajo este score es rechazo automático
+  rejection_threshold: 60
+
+  # Triggers que causan escalación automática
+  escalation_triggers:
+    - "3 consecutive rejections by brain #7"
+    - "coherence failure detected"
+    - "human requested explicitly"
+    - "contradiction with previous outputs"
+    - "missing critical information"
+    - "unknown domain or scenario"
+
+  # Tiempo máximo (minutos) para que un cerebro responda
+  brain_timeout: 5
+
+  # Tiempo máximo (minutos) para que Cerebro #7 evalúe
+  evaluator_timeout: 3
+
+task_decomposition:
+  # Número máximo de tareas atómicas por brief
+  max_atomic_tasks: 20
+
+  # Número máximo de cerebros por tarea
+  max_brains_per_task: 3
+
+  # Prioridad por defecto para nuevas tareas
+  default_priority: 5  # 1-10 scale
+
+  # Pesos para cálculo de prioridad
+  priority_weights:
+    dependency: 0.4   # Tareas que bloquean a otras
+    impact: 0.3       # Impacto en resultado final
+    risk: 0.2         # Incertidumbre
+    effort: 0.1       # A igualdad, más rápidas primero
+
+precedents:
+  # Número máximo de precedentes en catálogo
+  max_catalog_size: 100
+
+  # Umbral de relevancia para aplicar precedente (0-1)
+  relevance_threshold: 0.7
+
+  # Aplicar precedentes automáticamente
+  auto_apply: true
+
+  # Cuántos precedentes máximo incluir por contexto
+  max_precedents_per_context: 5
+
+  # Peso de precedentes en decisión (0-1)
+  precedent_weight: 0.3
+
+execution:
+  # Modo de ejecución
+  execution_mode: "sequential"  # Options: sequential, parallel, hybrid
+
+  # Número máximo de cerebros en paralelo (solo modo parallel/hybrid)
+  max_parallel_brains: 3
+
+  # Crear checkpoint después de cada cerebro
+  checkpoint_per_brain: true
+
+  # Guardar logs de ejecución
+  execution_logging: true
+
+  # Directorio de logs (relativo a project root)
+  logs_dir: "logs/execution"
+
+quality_gates:
+  # Gates de calidad entre cerebros
+  gates:
+    - name: "strategy_gate"
+      after_brain: 1
+      requires_evaluation: true
+      minimum_score: 70
+
+    - name: "design_gate"
+      after_brain: 3
+      requires_evaluation: true
+      minimum_score: 70
+
+    - name: "build_gate"
+      after_brain: 6
+      requires_evaluation: true
+      minimum_score: 80
+
+    - name: "final_gate"
+      after_brain: 7
+      requires_evaluation: false  # Brain 7 IS the evaluator
+      minimum_score: 80
+
+version: "1.0.0"
+last_updated: "2026-02-24"

@@ -1,0 +1,199 @@
+# Definición de los 7 Cerebros Especializados
+# Cada cerebro tiene un rol específico en el framework
+
+brains:
+  1:
+    id: "product-strategy"
+    name: "Product Strategy"
+    status: "active"
+    system_prompt: "agents/brains/product-strategy.md"
+    notebook_id: "f276ccb3-0bce-4069-8b55-eae8693dbe75"
+    notebook_name: "[CEREBRO] Product Strategy - Software Development"
+    expert_count: 10
+    triggers:
+      - "nuevo proyecto"
+      - "validación"
+      - "priorización"
+      - "idea"
+      - "concepto"
+      - "producto"
+      - "estrategia"
+      - "roadmap"
+      - "feature"
+      - "opportunidad"
+    output_schema: "product-brief"
+    output_format: "yaml"
+    domains:
+      - "product-management"
+      - "discovery"
+      - "strategy"
+      - "prioritization"
+
+  2:
+    id: "ux-research"
+    name: "UX Research"
+    status: "pending"
+    system_prompt: "agents/brains/ux-research.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 0
+    triggers:
+      - "experiencia"
+      - "usuario"
+      - "journey"
+      - "wireframe"
+      - "prototipo"
+      - "usabilidad"
+      - "research"
+      - "entrevista"
+      - "testing"
+    output_schema: "ux-research-report"
+    output_format: "yaml"
+    domains:
+      - "user-research"
+      - "ux-design"
+      - "service-design"
+    note: "Pendiente de implementación"
+
+  3:
+    id: "ui-design"
+    name: "UI Design"
+    status: "pending"
+    system_prompt: "agents/brains/ui-design.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 0
+    triggers:
+      - "visual"
+      - "interfaz"
+      - "diseño"
+      - "componentes"
+      - "estilo"
+      - "design system"
+      - "layout"
+      - "colores"
+      - "tipografía"
+    output_schema: "ui-design-system"
+    output_format: "yaml"
+    domains:
+      - "visual-design"
+      - "design-systems"
+      - "component-design"
+    note: "Pendiente de implementación"
+
+  4:
+    id: "frontend"
+    name: "Frontend Development"
+    status: "pending"
+    system_prompt: "agents/brains/frontend.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 0
+    triggers:
+      - "implementar frontend"
+      - "react"
+      - "componente"
+      - "interfaz de usuario"
+      - "estado"
+      - "hooks"
+      - "state"
+      - "javascript"
+      - "typescript"
+    output_schema: "frontend-implementation"
+    output_format: "yaml"
+    domains:
+      - "frontend-development"
+      - "react"
+      - "state-management"
+      - "typescript"
+    note: "Pendiente de implementación"
+
+  5:
+    id: "backend"
+    name: "Backend Development"
+    status: "pending"
+    system_prompt: "agents/brains/backend.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 0
+    triggers:
+      - "api"
+      - "base de datos"
+      - "arquitectura"
+      - "servidor"
+      - "endpoint"
+      - "microservicios"
+      - "data"
+      - "auth"
+      - "integración"
+    output_schema: "backend-implementation"
+    output_format: "yaml"
+    domains:
+      - "backend-development"
+      - "api-design"
+      - "database"
+      - "architecture"
+    note: "Pendiente de implementación"
+
+  6:
+    id: "qa-devops"
+    name: "QA & DevOps"
+    status: "pending"
+    system_prompt: "agents/brains/qa-devops.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 0
+    triggers:
+      - "testing"
+      - "deploy"
+      - "ci/cd"
+      - "producción"
+      - "qa"
+      - "automated tests"
+      - "monitoring"
+      - "infraestructura"
+      - "cloud"
+    output_schema: "qa-deployment-report"
+    output_format: "yaml"
+    domains:
+      - "quality-assurance"
+      - "devops"
+      - "ci-cd"
+      - "testing"
+    note: "Pendiente de implementación"
+
+  7:
+    id: "growth-data"
+    name: "Growth & Data (Critical Evaluator)"
+    status: "active"
+    system_prompt: "agents/brains/growth-data.md"
+    evaluator_skill: "skills/evaluator/SKILL.md"
+    notebook_id: null
+    notebook_name: null
+    expert_count: 8
+    triggers:
+      - "métricas"
+      - "optimizar"
+      - "crecimiento"
+      - "evaluar"
+      - "análisis"
+      - "data"
+      - "kpi"
+      - "retención"
+      - "conversión"
+    output_schema: "evaluation-report"
+    output_format: "yaml"
+    domains:
+      - "growth"
+      - "data-analysis"
+      - "metrics"
+      - "evaluation"
+    special_role: "critical_evaluator"
+    veredict_types:
+      - "APPROVE"
+      - "CONDITIONAL"
+      - "REJECT"
+      - "ESCALATE"
+
+version: "1.0.0"
+last_updated: "2026-02-24"

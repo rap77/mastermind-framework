@@ -1,0 +1,65 @@
+# Precedent Template
+# Copy this file to create a new precedent: PREC-XXX.yaml
+
+precedent:
+  id: "PREC-XXX"
+  date: "YYYY-MM-DD"
+  escalation_id: "ESC-XXX"  # If created from escalation, or null
+
+  # What was the conflict or issue?
+  issue: |
+    Clear description of the conflict, failure, or issue
+    that led to creating this precedent.
+
+  # How was it resolved?
+  resolution: |
+    Description of how the issue was resolved.
+    What decision was made?
+
+  # Who made the decision?
+  # Options: "human", "brain-7", "consensus"
+  decided_by: "human"
+
+  # If human, what role?
+  role: null  # e.g., "product_owner", "tech_lead", etc.
+
+  # The rule derived from this precedent
+  rule_created: |
+    The rule that should be applied in future similar situations.
+    "When [condition], do [action]."
+
+  # Which brains does this apply to?
+  applies_to: ["brain-X", "brain-Y"]
+
+  # Context tags for matching
+  context_tags: ["tag1", "tag2", "tag3"]
+
+  # When should this precedent be applied?
+  condition: |
+    Specific condition(s) that trigger this precedent.
+    Can be multiple conditions with AND/OR logic.
+
+  # What action should be taken?
+  action: |
+    Specific action(s) to take when condition is met.
+
+  # Examples of when to apply (optional)
+  examples:
+    - scenario: "Brief description of scenario 1"
+      apply: true
+      explanation: "Why this precedent applies"
+    - scenario: "Brief description of scenario 2"
+      apply: false
+      explanation: "Why this precedent does NOT apply"
+
+  # Tracking
+  occurrences: 1  # Increment each time this precedent is applied
+  last_applied: null  # Date when last applied
+  effectiveness: null  # "high" | "medium" | "low" - filled after use
+
+  # Related precedents (optional)
+  related_precedents: []  # IDs of related precedents
+
+  # Notes (optional)
+  notes: |
+    Any additional notes or context.

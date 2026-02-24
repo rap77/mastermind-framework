@@ -1,0 +1,31 @@
+# Precedents Catalog
+# All learned rules from resolved conflicts and escalations
+
+precedents: []
+
+version: "1.0.0"
+last_updated: "2026-02-24"
+total_precedents: 0
+
+# Metadata
+catalog_info:
+  purpose: "Store all precedents created through escalations and conflict resolution"
+  maintained_by: "orchestrator"
+  review_frequency: "monthly"
+  max_precedents: 100  # From thresholds.yaml
+
+# Statistics (updated automatically)
+statistics:
+  by_decided_by:
+    human: 0
+    brain_7: 0
+    consensus: 0
+  by_brain:
+    brain_1: 0
+    brain_2: 0
+    brain_3: 0
+    brain_4: 0
+    brain_5: 0
+    brain_6: 0
+    brain_7: 0
+  by_context_tag: {}

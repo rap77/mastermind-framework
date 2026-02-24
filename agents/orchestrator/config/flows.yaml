@@ -1,0 +1,96 @@
+# Flujos Estándar del MasterMind Framework
+# Definen la secuencia de cerebros para cada tipo de tarea
+
+flows:
+  full_product:
+    sequence: [1, 2, 3, 4, 5, 6, 7]
+    description: "Producto completo desde idea hasta deploy y monitoreo"
+    triggers:
+      - "nuevo proyecto"
+      - "app completa"
+      - "producto desde cero"
+      - "startup"
+      - "nuevo negocio"
+    expected_outputs:
+      - "product-brief"
+      - "ux-research-report"
+      - "ui-design-system"
+      - "frontend-implementation"
+      - "backend-implementation"
+      - "qa-deployment-report"
+      - "growth-metrics-report"
+
+  validation_only:
+    sequence: [1, 7]
+    description: "Validación de idea sin implementación técnica"
+    triggers:
+      - "validar idea"
+      - "feedback concepto"
+      - "viabilidad"
+      - "market fit"
+      - "investigar oportunidad"
+    expected_outputs:
+      - "product-brief"
+      - "evaluation-report"
+
+  design_sprint:
+    sequence: [1, 2, 3, 7]
+    description: "Diseño UX/UI completo sin construcción"
+    triggers:
+      - "diseñar"
+      - "prototipar"
+      - "wireframe"
+      - "mockup"
+      - "design sprint"
+      - "diseño de interfaz"
+    expected_outputs:
+      - "product-brief"
+      - "ux-research-report"
+      - "ui-design-system"
+      - "evaluation-report"
+
+  build_feature:
+    sequence: [4, 5, 6, 7]
+    description: "Implementar feature ya diseñada y especificada"
+    triggers:
+      - "implementar"
+      - "construir"
+      - "codificar"
+      - "feature"
+      - "desarrollar"
+    expected_outputs:
+      - "frontend-implementation"
+      - "backend-implementation"
+      - "qa-deployment-report"
+      - "evaluation-report"
+
+  optimization:
+    sequence: [7, 1]
+    description: "Optimizar producto existente basado en métricas"
+    triggers:
+      - "optimizar"
+      - "mejorar"
+      - "crecimiento"
+      - "métricas"
+      - "performance"
+      - "retención"
+    expected_outputs:
+      - "growth-metrics-report"
+      - "product-brief"
+
+  technical_review:
+    sequence: [5, 6, 7]
+    description: "Revisión técnica y QA sin desarrollo nuevo"
+    triggers:
+      - "auditoría técnica"
+      - "revisión de código"
+      - "qa"
+      - "seguridad"
+      - "refactor"
+    expected_outputs:
+      - "backend-implementation"
+      - "qa-deployment-report"
+      - "evaluation-report"
+
+version: "1.0.0"
+last_updated: "2026-02-24"
