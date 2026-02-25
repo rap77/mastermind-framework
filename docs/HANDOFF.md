@@ -279,23 +279,73 @@ mastermind/
 - Completar secciones faltantes en FUENTE-008, FUENTE-009, FUENTE-010
 - Agregar version y changelog
 
-### Opción B: Testing del Orquestador (1-2 horas)
+## Testing Pendiente ⚠️
 
-- Probar flujo completo con briefs reales
-- Verificar interacción: Orchestrator → Cerebro #1 → Cerebro #7
-- Crear precedents de ejemplo
+Los siguientes componentes están implementados pero **NO han sido probados con briefs reales**:
 
-### Opción C: CLI Command - `mm orchestrate` (PRP-008, 2-3 hours)
+### Componentes Sin Testing Real
 
-- Implementar comando `mm orchestrate <brief>`
-- Integrar con CLI existente
-- Testing con briefs de ejemplo
+| Componente | Estado Implementación | Estado Testing |
+|------------|----------------------|----------------|
+| **Orchestrator Central** | ✅ Completo | ⚠️ Solo simulación (TEST-001) |
+| **Cerebro #7 (Evaluador)** | ✅ Evaluator skill completo | ⚠️ Sin NotebookLM |
+| **CLI `mm orchestrate`** | ✅ Funcional | ⚠️ Outputs placeholder |
+| **Integración NotebookLM → Cerebro #1** | ✅ Notebook existe | ⚠️ Sin testing en CLI |
+| **Loop completo Orchestrator → #1 → #7** | ⚠️ No probado | ⚠️ End-to-end pendiente |
 
-### Opción D: NotebookLM para Cerebro #7 (Opcional)
+### Qué Significa "Sin Testing Real"
+
+- **Orchestrator**: Se probó con simulación, no con brief real que consulte NotebookLM
+- **Cerebro #7**: Tiene el evaluator skill pero no tiene NotebookLM con FUENTE-701-710
+- **CLI `mm orchestrate`**: Funciona pero devuelve placeholders (no llama realmente a NotebookLM MCP)
+- **Precedents**: El catálogo está vacío, no se ha creado ningún precedente
+
+### Para Hacer Testing Real
+
+```bash
+# 1. Probar CLI con brief real (sin MCP)
+mm orchestrate run "quiero validar una app de delivery para restaurantes"
+
+# 2. Verificar que el flujo completo funcione
+# Debería: Detectar flow → Generar plan → Ejecutar #1 (placeholder) → Evaluar #7 (placeholder)
+
+# 3. Para integración real con NotebookLM
+# Necesita: MCP notebooklm-mcp configurado y funcionando
+# Cerebro #1: Notebook ID f276ccb3-0bce-4069-8b55-eae8693dbe75
+```
+
+---
+
+## Próximos Pasos Recomendados
+
+### Opción A: Testing End-to-End (Recomendado)
+
+**Test del flujo validation_only con brief real**
+- Probar `mm orchestrate run --validation_only "quiero validar idea de app"`
+- Verificar que el plan se genere correctamente
+- Verificar que los outputs se formateen bien
+- Documentar cualquier bug encontrado
+
+### Opción B: NotebookLM para Cerebro #7 (1 hora)
 
 - Crear notebook: `[CEREBRO] Growth & Data - Software Development`
-- Cargar 10 fuentes (FUENTE-701 a FUENTE-710)
+- Cargar 10 fuentes (FUENTE-701 a FUENTE-710) — **ESTAS FUENTES NO EXISTEN AÚN**
 - Ejecutar 3 consultas de prueba
+- Nota: Primero hay que crear las fuentes FUENTE-701 a FUENTE-710
+
+### Opción C: Cerebro #2 (UX Research) (2-3 horas)
+
+- Requiere 10 fuentes maestras de UX Research
+- Crear system prompt
+- Crear NotebookLM notebook
+- Testing con briefs de diseño
+
+### Opción D: Documentación y Mejoras
+
+- Tutoriales de uso del CLI
+- Ejemplos de briefs y sus outputs
+- Demo videos (opcional)
+
 
 ---
 
