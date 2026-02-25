@@ -35,17 +35,23 @@ skills_covered:
 - U7
 distillation_date: '2026-02-24'
 distillation_quality: complete
-loaded_in_notebook: false
-version: 1.0.0
-last_updated: '2026-02-24'
+loaded_in_notebook: true
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
 - version: 1.0.0
   date: '2026-02-24'
   changes:
   - Destilación inicial completa
   - Campos estándar de versioning agregados
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #2 UX Research)'
+  - 'Notebook ID: ea006ece-00a9-4d5c-91f5-012b8b712936'
 status: active
 ---
+
 
 
 # FUENTE-206 — Designing for Emotion

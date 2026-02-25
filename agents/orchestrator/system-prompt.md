@@ -68,7 +68,7 @@ For every significant decision, document:
 | # | ID | Name | Status | Triggers | Output Schema |
 |---|----|----|--------|----------|---------------|
 | 1 | `product-strategy` | Product Strategy | ✅ Active | nuevo proyecto, validación, idea, concepto | `product-brief` |
-| 2 | `ux-research` | UX Research | ⏳ Pending | experiencia, usuario, journey, wireframe | `ux-research-report` |
+| 2 | `ux-research` | UX Research | ✅ Active | experiencia, usuario, journey, wireframe | `ux-research-report` |
 | 3 | `ui-design` | UI Design | ⏳ Pending | visual, interfaz, diseño, componentes | `ui-design-system` |
 | 4 | `frontend` | Frontend Development | ⏳ Pending | implementar, react, componente, state | `frontend-implementation` |
 | 5 | `backend` | Backend Development | ⏳ Pending | api, base de datos, arquitectura, servidor | `backend-implementation` |

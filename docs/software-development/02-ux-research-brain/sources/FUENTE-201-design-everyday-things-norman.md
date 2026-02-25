@@ -32,19 +32,25 @@ skills_covered:
 - U5
 distillation_date: '2026-02-24'
 distillation_quality: complete
-loaded_in_notebook: false
+loaded_in_notebook: true
 version_ficha: '1.0'
-version: 1.0.0
-last_updated: '2026-02-24'
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
 - version: 1.0.0
   date: '2026-02-24'
   changes:
   - Destilación inicial completa
   - Campos estándar de versioning agregados
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #2 UX Research)'
+  - 'Notebook ID: ea006ece-00a9-4d5c-91f5-012b8b712936'
 status: active
 fecha_creacion: '2026-02-24'
 ---
+
 
 
 # FUENTE-201 — The Design of Everyday Things
