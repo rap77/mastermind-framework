@@ -15,9 +15,13 @@ skills_covered: ["H3", "H8"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
-version: "1.0.0"
-last_updated: "2026-02-22"
+version: "1.1.0"
+last_updated: "2026-02-24"
 changelog:
+  - version: "1.1.0"
+    date: "2026-02-24"
+    changes:
+      - "Agregado principio P3: Outcome > Output"
   - version: "1.0.0"
     date: "2026-02-22"
     changes:
@@ -66,6 +70,10 @@ Perri presenta los conceptos clave de su libro en formato keynote. Enfatiza los 
 > **P2: Los 3 arquetipos de PM — y solo 1 funciona**
 > Mini-CEO (dicta sin datos), Camarero (toma pedidos), Estratega (sintetiza y experimenta). Solo el estratega produce resultados sostenibles.
 > *Contexto: Aplica como herramienta de auto-evaluación del rol del PM.*
+
+> **P3: Outcome > Output, siempre**
+> Outputs son features que construyes; outcomes son cambios de comportamiento que generas. Mider outputs es fácil pero irrelevante. Medir outcomes es difícil pero es lo único que importa.
+> *Contexto: Aplica al definir métricas de éxito para cualquier iniciativa.*
 
 ### 2. Frameworks y Metodologías
 

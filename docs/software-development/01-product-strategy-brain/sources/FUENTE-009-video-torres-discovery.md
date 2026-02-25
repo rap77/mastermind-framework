@@ -15,9 +15,13 @@ skills_covered: ["H2"]
 distillation_date: "2026-02-22"
 distillation_quality: "complete"
 loaded_in_notebook: false
-version: "1.0.0"
-last_updated: "2026-02-22"
+version: "1.1.0"
+last_updated: "2026-02-24"
 changelog:
+  - version: "1.1.0"
+    date: "2026-02-24"
+    changes:
+      - "Agregado principio P3: Compare & Contrast"
   - version: "1.0.0"
     date: "2026-02-22"
     changes:
@@ -64,6 +68,10 @@ Torres presenta el Opportunity Solution Tree en formato visual, explicando cómo
 > **P2: Las oportunidades se descubren, no se inventan**
 > Las oportunidades vienen de entrevistas con clientes, no de brainstorms internos. Si no hablas con usuarios, inventas problemas.
 > *Contexto: Aplica como regla: ninguna oportunidad se agrega al OST sin evidencia de entrevista.*
+
+> **P3: Compare & Contrast es la regla de oro para soluciones**
+> Nunca evalúes una solución en aislamiento. Siempre compara mínimo 3 opciones. El cerebro humano es malo evaluando alternativas individuales pero excelente comparando.
+> *Contexto: Aplica antes de decidir construir cualquier feature.*
 
 ### 2. Frameworks y Metodologías
 
