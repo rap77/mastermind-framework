@@ -1,25 +1,31 @@
 ---
-source_id: "FUENTE-710"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "Anti-patrones Consolidados"
-author: "Generated (MasterMind CLI)"
-expert_id: "GEN-001"
-type: "generated"
-language: "es"
+source_id: FUENTE-710
+brain: brain-software-07-growth-data
+niche: software-development
+title: Anti-patrones Consolidados
+author: Generated (MasterMind CLI)
+expert_id: GEN-001
+type: generated
+language: es
 year: 2026
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
-version: "1.0.0"
-last_updated: "2026-02-23"
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - version: "1.0.0"
-    date: "2026-02-23"
-    changes:
-      - "Generated from brains 1-6 anti-patterns"
-status: "active"
+- version: 1.0.0
+  date: '2026-02-23'
+  changes:
+  - Generated from brains 1-6 anti-patterns
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
 ---
+
 
 # FUENTE-710: Anti-patrones Consolidados
 

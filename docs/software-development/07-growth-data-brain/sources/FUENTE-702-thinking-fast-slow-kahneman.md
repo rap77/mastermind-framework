@@ -1,27 +1,36 @@
 ---
-source_id: "FUENTE-702"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "Thinking, Fast and Slow"
-author: "Daniel Kahneman"
-expert_id: "EXP-702"
-type: "book"
-language: "en"
+source_id: FUENTE-702
+brain: brain-software-07-growth-data
+niche: software-development
+title: Thinking, Fast and Slow
+author: Daniel Kahneman
+expert_id: EXP-702
+type: book
+language: en
 year: 2011
-isbn: "978-0374533557"
-isbn_10: "0374533555"
-publisher: "Farrar, Straus and Giroux"
+isbn: 978-0374533557
+isbn_10: '0374533555'
+publisher: Farrar, Straus and Giroux
 pages: 499
-skills_covered: ["HC2", "HC3", "HC4"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+skills_covered:
+- HC2
+- HC3
+- HC4
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial completa"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial completa'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-702: Thinking, Fast and Slow
 

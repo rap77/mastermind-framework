@@ -1,25 +1,32 @@
 ---
-source_id: "FUENTE-708"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "Lenny's Newsletter — Compilación de Benchmarks de Producto"
-author: "Lenny Rachitsky"
-expert_id: "N/A"
-type: "article_compilation"
-language: "en"
-year: "2022-2025"
-isbn: "N/A"
-url: "https://www.lennysnewsletter.com/"
-skills_covered: ["HG4"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+source_id: FUENTE-708
+brain: brain-software-07-growth-data
+niche: software-development
+title: Lenny's Newsletter — Compilación de Benchmarks de Producto
+author: Lenny Rachitsky
+expert_id: N/A
+type: article_compilation
+language: en
+year: 2022-2025
+isbn: N/A
+url: https://www.lennysnewsletter.com/
+skills_covered:
+- HG4
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial — benchmarks clave extraídos"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial — benchmarks clave extraídos'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-708: Lenny's Newsletter — Benchmarks de Producto
 

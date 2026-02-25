@@ -1,27 +1,36 @@
 ---
-source_id: "FUENTE-701"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "Poor Charlie's Almanack: The Essential Wit and Wisdom of Charles T. Munger"
-author: "Charles T. Munger"
-expert_id: "EXP-701"
-type: "book"
-language: "en"
+source_id: FUENTE-701
+brain: brain-software-07-growth-data
+niche: software-development
+title: 'Poor Charlie''s Almanack: The Essential Wit and Wisdom of Charles T. Munger'
+author: Charles T. Munger
+expert_id: EXP-701
+type: book
+language: en
 year: 2023
-isbn: "978-1953953230"
-isbn_10: "1953953239"
-publisher: "Stripe Press"
+isbn: 978-1953953230
+isbn_10: '1953953239'
+publisher: Stripe Press
 pages: 384
-skills_covered: ["HC1", "HC2", "HC5"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+skills_covered:
+- HC1
+- HC2
+- HC5
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial completa"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial completa'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-701: Poor Charlie's Almanack
 

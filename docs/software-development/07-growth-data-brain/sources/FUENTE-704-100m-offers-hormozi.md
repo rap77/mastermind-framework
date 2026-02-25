@@ -1,27 +1,35 @@
 ---
-source_id: "FUENTE-704"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "$100M Offers: How to Make Offers So Good People Feel Stupid Saying No"
-author: "Alex Hormozi"
-expert_id: "EXP-704"
-type: "book"
-language: "en"
+source_id: FUENTE-704
+brain: brain-software-07-growth-data
+niche: software-development
+title: '$100M Offers: How to Make Offers So Good People Feel Stupid Saying No'
+author: Alex Hormozi
+expert_id: EXP-704
+type: book
+language: en
 year: 2021
-isbn: "978-1737871019"
-isbn_10: "1737871017"
-publisher: "Acquisition.com LLC"
+isbn: 978-1737871019
+isbn_10: '1737871017'
+publisher: Acquisition.com LLC
 pages: 208
-skills_covered: ["HG1", "HG4"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+skills_covered:
+- HG1
+- HG4
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial completa"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial completa'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-704: $100M Offers
 

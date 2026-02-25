@@ -1,27 +1,34 @@
 ---
-source_id: "FUENTE-707"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "The Art of Thinking Clearly"
-author: "Rolf Dobelli"
-expert_id: "N/A"
-type: "book"
-language: "en"
+source_id: FUENTE-707
+brain: brain-software-07-growth-data
+niche: software-development
+title: The Art of Thinking Clearly
+author: Rolf Dobelli
+expert_id: N/A
+type: book
+language: en
 year: 2013
-isbn: "978-0062219695"
-isbn_10: "0062219693"
-publisher: "Harper Paperbacks"
+isbn: 978-0062219695
+isbn_10: 0062219693
+publisher: Harper Paperbacks
 pages: 384
-skills_covered: ["HC2"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+skills_covered:
+- HC2
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial completa"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial completa'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-707: The Art of Thinking Clearly
 

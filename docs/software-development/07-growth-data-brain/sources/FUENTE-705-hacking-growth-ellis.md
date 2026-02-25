@@ -1,27 +1,35 @@
 ---
-source_id: "FUENTE-705"
-brain: "brain-software-07-growth-data"
-niche: "software-development"
-title: "Hacking Growth: How Today's Fastest-Growing Companies Drive Breakout Success"
-author: "Sean Ellis & Morgan Brown"
-expert_id: "EXP-705"
-type: "book"
-language: "en"
+source_id: FUENTE-705
+brain: brain-software-07-growth-data
+niche: software-development
+title: 'Hacking Growth: How Today''s Fastest-Growing Companies Drive Breakout Success'
+author: Sean Ellis & Morgan Brown
+expert_id: EXP-705
+type: book
+language: en
 year: 2017
-isbn: "978-0451497215"
-isbn_10: "0451497217"
-publisher: "Currency / Crown Business"
+isbn: 978-0451497215
+isbn_10: 0451497217
+publisher: Currency / Crown Business
 pages: 320
-skills_covered: ["HG2", "HG4"]
-version: "1.0.0"
-last_updated: "2026-02-23"
+skills_covered:
+- HG2
+- HG4
+version: 1.0.1
+last_updated: '2026-02-25'
 changelog:
-  - "v1.0.0: Destilación inicial completa"
-status: "active"
-distillation_date: "2026-02-23"
-distillation_quality: "complete"
-loaded_in_notebook: false
+- 'v1.0.0: Destilación inicial completa'
+- version: 1.0.1
+  date: '2026-02-25'
+  changes:
+  - 'Cargada en NotebookLM (Cerebro #7 Growth & Data)'
+  - 'Notebook ID: d8de74d6-7028-44ed-b4d5-784d6a9256e6'
+status: active
+distillation_date: '2026-02-23'
+distillation_quality: complete
+loaded_in_notebook: true
 ---
+
 
 # FUENTE-705: Hacking Growth
 
