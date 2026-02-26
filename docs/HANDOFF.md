@@ -1,8 +1,8 @@
 # Handoff Document — MasterMind Framework
 
-**Última actualización:** 2026-02-24
-**Sesión:** PRP-006 + PRP-008 Complete + CLI Automation
-**Estado:** Framework Core 100% + CLI Automation ✅
+**Última actualización:** 2026-02-25
+**Sesión:** Testing Suite Completo + Cerebro #7 NotebookLM Cargado
+**Estado:** Framework Core + 3 Cerebros Activos ✅
 
 ---
 
@@ -23,21 +23,15 @@ git status  # Debe estar clean
 
 ### Paso 2: Cargar Memorias de Serena
 
-El proyecto usa **Serena MCP** para gestión de memoria. Las memorias disponibles son:
-
 | Memoria | Propósito |
 |---------|-----------|
-| `PROJECT` | Estado general del proyecto |
-| `SESSION-2026-02-24-PROGRESS` | Detalle de sesión completa (PRP-005 + PRP-006) |
-| `CHECKPOINT-2026-02-24-PRP005-COMPLETE` | PRP-005 Brain #7 |
-| `CHECKPOINT-2026-02-24-PRP006-COMPLETE` | PRP-006 Orchestrator |
-| `COMMANDS` | Comandos útiles del proyecto |
-| `CONVENTIONS` | Convenciones de código y git |
+| `MEMORY.md` | Estado general del proyecto |
+| `session/2026-02-25-brain-testing-complete` | Testing suite completo (4 tests) |
+| `session/2025-02-25-testing-brains` | Tests de cerebros activos |
 
 **Para cargar contexto al iniciar sesión:**
-1. Leer `PROJECT` para overview
-2. Leer `SESSION-2026-02-24-PROGRESS` para lo último hecho
-3. Leer `CHECKPOINT-2026-02-24-PRP006-COMPLETE` para recuperación más reciente
+1. Leer `MEMORY.md` para overview
+2. Leer `session/2026-02-25-brain-testing-complete` para resultados de tests
 
 ---
 
@@ -49,104 +43,87 @@ El proyecto usa **Serena MCP** para gestión de memoria. Las memorias disponible
 |-----|-------------|--------|--------|
 | PRP-000 | Initial Setup | ✅ | ac1696a |
 | PRP-001 | mastermind-cli | ✅ | b050e22 |
+| PRP-002 | YAML Versioning | ✅ | (completado) |
 | PRP-003 | System Prompts | ✅ | - |
 | PRP-004 | NotebookLM Integration | ✅ | 254f108 |
 | PRP-005 | Brain #7 Evaluator | ✅ | 286efb8 |
 | PRP-006 | Orchestrator | ✅ | 4873faf |
-| PRP-008 | CLI Orchestrate | ✅ | **bb1ec26** |
+| PRP-008 | CLI Orchestrate | ✅ | bb1ec26 |
 
-### PRPs Pendientes ⏳
+### Cerebros Activos ✅
 
-| Componente | Prioridad | Estimated |
-|------------|----------|-----------|
-| Cerebro #2 (UX Research) | Medium | 2-3 hours |
-| Cerebro #3 (UI Design) | Low | 2-3 hours |
-| Cerebro #4 (Frontend) | Low | 2-3 hours |
-| Cerebro #5 (Backend) | Low | 2-3 hours |
-| Cerebro #6 (QA/DevOps) | Low | 2-3 hours |
-| NotebookLM para Cerebro #7 | Low | 1 hour |
+| Cerebro | Estado | NotebookLM | Testing |
+|---------|--------|------------|---------|
+| **#1 Product Strategy** | ✅ Activo | f276ccb3 (10 sources) | ✅ Validated |
+| **#2 UX Research** | ✅ Activo | - | ✅ Validated |
+| **#7 Growth/Data** | ✅ Activo | d8de74d6 (10 sources) | ✅ Validated |
 
-**Progreso:** 8/8 core PRPs completados (**100%** - Framework Core + CLI COMPLETE!)
+### Cerebros Pendientes ⏳
 
----
+| Cerebro | Prioridad | Estimated |
+|---------|----------|-----------|
+| #3 UI Design | High | Usuario cargando fuentes |
+| #4 Frontend | Medium | 2-3 hours |
+| #5 Backend | Medium | 2-3 hours |
+| #6 QA/DevOps | Medium | 2-3 hours |
 
-## Lo Que Se Acaba de Completar (PRP-006)
-
-### Orchestrator Central Implementado
-
-```
-agents/orchestrator/
-├── system-prompt.md            # System prompt (400+ líneas)
-├── config/
-│   ├── flows.yaml             # 6 flujos estándar
-│   ├── brains.yaml            # 7 cerebros con triggers
-│   └── thresholds.yaml        # Umbrales de decisión
-├── protocols/
-│   ├── task-decomposition.md  # Descomposición de briefs
-│   ├── evaluation-flow.md     # Iteración con Cerebro #7
-│   └── escalation.md          # Protocolo de escalación
-└── precedents/
-    ├── template.yaml          # Template de precedente
-    └── catalog.yaml           # Catálogo (vacío)
-```
-
-### Flujos Estándar Definidos
-
-| Flujo | Secuencia | Propósito |
-|-------|-----------|-----------|
-| `full_product` | 1→2→3→4→5→6→7 | Producto completo |
-| `validation_only` | 1→7 | Validación de idea |
-| `design_sprint` | 1→2→3→7 | Diseño sin construcción |
-| `build_feature` | 4→5→6→7 | Implementar feature |
-| `optimization` | 7→1 | Optimizar existente |
-| `technical_review` | 5→6→7 | Revisión técnica |
-
-### Protocolos Implementados
-
-- **Task Decomposition:** Descomponer briefs en tareas atómicas
-- **Evaluation Flow:** Iterar con Cerebro #7 (3 rechazos = escalar)
-- **Escalation:** Escalar a humano cuando sea necesario
-- **Precedents:** Aprender de conflictos resueltos
+**Progreso:** 3/7 cerebros activos (**43%** - Framework Core + Testing COMPLETE!)
 
 ---
 
-## Lo Que Se Acaba de Completar (PRP-008)
+## Testing Suite Completado (2026-02-25)
 
-### CLI `mm orchestrate` Implementado
+### Resultados de los 4 Tests
 
-```
-tools/mastermind-cli/mastermind_cli/
-├── commands/orchestrate.py      # Comando CLI principal
-└── orchestrator/
-    ├── flow_detector.py          # Detección automática de flujo
-    ├── plan_generator.py         # Generación de execution plans
-    ├── brain_executor.py         # Ejecución de cerebros (placeholder)
-    ├── output_formatter.py       # Formato de outputs legibles
-    └── coordinator.py            # Coordinador principal
-```
+| Test | Input | Score | Veredicto | Validación |
+|------|-------|-------|-----------|------------|
+| **Test 1** | PetNFT (brief malo) | 0/156 (0%) | 🔴 REJECT | ✅ Detectó solución disfrazada de problema |
+| **Test 2** | HabitFlow v1 (borderline) | 114/156 (73%) | ⚠️ CONDITIONAL | ✅ Distinguió correctamente CONDITIONAL vs APPROVE/REJECT |
+| **Test 3** | HabitFlow v2 (iterado) | 149/156 (96%) | ✅ APPROVE | ✅ Ciclo de feedback validado (+23 puntos) |
+| **Test 4** | UX Research (sesgado) | 8/50 (16%) | 🔴 REJECT | ✅ Detectó 4 sesgos cognitivos |
 
-### Comandos Disponibles
+### Sesgos Detectados por el Cerebro #7
 
-| Comando | Descripción |
-|---------|-------------|
-| `mm orchestrate run "brief"` | Orquestra brief completo |
-| `mm orchestrate run --dry-run "brief"` | Genera plan sin ejecutar |
-| `mm orchestrate run --flow validation_only "brief"` | Fuerza flujo específico |
-| `mm orchestrate run --file brief.md` | Lee brief desde archivo |
-| `mm orchestrate run -o output.yaml "brief"` | Guarda output en archivo |
+| Bias ID | Nombre | Detección |
+|---------|--------|-----------|
+| BIAS-01 | Confirmation Bias | ✅ Funciona |
+| BIAS-04 | Survivorship Bias | ✅ Funciona |
+| BIAS-06 | Authority Bias | ✅ Funciona |
+| BIAS-07 | WYSIATI | ✅ Funciona |
+| BIAS-10 | Inversion Failure | ✅ Funciona |
 
-### Ejemplos de Uso
+### Conclusiones del Testing
 
-```bash
-# Validación de idea (flow automático)
-mm orchestrate run "validar idea de app de viajes"
+1. **Sistema de evaluación funciona** - Umbrales correctos (80% APPROVE, 60-79% CONDITIONAL, <60% REJECT)
+2. **Detección de sesgos funciona** - 5/5 biases principales detectados correctamente
+3. **Feedback es accionable** - Instrucciones específicas permiten iteración efectiva
+4. **Ciclo de feedback validado** - v1 → v2 en 1 iteración mejoró de 73% a 96%
 
-# Producto completo (solo ver plan)
-mm orchestrate run --dry-run "quiero crear una app de delivery"
+---
 
-# Forzar flujo de validación
-mm orchestrate run --flow validation_only "es buena idea esta app?"
-```
+## NotebookLM Integration
+
+### Notebooks Activos
+
+| Notebook | ID | Sources | Status |
+|----------|-----|---------|--------|
+| `[CEREBRO] Product Strategy - Software Development` | f276ccb3 | 10/10 | ✅ Verified |
+| `[CEREBRO] Growth & Data (Evaluator)` | d8de74d6 | 10/10 | ✅ Loaded 2026-02-25 |
+
+### Fuentes del Cerebro #7 (Cargadas v1.0.1)
+
+| Fuente | Experto | Tema |
+|--------|---------|------|
+| FUENTE-701 | Munger | Poor Charlie's Almanack (Mental Models) |
+| FUENTE-702 | Kahneman | Thinking Fast & Slow (Sesgos Cognitivos) |
+| FUENTE-703 | Tetlock | Superforecasting (Probabilistic Thinking) |
+| FUENTE-704 | Hormozi | $100M Offers (Value Equation) |
+| FUENTE-705 | Ellis | Hacking Growth (Growth Frameworks) |
+| FUENTE-706 | Chen | Cold Start Problem (Network Effects) |
+| FUENTE-707 | Dobelli | Art of Thinking Clearly (Sesgos Prácticos) |
+| FUENTE-708 | Lenny | Newsletter Benchmarks (Métricas) |
+| FUENTE-709 | Generated | Checklist Evaluación (placeholder - depende cerebros 3-6) |
+| FUENTE-710 | Generated | Anti-patrones (placeholder - depende cerebros 3-6) |
 
 ---
 
@@ -189,16 +166,6 @@ git diff
 git branch  # Debe ser master
 ```
 
-### Validación
-
-```bash
-# Validar YAML
-python3 -c "import yaml; yaml.safe_load(open('skills/evaluator/bias-catalog.yaml'))"
-
-# Verificar estructura
-ls -la skills/evaluator/
-```
-
 ---
 
 ## Estructura del Proyecto
@@ -207,161 +174,95 @@ ls -la skills/evaluator/
 mastermind/
 ├── agents/
 │   ├── brains/
-│   │   ├── product-strategy.md   # Cerebro #1 ✅
-│   │   └── growth-data.md        # Cerebro #7 ✅
-│   └── orchestrator/            # Orquestador ✅ NEW
-│       ├── system-prompt.md
-│       ├── config/              # flows, brains, thresholds
-│       ├── protocols/           # task-decomp, evaluation, escalation
-│       └── precedents/          # template, catalog
+│   │   ├── product-strategy.md   # Cerebro #1 ✅ TESTED
+│   │   ├── ux-research.md        # Cerebro #2 ✅ TESTED
+│   │   └── growth-data.md        # Cerebro #7 ✅ TESTED
+│   └── orchestrator/            # Orquestador ✅
 │
 ├── docs/
 │   ├── design/                  # Especificaciones (00-11)
 │   ├── software-development/    # Nicho: desarrollo de software
 │   │   ├── 01-product-strategy-brain/ ✅
-│   │   ├── 02-06-*-brain/       # Cerebros pendientes
+│   │   ├── 02-ux-research-brain/ ✅
+│   │   ├── 03-06-*-brain/       # Cerebros pendientes
 │   │   └── 07-growth-data-brain/ ✅
-│   ├── PRD/                     # PRDs del framework
-│   ├── PRPs/                    # PRPs de implementación
 │   ├── HANDOFF.md               # ESTE ARCHIVO
 │   ├── EVALUATOR-GUIDE.md       # Guía del evaluador ✅
-│   └── ORCHESTRATOR-GUIDE.md    # Guía del orquestador ✅ NEW
+│   └── ORCHESTRATOR-GUIDE.md    # Guía del orquestador ✅
 │
 ├── skills/evaluator/            # Evaluator Skill ✅
 │   ├── SKILL.md
 │   ├── protocol.md
-│   ├── bias-catalog.yaml
-│   ├── benchmarks.yaml
-│   ├── evaluation-matrices/
-│   └── templates/
-│
-├── tests/fixtures/
-│   └── product-brief-defectuoso.md  # Test ✅
+│   ├── bias-catalog.yaml        # 10 sesgos cognitivos
+│   ├── benchmarks.yaml          # Benchmarks de industria
+│   └── evaluation-matrices/
+│       └── product-brief.yaml   # Matriz de evaluación ✅
 │
 ├── tools/mastermind-cli/        # CLI implementado ✅
 │
-├── PRPs/                        # PRPs creados
-│   ├── PRP-005-brain-07-evaluator.md ✅
-│   └── PRP-006-orchestrator.md ✅ NEW
-│
-├── logs/                        # Logs (gitignored)
-│   ├── evaluations/
-│   └── precedents/
-│
-├── CLAUDE.md                    # Instrucciones para Claude
-└── .gitignore
-```
-
----
-
-## NotebookLM Integration
-
-### Notebook Activo
-
-| Notebook | ID | Sources | Status |
-|----------|-----|---------|--------|
-| `[CEREBRO] Product Strategy - Software Development` | `f276ccb3-0bce-4069-8b55-eae8693dbe75` | 10/10 | ✅ Verified |
-
-### MCP NotebookLM
-
-```bash
-# El MCP notebooklm-mcp está funcionando
-# Comandos disponibles vía MCP
+└── CLAUDE.md                    # Instrucciones para Claude
 ```
 
 ---
 
 ## Próximos Pasos Recomendados
 
-### Opción A: PRP-002 - YAML Versioning (30 min)
+### Opción A: Cerebro #3 - UI Design (En Progreso 🔵)
 
-- Agregar YAML front matter a fuentes existentes
-- Completar secciones faltantes en FUENTE-008, FUENTE-009, FUENTE-010
-- Agregar version y changelog
+**Estado:** Usuario cargando fuentes maestras
 
-## Testing Pendiente ⚠️
+**Qué falta:**
+1. Validar fuentes cargadas (YAML front matter completo)
+2. Crear system prompt del Cerebro #3
+3. Crear NotebookLM notebook
+4. Testing con briefs de diseño
 
-Los siguientes componentes están implementados pero **NO han sido probados con briefs reales**:
+**Expertas a incluir:** Norman, Nielsen, Krug, Young, Walter, Fitzpatrick, NN/g, Yablonski, (+ fuentes de UI que el usuario esté subiendo)
 
-### Componentes Sin Testing Real
+### Opción B: Matriz de Evaluación UX Research (1 hora)
 
-| Componente | Estado Implementación | Estado Testing |
-|------------|----------------------|----------------|
-| **Orchestrator Central** | ✅ Completo | ⚠️ Solo simulación (TEST-001) |
-| **Cerebro #7 (Evaluador)** | ✅ Evaluator skill completo | ⚠️ Sin NotebookLM |
-| **CLI `mm orchestrate`** | ✅ Funcional | ⚠️ Outputs placeholder |
-| **Integración NotebookLM → Cerebro #1** | ✅ Notebook existe | ⚠️ Sin testing en CLI |
-| **Loop completo Orchestrator → #1 → #7** | ⚠️ No probado | ⚠️ End-to-end pendiente |
+Crear `skills/evaluator/evaluation-matrices/ux-research.yaml` basado en:
+- FUENTE-201 a FUENTE-210 (Cerebro #2 sources)
+- Bias catalog (BIAS-01, BIAS-04, BIAS-06 para research)
+- Protocolo de evaluación del Cerebro #7
 
-### Qué Significa "Sin Testing Real"
+**Checks sugeridos:**
+- ¿Se entrevistaron usuarios reales? (no amigos/familia)
+- ¿Se reporta FUNNEL completo? (contactados → aceptaron → completaron)
+- ¿Hay sección de Negative Findings? (BIAS-01)
+- ¿Raw quotes vs interpretations? (BIAS-06)
+- ¿Se reconocen limitaciones? (BIAS-07)
 
-- **Orchestrator**: Se probó con simulación, no con brief real que consulte NotebookLM
-- **Cerebro #7**: Tiene el evaluator skill pero no tiene NotebookLM con FUENTE-701-710
-- **CLI `mm orchestrate`**: Funciona pero devuelve placeholders (no llama realmente a NotebookLM MCP)
-- **Precedents**: El catálogo está vacío, no se ha creado ningún precedente
+### Opción C: Implementar Cerebro #4 Frontend (2-3 hours)
 
-### Para Hacer Testing Real
+Requiere:
+1. 10 fuentes maestras de Frontend (React, Angular, State Management, Testing)
+2. System prompt con frameworks expertos
+3. NotebookLM notebook
+4. Testing con briefs de implementación
 
-```bash
-# 1. Probar CLI con brief real (sin MCP)
-mm orchestrate run "quiero validar una app de delivery para restaurantes"
+### Opción D: Testing End-to-End
 
-# 2. Verificar que el flujo completo funcione
-# Debería: Detectar flow → Generar plan → Ejecutar #1 (placeholder) → Evaluar #7 (placeholder)
-
-# 3. Para integración real con NotebookLM
-# Necesita: MCP notebooklm-mcp configurado y funcionando
-# Cerebro #1: Notebook ID f276ccb3-0bce-4069-8b55-eae8693dbe75
-```
-
----
-
-## Próximos Pasos Recomendados
-
-### Opción A: Testing End-to-End (Recomendado)
-
-**Test del flujo validation_only con brief real**
-- Probar `mm orchestrate run --validation_only "quiero validar idea de app"`
-- Verificar que el plan se genere correctamente
-- Verificar que los outputs se formateen bien
-- Documentar cualquier bug encontrado
-
-### Opción B: NotebookLM para Cerebro #7 (1 hora)
-
-- Crear notebook: `[CEREBRO] Growth & Data - Software Development`
-- Cargar 10 fuentes (FUENTE-701 a FUENTE-710) — **ESTAS FUENTES NO EXISTEN AÚN**
-- Ejecutar 3 consultas de prueba
-- Nota: Primero hay que crear las fuentes FUENTE-701 a FUENTE-710
-
-### Opción C: Cerebro #2 (UX Research) (2-3 horas)
-
-- Requiere 10 fuentes maestras de UX Research
-- Crear system prompt
-- Crear NotebookLM notebook
-- Testing con briefs de diseño
-
-### Opción D: Documentación y Mejoras
-
-- Tutoriales de uso del CLI
-- Ejemplos de briefs y sus outputs
-- Demo videos (opcional)
-
+Probar el flujo completo:
+1. Usuario da brief
+2. Orchestrator clasifica y crea plan
+3. Cerebro #1 genera product-brief
+4. Cerebro #7 evalúa
+5. Si CONDITIONAL → Cerebro #1 itera
+6. Si APPROVE → siguiente cerebro (#2 UX)
 
 ---
 
 ## Archivos Clave para Leer
 
-Si necesitas entender el framework:
-
 | Archivo | Para qué |
 |---------|----------|
 | `CLAUDE.md` | Instrucciones del proyecto para Claude |
 | `docs/design/00-PRD-MasterMind-Framework.md` | PRD principal - LEER PRIMERO |
-| `docs/design/07-Orquestador-y-Evaluador.md` | Especificación Orquestador |
 | `docs/design/11-Cerebro-07-Evaluador-Critico.md` | Especificación Cerebro #7 |
-| `PRPs/PRP-006-orchestrator.md` | PRP Orquestador |
 | `docs/EVALUATOR-GUIDE.md` | Guía de uso del evaluador |
-| `docs/ORCHESTRATOR-GUIDE.md` | Guía de uso del orquestador |
+| `skills/evaluator/bias-catalog.yaml` | 10 sesgos cognitivos |
+| `skills/evaluator/evaluation-matrices/product-brief.yaml` | Matriz de evaluación |
 
 ---
 
@@ -371,7 +272,7 @@ Si necesitas entender el framework:
 
 - **Formato:** Conventional commits (`feat:`, `fix:`, `docs:`, etc.)
 - **SIN "Co-Authored-By"** — Nunca agregar atribución AI
-- **Ejemplo:** `feat(evaluator): implement Cerebro #7 with evaluator skill`
+- **NUNCA usar `--no-verify`** — Esperar al GGA hook
 
 ### Lenguaje
 
@@ -387,37 +288,18 @@ source_id: "FUENTE-XXX"
 brain: "brain-software-XX-*-brain"
 title: "Title"
 author: "Author"
+expert_id: "EXP-XXX"
+type: "book|article|video"
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 changelog:
   - version: "1.0.0"
     date: "YYYY-MM-DD"
     changes: []
+status: "active"
+loaded_in_notebook: true/false
 ---
 ```
-
----
-
-## Notas Técnicas
-
-### MCP Servers Activos
-
-- **Serena:** ✅ Project memory, code navigation
-- **NotebookLM:** ✅ Notebook integration
-- **Context7:** ✅ Documentation lookup
-- **Sequential-Thinking:** ✅ Multi-step reasoning
-
-### GGA Hook
-
-- **Estado:** Activo y pasando
-- **Caché:** Utilizado (13 archivos from cache)
-- **Nota:** NUNCA usar `--no-verify`
-
-### CLI mastermind
-
-- **Instalado:** ✅ En `/home/rpadron/proy/mastermind/tools/mastermind-cli/`
-- **Alias:** `mm` funciona
-- **Comandos:** source, brain, framework
 
 ---
 
@@ -434,13 +316,12 @@ git status
 git log --oneline -3
 
 # 3. Leer memorias Serena (via MCP)
-# - PROJECT
-# - SESSION-2026-02-24-PROGRESS
-# - CHECKPOINT-2026-02-24-PRP006-COMPLETE (más reciente)
+# - MEMORY.md
+# - session/2026-02-25-brain-testing-complete
 
-# 4. Verificar estado (todo debe estar pusheado)
-git status
-git log --oneline -3
+# 4. Verificar fuentes de cerebros
+mm source status --brain 07  # Debe mostrar 10/10 loaded
+mm source status --brain 03  # Ver estado de carga
 
 # 5. Continuar con próxima tarea
 ```
@@ -449,7 +330,10 @@ git log --oneline -3
 
 ## Problemas Conocidos
 
-Ninguno. Todas las validaciones pasaron.
+| Issue | Severidad | Workaround |
+|-------|-----------|------------|
+| FUENTE-709/710 vacías | Low | Son placeholders que se llenarán cuando cerebros 3-6 existan |
+| Matriz ux-research.yaml falta | Medium | Usar evaluación manual hasta crearla |
 
 ---
 
@@ -457,11 +341,12 @@ Ninguno. Todas las validaciones pasaron.
 
 - **Repo:** https://github.com/rap77/mastermind-framework
 - **Branch:** master
-- **Último commit:** 4873faf (PRP-006)
+- **Último commit:** 5d327d7 (Cerebro #7 sources update)
 
 ---
 
-**Documento de Handoff v2.1**
-**Generado:** 2026-02-24
-**Framework Core: 100% COMPLETE** ✅
+**Documento de Handoff v3.0**
+**Generado:** 2026-02-25
+**Framework Core: 43% COMPLETE (3/7 cerebros)** ✅
+**Testing Suite: VALIDATED** ✅
 **Para sesiones futuras de MasterMind Framework**
