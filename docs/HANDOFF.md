@@ -1,8 +1,8 @@
 # Handoff Document — MasterMind Framework
 
-**Última actualización:** 2026-02-25
-**Sesión:** Testing Suite Completo + Cerebro #7 NotebookLM Cargado
-**Estado:** Framework Core + 3 Cerebros Activos ✅
+**Última actualización:** 2026-02-26
+**Sesión:** Cerebros #3 y #4 Completados + Carga NotebookLM
+**Estado:** Framework 57% Complete (4/7 cerebros) ✅
 
 ---
 
@@ -26,12 +26,14 @@ git status  # Debe estar clean
 | Memoria | Propósito |
 |---------|-----------|
 | `MEMORY.md` | Estado general del proyecto |
-| `session/2026-02-25-brain-testing-complete` | Testing suite completo (4 tests) |
-| `session/2025-02-25-testing-brains` | Tests de cerebros activos |
+| `SESSION-2026-02-26-FULL-SUMMARY` | Resumen completo de sesión |
+| `CHECKPOINT-2026-02-26-BRAINS-03-04-COMPLETE` | Cerebros #3 y #4 completados |
+| `CHECKPOINT-2026-02-26-FRAMEWORK-STATUS` | Estado actual del framework |
 
 **Para cargar contexto al iniciar sesión:**
 1. Leer `MEMORY.md` para overview
-2. Leer `session/2026-02-25-brain-testing-complete` para resultados de tests
+2. Leer `CHECKPOINT-2026-02-26-FRAMEWORK-STATUS` para estado actual
+3. Leer `SESSION-2026-02-26-FULL-SUMMARY` para detalles de sesión
 
 ---
 
@@ -52,22 +54,101 @@ git status  # Debe estar clean
 
 ### Cerebros Activos ✅
 
-| Cerebro | Estado | NotebookLM | Testing |
-|---------|--------|------------|---------|
-| **#1 Product Strategy** | ✅ Activo | f276ccb3 (10 sources) | ✅ Validated |
-| **#2 UX Research** | ✅ Activo | - | ✅ Validated |
-| **#7 Growth/Data** | ✅ Activo | d8de74d6 (10 sources) | ✅ Validated |
+| Cerebro | Estado | NotebookLM | Fuentes | Testing |
+|---------|--------|------------|---------|---------|
+| **#1 Product Strategy** | ✅ Activo | f276ccb3 | 10/10 | ✅ Validated |
+| **#2 UX Research** | ✅ Activo | ea006ece | 10/10 | ✅ Validated |
+| **#3 UI Design** | ✅ Activo | 8d544475 | 15/15 | ⏳ Pendiente |
+| **#4 Frontend** | ⚠️ Fuentes listas | ❌ Pendiente | 15/15 | ❌ Pendiente |
+| **#7 Growth/Data** | ✅ Activo | d8de74d6 | 10/10 | ✅ Validated |
 
 ### Cerebros Pendientes ⏳
 
 | Cerebro | Prioridad | Estimated |
 |---------|----------|-----------|
-| #3 UI Design | High | Usuario cargando fuentes |
-| #4 Frontend | Medium | 2-3 hours |
 | #5 Backend | Medium | 2-3 hours |
 | #6 QA/DevOps | Medium | 2-3 hours |
 
-**Progreso:** 3/7 cerebros activos (**43%** - Framework Core + Testing COMPLETE!)
+**Progreso:** 4/7 cerebros activos (**57%** - Framework Core + 2 cerebros adicionales COMPLETE!)
+
+---
+
+## Cerebro #3 (UI Design) — COMPLETO ✅
+
+### NotebookLM Info
+- **Notebook ID:** 8d544475-6860-4cd7-9037-8549325493dd
+- **Nombre:** [CEREBRO] UI Design — Software Development
+- **URL:** https://notebooklm.google.com/notebook/8d544475-6860-4cd7-9037-8549325493dd
+- **Fuentes:** 15 activas + 1 deprecated
+
+### Fuentes Cargadas
+
+| Categoría | Fuentes |
+|-----------|---------|
+| Design Systems | FUENTE-301 (Atomic Design), FUENTE-307 (Material Tokens) |
+| Visual Decision Making | FUENTE-302 (Refactoring UI), FUENTE-305 (Grid), FUENTE-314 (Color) |
+| Typography | FUENTE-304 (Thinking with Type) |
+| Responsive Design | FUENTE-303 (Mobile First) |
+| Forms | FUENTE-306 (Web Form Design) |
+| Accessibility | FUENTE-309 (Inclusive Design) |
+| Motion | FUENTE-310 (Interface Animation) |
+| Dark Mode | FUENTE-311 (Dark Mode Design) |
+| Data Visualization | FUENTE-312 (The Functional Art) |
+| Icon Systems | FUENTE-313 (Icon Systems Design) |
+| Videos | FUENTE-315 (Video References) |
+| Radar | FUENTE-316 (Anti-Patrones v2.0) |
+
+**FUENTE-308:** deprecated, reemplazada por FUENTE-316 (52 anti-patrones vs 20)
+
+---
+
+## Cerebro #4 (Frontend Architecture) — FUENTES LISTAS ✅
+
+### Estado
+- **Fuentes:** 15 fuentes listas para cargar en NotebookLM
+- **Formato:** ✅ Verificado y correcto
+- **loaded_in_notebook:** false (todavía no cargadas)
+
+### Fuentes Listas
+
+| Categoría | Fuentes |
+|-----------|---------|
+| JavaScript Core | FUENTE-401 (You Don't Know JS) |
+| CSS | FUENTE-402 (CSS for JS Developers) |
+| Design Patterns | FUENTE-403 (Learning Patterns) |
+| Testing | FUENTE-404 (Testing JavaScript) |
+| React & Next.js | FUENTE-405 (Official Docs) |
+| Performance | FUENTE-406 (Core Web Vitals) |
+| TypeScript | FUENTE-407 (Effective TypeScript) |
+| State Management | FUENTE-408 (TanStack Query, Zustand) |
+| Security | FUENTE-409 (Frontend Security) |
+| Accessibility | FUENTE-410 (ARIA Implementation) |
+| Tooling | FUENTE-411 (Vite, ESLint, CI/CD) |
+| Web APIs | FUENTE-412 (Modern Web APIs) |
+| Error Handling | FUENTE-413 (Sentry, DevTools) |
+| Animation | FUENTE-414 (Framer Motion) |
+| Radar | FUENTE-415 (Anti-Patrones) |
+
+---
+
+## Documentación Creada
+
+### PROMPT-DESTILACION-FUENTES.md
+
+**Ubicación:** `docs/PROMPT-DESTILACION-FUENTES.md`
+
+**Propósito:** Guía completa para destilación de fuentes maestras
+
+**Contenido:**
+- Formato YAML front matter exacto con ejemplos correctos/incorrectos
+- Tabla de errores comunes a evitar
+- Estructura completa de una ficha (6 secciones)
+- Identificación de gaps del cerebro
+- Checklist de 20+ verificaciones
+- Workflow de 10 pasos
+- Tips de calidad
+
+**Uso:** Entregar este prompt al Claude que ayuda a destilar fuentes para evitar errores de formato
 
 ---
 
@@ -82,23 +163,6 @@ git status  # Debe estar clean
 | **Test 3** | HabitFlow v2 (iterado) | 149/156 (96%) | ✅ APPROVE | ✅ Ciclo de feedback validado (+23 puntos) |
 | **Test 4** | UX Research (sesgado) | 8/50 (16%) | 🔴 REJECT | ✅ Detectó 4 sesgos cognitivos |
 
-### Sesgos Detectados por el Cerebro #7
-
-| Bias ID | Nombre | Detección |
-|---------|--------|-----------|
-| BIAS-01 | Confirmation Bias | ✅ Funciona |
-| BIAS-04 | Survivorship Bias | ✅ Funciona |
-| BIAS-06 | Authority Bias | ✅ Funciona |
-| BIAS-07 | WYSIATI | ✅ Funciona |
-| BIAS-10 | Inversion Failure | ✅ Funciona |
-
-### Conclusiones del Testing
-
-1. **Sistema de evaluación funciona** - Umbrales correctos (80% APPROVE, 60-79% CONDITIONAL, <60% REJECT)
-2. **Detección de sesgos funciona** - 5/5 biases principales detectados correctamente
-3. **Feedback es accionable** - Instrucciones específicas permiten iteración efectiva
-4. **Ciclo de feedback validado** - v1 → v2 en 1 iteración mejoró de 73% a 96%
-
 ---
 
 ## NotebookLM Integration
@@ -107,23 +171,10 @@ git status  # Debe estar clean
 
 | Notebook | ID | Sources | Status |
 |----------|-----|---------|--------|
-| `[CEREBRO] Product Strategy - Software Development` | f276ccb3 | 10/10 | ✅ Verified |
-| `[CEREBRO] Growth & Data (Evaluator)` | d8de74d6 | 10/10 | ✅ Loaded 2026-02-25 |
-
-### Fuentes del Cerebro #7 (Cargadas v1.0.1)
-
-| Fuente | Experto | Tema |
-|--------|---------|------|
-| FUENTE-701 | Munger | Poor Charlie's Almanack (Mental Models) |
-| FUENTE-702 | Kahneman | Thinking Fast & Slow (Sesgos Cognitivos) |
-| FUENTE-703 | Tetlock | Superforecasting (Probabilistic Thinking) |
-| FUENTE-704 | Hormozi | $100M Offers (Value Equation) |
-| FUENTE-705 | Ellis | Hacking Growth (Growth Frameworks) |
-| FUENTE-706 | Chen | Cold Start Problem (Network Effects) |
-| FUENTE-707 | Dobelli | Art of Thinking Clearly (Sesgos Prácticos) |
-| FUENTE-708 | Lenny | Newsletter Benchmarks (Métricas) |
-| FUENTE-709 | Generated | Checklist Evaluación (placeholder - depende cerebros 3-6) |
-| FUENTE-710 | Generated | Anti-patrones (placeholder - depende cerebros 3-6) |
+| `[CEREBRO] Product Strategy` | f276ccb3 | 10/10 | ✅ Verified |
+| `[CEREBRO] UX Research` | ea006ece | 10/10 | ✅ Verified |
+| `[CEREBRO] UI Design` | 8d544475 | 15/15 | ✅ Loaded 2026-02-26 |
+| `[CEREBRO] Growth & Data` | d8de74d6 | 10/10 | ✅ Verified |
 
 ---
 
@@ -134,14 +185,14 @@ git status  # Debe estar clean
 ```bash
 # Source management
 mm source new                    # Crear nueva fuente
-mm source validate --brain 01    # Validar fuentes
-mm source status --brain 07      # Status cerebro 07
+mm source validate --brain 03    # Validar fuentes cerebro 03
+mm source status --brain 04      # Status cerebro 04
 mm source list                   # Listar todas
 
 # Brain management
-mm brain status 07               # Status cerebro 07
-mm brain compile-radar 07        # Generar FUENTE-709/710
-mm brain validate 01             # Validar cerebro
+mm brain status 03               # Status cerebro 03
+mm brain compile-radar 03        # Generar radar
+mm brain validate 04             # Validar cerebro 04
 
 # Framework
 mm framework status              # Status general
@@ -150,7 +201,6 @@ mm info                          # System info
 # Orchestrate
 mm orchestrate run "brief"       # Orquestrar brief
 mm orchestrate run --dry-run     # Ver plan sin ejecutar
-mm orchestrate run --flow validation_only "brief"  # Forzar flujo
 ```
 
 ### Git
@@ -158,6 +208,9 @@ mm orchestrate run --flow validation_only "brief"  # Forzar flujo
 ```bash
 # Ver commits recientes
 git log --oneline -5
+
+# Último commit: 8358b14
+# feat(brains): add Brain #3 (UI Design) and Brain #4 (Frontend) sources
 
 # Ver cambios
 git diff
@@ -174,17 +227,23 @@ git branch  # Debe ser master
 mastermind/
 ├── agents/
 │   ├── brains/
-│   │   ├── product-strategy.md   # Cerebro #1 ✅ TESTED
-│   │   ├── ux-research.md        # Cerebro #2 ✅ TESTED
-│   │   └── growth-data.md        # Cerebro #7 ✅ TESTED
+│   │   ├── product-strategy.md   # Cerebro #1 ✅
+│   │   ├── ux-research.md        # Cerebro #2 ✅
+│   │   ├── ui-design.md          # Cerebro #3 ⏳ (sin system prompt)
+│   │   ├── frontend.md           # Cerebro #4 ⏳ (sin system prompt)
+│   │   └── growth-data.md        # Cerebro #7 ✅
 │   └── orchestrator/            # Orquestador ✅
 │
 ├── docs/
 │   ├── design/                  # Especificaciones (00-11)
+│   ├── PROMPT-DESTILACION-FUENTES.md  # NUEVO - Guía para destilación
 │   ├── software-development/    # Nicho: desarrollo de software
 │   │   ├── 01-product-strategy-brain/ ✅
 │   │   ├── 02-ux-research-brain/ ✅
-│   │   ├── 03-06-*-brain/       # Cerebros pendientes
+│   │   ├── 03-ui-design-brain/ ✅ FUENTES COMPLETAS
+│   │   ├── 04-frontend-brain/ ✅ FUENTES COMPLETAS
+│   │   ├── 05-backend-brain/ ⏳
+│   │   ├── 06-qa-devops-brain/ ⏳
 │   │   └── 07-growth-data-brain/ ✅
 │   ├── HANDOFF.md               # ESTE ARCHIVO
 │   ├── EVALUATOR-GUIDE.md       # Guía del evaluador ✅
@@ -207,49 +266,37 @@ mastermind/
 
 ## Próximos Pasos Recomendados
 
-### Opción A: Cerebro #3 - UI Design (En Progreso 🔵)
+### Opción A: Cargar Cerebro #4 en NotebookLM (30 min)
 
-**Estado:** Usuario cargando fuentes maestras
+**Qué hacer:**
+1. Crear notebook en NotebookLM
+2. Cargar las 15 fuentes (FUENTE-401 a 415)
+3. Actualizar `loaded_in_notebook: true` en cada fuente
+4. Guardar checkpoint en Serena
 
-**Qué falta:**
-1. Validar fuentes cargadas (YAML front matter completo)
-2. Crear system prompt del Cerebro #3
-3. Crear NotebookLM notebook
+### Opción B: Crear System Prompt Cerebro #3 (1-2 hours)
+
+**Qué hacer:**
+1. Revisar `agents/brains/product-strategy.md` como referencia
+2. Crear `agents/brains/ui-design.md`
+3. Incluir: rol, recursos (NotebookLM ID), protocolo de consulta
 4. Testing con briefs de diseño
 
-**Expertas a incluir:** Norman, Nielsen, Krug, Young, Walter, Fitzpatrick, NN/g, Yablonski, (+ fuentes de UI que el usuario esté subiendo)
+### Opción C: Crear System Prompt Cerebro #4 (1-2 hours)
 
-### Opción B: Matriz de Evaluación UX Research (1 hora)
+**Qué hacer:**
+1. Revisar `agents/brains/product-strategy.md` como referencia
+2. Crear `agents/brains/frontend.md`
+3. Incluir: rol, recursos (NotebookLM ID cuando esté cargado), protocolo de consulta
+4. Testing con briefs de implementación
 
-Crear `skills/evaluator/evaluation-matrices/ux-research.yaml` basado en:
-- FUENTE-201 a FUENTE-210 (Cerebro #2 sources)
-- Bias catalog (BIAS-01, BIAS-04, BIAS-06 para research)
-- Protocolo de evaluación del Cerebro #7
-
-**Checks sugeridos:**
-- ¿Se entrevistaron usuarios reales? (no amigos/familia)
-- ¿Se reporta FUNNEL completo? (contactados → aceptaron → completaron)
-- ¿Hay sección de Negative Findings? (BIAS-01)
-- ¿Raw quotes vs interpretations? (BIAS-06)
-- ¿Se reconocen limitaciones? (BIAS-07)
-
-### Opción C: Implementar Cerebro #4 Frontend (2-3 hours)
+### Opción D: Implementar Cerebro #5 Backend (2-3 hours)
 
 Requiere:
-1. 10 fuentes maestras de Frontend (React, Angular, State Management, Testing)
+1. 10 fuentes maestras de Backend (API Design, Database, Testing, DevOps)
 2. System prompt con frameworks expertos
 3. NotebookLM notebook
 4. Testing con briefs de implementación
-
-### Opción D: Testing End-to-End
-
-Probar el flujo completo:
-1. Usuario da brief
-2. Orchestrator clasifica y crea plan
-3. Cerebro #1 genera product-brief
-4. Cerebro #7 evalúa
-5. Si CONDITIONAL → Cerebro #1 itera
-6. Si APPROVE → siguiente cerebro (#2 UX)
 
 ---
 
@@ -258,11 +305,11 @@ Probar el flujo completo:
 | Archivo | Para qué |
 |---------|----------|
 | `CLAUDE.md` | Instrucciones del proyecto para Claude |
+| `docs/PROMPT-DESTILACION-FUENTES.md` | Guía para destilación de fuentes (NUEVO) |
 | `docs/design/00-PRD-MasterMind-Framework.md` | PRD principal - LEER PRIMERO |
 | `docs/design/11-Cerebro-07-Evaluador-Critico.md` | Especificación Cerebro #7 |
 | `docs/EVALUATOR-GUIDE.md` | Guía de uso del evaluador |
 | `skills/evaluator/bias-catalog.yaml` | 10 sesgos cognitivos |
-| `skills/evaluator/evaluation-matrices/product-brief.yaml` | Matriz de evaluación |
 
 ---
 
@@ -285,21 +332,34 @@ Probar el flujo completo:
 ```yaml
 ---
 source_id: "FUENTE-XXX"
-brain: "brain-software-XX-*-brain"
-title: "Title"
-author: "Author"
+brain: "brain-software-XX-nombre-del-cerebro"
+niche: "software-development"
+title: "Título Completo"
+author: "Nombre del Autor"
 expert_id: "EXP-XXX"
-type: "book|article|video"
+type: "book|video|article|course|documentation|guide|video-collection|radar-interno"
+language: "es|en"
+year: YYYY
+isbn: "XXXXXXXXXXX"
+url: "https://url-de-la-fuente"
+skills_covered: ["H1", "H3", "H5"]
+distillation_date: "YYYY-MM-DD"
+distillation_quality: "complete|partial|pending"
+loaded_in_notebook: false
 version: "1.0.0"
 last_updated: "YYYY-MM-DD"
 changelog:
   - version: "1.0.0"
     date: "YYYY-MM-DD"
-    changes: []
-status: "active"
-loaded_in_notebook: true/false
+    changes:
+      - "Descripción del cambio"
+status: "active|deprecated"
+replaces: "FUENTE-XXX"  # Solo si reemplaza a otra fuente
+replaced_by: "FUENTE-XXX"  # Solo si fue reemplazada
 ---
 ```
+
+**⚠️ CAMPOS PROHIBIDOS:** `fuente_id`, `cerebro`, `cerebro_nombre`, `titulo`, `autor`, `tipo`, `url_referencia`, `version_ficha`, `fecha_carga`, `portabilidad`
 
 ---
 
@@ -315,13 +375,12 @@ cd /home/rpadron/proy/mastermind
 git status
 git log --oneline -3
 
-# 3. Leer memorias Serena (via MCP)
-# - MEMORY.md
-# - session/2026-02-25-brain-testing-complete
+# 3. Usar /sc:load para cargar contexto completo
+# (activa Serena MCP + carga memorias)
 
 # 4. Verificar fuentes de cerebros
-mm source status --brain 07  # Debe mostrar 10/10 loaded
-mm source status --brain 03  # Ver estado de carga
+mm source status --brain 03  # Debe mostrar 15/15 loaded
+mm source status --brain 04  # Debe mostrar 15/15 NOT loaded
 
 # 5. Continuar con próxima tarea
 ```
@@ -333,7 +392,8 @@ mm source status --brain 03  # Ver estado de carga
 | Issue | Severidad | Workaround |
 |-------|-----------|------------|
 | FUENTE-709/710 vacías | Low | Son placeholders que se llenarán cuando cerebros 3-6 existan |
-| Matriz ux-research.yaml falta | Medium | Usar evaluación manual hasta crearla |
+| Cerebro #3 sin system prompt | Medium | Usar NotebookLM directamente hasta crearlo |
+| Cerebro #4 sin system prompt | Medium | Usar NotebookLM directamente hasta crearlo |
 
 ---
 
@@ -341,12 +401,12 @@ mm source status --brain 03  # Ver estado de carga
 
 - **Repo:** https://github.com/rap77/mastermind-framework
 - **Branch:** master
-- **Último commit:** 5d327d7 (Cerebro #7 sources update)
+- **Último commit:** 8358b14 (Cerebros #3 y #4 sources)
 
 ---
 
-**Documento de Handoff v3.0**
-**Generado:** 2026-02-25
-**Framework Core: 43% COMPLETE (3/7 cerebros)** ✅
+**Documento de Handoff v4.0**
+**Generado:** 2026-02-26
+**Framework: 57% COMPLETE (4/7 cerebros)** ✅
 **Testing Suite: VALIDATED** ✅
 **Para sesiones futuras de MasterMind Framework**
