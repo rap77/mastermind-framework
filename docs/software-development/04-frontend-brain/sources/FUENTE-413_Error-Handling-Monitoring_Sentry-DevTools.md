@@ -13,7 +13,7 @@ url: "https://docs.sentry.io/platforms/javascript/guides/react/ + https://develo
 skills_covered: ["H1", "H5", "H6", "H12"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:

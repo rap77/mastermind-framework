@@ -13,7 +13,7 @@ url: "https://vitejs.dev + https://eslint.org + https://prettier.io + https://ty
 skills_covered: ["H1", "H6", "H7", "H10"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:

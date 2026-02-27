@@ -13,7 +13,7 @@ url: "https://owasp.org/www-project-top-ten/ + https://developer.mozilla.org/en-
 skills_covered: ["H1", "H3", "H8"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:

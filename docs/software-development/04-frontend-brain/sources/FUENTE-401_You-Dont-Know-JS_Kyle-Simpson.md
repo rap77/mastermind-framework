@@ -13,7 +13,7 @@ url: "https://github.com/getify/You-Dont-Know-JS"
 skills_covered: ["H1", "H2", "H3"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:

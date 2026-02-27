@@ -13,7 +13,7 @@ url: "https://www.framer.com/motion/ + https://web.dev/animations-guide + https:
 skills_covered: ["H2", "H3", "H6", "H13"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:

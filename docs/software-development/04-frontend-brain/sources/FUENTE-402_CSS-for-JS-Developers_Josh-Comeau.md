@@ -13,7 +13,7 @@ url: "https://css-for-js.dev"
 skills_covered: ["H2", "H4", "H5"]
 distillation_date: "2026-02-26"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-02-26"
 changelog:
