@@ -1,9 +1,9 @@
 # MasterMind Framework - Handoff / Continue Session
 
-> Última actualización: **2026-02-27**
+> Última actualización: **2026-02-28**
 > Proyecto: mastermind-framework
 > Repo: https://github.com/rap77/mastermind-framework
-> Branch: **master** (5 commits pendientes de push)
+> Branch: **master** (6 commits pendientes de push)
 
 ---
 
@@ -18,7 +18,7 @@ git status
 git log --oneline -5
 
 # 3. Cargar contexto del proyecto con Serena MCP
-# (El proyecto ya está activado como "mastermind")
+/sc:load
 
 # 4. Continuar con siguiente tarea
 ```
@@ -47,10 +47,11 @@ git log --oneline -5
 
 | Commit | Descripción | Fecha |
 |--------|-------------|-------|
+| cc3c5ad | docs: update handoff 5/7 brains | 2026-02-27 |
 | 5014399 | feat(brains): add Brain #5 (Backend) and Brain #6 (QA/DevOps) sources | 2026-02-27 |
-| 27a4ee8 | feat(brains): load Brain #4 (Frontend) into NotebookLM | 2026-02-27 |
 | bf9430b | docs(handoff): update to v4.0 | 2026-02-27 |
-| 8358b14 | feat(brains): add Brain #3 (UI Design) and Brain #4 (Frontend) sources | 2026-02-26 |
+| 27a4ee8 | feat(brains): load Brain #4 (Frontend) into NotebookLM | 2026-02-27 |
+| 160a773 | docs(handoff): update to v4.0 | 2026-02-26 |
 
 ---
 
@@ -193,14 +194,12 @@ mastermind info                           # Show system info
 
 ```bash
 # Validar fuentes
-mastermind source validate --brain 05-backend
+mastermind source validate --brain 06-qa-devops
 
 # Listar fuentes
 mastermind source list
 
 # Brain status
-mastermind brain status 01
-mastermind brain status 05
 mastermind brain status 06
 
 # Framework status
@@ -209,23 +208,23 @@ mastermind framework status
 # Git
 git status
 git log --oneline -5
-git push origin master  # 5 commits pendientes
+git push origin master  # 6 commits pendientes
 ```
 
 ---
 
-## Para Terminar Sesión
+## Para Termininar Sesión
 
 ```bash
-# 1. Verificar cambios pendientes
+# 1. Guardar sesión
+/sc:save
+
+# 2. Verificar cambios pendientes
 git status
 
-# 2. Si hay cambios, commitear
+# 3. Si hay cambios, commitear
 git add -A
 git commit -m "feat: descripción"
-
-# 3. Guardar checkpoint en Serena
-# (Ya se guarda automáticamente con checkpoints)
 
 # 4. Salir
 ```
@@ -243,6 +242,6 @@ git commit -m "feat: descripción"
 
 ---
 
-**Último commit:** `5014399` - Cerebros #5 (Backend) y #6 (QA/DevOps) agregados
+**Último commit:** `cc3c5ad` - HANDOFF actualizado
 
 **Siguiente tarea:** Cargar Cerebro #6 en NotebookLM (11 fuentes listas)
