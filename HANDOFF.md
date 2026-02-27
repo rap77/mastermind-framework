@@ -1,9 +1,9 @@
 # MasterMind Framework - Handoff / Continue Session
 
-> Última actualización: **2026-02-23**
+> Última actualización: **2026-02-27**
 > Proyecto: mastermind-framework
 > Repo: https://github.com/rap77/mastermind-framework
-> Branch: **master** (todos los commits pusheados)
+> Branch: **master** (3 commits pendientes de push)
 
 ---
 
@@ -18,67 +18,65 @@ git status
 git log --oneline -5
 
 # 3. Cargar contexto del proyecto con Serena MCP
-# (El proyecto ya debería estar activado como "mastermind")
+# (El proyecto ya está activado como "mastermind")
 
-# 4. Leer PRP siguiente o continuar con implementación
+# 4. Continuar con siguiente tarea
 ```
 
 ---
 
 ## Estado Actual
 
-### ✅ PRPs Completados
+### Cerebros (4/7 Activos en NotebookLM)
 
-| PRP | Descripción | Commit | Estado |
-|-----|-------------|--------|--------|
-| PRP-000 | Initial Setup & Project Structure | ac1696a | ✅ Done |
-| PRP-001 | mastermind-cli (CLI con 11 comandos) | b050e22 | ✅ Done |
-| PRP-002 | YAML Versioning en 10 fuentes + update script | e4ed255 | ✅ Done |
-| PRP-003 | System Prompts (Orquestador, Evaluador, Cerebro #1) | e0ea9bf | ✅ Done |
-| PRP-004 | NotebookLM Integration (Cerebro #1 completo) | 254f108 | ✅ Done |
-| PRP-005 | Brain #7 Critical Evaluator (10 fuentes + PRP) | 235d3b7 | ✅ **CREADO** |
+| # | Cerebro | Fuentes | NotebookLM ID | Estado |
+|---|---------|---------|---------------|--------|
+| 1 | Product Strategy | 10/10 | `f276ccb3` | ✅ Activo |
+| 2 | UX Research | 10/10 | `ea006ece` | ✅ Activo |
+| 3 | UI Design | 15/15 | `8d544475` | ✅ Activo |
+| 4 | Frontend | 15/15 | `85e47142` | ✅ Activo |
+| 5 | Backend | 1/10 | ❌ | ⚠️ Parcial |
+| 6 | QA/DevOps | 0/10 | ❌ | ❌ Pendiente |
+| 7 | Growth/Data | 10/10 | `d8de74d6` | ✅ Activo |
 
-### 📋 Siguiente Paso
-
-| Opción | Descripción | Acción |
-|--------|-------------|--------|
-| **A** | Implementar PRP-005 (Evaluator Skill + CLI) | Leer `PRPs/PRP-005-brain-07-evaluator.md` y ejecutar |
-| **B** | Probar Orquestador con Cerebro #1 + #7 | Crear brief de prueba, coordinar ambos cerebros |
-| **C** | Crear notebook NotebookLM para Cerebro #7 | Usar MCP notebooklm-mcp para cargar 10 fuentes |
-
-**Recomendación:** Opción A → Implementar PRP-005 primero para tener evaluación funcional.
+**Total:** 61/100 fuentes completadas (61%)
 
 ---
 
-## Estructura del Proyecto
+## Últimos Commits
+
+| Commit | Descripción | Fecha |
+|--------|-------------|-------|
+| 27a4ee8 | feat(brains): load Brain #4 (Frontend) into NotebookLM | 2026-02-27 |
+| 8358b14 | feat(brains): add Brain #3 (UI Design) and Brain #4 (Frontend) sources | 2026-02-26 |
+| 5d327d7 | feat(brains): load Brain #7 (Growth/Data) | 2026-02-25 |
+
+---
+
+## Próximos Pasos Recomendados
+
+| Opción | Descripción | Acción |
+|--------|-------------|--------|
+| **A** | Crear system prompts para Cerebros #3 y #4 | Usar `agents/brains/product-strategy.md` como template |
+| **B** | Testing suite con briefs de muestra | Validar integración de los 4 cerebros activos |
+| **C** | Completar Cerebro #5 (Backend) | Agregar 9 fuentes faltantes |
+| **D** | Iniciar Cerebro #6 (QA/DevOps) | Crear 10 fuentes desde cero |
+
+**Recomendación:** Opción A → System prompts primero, luego testing.
+
+---
+
+## Estructura de Fuentes por Cerebro
 
 ```
-/home/rpadron/proy/mastermind/
-├── docs/
-│   ├── design/
-│   │   ├── 00-PRD-MasterMind-Framework.md      ← PRD principal
-│   │   ├── 10-Plan-Implementacion-Claude-Code.md  ← Plan de implementación
-│   │   └── 11-Cerebro-07-Evaluador-Critico.md  ← Spec Cerebro #7
-│   ├── NOTEBOOKLM-GUIDE.md                    ← Guía de integración
-│   └── software-development/
-│       ├── 01-product-strategy-brain/
-│       │   ├── sources/                          → 10 fuentes ✅
-│       │   │   ├── FUENTE-001 through FUENTE-010
-│       │   └── notebook-config.json              → NotebookLM configurado ✅
-│       └── 07-growth-data-brain/
-│           └── sources/                          → 10 fuentes ✅
-│               ├── FUENTE-701 through FUENTE-710
-├── agents/
-│   ├── orchestrator/system-prompt.md
-│   ├── evaluator/system-prompt.md
-│   └── brains/
-│       ├── product-strategy.md                  → Cerebro #1 ✅
-│       └── (growth-data.md)                       → Cerebro #7 (pendiente)
-├── tools/mastermind-cli/                          → CLI funcional ✅
-├── PRPs/
-│   ├── PRP-000 through PRP-005                     → Todos creados ✅
-│   └── PRP-MASTER-coordinator.md
-└── CLAUDE.md                                        → Reglas del proyecto
+docs/software-development/
+├── 01-product-strategy-brain/sources/   → FUENTE-001 a 010 ✅
+├── 02-ux-research-brain/sources/        → FUENTE-201 a 210 ✅
+├── 03-ui-design-brain/sources/          → FUENTE-301 a 316 ✅
+├── 04-frontend-brain/sources/           → FUENTE-401 a 415 ✅
+├── 05-backend-brain/sources/            → FUENTE-500 (1/10) ⚠️
+├── 06-qa-devops-brain/sources/          → (vacío) ❌
+└── 07-growth-data-brain/sources/        → FUENTE-701 a 710 ✅
 ```
 
 ---
@@ -87,12 +85,17 @@ git log --oneline -5
 
 ### Notebooks Activos
 
-| Notebook | ID | Fuentes | Estado |
-|----------|-----|---------|--------|
-| `[CEREBRO] Product Strategy - Software Development` | `f276ccb3-0bce-4069-8b55-eae8693dbe75` | 10/10 | ✅ Verified |
-| `[CEREBRO] Growth & Data - Software Development` | Por crear | 10 listas | ⏳ Pendiente |
+| Notebook | ID | Fuentes | URL |
+|----------|-----|---------|-----|
+| `[CEREBRO] Product Strategy` | `f276ccb3` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/f276ccb3-0bce-4069-8b55-eae8693dbe75) |
+| `[CEREBRO] UX Research` | `ea006ece` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/ea006ece) |
+| `[CEREBRO] UI Design` | `8d544475` | 15/15 | [Abrir](https://notebooklm.google.com/notebook/8d544475-6860-4cd7-9037-8549325493dd) |
+| `[CEREBRO] Frontend Architecture` | `85e47142` | 15/15 | [Abrir](https://notebooklm.google.com/notebook/85e47142-0a65-41d9-9848-49b8b5d2db33) |
+| `[CEREBRO] Growth & Data` | `d8de74d6` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/d8de74d6-7028-44ed-b4d5-784d6a9256e6) |
 
-### Comandos MCP NotebookLM
+---
+
+## Comandos MCP NotebookLM
 
 ```python
 # Listar notebooks
@@ -107,7 +110,8 @@ mcp__notebooklm_mcp__source_add(notebook_id="ID", source_type="file", file_path=
 # Consultar notebook
 mcp__notebooklm_mcp__notebook_query(notebook_id="ID", query="Pregunta")
 
-# Exportar fuentes (usar tools/export_sources_notebooklm.py)
+# Listar fuentes de un notebook
+mcp__notebooklm_mcp__source_list_drive(notebook_id="ID")
 ```
 
 ---
@@ -118,16 +122,23 @@ mcp__notebooklm_mcp__notebook_query(notebook_id="ID", query="Pregunta")
 # Desde la raíz del proyecto
 uv run python tools/mastermind-cli/main.py <comando>
 
-# O usando el alias (si está configurado)
-mastermind source {new,update,validate,status,list,export}
-mastermind brain {status,validate,package}
-mastermind framework {status,release}
-mastermind info
+# Source management
+mastermind source new                    # Create new source
+mastermind source update <id>            # Update existing source
+mastermind source validate --brain <id>  # Validate sources
+mastermind source status --brain <id>    # Check source status
+mastermind source list                   # List all sources
+mastermind source export --brain <id>    # Export sources
 
-# Ejemplos:
-mastermind source list              # Listar todas las fuentes
-mastermind brain status 01-product-strategy
-mastermind brain status 07-growth-data
+# Brain management
+mastermind brain status                   # Check brain status
+mastermind brain validate                 # Validate brain configuration
+mastermind brain package                  # Package brain for deployment
+
+# Framework
+mastermind framework status               # Overall framework status
+mastermind framework release              # Create release
+mastermind info                           # Show system info
 ```
 
 ---
@@ -153,40 +164,15 @@ mastermind brain status 07-growth-data
 
 ---
 
-## Lo que Falta por Implementar
+## Archivos Clave del Proyecto
 
-### 1. PRP-005: Brain #7 Evaluator Skill (3-4 horas)
-
-**Archivos a crear:**
-```
-skills/evaluator/
-├── SKILL.md                          # System prompt del evaluador
-├── protocol.md                       # Protocolo de 5 pasos
-├── bias-catalog.yaml                 # 10 sesgos cognitivos
-├── benchmarks.yaml                   # Métricas SaaS/Marketplace
-├── evaluation-matrices/
-│   └── product-brief.yaml            # Matrix para Cerebro #1
-└── templates/
-    ├── evaluation-report.yaml        # Template de reporte
-    └── escalation-report.yaml        # Template para escalaciones
-```
-
-**CLI a agregar:**
-```python
-# Comando a agregar en tools/mastermind-cli/mastermind_cli/commands/brain.py
-@brain.command("compile-radar")
-def brain_compile_radar(brain_id: str):
-    """Compile evaluation criteria from all brains."""
-    # Implementación descrita en PRP-005
-```
-
-**System prompt a crear:**
-- `agents/brains/growth-data.md` (usar `agents/brains/product-strategy.md` como referencia)
-
-### 2. Orquestador (Futuro)
-
-Coordinará cerebros #1 y #7 para flujo completo:
-- Brief → Cerebro #1 → Evaluación #7 → Output
+| Archivo | Propósito |
+|---------|-----------|
+| `CLAUDE.md` | Instrucciones del proyecto para Claude Code |
+| `docs/PROMPT-DESTILACION-FUENTES.md` | Guía para destilación de fuentes |
+| `docs/design/00-PRD-MasterMind-Framework.md` | PRD principal |
+| `agents/orchestrator/system-prompt.md` | Orquestador implementado ✅ |
+| `tools/mastermind-cli/` | CLI implementado ✅ |
 
 ---
 
@@ -201,45 +187,27 @@ Coordinará cerebros #1 y #7 para flujo completo:
 
 ---
 
-## Testing - Cerebro #1 Validado
-
-### Test 1: TaskFlow Pro Brief ✅
-- Brief sobre AI coding assistant para devs junior
-- Respuesta completa sobre 4 riesgos de discovery
-- Score: 9.8/10
-
-### Test 2: TaskFlow Pro Completo ✅
-- Brief completo TaskFlow Pro con contexto
-- Respuesta detallada con estrategia, hipótesis, métricas
-- Integró correctamente múltiples expertos (Cagan, Torres, Ries, Perri, Doerr)
-
----
-
 ## Comandos de Referencia Rápida
 
 ```bash
 # Validar fuentes
-mastermind source validate --brain 01-product-strategy
+mastermind source validate --brain 04-frontend
 
 # Listar fuentes
 mastermind source list
 
 # Brain status
 mastermind brain status 01
+mastermind brain status 04
 mastermind brain status 07
 
 # Framework status
 mastermind framework status
 
-# Exportar a NotebookLM
-python3 tools/export_sources_notebooklm.py
-
 # Git
 git status
 git log --oneline -5
-
-# MCP - NotebookLM
-# (Usar herramientas mcp__notebooklm_mcp__*)
+git push origin master  # 3 commits pendientes
 ```
 
 ---
@@ -247,66 +215,32 @@ git log --oneline -5
 ## Para Terminar Sesión
 
 ```bash
-# 1. Verificar que no hay cambios pendientes
+# 1. Verificar cambios pendientes
 git status
 
 # 2. Si hay cambios, commitear
 git add -A
 git commit -m "feat: descripción"
 
-# 3. Guardar sesión (usar /sc:save)
-# La memoria ya está guardada
+# 3. Guardar checkpoint en Serena
+# (Ya se guarda automáticamente con checkpoints)
 
-# 4. Salir o cerrar terminal
-```
-
----
-
-## Siguiente Comando para Continuar
-
-**Opción A - Implementar PRP-005:**
-```bash
-# Leer el PRP primero
-cat PRPs/PRP-005-brain-07-evaluator.md
-
-# Crear estructura de directorios
-mkdir -p skills/evaluator/{evaluation-matrices,templates}
-mkdir -p logs/{evaluations,precedents}
-
-# Empezar implementación siguiendo las tareas del PRP
-```
-
-**Opción B - Probar Orquestador:**
-```bash
-# Crear brief de prueba
-# Ejecutar flujo: Brief → Cerebro #1 → Cerebro #7 → Output
-# Usar MCP notebooklm para #1 y skill evaluator para #7
-```
-
-**Opción C - NotebookLM para Cerebro #7:**
-```bash
-# Crear notebook
-mcp__notebooklm_mcp__notebook_create(title="[CEREBRO] Growth & Data - Software Development")
-
-# Exportar fuentes (adaptar script existente)
-python3 tools/export_sources_notebooklm.py
-
-# Cargar 10 fuentes
-# (usar mcp__notebooklm_mcp__source_add para cada FUENTE-701 a FUENTE-710)
+# 4. Salir
 ```
 
 ---
 
 ## Notas Importantes
 
-1. **Nombre del proyecto:** El repo es `mastermind-framework`, pero el proyecto interno se llama "Mente Maestra" o "MasterMind Framework"
+1. **Nombre del proyecto:** Repo = `mastermind-framework`, interno = "Mente Maestra"
 2. **Formato de notebooks:** Siempre `[CEREBRO]` no `[MM]`
-3. **Serena MCP:** Proyecto activado como "mastermind" - usar `mcp__serena__*` herramientas para memoria
-4. **GGA Hook:** Paciencia, tarda más con muchos archivos pero es necesario
-5. **Python 3.12:** Funciona para desarrollo, actualizar a 3.14 antes de producción
+3. **Serena MCP:** Proyecto activado como "mastermind"
+4. **GGA Hook:** Paciencia, tarda más con muchos archivos
+5. **Python 3.12:** Funciona para dev, actualizar a 3.14 antes de producción
+6. **Formato de fuentes:** Usar `docs/PROMPT-DESTILACION-FUENTES.md` como guía
 
 ---
 
-**Último commit:** `235d3b7` - docs(prp): add PRP-005 for Brain #7 with 10 sources
+**Último commit:** `27a4ee8` - Cerebro #4 (Frontend) cargado en NotebookLM
 
-**Siguiente PRP a implementar:** PRP-005 (Evaluator Skill + CLI compile-radar)
+**Siguiente tarea:** Crear system prompts para Cerebros #3 y #4
