@@ -13,10 +13,14 @@ url: "https://www.oreilly.com/library/view/working-effectively-with/0131177052/"
 skills_covered: ["H11"]
 distillation_date: "2026-02-27"
 distillation_quality: "complete"
-loaded_in_notebook: false
-version: "1.0.0"
+loaded_in_notebook: true
+version: "1.1.0"
 last_updated: "2026-02-27"
 changelog:
+  - version: "1.1.0"
+    date: "2026-02-27"
+    changes:
+      - "Cargada en NotebookLM (notebook ID: 74cd3a81-1350-4927-af14-c0c4fca41a8e)"
   - version: "1.0.0"
     date: "2026-02-27"
     changes:
