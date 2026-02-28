@@ -32,11 +32,11 @@ brains:
   2:
     id: "ux-research"
     name: "UX Research"
-    status: "pending"
+    status: "active"
     system_prompt: "agents/brains/ux-research.md"
-    notebook_id: null
-    notebook_name: null
-    expert_count: 0
+    notebook_id: "ea006ece-00a9-4d5c-91f5-012b8b712936"
+    notebook_name: "[CEREBRO] UX Research - Software Development"
+    expert_count: 10
     triggers:
       - "experiencia"
       - "usuario"
@@ -53,16 +53,15 @@ brains:
       - "user-research"
       - "ux-design"
       - "service-design"
-    note: "Pendiente de implementación"
 
   3:
     id: "ui-design"
     name: "UI Design"
-    status: "pending"
+    status: "active"
     system_prompt: "agents/brains/ui-design.md"
-    notebook_id: null
-    notebook_name: null
-    expert_count: 0
+    notebook_id: "8d544475-6860-4cd7-9037-8549325493dd"
+    notebook_name: "[CEREBRO] UI Design — Software Development"
+    expert_count: 15
     triggers:
       - "visual"
       - "interfaz"
@@ -79,16 +78,15 @@ brains:
       - "visual-design"
       - "design-systems"
       - "component-design"
-    note: "Pendiente de implementación"
 
   4:
     id: "frontend"
     name: "Frontend Development"
-    status: "pending"
+    status: "active"
     system_prompt: "agents/brains/frontend.md"
-    notebook_id: null
-    notebook_name: null
-    expert_count: 0
+    notebook_id: "85e47142-0a65-41d9-9848-49b8b5d2db33"
+    notebook_name: "[CEREBRO] Frontend Architecture - Software Development"
+    expert_count: 15
     triggers:
       - "implementar frontend"
       - "react"
@@ -106,16 +104,15 @@ brains:
       - "react"
       - "state-management"
       - "typescript"
-    note: "Pendiente de implementación"
 
   5:
     id: "backend"
     name: "Backend Development"
-    status: "pending"
+    status: "active"
     system_prompt: "agents/brains/backend.md"
-    notebook_id: null
-    notebook_name: null
-    expert_count: 0
+    notebook_id: "c6befbbc-b7dd-4ad0-a677-314750684208"
+    notebook_name: "[CEREBRO] Backend Architecture - Software Development"
+    expert_count: 11
     triggers:
       - "api"
       - "base de datos"
@@ -133,16 +130,15 @@ brains:
       - "api-design"
       - "database"
       - "architecture"
-    note: "Pendiente de implementación"
 
   6:
     id: "qa-devops"
     name: "QA & DevOps"
-    status: "pending"
+    status: "active"
     system_prompt: "agents/brains/qa-devops.md"
-    notebook_id: null
-    notebook_name: null
-    expert_count: 0
+    notebook_id: "74cd3a81-1350-4927-af14-c0c4fca41a8e"
+    notebook_name: "[CEREBRO] QA/DevOps - Software Development"
+    expert_count: 11
     triggers:
       - "testing"
       - "deploy"
@@ -160,7 +156,6 @@ brains:
       - "devops"
       - "ci-cd"
       - "testing"
-    note: "Pendiente de implementación"
 
   7:
     id: "growth-data"
@@ -195,5 +190,5 @@ brains:
       - "REJECT"
       - "ESCALATE"
 
-version: "1.0.0"
-last_updated: "2026-02-24"
+version: "1.1.0"
+last_updated: "2026-02-27"
