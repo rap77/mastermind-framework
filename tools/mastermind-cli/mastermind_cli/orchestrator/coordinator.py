@@ -1,5 +1,5 @@
 """
-Coordinator - Main orchestration coordinator.
+Coordinator - Main orchestration coordinator with iteration loop.
 """
 
 import os
@@ -13,7 +13,9 @@ from .output_formatter import OutputFormatter
 
 
 class Coordinator:
-    """Main orchestration coordinator."""
+    """Main orchestration coordinator with iteration support."""
+
+    MAX_ITERATIONS = 3
 
     def __init__(self, formatter: Optional[OutputFormatter] = None):
         """Initialize coordinator."""
@@ -25,27 +27,33 @@ class Coordinator:
         # Execution state
         self.current_plan = None
         self.execution_results = {}
-        self.rejection_counters = {}
+        self.iteration_count = 0
+        self.rejection_count = 0
 
     def orchestrate(
         self,
         brief: str,
         flow: Optional[str] = None,
         dry_run: bool = False,
-        output_file: Optional[str] = None
+        output_file: Optional[str] = None,
+        max_iterations: int = MAX_ITERATIONS
     ) -> Dict:
         """
-        Main orchestration entry point.
+        Main orchestration entry point with iteration support.
 
         Args:
             brief: User's brief text
             flow: Force specific flow (optional)
             dry_run: Generate plan without executing
             output_file: Save output to file
+            max_iterations: Maximum iteration attempts (default: 3)
 
         Returns:
             Execution report
         """
+        self.iteration_count = 0
+        self.rejection_count = 0
+
         # Step 1: Detect or validate flow
         if not flow:
             flow = self.flow_detector.detect(brief)
@@ -66,8 +74,8 @@ class Coordinator:
                 'output': plan_output
             }
 
-        # Step 4: Execute tasks
-        execution_report = self._execute_plan()
+        # Step 4: Execute with iteration loop
+        execution_report = self._execute_with_iterations(max_iterations)
 
         # Step 5: Format and deliver final result
         final_output = self.formatter.format_final_deliverable(execution_report)
@@ -77,10 +85,192 @@ class Coordinator:
 
         return execution_report
 
-    def _execute_plan(self) -> Dict:
-        """Execute the current plan."""
+    def _execute_with_iterations(self, max_iterations: int) -> Dict:
+        """Execute the current plan with iteration support."""
         plan_id = self.current_plan['plan_id']
         tasks = self.current_plan['tasks']
+
+        # For validation_only flow: Brain #1 → Brain #7 (with possible iteration)
+        # For other flows: Execute all tasks with Brain #7 at the end
+
+        completed_tasks = 0
+        outputs = {}
+        evaluations = {}
+
+        # Check if this is a validation flow (just #1 → #7)
+        is_validation_flow = (
+            len(tasks) == 2 and
+            tasks[0]['brain_id'] == 1 and
+            tasks[1]['brain_id'] == 7
+        )
+
+        if is_validation_flow:
+            # Use iteration loop for validation
+            return self._execute_validation_flow(tasks, max_iterations)
+        else:
+            # Standard flow execution
+            return self._execute_standard_flow(tasks)
+
+    def _execute_validation_flow(self, tasks: list, max_iterations: int) -> Dict:
+        """Execute validation flow (Brain #1 → Brain #7) with iteration."""
+        plan_id = self.current_plan['plan_id']
+        brief = self.current_plan['brief']['original']
+
+        outputs = {}
+        evaluations = {}
+
+        for iteration in range(1, max_iterations + 1):
+            self.iteration_count = iteration
+
+            if iteration > 1:
+                print(self.formatter.format_iteration_start(iteration, max_iterations))
+
+            # --- Task 1: Brain #1 (Product Strategy) ---
+            task_1 = tasks[0]
+            print(self.formatter.format_task_start(task_1))
+
+            # Add context from previous iterations if any
+            if iteration > 1 and evaluations:
+                last_eval = list(evaluations.values())[-1]
+                redirect = last_eval.get('redirect_instructions')
+                if redirect:
+                    task_1['inputs']['feedback'] = redirect.get('specific_fixes', [])
+                    task_1['inputs']['iteration'] = iteration
+
+            result_1 = self.brain_executor.execute(1, task_1, use_mcp=False)
+            print(self.formatter.format_brain_output(result_1, task_1))
+
+            outputs['TASK-001'] = result_1.get('output', {})
+
+            # --- Task 2: Brain #7 (Evaluator) ---
+            task_7 = tasks[1]
+            task_7['output_to_evaluate'] = result_1.get('output', {})
+            task_7['previous_brain_id'] = 1
+
+            print(self.formatter.format_task_start(task_7))
+            result_7 = self.brain_executor.execute(7, task_7, use_mcp=False)
+
+            # Format evaluation result
+            print(self.formatter.format_evaluation_result(result_7))
+
+            evaluations['TASK-002'] = result_7
+            outputs['TASK-002'] = result_7
+
+            # Check veredict
+            veredict = result_7.get('veredict', 'UNKNOWN')
+
+            if veredict == 'APPROVE':
+                # Success! Exit iteration loop
+                self.rejection_count = 0
+                return {
+                    'plan_id': plan_id,
+                    'status': 'completed',
+                    'tasks_completed': 2,
+                    'tasks_total': 2,
+                    'iterations': iteration,
+                    'outputs': outputs,
+                    'evaluations': evaluations,
+                    'final_deliverable': self._generate_deliverable(outputs, evaluations),
+                    'veredict': 'APPROVE'
+                }
+
+            elif veredict == 'CONDITIONAL':
+                # Try one more iteration with fixes
+                if iteration < max_iterations:
+                    print(self.formatter.format_info(
+                        f"Conditional approval. Applying fixes and retrying... ({iteration}/{max_iterations})"
+                    ))
+                    continue
+                else:
+                    print(self.formatter.format_warning(
+                        f"Reached max iterations ({max_iterations}) with conditional approval."
+                    ))
+                    return {
+                        'plan_id': plan_id,
+                        'status': 'completed',
+                        'tasks_completed': 2,
+                        'tasks_total': 2,
+                        'iterations': iteration,
+                        'outputs': outputs,
+                        'evaluations': evaluations,
+                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
+                        'veredict': 'CONDITIONAL'
+                    }
+
+            elif veredict == 'REJECT':
+                self.rejection_count += 1
+
+                # Check for escalation
+                if self.rejection_count >= 3:
+                    print(self.formatter.format_escalation_notice(
+                        f"3rd consecutive rejection. This brief requires human review."
+                    ))
+                    return {
+                        'plan_id': plan_id,
+                        'status': 'escalated',
+                        'tasks_completed': 2,
+                        'tasks_total': 2,
+                        'iterations': iteration,
+                        'outputs': outputs,
+                        'evaluations': evaluations,
+                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
+                        'veredict': 'ESCALATE',
+                        'escalation_reason': '3rd consecutive rejection'
+                    }
+
+                # Try again if we have iterations left
+                if iteration < max_iterations:
+                    print(self.formatter.format_info(
+                        f"Rejected. Re-submitting with feedback... ({iteration}/{max_iterations})"
+                    ))
+                    continue
+                else:
+                    # Max iterations reached, still rejected
+                    print(self.formatter.format_warning(
+                        f"Reached max iterations ({max_iterations}) with rejection."
+                    ))
+                    return {
+                        'plan_id': plan_id,
+                        'status': 'completed',
+                        'tasks_completed': 2,
+                        'tasks_total': 2,
+                        'iterations': iteration,
+                        'outputs': outputs,
+                        'evaluations': evaluations,
+                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
+                        'veredict': 'REJECT'
+                    }
+
+            elif veredict == 'ESCALATE':
+                # Immediate escalation
+                print(self.formatter.format_escalation_notice(
+                    result_7.get('evaluation', {}).get('summary', 'Evaluator requested escalation.')
+                ))
+                return {
+                    'plan_id': plan_id,
+                    'status': 'escalated',
+                    'tasks_completed': 2,
+                    'tasks_total': 2,
+                    'iterations': iteration,
+                    'outputs': outputs,
+                    'evaluations': evaluations,
+                    'final_deliverable': self._generate_deliverable(outputs, evaluations),
+                    'veredict': 'ESCALATE',
+                    'escalation_reason': 'Evaluator requested escalation'
+                }
+
+        # Should not reach here, but fallback
+        return {
+            'plan_id': plan_id,
+            'status': 'error',
+            'error': 'Unexpected end of iteration loop',
+            'outputs': outputs,
+            'evaluations': evaluations
+        }
+
+    def _execute_standard_flow(self, tasks: list) -> Dict:
+        """Execute standard flow (all tasks in sequence)."""
+        plan_id = self.current_plan['plan_id']
 
         completed_tasks = 0
         outputs = {}
@@ -95,13 +285,11 @@ class Coordinator:
                 print(self.formatter.format_warning(
                     f"Brain #{brain_id} is not implemented. Skipping."
                 ))
-                # For MVP, we'll mark as skipped and continue if it's not brain 1 or 7
                 if brain_id not in [1, 7]:
                     outputs[task_id] = f"Skipped: Brain #{brain_id} not implemented"
                     completed_tasks += 1
                     continue
                 else:
-                    # Brain 1 or 7 must be available
                     return self._error_report(
                         f"Brain #{brain_id} is required but not implemented."
                     )
@@ -110,7 +298,7 @@ class Coordinator:
             print(self.formatter.format_task_start(task))
 
             # Execute brain
-            result = self.brain_executor.execute(brain_id, task)
+            result = self.brain_executor.execute(brain_id, task, use_mcp=False)
 
             # Format and print brain output
             print(self.formatter.format_brain_output(result, task))
@@ -123,18 +311,10 @@ class Coordinator:
                 print(self.formatter.format_evaluation_result(result))
                 evaluations[task_id] = result
 
-                # Check veredict
+                # Check veredict - may want to stop early
                 veredict = result.get('veredict', 'PLACEHOLDER')
-
-                if veredict == 'REJECT':
-                    # In full implementation, would re-assign to previous brain
-                    print(self.formatter.format_warning(
-                        "Output rejected. In full implementation, would re-assign to brain."
-                    ))
-                elif veredict == 'ESCALATE':
-                    print(self.formatter.format_warning(
-                        "Escalation required. Stopping execution."
-                    ))
+                if veredict == 'ESCALATE':
+                    print(self.formatter.format_escalation_notice("Evaluator requested escalation."))
                     break
 
             completed_tasks += 1
@@ -146,10 +326,10 @@ class Coordinator:
             'tasks_total': len(tasks),
             'outputs': outputs,
             'evaluations': evaluations,
-            'final_deliverable': self._generate_deliverable(outputs)
+            'final_deliverable': self._generate_deliverable(outputs, evaluations)
         }
 
-    def _generate_deliverable(self, outputs: Dict) -> str:
+    def _generate_deliverable(self, outputs: Dict, evaluations: Dict) -> str:
         """Generate final deliverable from outputs."""
         if not outputs:
             return "No outputs generated."
@@ -157,29 +337,65 @@ class Coordinator:
         # Find the main strategy output (from Brain #1)
         strategy_output = outputs.get('TASK-001', {})
 
+        if not strategy_output:
+            return "Orchestration complete. See outputs above."
+
+        lines = []
+        lines.append("# Product Strategy Summary")
+        lines.append("")
+
         if isinstance(strategy_output, dict):
+            # Persona
             if strategy_output.get('persona'):
-                return f"""
-# Product Strategy Summary
+                persona = strategy_output['persona']
+                if isinstance(persona, dict):
+                    lines.append(f"**Target Persona:** {persona.get('name', 'N/A')}")
+                    if persona.get('description'):
+                        lines.append(f"{persona['description']}")
+                    lines.append("")
 
-**Persona:** {strategy_output.get('persona', {}).get('name', 'N/A')}
-**Value Proposition:** {strategy_output.get('value_proposition', 'N/A')}
+            # Value Proposition
+            if strategy_output.get('value_proposition'):
+                lines.append(f"**Value Proposition:** {strategy_output['value_proposition']}")
+                lines.append("")
 
-**Key Features:**
-{chr(10).join(f"- {f}" for f in strategy_output.get('key_features', []))}
+            # Key Features
+            if strategy_output.get('key_features'):
+                features = strategy_output['key_features']
+                lines.append("**Key Features:**")
+                if isinstance(features, list):
+                    for feature in features[:5]:  # Limit to top 5
+                        if isinstance(feature, dict):
+                            name = feature.get('feature', feature.get('name', 'Unknown'))
+                            priority = feature.get('priority', '')
+                            lines.append(f"- {name} ({priority})" if priority else f"- {name}")
+                        else:
+                            lines.append(f"- {feature}")
+                lines.append("")
 
-**Monetization:** {strategy_output.get('monetization', 'N/A')}
-"""
-            elif strategy_output.get('note'):
-                return f"""
-# Product Strategy
+            # Success Metrics
+            if strategy_output.get('success_metrics'):
+                metrics = strategy_output['success_metrics']
+                lines.append("**Success Metrics:**")
+                if isinstance(metrics, list):
+                    for metric in metrics[:5]:
+                        if isinstance(metric, dict):
+                            name = metric.get('metric', 'Unknown')
+                            target = metric.get('target', '')
+                            confidence = metric.get('confidence', '')
+                            lines.append(f"- {name}: {target} (confidence: {confidence})")
+                lines.append("")
 
-{strategy_output.get('note')}
+            # Risks
+            if strategy_output.get('risks'):
+                risks = strategy_output['risks']
+                lines.append("**Key Risks:**")
+                if isinstance(risks, dict):
+                    for risk_type, description in risks.items():
+                        lines.append(f"- **{risk_type}:** {description}")
+                lines.append("")
 
-*This is placeholder output. Full implementation would query NotebookLM.*
-"""
-
-        return "Orchestration complete. See outputs above."
+        return "\n".join(lines)
 
     def _error_report(self, error: str) -> Dict:
         """Generate error report."""
@@ -204,4 +420,4 @@ class Coordinator:
             return self._error_report(f"Plan file not found: {plan_file}")
 
         # Execute remaining tasks
-        return self._execute_plan()
+        return self._execute_standard_flow(self.current_plan['tasks'])
