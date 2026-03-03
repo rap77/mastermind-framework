@@ -97,6 +97,61 @@ Empaquetar cerebro para distribución (próximamente).
 mastermind brain package 01-product-strategy --output dist/packages
 ```
 
+### Comandos Orchestrate
+
+Orquestación de cerebros para procesar briefs de usuarios.
+
+#### `mastermind orchestrate run`
+
+Ejecutar flujo de orquestación completo.
+
+```bash
+# Validación simple (modo mock)
+mm orchestrate run "validar idea de app de viajes"
+
+# Con flow específico
+mm orchestrate run --flow validation_only "es buena idea esta app?"
+
+# Dry run para ver el plan
+mm orchestrate run --dry-run "mi idea de startup"
+
+# Guardar output en archivo
+mm orchestrate run -o output.yaml "mi idea"
+
+# Leer brief desde archivo
+mm orchestrate run --file brief.md
+
+# Usar MCP real (requiere nlm CLI)
+mm orchestrate run --use-mcp "validar mi idea con NotebookLM real"
+```
+
+**Opciones:**
+- `--file, -f`: Leer brief desde archivo
+- `--flow`: Forzar flow específico (full_product, validation_only, design_sprint, build_feature, optimization, technical_review)
+- `--dry-run`: Generar plan sin ejecutar
+- `--use-mcp`: Usar MCP para llamadas reales a NotebookLM (requiere CLI `nlm`)
+- `--output, -o`: Guardar output en archivo
+- `--verbose, -v`: Output detallado
+
+#### `mastermind orchestrate go`
+
+Alias corto del comando `run`.
+
+```bash
+mm orchestrate go "mi idea"
+```
+
+#### Flujos Disponibles
+
+| Flow | Cerebros | Descripción |
+|------|----------|-------------|
+| `validation_only` | 1 → 7 | Validar idea con Product Strategy + Evaluador |
+| `full_product` | 1→2→3→4→5→6→7 | Producto completo |
+| `design_sprint` | 1→2→3→7 | Diseño sin construcción |
+| `build_feature` | 4→5→6→7 | Implementar feature |
+| `optimization` | 7→1 | Optimizar existente |
+| `technical_review` | 5→6→7 | Revisión técnica |
+
 ### Comandos Framework
 
 Operaciones a nivel de framework.
@@ -237,7 +292,9 @@ git status
 
 ## Roadmap
 
+- [x] Integración con NotebookLM MCP (--use-mcp flag)
+- [x] Iteration loop para aprobación condicional
 - [ ] Comando `mastermind brief` - Crear brief interactivo
 - [ ] Comando `mastermind config` - Configuración del framework
-- [ ] Integración con NotebookLM MCP
 - [ ] Export en otros formatos (JSON, PDF)
+- [ ] Completar sources faltantes (17/100)

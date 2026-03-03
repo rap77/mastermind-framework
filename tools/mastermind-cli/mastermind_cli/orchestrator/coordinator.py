@@ -17,11 +17,19 @@ class Coordinator:
 
     MAX_ITERATIONS = 3
 
-    def __init__(self, formatter: Optional[OutputFormatter] = None):
-        """Initialize coordinator."""
+    def __init__(self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False):
+        """Initialize coordinator.
+
+        Args:
+            formatter: Output formatter
+            use_mcp: Whether to use MCP for real NotebookLM calls
+        """
+        from .mcp_integration import MCPIntegration
+
         self.flow_detector = FlowDetector()
         self.plan_generator = PlanGenerator(self.flow_detector)
-        self.brain_executor = BrainExecutor()
+        self.mcp_integration = MCPIntegration(use_mcp=use_mcp)
+        self.brain_executor = BrainExecutor(mcp_client=self.mcp_integration)
         self.formatter = formatter or OutputFormatter()
 
         # Execution state
@@ -29,6 +37,7 @@ class Coordinator:
         self.execution_results = {}
         self.iteration_count = 0
         self.rejection_count = 0
+        self.use_mcp = use_mcp
 
     def orchestrate(
         self,
@@ -36,7 +45,8 @@ class Coordinator:
         flow: Optional[str] = None,
         dry_run: bool = False,
         output_file: Optional[str] = None,
-        max_iterations: int = MAX_ITERATIONS
+        max_iterations: int = MAX_ITERATIONS,
+        use_mcp: bool = False
     ) -> Dict:
         """
         Main orchestration entry point with iteration support.
@@ -47,12 +57,14 @@ class Coordinator:
             dry_run: Generate plan without executing
             output_file: Save output to file
             max_iterations: Maximum iteration attempts (default: 3)
+            use_mcp: Use MCP for real NotebookLM calls (default: False)
 
         Returns:
             Execution report
         """
         self.iteration_count = 0
         self.rejection_count = 0
+        self.use_mcp = use_mcp
 
         # Step 1: Detect or validate flow
         if not flow:
@@ -137,7 +149,7 @@ class Coordinator:
                     task_1['inputs']['feedback'] = redirect.get('specific_fixes', [])
                     task_1['inputs']['iteration'] = iteration
 
-            result_1 = self.brain_executor.execute(1, task_1, use_mcp=False)
+            result_1 = self.brain_executor.execute(1, task_1, use_mcp=self.use_mcp)
             print(self.formatter.format_brain_output(result_1, task_1))
 
             outputs['TASK-001'] = result_1.get('output', {})
@@ -148,7 +160,7 @@ class Coordinator:
             task_7['previous_brain_id'] = 1
 
             print(self.formatter.format_task_start(task_7))
-            result_7 = self.brain_executor.execute(7, task_7, use_mcp=False)
+            result_7 = self.brain_executor.execute(7, task_7, use_mcp=False)  # Evaluator uses local logic
 
             # Format evaluation result
             print(self.formatter.format_evaluation_result(result_7))
@@ -297,8 +309,9 @@ class Coordinator:
             # Print task start
             print(self.formatter.format_task_start(task))
 
-            # Execute brain
-            result = self.brain_executor.execute(brain_id, task, use_mcp=False)
+            # Execute brain (use MCP only for non-evaluator brains)
+            use_mcp_for_brain = self.use_mcp if brain_id != 7 else False
+            result = self.brain_executor.execute(brain_id, task, use_mcp=use_mcp_for_brain)
 
             # Format and print brain output
             print(self.formatter.format_brain_output(result, task))

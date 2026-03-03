@@ -70,7 +70,7 @@ class BrainExecutor:
         """Initialize brain executor.
 
         Args:
-            mcp_client: MCP client for making NotebookLM calls (optional)
+            mcp_client: MCPIntegration instance for making NotebookLM calls
             skills_dir: Path to skills directory for evaluator
         """
         self.notebooklm_client = NotebookLMClient()
@@ -170,14 +170,18 @@ evidence:
 ```
 """
 
-        if use_mcp and self.mcp_client:
+        if use_mcp and self.mcp_client and self.mcp_client.is_available():
             # Use MCP to query NotebookLM
             try:
-                response = self._query_notebooklm(
-                    notebook_id=self.BRAIN_CONFIGS[1]['notebook_id'],
+                response = self.mcp_client.query_notebook(
+                    brain_id=1,
                     query=query
                 )
-                return self._format_brain_response(1, response, brief)
+                if response.get('status') == 'success':
+                    return self._format_brain_response(1, response.get('content', ''), brief)
+                else:
+                    # MCP error, fallback to mock
+                    return self._mock_brain_1_response(brief, query, error=response.get('error'))
             except Exception as e:
                 # Fallback to mock response if MCP fails
                 return self._mock_brain_1_response(brief, query, error=str(e))
@@ -234,13 +238,16 @@ Context: {context}
 Please provide your analysis and recommendations.
 """
 
-        if use_mcp and self.mcp_client:
+        if use_mcp and self.mcp_client and self.mcp_client.is_available():
             try:
-                response = self._query_notebooklm(
-                    notebook_id=brain_config['notebook_id'],
+                response = self.mcp_client.query_notebook(
+                    brain_id=brain_id,
                     query=query
                 )
-                return self._format_brain_response(brain_id, response, brief)
+                if response.get('status') == 'success':
+                    return self._format_brain_response(brain_id, response.get('content', ''), brief)
+                else:
+                    return self._mock_generic_response(brain_id, brief, error=response.get('error'))
             except Exception as e:
                 return self._mock_generic_response(brain_id, brief, error=str(e))
         else:
