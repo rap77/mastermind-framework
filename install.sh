@@ -152,25 +152,26 @@ print_success "Python 3.14 ready: $PYTHON_VERSION"
 print_step "Installing MasterMind Framework globally..."
 
 cd "$INSTALL_DIR"
-uv pip install --system -e .
+uv pip install --global -e .
 
 # Step 6: Create symlinks in ~/.local/bin
 print_step "Creating command symlinks..."
 
 mkdir -p "$BIN_DIR"
 
-# Create symlinks for mastermind and mm
-ln -sf "$INSTALL_DIR/.venv/bin/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
-ln -sf "$INSTALL_DIR/.venv/bin/mm" "$BIN_DIR/mm" 2>/dev/null || true
+# Get uv global bin directory
+UV_GLOBAL_BIN=$(uv pip list --global 2>&1 | grep -oP '(?<=Will be installed in ).*' || echo "")
 
-# If uv --global installed, use that instead
-if uv pip list --global | grep -q mastermind-framework; then
-    # Get uv global bin directory
-    UV_BIN=$(uv pip list --global 2>&1 | grep -oP '(?<=Will be installed in ).*' || echo "")
-    if [ -n "$UV_BIN" ] && [ -d "$UV_BIN" ]; then
-        ln -sf "$UV_BIN/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
-        ln -sf "$UV_BIN/mm" "$BIN_DIR/mm" 2>/dev/null || true
-    fi
+if [ -n "$UV_GLOBAL_BIN" ] && [ -d "$UV_GLOBAL_BIN" ]; then
+    # Create symlinks from uv global bin
+    ln -sf "$UV_GLOBAL_BIN/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
+    ln -sf "$UV_GLOBAL_BIN/mm" "$BIN_DIR/mm" 2>/dev/null || true
+    print_success "Commands linked from uv global bin"
+else
+    # Fallback: create symlinks to local venv
+    ln -sf "$INSTALL_DIR/.venv/bin/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
+    ln -sf "$INSTALL_DIR/.venv/bin/mm" "$BIN_DIR/mm" 2>/dev/null || true
+    print_success "Commands linked from local venv"
 fi
 
 print_success "Commands installed: mastermind, mm"

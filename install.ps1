@@ -135,25 +135,27 @@ if (-not $pythonVersion) {
 
 Write-Success "Python 3.14 ready: $pythonVersion"
 
-# Step 5: Install mastermind
+# Step 5: Install mastermind globally
 Write-Step "Installing MasterMind Framework globally..."
 
 Set-Location $INSTALL_DIR
-uv pip install -e .
+uv pip install --global -e .
 
 Write-Success "Installation complete"
 
-# Step 6: Add to PATH
+# Step 6: Get uv global bin location and add to PATH
 Write-Step "Configuring PATH..."
 
-# Check if .venv/bin is in PATH
-$venvBin = "$INSTALL_DIR\.venv\Scripts"
+# Get uv global bin directory
+$uvGlobalBin = "$env:APPDATA\uv\bin"
+
+# Check if uv global bin is in PATH
 $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-if ($currentPath -notlike "*$venvBin*") {
+if ($currentPath -notlike "*$uvGlobalBin*") {
     Write-Warning "Adding to user PATH..."
 
-    $newPath = "$venvBin;$currentPath"
+    $newPath = "$uvGlobalBin;$currentPath"
     [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
 
     Write-Success "Added to PATH (restart PowerShell to apply)"
