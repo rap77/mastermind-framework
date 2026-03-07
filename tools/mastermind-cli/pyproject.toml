@@ -1,7 +1,7 @@
 [project]
-name = "mastermind-cli"
-version = "0.1.0"
-description = "MasterMind Framework CLI - Expert brain management"
+name = "mastermind-framework"
+version = "1.0.0"
+description = "MasterMind Framework - Cognitive architecture for expert knowledge consultation"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -15,6 +15,10 @@ dependencies = [
 [project.scripts]
 mastermind = "mastermind_cli.main:cli"
 mm = "mastermind_cli.main:cli"
+
+[project.optional-dependencies]
+# MCP integration (optional)
+mcp = ["notebooklm-mcp>=0.1.0"]
 
 [build-system]
 requires = ["hatchling"]
