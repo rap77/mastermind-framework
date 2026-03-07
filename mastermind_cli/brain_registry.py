@@ -1,15 +1,71 @@
-"""Brain Registry - Public Framework Configuration.
+"""
+Brain Registry - Load brain configurations from YAML.
 
-These are public NotebookLM notebook identifiers used by the MasterMind
-Framework to access knowledge bases. They are NOT API keys, tokens, or
-passwords. Access requires separate Google OAuth authentication via the
-NotebookLM MCP server. These IDs alone cannot authenticate to anything.
-
-This module is public configuration that belongs in version control.
-Source of truth: https://github.com/rap77/mastermind-framework
+This module loads brain configurations from YAML and provides helper
+functions for querying brain data. It maintains backward compatibility
+with existing code that uses BRAIN_CONFIGS directly.
 """
 
-# Public notebook identifiers for the 7 MasterMind knowledge brains.
+import yaml
+from pathlib import Path
+from typing import Dict, List, Optional
+
+# Config directory paths
+CONFIG_DIR = Path(__file__).parent / "config"
+BRAINS_CONFIG_PATH = CONFIG_DIR / "brains.yaml"
+
+
+def load_brain_configs() -> Dict[int, Dict]:
+    """
+    Load brain configurations from YAML file.
+
+    Returns:
+        Dictionary mapping brain_id to brain config.
+
+    Raises:
+        FileNotFoundError: If brains.yaml doesn't exist
+        yaml.YAMLError: If YAML is invalid
+    """
+    if not BRAINS_CONFIG_PATH.exists():
+        raise FileNotFoundError(
+            f"Brain config not found: {BRAINS_CONFIG_PATH}\n"
+            f"Run 'mm framework status' to verify installation."
+        )
+
+    with open(BRAINS_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    brains = {}
+    for brain in config.get("brains", []):
+        brains[brain["id"]] = brain
+
+    return brains
+
+
+# Maintain backward compatibility - load brains at import time
+BRAIN_CONFIGS = load_brain_configs()
+
+
+def get_brain(brain_id: int) -> Optional[Dict]:
+    """Get a specific brain configuration."""
+    return BRAIN_CONFIGS.get(brain_id)
+
+
+def list_active_brains() -> List[int]:
+    """List all active brain IDs."""
+    return [
+        brain_id
+        for brain_id, config in BRAIN_CONFIGS.items()
+        if config.get("status") == "active"
+    ]
+
+
+def get_brain_count() -> int:
+    """Get total number of registered brains."""
+    return len(BRAIN_CONFIGS)
+
+
+# Public notebook identifiers (legacy - for external reference)
 # Safe to version control - these are configuration, not credentials.
 BRAIN_REGISTRY: dict = {
     "#1": {

@@ -1,0 +1,109 @@
+version: "1.0"
+brains:
+  # Existing brains #1-7 (migrated from brain_executor.py)
+  - id: 1
+    name: Product Strategy
+    short_id: product-strategy
+    notebook_id: f276ccb3-0bce-4069-8b55-eae8693dbe75
+    system_prompt: agents/brains/product-strategy.md
+    expertise:
+      - Product discovery
+      - User personas
+      - Value proposition
+      - Monetization
+      - Product strategy
+    status: active
+
+  - id: 2
+    name: UX Research
+    short_id: ux-research
+    notebook_id: ea006ece-00a9-4d5c-91f5-012b8b712936
+    system_prompt: null
+    expertise:
+      - User research
+      - Usability testing
+      - Interview techniques
+      - User insights
+      - Research methods
+    status: active
+
+  - id: 3
+    name: UI Design
+    short_id: ui-design
+    notebook_id: 8d544475-6860-4cd7-9037-8549325493dd
+    system_prompt: null
+    expertise:
+      - Visual design
+      - Design systems
+      - Component patterns
+      - Typography
+      - Color theory
+    status: active
+
+  - id: 4
+    name: Frontend Development
+    short_id: frontend
+    notebook_id: 85e47142-0a65-41d9-9848-49b8b5d2db33
+    system_prompt: null
+    expertise:
+      - Frontend architecture
+      - React
+      - Next.js
+      - State management
+      - Component design
+    status: active
+
+  - id: 5
+    name: Backend Development
+    short_id: backend
+    notebook_id: c6befbbc-b7dd-4ad0-a677-314750684208
+    system_prompt: null
+    expertise:
+      - Backend architecture
+      - API design
+      - Database design
+      - Services architecture
+      - Authentication
+    status: active
+
+  - id: 6
+    name: QA & DevOps
+    short_id: qa-devops
+    notebook_id: 74cd3a81-1350-4927-af14-c0c4fca41a8e
+    system_prompt: null
+    expertise:
+      - Quality assurance
+      - Testing strategies
+      - CI/CD
+      - Reliability
+      - Operations
+    status: active
+
+  - id: 7
+    name: Growth & Data (Evaluator)
+    short_id: growth-data
+    notebook_id: d8de74d6-7028-44ed-b4d4-784d6a9256e6
+    system_prompt: null
+    expertise:
+      - Growth metrics
+      - Experimentation
+      - Data analysis
+      - Optimization
+      - Evaluation
+    status: active
+
+  # Brain #8 (new - Master Interviewer / Discovery)
+  - id: 8
+    name: Master Interviewer / Discovery
+    short_id: master-interviewer
+    notebook_id: null  # Will be updated in PRP-012
+    system_prompt: agents/brains/master-interviewer.md
+    expertise:
+      - Interview methodology
+      - Information extraction
+      - Question structuring
+      - Gap detection
+      - Facilitation techniques
+      - Socratic questioning
+      - Discovery
+    status: pending  # Will change to 'active' after PRP-012

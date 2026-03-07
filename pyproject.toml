@@ -32,3 +32,8 @@ package = true
 
 [tool.uv.workspace]
 members = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
