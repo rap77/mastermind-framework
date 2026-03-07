@@ -151,6 +151,57 @@ mm orchestrate go "mi idea"
 | `build_feature` | 4→5→6→7 | Implementar feature |
 | `optimization` | 7→1 | Optimizar existente |
 | `technical_review` | 5→6→7 | Revisión técnica |
+| `discovery` | 8 → 1-7 | Entrevista de discovery para briefs ambiguos |
+
+### Comandos Slash (Claude Code)
+
+Comandos disponibles desde Claude Code usando `/mm:`.
+
+#### `/mm:discovery`
+
+Conduct structured discovery interview using Brain #8 (Master Interviewer).
+
+```
+/mm:discovery "<problem or vague requirement>"
+```
+
+**Ejemplos:**
+- `/mm:discovery "Quiero crear una app de delivery"` — Client onboarding
+- `/mm:discovery "Necesito un sistema de login moderno"` — Feature clarification
+- `/mm:discovery "Implementar OAuth con Google"` — Technical specification
+- `/mm:discovery "SEO y content marketing para mi sitio"` — Gap detection
+
+**Qué hace:**
+1. Analiza el input para detectar ambigüedad
+2. Consulta Brain #8 para diseñar estrategia de entrevista
+3. Pregunta preguntas estructuradas interactivamente
+4. Rutea cada respuesta a cerebros de dominio (#1-7) para follow-ups
+5. Genera documento Q&A completo (JSON/YAML/Markdown)
+6. Detecta gaps de conocimiento
+
+**Tipos de output:**
+- **Markdown:** Mostrado en la respuesta (human-readable)
+- **YAML:** `logs/interviews/hot/YYYY-MM/INTERVIEW-*.yaml` (logging)
+- **JSON:** `logs/interviews/json/YYYY-MM/INTERVIEW-*.json` (machine-readable)
+
+**Duración:** 5-15 minutos (10-20 preguntas típico)
+
+**Ver también:** [Documentación del comando](../.claude/commands/mm/discovery.md)
+
+#### Otros comandos `/mm:`
+
+- `/mm:ask-product` — Consult Product Strategy brain sin entrevista
+- `/mm:ask-ux` — Consult UX Research brain
+- `/mm:ask-frontend` — Consult Frontend Development brain
+- `/mm:ask-backend` — Consult Backend Development brain
+- `/mm:ask-qa` — Consult QA/DevOps brain
+- `/mm:ask-growth` — Consult Growth/Data brain
+- `/mm:ask-design` — Consult UI Design brain
+- `/mm:ask-all` — Consult ALL 7 brains as a team
+- `/mm:project-health-check` — Full 7-brain project analysis
+- `/mm:generate-prp` — Create implementation plan from requirements
+- `/mm:improve-prompt` — Transform generic feature requests into detailed requirements
+- `/mm:lite-prd-generator` — Convert rough MVP idea into demo-grade PRD
 
 ### Comandos Framework
 
