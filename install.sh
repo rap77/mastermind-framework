@@ -152,29 +152,22 @@ print_success "Python 3.14 ready: $PYTHON_VERSION"
 print_step "Installing MasterMind Framework globally..."
 
 cd "$INSTALL_DIR"
-uv pip install --global -e .
 
-# Step 6: Create symlinks in ~/.local/bin
-print_step "Creating command symlinks..."
+# Use uv tool to install globally (creates entry points in ~/.local/bin)
+uv tool install -e .
 
-mkdir -p "$BIN_DIR"
+# Step 6: Verify commands are available
+print_step "Verifying installation..."
 
-# Get uv global bin directory
-UV_GLOBAL_BIN=$(uv pip list --global 2>&1 | grep -oP '(?<=Will be installed in ).*' || echo "")
+# uv tool install creates commands in ~/.local/share/uv/bin/
+# and ensures ~/.local/bin/ is in PATH
 
-if [ -n "$UV_GLOBAL_BIN" ] && [ -d "$UV_GLOBAL_BIN" ]; then
-    # Create symlinks from uv global bin
-    ln -sf "$UV_GLOBAL_BIN/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
-    ln -sf "$UV_GLOBAL_BIN/mm" "$BIN_DIR/mm" 2>/dev/null || true
-    print_success "Commands linked from uv global bin"
+if command_exists mm; then
+    print_success "Commands installed: mastermind, mm"
 else
-    # Fallback: create symlinks to local venv
-    ln -sf "$INSTALL_DIR/.venv/bin/mastermind" "$BIN_DIR/mastermind" 2>/dev/null || true
-    ln -sf "$INSTALL_DIR/.venv/bin/mm" "$BIN_DIR/mm" 2>/dev/null || true
-    print_success "Commands linked from local venv"
+    print_warning "Commands installed but not yet in PATH"
+    print_warning "Start a new shell or run: source ~/.bashrc"
 fi
-
-print_success "Commands installed: mastermind, mm"
 
 # Step 7: Update PATH if needed
 print_step "Checking PATH configuration..."

@@ -139,28 +139,20 @@ Write-Success "Python 3.14 ready: $pythonVersion"
 Write-Step "Installing MasterMind Framework globally..."
 
 Set-Location $INSTALL_DIR
-uv pip install --global -e .
+uv tool install -e .
 
 Write-Success "Installation complete"
 
-# Step 6: Get uv global bin location and add to PATH
-Write-Step "Configuring PATH..."
+# Step 6: Verify commands are available
+Write-Step "Verifying installation..."
 
-# Get uv global bin directory
-$uvGlobalBin = "$env:APPDATA\uv\bin"
+# uv tool install creates commands and adds to PATH automatically
 
-# Check if uv global bin is in PATH
-$currentPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-
-if ($currentPath -notlike "*$uvGlobalBin*") {
-    Write-Warning "Adding to user PATH..."
-
-    $newPath = "$uvGlobalBin;$currentPath"
-    [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-
-    Write-Success "Added to PATH (restart PowerShell to apply)"
+if (Test-CommandExists "mm") {
+    Write-Success "Commands installed: mastermind, mm"
 } else {
-    Write-Success "Already in PATH"
+    Write-Warning "Commands installed but not yet in PATH"
+    Write-Warning "Restart PowerShell to apply PATH changes"
 }
 
 # Step 7: Verify installation
