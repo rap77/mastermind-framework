@@ -98,6 +98,13 @@ mastermind orchestrate run --dry-run "brief" # Ver plan sin ejecutar
 mastermind orchestrate run --flow validation_only "brief"
 mastermind orchestrate run --use-mcp "brief" # Usar NotebookLM real
 
+# === Memory & Learning ===
+mastermind eval list [--limit N]         # Listar evaluaciones recientes
+mastermind eval show <EVAL-ID>           # Mostrar detalle de evaluación
+mastermind eval find <project>           # Buscar por proyecto
+mastermind eval search <keyword>         # Búsqueda por keyword
+mastermind eval stats                    # Estadísticas de evaluaciones
+
 # === Framework ===
 mastermind framework status         # Estado del framework
 mastermind framework release        # Preparar release
@@ -127,8 +134,63 @@ mastermind orchestrate run --flow design_sprint \
   "Diseñar UI para dashboard de analytics"
 ```
 
-## Documentación
+### Ejemplos de Uso
 
+```bash
+# Validar idea de producto
+mastermind orchestrate run --flow validation_only \
+  "Quiero crear una app para encontrar compañeros de viaje"
+
+# Ver plan de ejecución sin ejecutar
+mastermind orchestrate run --dry-run \
+  "Necesito rediseñar el onboarding de mi SaaS"
+
+# Usar cerebros específicos
+mastermind orchestrate run --flow design_sprint \
+  "Diseñar UI para dashboard de analytics"
+```
+
+## Sistema de Memoria y Aprendizaje
+
+El framework **recuerda todas las evaluaciones** del cerebro y permite aprender de experiencias pasadas.
+
+```bash
+# Ver evaluaciones guardadas
+mastermind eval list
+
+# Buscar evaluaciones de un proyecto específico
+mastermind eval find prosell-sass
+
+# Buscar por keyword
+mastermind eval search "cold-start"
+
+# Ver detalle de una evaluación
+mastermind eval show EVAL-2026-03-07-001
+```
+
+### Lo que el Framework Aprende
+
+- **Evaluaciones:** Cada vez que el cerebro #7 evalúa, se guarda automáticamente
+- **Patrones:** El framework detecta patrones (ej: "Cold Start en 60% de B2C mobile apps")
+- **Contexto:** Evaluaciones futuras usan contexto histórico para mejorar decisiones
+- **Mejora Continua:** Los cerebros se vuelven más inteligentes con cada proyecto
+
+### Arquitectura de Memoria
+
+```
+mastermind-memory/
+├── evaluations/
+│   ├── hot/       # Últimos 30 días (completo)
+│   ├── warm/      # 30-90 días (resumido)
+│   ├── cold/      # +90 días (solo patrones)
+│   └── archive/   # +1 año (comprimido)
+│
+└── vector-db/    # Fase 4: Búsqueda semántica (futuro)
+```
+
+Para más detalles ver [PRP-009: Memory & Learning System](PRPs/PRP-009-memory-learning-system.md).
+
+- [Stack Tecnológico Estándar](docs/STACK-TECNOLOGICO.md) ⭐
 - [PRD Principal](docs/design/00-PRD-MasterMind-Framework.md)
 - [Guía de Instalación](tools/mastermind-cli/INSTALL.md)
 - [CLI Reference](docs/CLI-REFERENCE.md)
@@ -143,6 +205,7 @@ mastermind orchestrate run --flow design_sprint \
 | Orquestador | ✅ Funcional |
 | Testing Suite | ✅ 5/5 tests passing |
 | Installation | ✅ Funcional |
+| **Memory System** | ✅ **Fase 1: Evaluation Logger** |
 
 ## Roadmap
 
@@ -156,6 +219,12 @@ mastermind orchestrate run --flow design_sprint \
 | PRP-005 | Brain #7 Evaluator | ✅ Completo |
 | PRP-006 | Orchestrator Core | ✅ Completo |
 | PRP-008 | Orchestrate Command | ✅ Completo |
+| PRP-009 | Memory & Learning System | ✅ **Fase 1: Evaluation Logger** |
+
+**Próximas Fases (PRP-009):**
+- Fase 2: Retention Policy (hot/warm/cold)
+- Fase 3: SQLite Migration
+- Fase 4: Vector Database + RAG
 
 ## License
 
