@@ -35,20 +35,33 @@ Aprobado → Entrega | Rechazado → Iteración
 
 ## Quick Start
 
-### Prerequisitos
+### Instalación Universal (Recomendado)
+
+**¡No necesitas Python instalado!** El instalador lo hace todo por vos.
+
+#### Linux / macOS
 
 ```bash
-# Python 3.14+
-python3 --version
-
-# UV package manager
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Node.js (para MCP servers)
-nvm install 22
+curl -fsSL https://raw.githubusercontent.com/rap77/mastermind-framework/master/install.sh | bash
 ```
 
-### Instalación
+#### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/rap77/mastermind-framework/master/install.ps1 | iex
+```
+
+**Lo que hace el instalador:**
+1. ✅ Verifica dependencias (git, curl)
+2. ✅ Instala uv (package manager)
+3. ✅ Descarga Python 3.14 automáticamente
+4. ✅ Clona el repositorio
+5. ✅ Instala MasterMind globalmente
+6. ✅ Configura PATH para usar `mm` y `mastermind` desde cualquier lugar
+
+---
+
+### Instalación Manual (si ya tenés Python 3.14+)
 
 ```bash
 # Clonar repositorio
@@ -64,6 +77,8 @@ uv pip install -e .
 # Verificar instalación
 mastermind info
 ```
+
+---
 
 ### Instalación en Otro Proyecto
 
