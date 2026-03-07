@@ -102,8 +102,9 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
     This creates:
     - .mastermind/ directory with project-specific config
     - .mastermind-active activation file
-    - .claude/hooks/ symlinks to framework hooks
-    - .claude/skills/ symlinks to framework skills
+    - .claude/commands/mm/ symlinks to framework commands (mm namespace)
+    - .claude/hooks/mm/ symlinks to framework hooks
+    - .claude/agents/mm/ symlinks to framework agents
 
     Example:
         mastermind install init
@@ -197,62 +198,76 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
 
             config_content += """# Usage Notes
 # - Brains are queried via NotebookLM MCP
-# - Use mastermind-consultant skill in Claude Code
-# - See .claude/skills/mastermind-consultant.md for usage
+# - Use /mm: commands in Claude Code (e.g., /mm:ask-product, /mm:project-audit)
+# - All commands use mm namespace to avoid conflicts
+# - See .claude/README.md for complete command reference
 """
             config_file.write_text(config_content)
 
-        # 3. Create .claude directories
+        # 3. Create .claude directories with namespace structure
         progress.update(task, description="Setting up Claude integration...")
         claude_dir = project_path / ".claude"
-        claude_hooks = claude_dir / "hooks"
-        claude_skills = claude_dir / "skills"
+        claude_hooks = claude_dir / "hooks" / "mm"
+        claude_commands = claude_dir / "commands" / "mm"
+        claude_agents = claude_dir / "agents" / "mm"
+
         claude_hooks.mkdir(parents=True, exist_ok=True)
-        claude_skills.mkdir(parents=True, exist_ok=True)
-
-        # 4. Copy/symlink hooks and skills from framework
-        framework_claude = framework_root / ".claude"
-        framework_hooks = framework_claude / "hooks"
-        framework_skills = framework_claude / "skills"
-        framework_commands = framework_claude / "commands"
-
-        # Hooks
-        if framework_hooks.exists():
-            for hook_file in framework_hooks.glob("*.sh"):
-                dest = claude_hooks / hook_file.name
-                if dest.exists():
-                    dest.unlink()
-                # Try symlink first, fallback to copy
-                try:
-                    dest.symlink_to(hook_file)
-                except (OSError, NotImplementedError):
-                    shutil.copy2(hook_file, dest)
-
-
-        # Commands
-        claude_commands = claude_dir / "commands"
         claude_commands.mkdir(parents=True, exist_ok=True)
+        claude_agents.mkdir(parents=True, exist_ok=True)
 
+        # 4. Copy/symlink resources from framework with namespace structure
+        framework_claude = framework_root / ".claude"
+        framework_hooks = framework_claude / "hooks" / "mm"
+        framework_commands = framework_claude / "commands" / "mm"
+        framework_agents = framework_claude / "agents" / "mm"
+        framework_skills = framework_claude / "skills"  # Legacy support
+
+        # Commands (mm namespace)
         if framework_commands.exists():
             for cmd_file in framework_commands.glob("*.md"):
                 dest = claude_commands / cmd_file.name
-                if dest.exists():
+                if dest.exists() or dest.is_symlink():
                     dest.unlink()
                 try:
                     dest.symlink_to(cmd_file)
                 except (OSError, NotImplementedError):
                     shutil.copy2(cmd_file, dest)
 
-        # Skills
-        if framework_skills.exists():
-            for skill_file in framework_skills.glob("*.md"):
-                dest = claude_skills / skill_file.name
-                if dest.exists():
+        # Hooks (mm namespace)
+        if framework_hooks.exists():
+            for hook_file in framework_hooks.glob("*"):
+                if hook_file.name.startswith('.'):
+                    continue
+                dest = claude_hooks / hook_file.name
+                if dest.exists() or dest.is_symlink():
                     dest.unlink()
                 try:
-                    dest.symlink_to(skill_file)
+                    dest.symlink_to(hook_file)
                 except (OSError, NotImplementedError):
-                    shutil.copy2(skill_file, dest)
+                    shutil.copy2(hook_file, dest)
+
+        # Agents (mm namespace)
+        if framework_agents.exists():
+            for agent_file in framework_agents.glob("*"):
+                if agent_file.name.startswith('.'):
+                    continue
+                dest = claude_agents / agent_file.name
+                if dest.exists() or dest.is_symlink():
+                    dest.unlink()
+                try:
+                    dest.symlink_to(agent_file)
+                except (OSError, NotImplementedError):
+                    shutil.copy2(agent_file, dest)
+
+        # Legacy: Support old skills folder (copy to commands/mm/)
+        if framework_skills.exists():
+            for skill_file in framework_skills.glob("mastermind-*.md"):
+                dest = claude_commands / skill_file.name
+                if not dest.exists():
+                    try:
+                        dest.symlink_to(skill_file)
+                    except (OSError, NotImplementedError):
+                        shutil.copy2(skill_file, dest)
 
         # 5. Create activation file
         progress.update(task, description="Creating activation file...")
@@ -285,17 +300,29 @@ installed_by=mastermind install init
 
 ## 🧠 MasterMind Framework
 
-This project uses [MasterMind Framework](https://github.com/rap77/mastermind-framework) for expert consultation.
+This project uses [MasterMind Framework](https://github.com/rap77/mastermind-framework) for AI-powered expert consultation.
 
-The framework provides 7 specialized brains that can be consulted via Claude Code:
+### Available Slash Commands
 
-- **#1 Product Strategy** - What & Why
-- **#2 UX Research** - User Experience
-- **#3 UI Design** - Visual Design
-- **#4 Frontend** - Frontend Architecture
-- **#5 Backend** - Backend Architecture
-- **#6 QA/DevOps** - Quality & Operations
-- **#7 Growth/Data** - Growth & Evaluation
+All commands use the `/mm:` namespace:
+
+**Consult Brains:**
+- `/mm:ask-product` - Product Strategy (what & why)
+- `/mm:ask-ux` - UX Research (user experience)
+- `/mm:ask-design` - UI Design (visual design)
+- `/mm:ask-frontend` - Frontend Architecture
+- `/mm:ask-backend` - Backend Architecture
+- `/mm:ask-qa` - QA/DevOps (quality & operations)
+- `/mm:ask-growth` - Growth/Data (evaluation & metrics)
+- `/mm:ask-all` - All 7 brains as a team
+
+**Project Management:**
+- `/mm:project-audit` - Complete 7-brain project analysis
+- `/mm:audit` - Quick project audit
+
+**PRDs & Specs:**
+- `/mm:lite-prd-generator` - Generate PRD from rough idea
+- `/mm:prd-clarifier` - Refine and clarify PRD
 
 Run `mastermind install status` for more information.
 """
@@ -311,10 +338,12 @@ Run `mastermind install status` for more information.
         f"[cyan]Active brains:[/cyan] {len(active_brains) if brain_ids else 7}\n\n"
         f"[yellow]Next steps:[/yellow]\n"
         f"  1. Restart Claude Code in this project\n"
-        f"  2. Use the [cyan]mastermind-consultant[/cyan] skill\n"
-        f"  3. Run [cyan]mastermind install status[/cyan] to verify\n\n"
+        f"  2. Use [cyan]/mm:ask-product[/cyan] to consult the Product brain\n"
+        f"  3. Use [cyan]/mm:project-audit[/cyan] for full 7-brain analysis\n"
+        f"  4. Run [cyan]mastermind install status[/cyan] to verify\n\n"
         f"[dim]Configuration: .mastermind/config.yaml[/dim]\n"
-        f"[dim]Skills: .claude/skills/mastermind-*.md[/dim]",
+        f"[dim]Commands: .claude/commands/mm/*.md[/dim]\n"
+        f"[dim]All commands use /mm: namespace[/dim]",
         title="Installation Complete",
         border_style="green"
     ))
@@ -374,10 +403,19 @@ def status() -> None:
     console.print("\n[bold]Integration Files:[/bold]\n")
     console.print(f"  [cyan].mastermind-active[/cyan] - Activation file")
     console.print(f"  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
-    console.print(f"  [cyan].claude/skills/mastermind-*.md[/cyan] - Available skills")
+    console.print(f"  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)")
 
-    # Show available commands
-    console.print("\n[bold]Available Commands:[/bold]\n")
+    # Show available slash commands
+    console.print("\n[bold]Available Slash Commands:[/bold]\n")
+    console.print("  [cyan]/mm:ask-product[/cyan] - Consult Product Strategy brain")
+    console.print("  [cyan]/mm:ask-ux[/cyan] - Consult UX Research brain")
+    console.print("  [cyan]/mm:project-audit[/cyan] - Full 7-brain project analysis")
+    console.print("  [cyan]/mm:lite-prd-generator[/cyan] - Generate PRD from idea")
+    console.print("  [cyan]...and 15 more commands[/cyan]")
+    console.print("\n[dim]Run: ls .claude/commands/mm/ to see all commands[/dim]")
+
+    # Show available CLI commands
+    console.print("\n[bold]Available CLI Commands:[/bold]\n")
     console.print("  [cyan]mastermind install status[/cyan] - Show this status")
     console.print("  [cyan]mastermind install uninstall[/cyan] - Remove from project")
     console.print("  [cyan]mastermind brain status[/cyan] - Check brain status")
@@ -389,8 +427,13 @@ def status() -> None:
     is_flag=True,
     help="Keep .mastermind/ directory (removes only activation)",
 )
+@click.option(
+    "--remove-readme",
+    is_flag=True,
+    help="Also remove MasterMind section from README.md",
+)
 @click.confirmation_option(prompt="Are you sure you want to uninstall MasterMind from this project?")
-def uninstall(keep_config: bool) -> None:
+def uninstall(keep_config: bool, remove_readme: bool) -> None:
     """Remove MasterMind Framework from the current project."""
     project_path = Path.cwd()
     active_file = project_path / ".mastermind-active"
@@ -400,21 +443,36 @@ def uninstall(keep_config: bool) -> None:
         console.print("[yellow]⚠ MasterMind is not installed in this project[/yellow]")
         raise click.Abort()
 
+    console.print("\n[yellow]Uninstalling MasterMind Framework...[/yellow]\n")
+
     # Remove activation file
     if active_file.exists():
         active_file.unlink()
         console.print("[green]✓ Removed .mastermind-active[/green]")
 
-    # Remove symlinks from .claude
-    claude_hooks = project_path / ".claude" / "hooks"
-    claude_skills = project_path / ".claude" / "skills"
+    # Remove mm namespace folders
+    claude_dir = project_path / ".claude"
+    removed_count = 0
 
-    for hooks_dir in [claude_hooks, claude_skills]:
-        if hooks_dir.exists():
-            for item in hooks_dir.iterdir():
-                if item.is_symlink():
-                    item.unlink()
-                    console.print(f"[green]✓ Removed symlink {item.name}[/green]")
+    for ns_folder in ["commands/mm", "hooks/mm", "agents/mm"]:
+        ns_path = claude_dir / ns_folder
+        if ns_path.exists():
+            try:
+                shutil.rmtree(ns_path)
+                console.print(f"[green]✓ Removed .claude/{ns_folder}/[/green]")
+                removed_count += 1
+            except OSError as e:
+                console.print(f"[yellow]⚠ Could not remove .claude/{ns_folder}/: {e}[/yellow]")
+
+    # Clean up empty parent directories
+    for parent_dir in ["commands", "hooks", "agents"]:
+        parent_path = claude_dir / parent_dir
+        if parent_path.exists() and not list(parent_path.iterdir()):
+            try:
+                parent_path.rmdir()
+                console.print(f"[dim]✓ Removed empty .claude/{parent_dir}/[/dim]")
+            except OSError:
+                pass
 
     # Optionally remove config directory
     if not keep_config and mastermind_dir.exists():
@@ -423,9 +481,28 @@ def uninstall(keep_config: bool) -> None:
     elif keep_config:
         console.print("[dim]Kept .mastermind/ directory (--keep-config)[/dim]")
 
+    # Optionally remove README section
+    if remove_readme:
+        readme = project_path / "README.md"
+        if readme.exists():
+            try:
+                content = readme.read_text()
+                # Remove MasterMind section (from ## 🧠 to next ## or end)
+                import re
+                pattern = r'\n## 🧠 MasterMind Framework.*(?=\n## |\Z)'
+                new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+                if new_content != content:
+                    readme.write_text(new_content)
+                    console.print("[green]✓ Removed MasterMind section from README.md[/green]")
+            except Exception as e:
+                console.print(f"[yellow]⚠ Could not update README.md: {e}[/yellow]")
+
     console.print(Panel.fit(
-        "[green bold]✓ MasterMind Framework uninstalled[/green bold]\n\n"
-        "[dim]Note: You may want to manually remove the MasterMind section from README.md[/dim]",
+        f"[green bold]✓ MasterMind Framework uninstalled[/green bold]\n\n"
+        f"[cyan]Removed:[/cyan] {removed_count} namespace folder(s)\n"
+        f"[cyan]Config kept:[/cyan] {keep_config}\n\n"
+        "[yellow]Note: If you want to remove the MasterMind section from README.md, run:[/yellow]\n"
+        "[dim]  mastermind install uninstall --remove-readme[/dim]",
         title="Uninstallation Complete",
         border_style="yellow"
     ))
