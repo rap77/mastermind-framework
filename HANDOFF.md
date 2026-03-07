@@ -1,6 +1,6 @@
 # MasterMind Framework - Handoff / Continue Session
 
-> Última actualización: **2026-02-28**
+> Última actualización: **2026-03-06**
 > Proyecto: mastermind-framework
 > Repo: https://github.com/rap77/mastermind-framework
 > Branch: **master** (✅ Up to date)
@@ -27,19 +27,25 @@ git log --oneline -5
 
 ## Estado Actual
 
-### Framework Completion: 95% ✅
+### Framework Completion: 100% ✅
 
 | # | Cerebro | System Prompt | Fuentes | NotebookLM | Estado |
 |---|---------|---------------|---------|-----------|--------|
-| 1 | Product Strategy | ✅ | 10/10 | ✅ f276ccb3 | **Activo** |
-| 2 | UX Research | ✅ | 10/10 | ✅ ea006ece | **Activo** |
-| 3 | UI Design | ✅ | 15/15 | ✅ 8d544475 | **Activo** |
-| 4 | Frontend | ✅ | 15/15 | ✅ 85e47142 | **Activo** |
-| 5 | Backend | ✅ | 11/11 | ✅ c6befbbc | **Activo** |
-| 6 | QA/DevOps | ✅ | 11/11 | ✅ 74cd3a81 | **Activo** |
-| 7 | Growth/Data | ✅ | 10/10 | ✅ d8de74d6 | **Activo** |
+| 1 | Product Strategy | ✅ | 10 | ✅ f276ccb3 | **Activo** |
+| 2 | UX Research | ✅ | 19 | ✅ ea006ece | **Activo** |
+| 3 | UI Design | ✅ | 20 | ✅ 8d544475 | **Activo** |
+| 4 | Frontend | ✅ | 18 | ✅ 85e47142 | **Activo** |
+| 5 | Backend | ✅ | 21 | ✅ c6befbbc | **Activo** |
+| 6 | QA/DevOps | ✅ | 20 | ✅ 74cd3a81 | **Activo** |
+| 7 | Growth/Data | ✅ MEJORADO | 14 | ✅ d8de74d6 | **Activo** |
 
-**Total:** 7/7 cerebros con system prompts (100%), 6/7 activos en NotebookLM (86%), 82/100 fuentes (82%), Testing Suite 5/5 ejecutado (100%) ✅
+**Total:** 7/7 cerebros con system prompts (100%), 7/7 activos en NotebookLM (100%), **122/122 fuentes (100%)**, Testing Suite 5/5 passed ✅
+
+**Mejora Cerebro #7 (2026-03-03):** Se agregaron 4 fuentes críticas:
+- FUENTE-711: Reforge Product Management (Brian Balfour)
+- FUENTE-712: The Mom Test (Rob Fitzpatrick)
+- FUENTE-713: Trustworthy Online Controlled Experiments (Ron Kohavi)
+- FUENTE-714: Lean Analytics (Alistair Croll)
 
 ---
 
@@ -47,13 +53,11 @@ git log --oneline -5
 
 | Commit | Descripción | Fecha |
 |--------|-------------|-------|
-| 9117d02 | test(results): complete testing suite - 5/5 tests passed | 2026-02-28 |
-| 257af37 | test(results): add test suite execution results 2026-02-28 | 2026-02-28 |
-| efa0e7d | feat(tests): add testing suite for 7-brain framework | 2026-02-28 |
-| f886a7f | docs: handoff 2026-02-28 | 2026-02-28 |
-| a224ec6 | docs: handoff 2026-02-28 | 2026-02-28 |
-| 77f8720 | feat(brains): load Brain #6 (QA/DevOps) sources into NotebookLM | 2026-02-27 |
-| c444a2c | docs: handoff 2026-02-28 | 2026-02-27 |
+| 626f40e | chore: ignore checkpoints directory | 2026-03-06 |
+| 9f5ef48 | docs: add prosell v2 briefs and evaluation reports | 2026-03-06 |
+| 977a21e | feat(commands): add slash commands and 22 expert knowledge sources | 2026-03-06 |
+| 78b208f | feat(cli): add install command, brain registry, and upgrade orchestrator | 2026-03-06 |
+| 3b56e0b | feat(mcp): add integration and 6 critical sources | 2026-03-05 |
 
 ---
 
@@ -61,23 +65,14 @@ git log --oneline -5
 
 | # | Tarea | Estado | Acción |
 |---|-------|--------|--------|
-| 1 | Cerebro #6 en NotebookLM | ✅ Completado | 11 fuentes cargadas |
-| 2 | System Prompts Cerebros #3-#6 | ✅ Completado | 4 prompts creados |
-| 3 | Testing Suite con briefs | ✅ Completado | 5 tests creados |
-| 4 | Ejecutar tests 1-3 (validation) | ✅ Completado | 3/3 tests PASSED |
-| 5 | Ejecutar tests 4-5 (full flow) | ✅ Completado | 2/2 tests PASSED |
-| 6 | Orquestador Completo | ⏳ Pendiente | Coordinar los 7 cerebros |
+| 1 | CLI v1.0.0 | ✅ Completado | mastermind install, source, brain, framework |
+| 2 | Slash Commands | ✅ Completado | 11 commands (/ask product, /ask ux, etc.) |
+| 3 | 22 Fuentes Nuevas | ✅ Completado | UX(9), UI(2), Frontend(1), Backend(8), QA(6), Growth(4) |
+| 4 | **PRP-008: `mm orchestrate`** | ⏳ Pendiente | Exponer comando en CLI |
+| 5 | README.md Update | ⏳ Pendiente | Actualizar a v1.0.0 con cerebros correctos |
+| 6 | CLI Testing | ⏳ Pendiente | End-to-end de todos los comandos |
 
-**Recomendación:** Opción 6 → Construir Orquestador para automatizar el flujo entre cerebros.
-
-**Test Results (FINAL):**
-- Test-01 (Bad Brief): 9/100 REJECT ✅
-- Test-02 (Borderline): 68/100 CONDITIONAL ✅
-- Test-03 (Good Brief): 88/100 APPROVE ✅
-- Test-04 (Full Flow): 84/100 CONDITIONAL ✅
-- Test-05 (Optimization): 82/100 CONDITIONAL ✅
-
-**Accuracy: 100% (5/5 tests) | Confidence avg: 87.6%**
+**Recomendación:** Opción 4 → Exponer comando `orchestrate` en CLI para completar PRP-008.
 
 ---
 
@@ -86,77 +81,101 @@ git log --oneline -5
 ```
 docs/software-development/
 ├── 01-product-strategy-brain/sources/   → FUENTE-001 a 010 ✅
-├── 02-ux-research-brain/sources/        → FUENTE-201 a 210 ✅
-├── 03-ui-design-brain/sources/          → FUENTE-301 a 316 ✅
-├── 04-frontend-brain/sources/           → FUENTE-401 a 415 ✅
-├── 05-backend-brain/sources/            → FUENTE-500 a 510 ✅
-├── 06-qa-devops-brain/sources/          → FUENTE-601 a 611 ✅
-└── 07-growth-data-brain/sources/        → FUENTE-701 a 710 ✅
+├── 02-ux-research-brain/sources/        → FUENTE-201 a 221 ✅ (19+9 nuevas)
+├── 03-ui-design-brain/sources/          → FUENTE-301 a 320 ✅ (15+2 nuevas)
+├── 04-frontend-brain/sources/           → FUENTE-401 a 418 ✅ (15+1 nueva)
+├── 05-backend-brain/sources/            → FUENTE-500 a 522 ✅ (11+8 nuevas)
+├── 06-qa-devops-brain/sources/          → FUENTE-601 a 621 ✅ (11+6 nuevas)
+└── 07-growth-data-brain/sources/        → FUENTE-701 a 714 ✅ (10+4 nuevas)
 ```
+
+**Total: 122 fuentes** (100% completo)
 
 ---
 
 ## NotebookLM Status
 
-### Notebooks Activos
+### Notebooks Activos (7/7)
 
 | Notebook | ID | Fuentes | URL |
 |----------|-----|---------|-----|
-| `[CEREBRO] Product Strategy` | `f276ccb3` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/f276ccb3-0bce-4069-8b55-eae8693dbe75) |
-| `[CEREBRO] UX Research` | `ea006ece` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/ea006ece) |
-| `[CEREBRO] UI Design` | `8d544475` | 15/15 | [Abrir](https://notebooklm.google.com/notebook/8d544475-6860-4cd7-9037-8549325493dd) |
-| `[CEREBRO] Frontend Architecture` | `85e47142` | 15/15 | [Abrir](https://notebooklm.google.com/notebook/85e47142-0a65-41d9-9848-49b8b5d2db33) |
-| `[CEREBRO] Backend Architecture` | `c6befbbc` | 11/11 | [Abrir](https://notebooklm.google.com/notebook/c6befbbc-b7dd-4ad0-a677-314750684208) |
-| `[CEREBRO] QA/DevOps` | `74cd3a81` | 11/11 | [Abrir](https://notebooklm.google.com/notebook/74cd3a81-1350-4927-af14-c0c4fca41a8e) | ✅ NUEVO |
-| `[CEREBRO] Growth & Data` | `d8de74d6` | 10/10 | [Abrir](https://notebooklm.google.com/notebook/d8de74d6-7028-44ed-b4d5-784d6a9256e6) |
+| `[CEREBRO] Product Strategy` | `f276ccb3` | 10 | [Abrir](https://notebooklm.google.com/notebook/f276ccb3) |
+| `[CEREBRO] UX Research` | `ea006ece` | 19 | [Abrir](https://notebooklm.google.com/notebook/ea006ece) |
+| `[CEREBRO] UI Design` | `8d544475` | 20 | [Abrir](https://notebooklm.google.com/notebook/8d544475) |
+| `[CEREBRO] Frontend Architecture` | `85e47142` | 18 | [Abrir](https://notebooklm.google.com/notebook/85e47142) |
+| `[CEREBRO] Backend Architecture` | `c6befbbc` | 21 | [Abrir](https://notebooklm.google.com/notebook/c6befbbc) |
+| `[CEREBRO] QA/DevOps` | `74cd3a81` | 20 | [Abrir](https://notebooklm.google.com/notebook/74cd3a81) |
+| `[CEREBRO] Growth & Data` | `d8de74d6` | 14 | [Abrir](https://notebooklm.google.com/notebook/d8de74d6) |
 
 ---
 
-## Comandos MCP NotebookLM
-
-```python
-# Listar notebooks
-mcp__notebooklm_mcp__notebook_list(max_results=100)
-
-# Crear notebook
-mcp__notebooklm_mcp__notebook_create(title="[CEREBRO] Nombre - Nicho")
-
-# Agregar fuente (file)
-mcp__notebooklm_mcp__source_add(notebook_id="ID", source_type="file", file_path="ruta")
-
-# Consultar notebook
-mcp__notebooklm_mcp__notebook_query(notebook_id="ID", query="Pregunta")
-
-# Listar fuentes de un notebook
-mcp__notebooklm_mcp__source_list_drive(notebook_id="ID")
-```
-
----
-
-## Comandos CLI Disponibles
+## Comandos CLI Disponibles (v1.0.0)
 
 ```bash
-# Desde la raíz del proyecto
-uv run python tools/mastermind-cli/main.py <comando>
+# Instalación en proyectos
+mastermind install init              # Inicializa framework en proyecto actual
+mastermind install status             # Muestra estado de instalación
+mastermind install uninstall          # Desinstala framework del proyecto
 
-# Source management
-mastermind source new                    # Create new source
-mastermind source update <id>            # Update existing source
-mastermind source validate --brain <id>  # Validate sources
-mastermind source status --brain <id>    # Check source status
-mastermind source list                   # List all sources
-mastermind source export --brain <id>    # Export sources
+# Gestión de fuentes
+mastermind source new                 # Crear nueva fuente
+mastermind source update <id>         # Actualizar fuente existente
+mastermind source validate --brain <id>  # Validar fuentes de cerebro
+mastermind source status --brain <id>  # Estado de fuentes
+mastermind source list                # Listar todas las fuentes
+mastermind source export --brain <id> # Exportar fuentes
 
-# Brain management
-mastermind brain status                   # Check brain status
-mastermind brain validate                 # Validate brain configuration
-mastermind brain package                  # Package brain for deployment
+# Gestión de cerebros
+mastermind brain status               # Estado de cerebros
+mastermind brain validate             # Validar configuración
+mastermind brain package              # Package para distribución
 
 # Framework
-mastermind framework status               # Overall framework status
-mastermind framework release              # Create release
-mastermind info                           # Show system info
+mastermind framework status           # Estado general del framework
+mastermind framework release          # Crear release
+
+# Info
+mastermind info                       # Información del sistema
+
+# Alias: mm (ej: mm source list)
 ```
+
+### Slash Commands (Claude Code)
+
+```bash
+/ask product [pregunta]      # Cerebro #1 - Product Strategy
+/ask ux [pregunta]           # Cerebro #2 - UX Research
+/ask design [pregunta]       # Cerebro #3 - UI Design
+/ask frontend [pregunta]     # Cerebro #4 - Frontend
+/ask backend [pregunta]      # Cerebro #5 - Backend
+/ask qa [pregunta]           # Cerebro #6 - QA/DevOps
+/ask growth [pregunta]       # Cerebro #7 - Growth/Data
+
+/ask-all [pregunta]          # Todos los 7 cerebros como equipo
+/ask-ui-docs [contexto]      # Genera documentación UI/UX
+/audit [estado]              # Health check completo
+/project-health-check [tipo] # Alias de /audit
+```
+
+---
+
+## Orquestador Status
+
+### Implementado ✅ (no expuesto en CLI aún)
+
+**Ubicación:** `mastermind_cli/orchestrator/`
+
+**Componentes:**
+- `coordinator.py` - Coordina los 7 cerebros
+- `brain_executor.py` - Ejecuta consultas vía NotebookLM MCP
+- `evaluator.py` - Cerebro #7 evalúa resultados
+- `flow_detector.py` - Detecta flujo según brief
+- `plan_generator.py` - Genera plan de ejecución
+- `mcp_integration.py` - Wrapper MCP NotebookLM
+- `notebooklm_client.py` - Cliente NotebookLM
+- `output_formatter.py` - Formatea outputs
+
+**Falta:** Exponer comando `orchestrate` en `mastermind_cli/main.py`
 
 ---
 
@@ -164,20 +183,21 @@ mastermind info                           # Show system info
 
 | Componente | Versión | Estado |
 |------------|---------|--------|
-| Python | 3.12.3 | ⚠️ Proyecto requiere ≥3.14 (funciona para dev) |
+| Python | 3.14+ | ✅ (requerido) |
 | uv | 0.9.28+ | ✅ |
-| Click | 8.3.1 | CLI framework |
-| Rich | 14.3.3 | Terminal output |
-| GitPython | 3.1.46 | Git operations |
+| Click | 8.3.1 | ✅ |
+| Rich | 14.3.3 | ✅ |
+| PyYAML | 6.x | ✅ |
+| GitPython | 3.1.46 | ✅ |
 
 ---
 
 ## Git Rules
 
 - **NUNCA** usar `--no-verify` (usuario lo prohibió explícitamente)
-- Esperar a que termine el hook GGA (puede tardar con muchos archivos)
 - Conventional commits: `feat(scope): description`
-- Formato commits: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`
+- GGA hook: esperar a que termine (cachea revisiones)
+- Si GGA falla sin output claro, ejecutar: `pre-commit run gga --all-files`
 
 ---
 
@@ -186,22 +206,12 @@ mastermind info                           # Show system info
 | Archivo | Propósito |
 |---------|-----------|
 | `CLAUDE.md` | Instrucciones del proyecto para Claude Code |
-| `docs/PROMPT-DESTILACION-FUENTES.md` | Guía para destilación de fuentes |
-| `docs/design/00-PRD-MasterMind-Framework.md` | PRD principal |
-| `agents/orchestrator/system-prompt.md` | Orquestador implementado ✅ |
-| `agents/brains/` | System prompts de los 7 cerebros ✅ |
-| `tools/mastermind-cli/` | CLI implementado ✅ |
-| `tests/test-briefs/` | Testing Suite con 5 casos de prueba ✅ NUEVO |
-| `tests/test-results/` | Resultados de ejecución de tests ✅ NUEVO |
-
-**System Prompts Creados:**
-- `agents/brains/product-strategy.md` — Cerebro #1 ✅
-- `agents/brains/ux-research.md` — Cerebro #2 ✅
-- `agents/brains/ui-design.md` — Cerebro #3 ✅ NUEVO
-- `agents/brains/frontend.md` — Cerebro #4 ✅ NUEVO
-- `agents/brains/backend.md` — Cerebro #5 ✅ NUEVO
-- `agents/brains/qa-devops.md` — Cerebro #6 ✅ NUEVO
-- `agents/brains/growth-data.md` — Cerebro #7 ✅ |
+| `HANDOFF.md` | Este archivo - handoff entre sesiones |
+| `docs/CLI-REFERENCE.md` | Documentación completa del CLI |
+| `mastermind_cli/` | Paquete CLI v1.0.0 ✅ |
+| `mastermind_cli/brain_registry.py` | IDs de NotebookLM (config pública) ✅ |
+| `tools/mastermind-cli/` | CLI tools distribution ✅ |
+| `.claude/commands/` | Slash commands (11 archivos) ✅ |
 
 ---
 
@@ -219,22 +229,21 @@ mastermind info                           # Show system info
 ## Comandos de Referencia Rápida
 
 ```bash
-# Validar fuentes
-mastermind source validate --brain 06-qa-devops
+# Estado del framework
+mastermind framework status
 
 # Listar fuentes
 mastermind source list
 
-# Brain status
-mastermind brain status 06
+# Instalar en proyecto actual
+mastermind install init
 
-# Framework status
-mastermind framework status
-
-# Git
+# Git status
 git status
 git log --oneline -5
-git push origin master  # 2 commits pendientes (a224ec6, efa0e7d)
+
+# Usar cerebro vía slash command
+/ask product ¿Deberíamos construir X?
 ```
 
 ---
@@ -262,12 +271,25 @@ git commit -m "feat: descripción"
 1. **Nombre del proyecto:** Repo = `mastermind-framework`, interno = "Mente Maestra"
 2. **Formato de notebooks:** Siempre `[CEREBRO]` no `[MM]`
 3. **Serena MCP:** Proyecto activado como "mastermind"
-4. **GGA Hook:** Paciencia, tarda más con muchos archivos
-5. **Python 3.12:** Funciona para dev, actualizar a 3.14 antes de producción
-6. **Formato de fuentes:** Usar `docs/PROMPT-DESTILACION-FUENTES.md` como guía
+4. **GGA Hook:** Ejecutar manualmente si falla: `pre-commit run gga --all-files`
+5. **brain_registry.py:** IDs son config pública, NO credenciales
+6. **Checkpoints:** `.claude/checkpoints/` ignorado en `.gitignore`
 
 ---
 
-**Último commit:** `c969fab` - System prompts creados
+## Test Results Histórico
 
-**Framework Status:** 86% completo (6/7 cerebros con system prompts, 6/7 activos en NotebookLM)
+**Testing Suite 2026-02-28 (5/5 tests passed)**
+- Test-01 (Bad Brief): 9/100 REJECT ✅
+- Test-02 (Borderline): 68/100 CONDITIONAL ✅
+- Test-03 (Good Brief): 88/100 APPROVE ✅
+- Test-04 (Full Flow): 84/100 CONDITIONAL ✅
+- Test-05 (Optimization): 82/100 CONDITIONAL ✅
+
+**Accuracy: 100% | Confidence avg: 87.6%**
+
+---
+
+**Último commit:** `626f40e` - chore: ignore checkpoints directory
+
+**Framework Status:** 100% completo (7/7 cerebros, 122/122 fuentes, orquestador implementado)
