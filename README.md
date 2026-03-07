@@ -134,21 +134,57 @@ mastermind orchestrate run --flow design_sprint \
   "Diseñar UI para dashboard de analytics"
 ```
 
-### Ejemplos de Uso
+## Claude Code Slash Commands
+
+El framework incluye **slash commands** para usar directamente desde Claude Code con el namespace `mm:`:
+
+### Consulta de Cerebros
 
 ```bash
-# Validar idea de producto
-mastermind orchestrate run --flow validation_only \
-  "Quiero crear una app para encontrar compañeros de viaje"
-
-# Ver plan de ejecución sin ejecutar
-mastermind orchestrate run --dry-run \
-  "Necesito rediseñar el onboarding de mi SaaS"
-
-# Usar cerebros específicos
-mastermind orchestrate run --flow design_sprint \
-  "Diseñar UI para dashboard de analytics"
+/mm:ask-product    # Consulta cerebro Producto (qué y por qué)
+/mm:ask-ux         # Consulta cerebro UX Research
+/mm:ask-design     # Consulta cerebro UI Design
+/mm:ask-frontend   # Consulta cerebro Frontend
+/mm:ask-backend    # Consulta cerebro Backend
+/mm:ask-qa         # Consulta cerebro QA/DevOps
+/mm:ask-growth     # Consulta cerebro Growth/Data
+/mm:ask-all        # Consulta TODOS los cerebros como equipo
 ```
+
+### Gestión de Proyectos
+
+```bash
+/mm:project-audit      # Análisis completo de 7 cerebros
+/mm:audit              # Alias rápido de project-audit
+```
+
+### PRDs y Especificaciones
+
+```bash
+/mm:lite-prd-generator  # Convierte idea en PRD demo-grade
+/mm:prd-clarifier       # Refina y clarifica PRD existente
+/mm:generate-prp        # Crea PRP (Project Requirements Plan)
+/mm:execute-prp         # Ejecuta PRP existente
+```
+
+### Mejora de Prompts
+
+```bash
+/mm:improve-prompt       # Transforma prompts genéricos en detallados
+/mm:ux-spec-to-prompt    # Convierte specs UX en prompts de construcción
+```
+
+### Instalación en Proyectos Externos
+
+```bash
+# Copiar todos los comandos mm:
+cp -r /path/to/mastermind/.claude /path/to/your-project/
+
+# O solo los comandos:
+cp -r /path/to/mastermind/.claude/commands/mm /path/to/your-project/.claude/commands/
+```
+
+**Ver documentación completa:** `.claude/README.md`
 
 ## Sistema de Memoria y Aprendizaje
 
