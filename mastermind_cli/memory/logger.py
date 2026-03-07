@@ -1,0 +1,146 @@
+"""Evaluation Logger - Capture brain #7 evaluations."""
+
+from pathlib import Path
+from typing import List, Optional
+import logging
+
+from .models import EvaluationEntry, EvaluationScore, EvaluationVerdict, Issue
+from .storage import YamlStorage
+
+logger = logging.getLogger(__name__)
+
+
+class EvaluationLogger:
+    """Logger for brain #7 evaluations."""
+
+    def __init__(self, storage_path: Optional[Path] = None, enabled: bool = True):
+        """
+        Initialize evaluation logger.
+
+        Args:
+            storage_path: Custom storage path. Defaults to logs/evaluations/hot
+            enabled: Whether logging is enabled
+        """
+        self.enabled = enabled
+        if enabled:
+            self.storage = YamlStorage(storage_path)
+            logger.info(f"EvaluationLogger initialized with storage at {storage_path}")
+        else:
+            self.storage = None
+            logger.info("EvaluationLogger disabled")
+
+    def log_evaluation(
+        self,
+        project: str,
+        brief: str,
+        flow_type: str,
+        score_total: int,
+        score_max: int,
+        verdict: str,
+        issues: List[dict],
+        strengths: List[str],
+        full_output: str,
+        tags: List[str],
+        brains_involved: Optional[List[int]] = None,
+    ) -> Optional[str]:
+        """
+        Log a complete evaluation.
+
+        Args:
+            project: Project name
+            brief: Original user brief
+            flow_type: Flow type (validation_only, full_product, etc.)
+            score_total: Total score
+            score_max: Maximum possible score
+            verdict: Verdict string (APPROVE, CONDITIONAL, REJECT, ESCALATE)
+            issues: List of issue dicts with keys: type, severity, description, recommendation
+            strengths: List of strength strings
+            full_output: Complete evaluation output text
+            tags: List of tags
+            brains_involved: List of brain IDs involved
+
+        Returns:
+            evaluation_id if logged successfully, None if logging disabled
+        """
+        if not self.enabled:
+            logger.debug("Logging disabled, skipping evaluation")
+            return None
+
+        try:
+            # Build issue objects
+            issue_objects = [
+                Issue(
+                    type=issue.get("type", "unknown"),
+                    severity=issue.get("severity", "medium"),
+                    description=issue.get("description", ""),
+                    recommendation=issue.get("recommendation", ""),
+                )
+                for issue in issues
+            ]
+
+            # Build score
+            percentage = (score_total / score_max * 100) if score_max > 0 else 0
+            score = EvaluationScore(
+                total=score_total,
+                max=score_max,
+                percentage=round(percentage, 1),
+            )
+
+            # Build entry
+            entry = EvaluationEntry(
+                project=project,
+                brief=brief,
+                flow_type=flow_type,
+                brains_involved=brains_involved or [1, 7],
+                score=score,
+                verdict=EvaluationVerdict(verdict),
+                issues_found=issue_objects,
+                strengths_found=strengths,
+                full_output=full_output,
+                tags=tags,
+            )
+
+            # Save
+            eval_id = self.storage.save(entry)
+            logger.info(f"Logged evaluation {eval_id} for project '{project}'")
+            return eval_id
+
+        except Exception as e:
+            logger.error(f"Failed to log evaluation: {e}")
+            return None
+
+    def find_by_project(self, project: str) -> List[EvaluationEntry]:
+        """Find all evaluations for a project."""
+        if not self.enabled:
+            return []
+        return self.storage.find_by_project(project)
+
+    def find_by_verdict(self, verdict: str) -> List[EvaluationEntry]:
+        """Find evaluations by verdict."""
+        if not self.enabled:
+            return []
+        return self.storage.find_by_verdict(verdict)
+
+    def find_recent(self, limit: int = 10) -> List[EvaluationEntry]:
+        """Find recent evaluations."""
+        if not self.enabled:
+            return []
+        return self.storage.find_recent(limit)
+
+    def find_by_id(self, evaluation_id: str) -> Optional[EvaluationEntry]:
+        """Find evaluation by ID."""
+        if not self.enabled:
+            return None
+        return self.storage.find_by_id(evaluation_id)
+
+    def search(self, query: str) -> List[EvaluationEntry]:
+        """Search evaluations by keyword."""
+        if not self.enabled:
+            return []
+        return self.storage.search(query)
+
+    def get_stats(self) -> dict:
+        """Get evaluation statistics."""
+        if not self.enabled:
+            return {"enabled": False}
+        return self.storage.get_stats()

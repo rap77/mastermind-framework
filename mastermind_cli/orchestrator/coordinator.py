@@ -10,6 +10,7 @@ from .flow_detector import FlowDetector
 from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
 from .output_formatter import OutputFormatter
+from ..memory import EvaluationLogger
 
 
 class Coordinator:
@@ -17,12 +18,13 @@ class Coordinator:
 
     MAX_ITERATIONS = 3
 
-    def __init__(self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False):
+    def __init__(self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False, enable_logging: bool = True):
         """Initialize coordinator.
 
         Args:
             formatter: Output formatter
             use_mcp: Whether to use MCP for real NotebookLM calls
+            enable_logging: Whether to enable evaluation logging
         """
         from .mcp_integration import MCPIntegration
 
@@ -31,6 +33,7 @@ class Coordinator:
         self.mcp_integration = MCPIntegration(use_mcp=use_mcp)
         self.brain_executor = BrainExecutor(mcp_client=self.mcp_integration)
         self.formatter = formatter or OutputFormatter()
+        self.eval_logger = EvaluationLogger(enabled=enable_logging) if enable_logging else None
 
         # Execution state
         self.current_plan = None
@@ -164,6 +167,10 @@ class Coordinator:
 
             # Format evaluation result
             print(self.formatter.format_evaluation_result(result_7))
+
+            # Log evaluation if enabled
+            if self.eval_logger:
+                self._log_evaluation(result_7, brief, self.current_plan.get('flow_type', 'validation_only'))
 
             evaluations['TASK-002'] = result_7
             outputs['TASK-002'] = result_7
@@ -423,6 +430,68 @@ class Coordinator:
         os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
         with open(filepath, 'w') as f:
             f.write(output)
+
+    def _log_evaluation(self, result_7: dict, brief: str, flow_type: str):
+        """Log evaluation to memory system.
+
+        Args:
+            result_7: Evaluation result from brain #7
+            brief: Original user brief
+            flow_type: Flow type used
+        """
+        try:
+            # Extract evaluation data
+            score_data = result_7.get('score', {})
+            veredict = result_7.get('veredict', 'UNKNOWN')
+
+            # Convert failed_checks to issues format
+            issues = []
+            for failed in result_7.get('failed_checks', []):
+                issues.append({
+                    'type': failed.get('check_id', 'unknown'),
+                    'severity': 'high',
+                    'description': failed.get('reason', ''),
+                    'recommendation': failed.get('fix_instruction', '')
+                })
+
+            # Convert passed_checks to strengths
+            strengths = [
+                passed.get('justification', passed.get('check', ''))
+                for passed in result_7.get('passed_checks', [])
+            ]
+
+            # Build full output text
+            full_output = result_7.get('summary', '')
+            if result_7.get('failed_checks'):
+                full_output += "\n\n**Issues Found:**\n"
+                for failed in result_7.get('failed_checks', []):
+                    full_output += f"- {failed.get('check', '')}: {failed.get('reason', '')}\n"
+
+            # Generate tags from flow and brief
+            tags = [flow_type]
+            brief_lower = brief.lower()
+            if 'b2b' in brief_lower or 'saas' in brief_lower:
+                tags.append('b2b')
+            elif 'b2c' in brief_lower or 'app' in brief_lower:
+                tags.append('b2c')
+
+            # Log the evaluation
+            self.eval_logger.log_evaluation(
+                project=self.current_plan.get('project_name', 'unknown'),
+                brief=brief,
+                flow_type=flow_type,
+                score_total=score_data.get('points', 0),
+                score_max=score_data.get('total', 100),
+                verdict=veredict,
+                issues=issues,
+                strengths=strengths,
+                full_output=full_output,
+                tags=tags,
+                brains_involved=[1, 7]
+            )
+        except Exception as e:
+            # Don't fail orchestration if logging fails
+            print(f"Warning: Failed to log evaluation: {e}")
 
     def continue_plan(self, plan_id: str, plan_file: str) -> Dict:
         """Continue execution from a saved plan."""

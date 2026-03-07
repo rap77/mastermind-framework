@@ -10,6 +10,7 @@ from .commands.brain import brain
 from .commands.framework import framework
 from .commands.orchestrate import orchestrate
 from .commands.install import install
+from .commands.evaluation import evaluation
 
 console = Console()
 
@@ -31,6 +32,8 @@ cli.add_command(brain)
 cli.add_command(framework)
 cli.add_command(orchestrate)
 cli.add_command(install)
+# Add evaluation command with alias 'eval' for shorter typing
+cli.add_command(evaluation, name='eval')
 
 
 @cli.command()
