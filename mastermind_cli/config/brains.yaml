@@ -96,7 +96,7 @@ brains:
   - id: 8
     name: Master Interviewer / Discovery
     short_id: master-interviewer
-    notebook_id: null  # Will be updated in PRP-012
+    notebook_id: 5330e845-29dc-4219-9d7e-c1ccb4851bb3
     system_prompt: agents/brains/master-interviewer.md
     expertise:
       - Interview methodology
@@ -106,4 +106,5 @@ brains:
       - Facilitation techniques
       - Socratic questioning
       - Discovery
-    status: pending  # Will change to 'active' after PRP-012
+    status: active
+    sources_count: 10
