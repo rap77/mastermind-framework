@@ -16,6 +16,7 @@ from ..memory import EvaluationLogger
 class Coordinator:
     """Main orchestration coordinator with iteration support."""
 
+    FLOW_DISCOVERY = "discovery"
     MAX_ITERATIONS = 3
 
     def __init__(self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False, enable_logging: bool = True):
@@ -71,7 +72,7 @@ class Coordinator:
 
         # Step 1: Detect or validate flow
         if not flow:
-            flow = self.flow_detector.detect(brief)
+            flow = self._detect_flow(brief)
         elif not self.flow_detector.validate_flow(flow):
             return self._error_report(f"Invalid flow type: {flow}")
 
@@ -119,12 +120,175 @@ class Coordinator:
             tasks[1]['brain_id'] == 7
         )
 
-        if is_validation_flow:
+        # Check if this is a discovery flow
+        is_discovery_flow = self.current_plan.get('flow_type') == self.FLOW_DISCOVERY
+
+        if is_discovery_flow:
+            # Use discovery flow with Brain #8
+            brief = self.current_plan['brief']['original']
+            return self._execute_discovery_flow(brief)
+        elif is_validation_flow:
             # Use iteration loop for validation
             return self._execute_validation_flow(tasks, max_iterations)
         else:
             # Standard flow execution
             return self._execute_standard_flow(tasks)
+
+    def _execute_discovery_flow(self, brief: str) -> Dict:
+        """
+        Execute discovery interview with Brain #8.
+
+        This is the main entry point for the discovery flow.
+
+        Args:
+            brief: User's brief text
+
+        Returns:
+            Execution report with Q&A document and recommendations
+        """
+        plan_id = self._generate_session_id()
+
+        print(self.formatter.format_info("🎤 Starting Discovery Interview with Brain #8"))
+        print(self.formatter.format_separator())
+
+        try:
+            # Step 1: Generate interview plan via Brain #8
+            print(self.formatter.format_info("Step 1: Generating interview strategy..."))
+            interview_plan = self._generate_interview_plan(brief)
+
+            if not interview_plan or interview_plan.get('status') == 'error':
+                return self._error_report("Failed to generate interview plan")
+
+            print(self.formatter.format_interview_plan(interview_plan))
+
+            # Step 2: Execute iterative interview
+            print(self.formatter.format_info("Step 2: Conducting interview..."))
+            print(self.formatter.format_info("(Type your answers. Press Ctrl+C to end interview early)"))
+            print(self.formatter.format_separator())
+
+            interview_doc = self._conduct_interview(interview_plan, brief)
+
+            # Step 3: Generate final deliverable
+            print(self.formatter.format_separator())
+            print(self.formatter.format_info("Step 3: Generating final recommendations..."))
+
+            # Format the interview document as deliverable
+            deliverable = self._format_interview_deliverable(interview_doc)
+
+            print(self.formatter.format_interview_complete(interview_doc))
+            print(deliverable)
+
+            # Step 4: Log interview (if enabled)
+            if self.eval_logger:
+                try:
+                    # Try to use interview logger if available
+                    # Fallback: log as evaluation
+                    self._log_interview_as_evaluation(interview_doc, brief)
+                except Exception as e:
+                    print(f"Warning: Could not log interview: {e}")
+
+            return {
+                'plan_id': plan_id,
+                'status': 'completed',
+                'flow_type': 'discovery',
+                'interview_document': interview_doc,
+                'final_deliverable': deliverable,
+                'message': 'Discovery interview completed successfully'
+            }
+
+        except KeyboardInterrupt:
+            print(self.formatter.format_warning("\nInterview interrupted by user."))
+            return {
+                'plan_id': plan_id,
+                'status': 'interrupted',
+                'flow_type': 'discovery',
+                'message': 'Discovery interview interrupted by user'
+            }
+        except Exception as e:
+            return self._error_report(f"Discovery flow error: {str(e)}")
+
+    def _format_interview_deliverable(self, interview_doc: Dict) -> str:
+        """Format interview document as final deliverable."""
+        lines = []
+        lines.append("# Discovery Interview Results")
+        lines.append("")
+
+        # Metadata
+        metadata = interview_doc.get('metadata', {})
+        lines.append("## Interview Metadata")
+        lines.append(f"- **Session ID:** {metadata.get('session_id', 'unknown')}")
+        lines.append(f"- **Date:** {metadata.get('timestamp', 'unknown')}")
+        lines.append(f"- **Original Brief:** {metadata.get('brief', 'N/A')}")
+        lines.append("")
+
+        # Summary
+        outcome = interview_doc.get('outcome', {})
+        lines.append("## Summary")
+        lines.append(f"- **Questions Asked:** {outcome.get('total_questions_asked', 0)}")
+        lines.append(f"- **Categories Explored:** {outcome.get('categories_completed', 0)}")
+        lines.append("")
+
+        # Q&A by Category
+        lines.append("## Questions & Answers")
+        lines.append("")
+
+        qa_pairs = interview_doc.get('qa_pairs', [])
+        if qa_pairs:
+            # Group by category
+            by_category = {}
+            for qa in qa_pairs:
+                cat = qa.get('category', 'General')
+                if cat not in by_category:
+                    by_category[cat] = []
+                by_category[cat].append(qa)
+
+            for cat, items in by_category.items():
+                lines.append(f"### {cat}")
+                lines.append("")
+
+                for i, qa in enumerate(items, 1):
+                    lines.append(f"**Q{i}:** {qa.get('question', '')}")
+                    lines.append("")
+                    lines.append(f"**A{i}:** {qa.get('user_answer', '')}")
+                    lines.append("")
+
+                    # Add follow-up insights if available
+                    follow_up = qa.get('follow_up', {})
+                    insights = follow_up.get('insights', [])
+                    if insights:
+                        lines.append(f"*Insights:* {', '.join(insights[:3])}")
+                        lines.append("")
+                    lines.append("")
+
+        return "\n".join(lines)
+
+    def _log_interview_as_evaluation(self, interview_doc: Dict, brief: str):
+        """Log interview as evaluation for tracking."""
+        if not self.eval_logger:
+            return
+
+        outcome = interview_doc.get('outcome', {})
+        metadata = interview_doc.get('metadata', {})
+
+        # Convert interview to evaluation format
+        self.eval_logger.log_evaluation(
+            project=metadata.get('session_id', 'discovery'),
+            brief=brief,
+            flow_type='discovery',
+            score_total=outcome.get('total_questions_asked', 0),
+            score_max=50,  # Arbitrary scale
+            verdict='COMPLETE',
+            issues=[],  # No issues in discovery
+            strengths=[
+                f"Explored {outcome.get('categories_completed', 0)} categories",
+                f"Asked {outcome.get('total_questions_asked', 0)} questions"
+            ],
+            full_output=self._format_interview_deliverable(interview_doc),
+            tags=['discovery', 'brain_8'],
+            brains_involved=[8] + [
+                qa.get('brain', 0) for qa in interview_doc.get('qa_pairs', [])
+            ]
+        )
 
     def _execute_validation_flow(self, tasks: list, max_iterations: int) -> Dict:
         """Execute validation flow (Brain #1 → Brain #7) with iteration."""
@@ -492,6 +656,466 @@ class Coordinator:
         except Exception as e:
             # Don't fail orchestration if logging fails
             print(f"Warning: Failed to log evaluation: {e}")
+
+    def _detect_flow(self, brief: str) -> str:
+        """
+        Detect if brief needs discovery interview.
+
+        A brief needs discovery if:
+        - Too short (less than 15 words)
+        - Contains ambiguity markers (modern, nuevo, bueno, mejor)
+        - No clear problem statement
+
+        Args:
+            brief: User's brief text
+
+        Returns:
+            Flow type (FLOW_DISCOVERY or result from flow_detector)
+        """
+        # Check 1: Word count
+        word_count = len(brief.split())
+        if word_count < 15:
+            print(self.formatter.format_info(
+                f"Brief is too short ({word_count} words). Starting discovery interview."
+            ))
+            return self.FLOW_DISCOVERY
+
+        # Check 2: Ambiguity markers
+        ambiguity_markers = [
+            "moderno", "nuevo", "buena", "mejor", "app",
+            "sistema", "plataforma", "feature", "algo"
+        ]
+
+        brief_lower = brief.lower()
+        marker_count = sum(1 for marker in ambiguity_markers if marker in brief_lower)
+
+        # If 2+ ambiguity markers, needs discovery
+        if marker_count >= 2:
+            print(self.formatter.format_info(
+                f"Brief contains {marker_count} ambiguity markers. Starting discovery interview."
+            ))
+            return self.FLOW_DISCOVERY
+
+        # Check 3: Missing problem statement keywords
+        problem_keywords = ["problema", "necesito", "requiero", "quiero", "goal", "objetivo", "issue", "error"]
+        has_problem = any(kw in brief_lower for kw in problem_keywords)
+
+        if not has_problem and word_count < 30:
+            print(self.formatter.format_info(
+                "Brief lacks clear problem statement. Starting discovery interview."
+            ))
+            return self.FLOW_DISCOVERY
+
+        # Default: use existing flow detector
+        return self.flow_detector.detect(brief)
+
+    def _generate_interview_plan(self, brief: str) -> Dict:
+        """
+        Generate interview plan by querying Brain #8.
+
+        Args:
+            brief: User's brief text
+
+        Returns:
+            Interview plan with categories, questions, and target brains
+        """
+        # Construct query for Brain #8
+        query = f"""As a Master Interviewer and Discovery expert, analyze the following brief and design an interview strategy:
+
+Brief: "{brief}"
+
+Your task is to create a structured interview plan to discover what the user really needs. Provide your response in this exact JSON format:
+
+{{
+  "interview_strategy": {{
+    "assessment": "Brief assessment - what's vague, what's missing",
+    "categories": [
+      {{"id": "users", "name": "Users & Personas", "target_brain": 2, "priority": "high"}},
+      {{"id": "platforms", "name": "Platforms & Tech", "target_brain": 4, "priority": "medium"}}
+    ],
+    "initial_questions": [
+      {{
+        "category": "users",
+        "question": "What type of users will use this?",
+        "target_brain": 2,
+        "context": "Need to understand target audience"
+      }}
+    ],
+    "detected_gaps": [
+      "Missing user persona definition",
+      "No clear platform specified"
+    ],
+    "estimated_questions": 6
+  }}
+}}
+
+Focus on:
+1. Identifying what information is MISSING (gaps)
+2. Creating specific questions to extract that info
+3. Mapping each question to the relevant domain brain (#1-7)
+4. Prioritizing high-value categories
+
+Keep the JSON format clean and parseable.
+"""
+
+        try:
+            # Try MCP first
+            if self.use_mcp and self.mcp_integration and self.mcp_integration.is_available():
+                response = self.mcp_integration.query_notebook(brain_id=8, query=query)
+
+                if response.get("status") == "success":
+                    content = response.get("content", "")
+                    # Try to parse JSON from the response
+                    parsed_plan = self._parse_interview_plan(content)
+
+                    if parsed_plan:
+                        return {
+                            'status': 'success',
+                            'plan': parsed_plan,
+                            'raw_response': content,
+                            'method': 'mcp'
+                        }
+
+            # Fallback: Generate basic plan locally
+            return self._generate_basic_interview_plan(brief)
+
+        except Exception as e:
+            print(self.formatter.format_warning(f"Brain #8 query failed: {e}. Using basic plan."))
+            return self._generate_basic_interview_plan(brief)
+
+    def _parse_interview_plan(self, content: str) -> Optional[Dict]:
+        """Parse interview plan from Brain #8 response."""
+        import json
+        import re
+
+        # Try to extract JSON from the response
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+
+        if json_match:
+            try:
+                plan_data = json.loads(json_match.group())
+                return plan_data
+            except json.JSONDecodeError:
+                pass
+
+        # If parsing failed, try to extract structure manually
+        return None
+
+    def _generate_basic_interview_plan(self, brief: str) -> Dict:
+        """Generate a basic interview plan when Brain #8 is unavailable."""
+        # Simple heuristic-based plan generation
+        word_count = len(brief.split())
+        brief_lower = brief.lower()
+
+        # Default categories based on brief content
+        categories = []
+
+        # Always include users/personas
+        categories.append({
+            "id": "users",
+            "name": "Users & Personas",
+            "target_brain": 2,
+            "priority": "high"
+        })
+
+        # Add platform if tech keywords present
+        tech_keywords = ["web", "app", "móvil", "api", "frontend", "backend"]
+        if any(kw in brief_lower for kw in tech_keywords):
+            categories.append({
+                "id": "platforms",
+                "name": "Platforms & Tech Stack",
+                "target_brain": 4,
+                "priority": "medium"
+            })
+
+        # Add monetization if business keywords
+        business_keywords = ["venta", "pago", "suscripción", "negocio", "ingresos"]
+        if any(kw in brief_lower for kw in business_keywords):
+            categories.append({
+                "id": "monetization",
+                "name": "Monetization & Business Model",
+                "target_brain": 1,
+                "priority": "high"
+            })
+
+        # Add problem domain if vague
+        if word_count < 20:
+            categories.append({
+                "id": "problem",
+                "name": "Problem Domain",
+                "target_brain": 1,
+                "priority": "high"
+            })
+
+        # Generate initial questions
+        initial_questions = []
+        for category in categories:
+            question_templates = {
+                "users": "What type of users will use this?",
+                "platforms": "What platforms should we target?",
+                "monetization": "How will this make money?",
+                "problem": "What problem are you trying to solve?"
+            }
+            initial_questions.append({
+                "category": category["id"],
+                "question": question_templates.get(category["id"], "Tell me more about this"),
+                "target_brain": category["target_brain"],
+                "context": f"Understanding {category['name']}"
+            })
+
+        return {
+            'status': 'success',
+            'plan': {
+                "interview_strategy": {
+                    "assessment": f"Basic plan generated (word count: {word_count})",
+                    "categories": categories,
+                    "initial_questions": initial_questions,
+                    "detected_gaps": ["Brief needs clarification"],
+                    "estimated_questions": len(initial_questions) * 2
+                }
+            },
+            'method': 'fallback'
+        }
+
+    def _conduct_interview(self, interview_plan: Dict, brief: str) -> Dict:
+        """
+        Conduct iterative interview with user.
+
+        For each category, ask questions, route to domain brains, and collect responses.
+
+        Args:
+            interview_plan: Plan from Brain #8 with categories and questions
+            brief: Original user brief
+
+        Returns:
+            Interview document with all Q&A
+        """
+        strategy = interview_plan.get('plan', {}).get('interview_strategy', {})
+        categories = strategy.get('categories', [])
+        initial_questions = strategy.get('initial_questions', [])
+
+        if not categories:
+            return {
+                'status': 'error',
+                'error': 'No categories in interview plan'
+            }
+
+        # Initialize interview document
+        interview_doc = {
+            'metadata': {
+                'session_id': self._generate_session_id(),
+                'brief': brief,
+                'timestamp': self._get_timestamp(),
+                'categories_count': len(categories)
+            },
+            'categories': {},
+            'qa_pairs': [],
+            'outcome': {}
+        }
+
+        print(self.formatter.format_separator())
+        print(self.formatter.format_info(f"Interview Plan: {len(categories)} categories to explore"))
+        print(self.formatter.format_separator())
+
+        # Process each category
+        for category in categories:
+            category_id = category.get('id')
+            category_name = category.get('name')
+            target_brain = category.get('target_brain')
+
+            print(f"\n📂 Category: {category_name}")
+            print(f"   Target Brain: #{target_brain}")
+
+            # Get initial question for this category
+            category_questions = [
+                q for q in initial_questions
+                if q.get('category') == category_id
+            ]
+
+            if not category_questions:
+                # Skip if no questions for this category
+                continue
+
+            # Conduct Q&A for this category
+            category_qa = []
+
+            for question_item in category_questions:
+                question = question_item.get('question')
+
+                # Ask question to user
+                print(self.formatter.format_question_to_user(question))
+
+                # Get user response
+                try:
+                    user_response = input("Your answer: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    print(self.formatter.format_warning("\nInterview interrupted by user."))
+                    break
+
+                if not user_response:
+                    print("Empty response, skipping...")
+                    continue
+
+                # Route to domain brain for follow-up
+                follow_up = self._route_to_domain_brain(
+                    question, user_response, target_brain, brief
+                )
+
+                # Store Q&A
+                qa_pair = {
+                    'category': category_name,
+                    'category_id': category_id,
+                    'brain': target_brain,
+                    'question': question,
+                    'user_answer': user_response,
+                    'follow_up': follow_up,
+                    'timestamp': self._get_timestamp()
+                }
+
+                category_qa.append(qa_pair)
+                interview_doc['qa_pairs'].append(qa_pair)
+
+                # Display follow-up
+                if follow_up.get('has_follow_up'):
+                    print(self.formatter.format_followup_response(follow_up.get('follow_up_question', 'Thinking...')))
+
+                    # Check if we should continue or move on
+                    if follow_up.get('should_continue'):
+                        # Could ask another question here
+                        pass
+                    else:
+                        # This category is complete
+                        break
+
+            interview_doc['categories'][category_id] = {
+                'name': category_name,
+                'qa_count': len(category_qa),
+                'status': 'complete'
+            }
+
+        # Generate outcome summary
+        interview_doc['outcome'] = self._generate_interview_outcome(interview_doc)
+
+        return interview_doc
+
+    def _route_to_domain_brain(self, question: str, answer: str, brain_id: int, brief: str) -> Dict:
+        """
+        Route user's answer to domain brain and get follow-up.
+
+        Args:
+            question: Question asked to user
+            answer: User's response
+            brain_id: Target brain ID
+            brief: Original brief context
+
+        Returns:
+            Follow-up information with next question or completion signal
+        """
+        # Construct query for domain brain
+        query = f"""Based on this interview exchange:
+
+Question: "{question}"
+User's Answer: "{answer}"
+Context: {brief}
+
+Analyze the answer and provide:
+1. A relevant follow-up question to dig deeper OR "complete" if this category is well understood
+2. Key insights extracted from the answer
+3. Any gaps or assumptions detected
+
+Format as JSON:
+{{
+  "has_follow_up": true/false,
+  "follow_up_question": "Next question" OR null,
+  "insights": ["insight1", "insight2"],
+  "gaps": ["gap1"],
+  "should_continue": true/false
+}}
+"""
+
+        try:
+            if self.use_mcp and self.mcp_integration and self.mcp_integration.is_available():
+                response = self.mcp_integration.query_notebook(brain_id=brain_id, query=query)
+
+                if response.get("status") == "success":
+                    content = response.get("content", "")
+                    # Try to parse follow-up
+                    return self._parse_follow_up(content)
+
+            # Fallback: basic follow-up
+            return self._generate_basic_follow_up(question, answer)
+
+        except Exception as e:
+            print(self.formatter.format_warning(f"Domain brain query failed: {e}"))
+            return {
+                'has_follow_up': False,
+                'insights': [answer[:100]],  # Partial insight
+                'gaps': [],
+                'should_continue': False
+            }
+
+    def _parse_follow_up(self, content: str) -> Dict:
+        """Parse follow-up from brain response."""
+        import json
+        import re
+
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError:
+                pass
+
+        # Fallback
+        return {
+            'has_follow_up': True,
+            'follow_up_question': "Tell me more about that.",
+            'insights': [content[:200]],
+            'gaps': [],
+            'should_continue': True
+        }
+
+    def _generate_basic_follow_up(self, question: str, answer: str) -> Dict:
+        """Generate basic follow-up when brain is unavailable."""
+        # Simple heuristic: if answer is short, ask for more
+        if len(answer.split()) < 10:
+            return {
+                'has_follow_up': True,
+                'follow_up_question': "Could you elaborate on that?",
+                'insights': [answer],
+                'gaps': ['More detail needed'],
+                'should_continue': True
+            }
+        else:
+            return {
+                'has_follow_up': False,
+                'follow_up_question': None,
+                'insights': [answer],
+                'gaps': [],
+                'should_continue': False
+            }
+
+    def _generate_interview_outcome(self, interview_doc: Dict) -> Dict:
+        """Generate outcome summary from interview."""
+        total_qa = len(interview_doc.get('qa_pairs', []))
+        categories_complete = len(interview_doc.get('categories', {}))
+
+        return {
+            'total_questions_asked': total_qa,
+            'categories_completed': categories_complete,
+            'status': 'complete' if total_qa > 0 else 'incomplete'
+        }
+
+    def _generate_session_id(self) -> str:
+        """Generate unique session ID."""
+        import uuid
+        return f"session-{uuid.uuid4().hex[:8]}"
+
+    def _get_timestamp(self) -> str:
+        """Get current timestamp."""
+        from datetime import datetime
+        return datetime.now().isoformat()
 
     def continue_plan(self, plan_id: str, plan_file: str) -> Dict:
         """Continue execution from a saved plan."""
