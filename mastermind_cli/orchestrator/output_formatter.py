@@ -286,3 +286,130 @@ class OutputFormatter:
     def format_verbose(self, message: str) -> str:
         """Format verbose/debug message."""
         return f"🔧 {message}"
+
+    # Discovery Flow Methods
+
+    def format_separator(self, char: str = "=", length: int = 60) -> str:
+        """Format separator line."""
+        return char * length
+
+    def format_interview_plan(self, interview_plan: Dict) -> str:
+        """Format interview plan for display."""
+        lines = []
+        lines.append("")
+        lines.append("📋 Interview Strategy Generated")
+        lines.append("-" * 40)
+
+        plan = interview_plan.get('plan', {})
+        strategy = plan.get('interview_strategy', {})
+
+        # Assessment
+        assessment = strategy.get('assessment', 'No assessment')
+        lines.append(f"Assessment: {assessment}")
+        lines.append("")
+
+        # Categories
+        categories = strategy.get('categories', [])
+        if categories:
+            lines.append(f"Categories to Explore ({len(categories)}):")
+            for cat in categories:
+                priority = cat.get('priority', 'medium')
+                brain = cat.get('target_brain', 'N/A')
+                lines.append(f"  • {cat.get('name')} (Brain #{brain}, {priority} priority)")
+            lines.append("")
+
+        # Initial Questions
+        questions = strategy.get('initial_questions', [])
+        if questions:
+            lines.append(f"Initial Questions ({len(questions)}):")
+            for q in questions[:5]:  # Show first 5
+                lines.append(f"  • [{q.get('category')}] {q.get('question')}")
+            if len(questions) > 5:
+                lines.append(f"  ... and {len(questions) - 5} more")
+            lines.append("")
+
+        # Detected Gaps
+        gaps = strategy.get('detected_gaps', [])
+        if gaps:
+            lines.append("Detected Gaps:")
+            for gap in gaps:
+                lines.append(f"  • {gap}")
+            lines.append("")
+
+        # Estimated questions
+        estimated = strategy.get('estimated_questions', 0)
+        if estimated:
+            lines.append(f"Estimated Questions: {estimated}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def format_question_to_user(self, question: str) -> str:
+        """Format question to display to user."""
+        lines = []
+        lines.append("")
+        lines.append("❓ Question:")
+        lines.append(f"   {question}")
+        lines.append("")
+        return "\n".join(lines)
+
+    def format_followup_response(self, followup: str) -> str:
+        """Format follow-up response from domain brain."""
+        lines = []
+        lines.append("")
+        lines.append("💡 Follow-up Analysis:")
+        lines.append(f"   {followup}")
+        lines.append("")
+        return "\n".join(lines)
+
+    def format_interview_complete(self, interview_doc: Dict) -> str:
+        """Format interview completion summary."""
+        lines = []
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("✅ INTERVIEW COMPLETE")
+        lines.append("=" * 60)
+        lines.append("")
+
+        # Metadata
+        metadata = interview_doc.get('metadata', {})
+        lines.append(f"Session ID: {metadata.get('session_id', 'unknown')}")
+        lines.append(f"Timestamp: {metadata.get('timestamp', 'unknown')}")
+        lines.append("")
+
+        # Outcome
+        outcome = interview_doc.get('outcome', {})
+        total_questions = outcome.get('total_questions_asked', 0)
+        categories_complete = outcome.get('categories_completed', 0)
+
+        lines.append(f"Questions Asked: {total_questions}")
+        lines.append(f"Categories Explored: {categories_complete}")
+        lines.append("")
+
+        # Q&A Summary
+        qa_pairs = interview_doc.get('qa_pairs', [])
+        if qa_pairs:
+            lines.append("📝 Q&A Summary:")
+            lines.append("")
+
+            # Group by category
+            by_category = {}
+            for qa in qa_pairs:
+                cat = qa.get('category', 'General')
+                if cat not in by_category:
+                    by_category[cat] = []
+                by_category[cat].append(qa)
+
+            for cat, items in by_category.items():
+                lines.append(f"  {cat}:")
+                for qa in items:
+                    question = qa.get('question', '')[:60]
+                    answer = qa.get('user_answer', '')[:60]
+                    lines.append(f"    Q: {question}...")
+                    lines.append(f"    A: {answer}...")
+                lines.append("")
+
+        lines.append("-" * 60)
+        lines.append("")
+
+        return "\n".join(lines)
