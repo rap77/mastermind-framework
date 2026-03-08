@@ -163,8 +163,8 @@ brains:
     status: "active"
     system_prompt: "agents/brains/growth-data.md"
     evaluator_skill: "skills/evaluator/SKILL.md"
-    notebook_id: null
-    notebook_name: null
+    notebook_id: "d8de74d6-7028-44ed-b4d5-784d6a9256e6"
+    notebook_name: "[CEREBRO] Growth & Data - Software Development"
     expert_count: 8
     triggers:
       - "métricas"
@@ -219,5 +219,5 @@ brains:
     special_role: "discovery_interviewer"
     niche_scope: "universal"
 
-version: "1.2.0"
+version: "1.2.1"
 last_updated: "2026-03-08"
