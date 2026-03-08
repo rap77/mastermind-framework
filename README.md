@@ -1,6 +1,6 @@
 # MasterMind Framework
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/rap77/mastermind-framework)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/rap77/mastermind-framework)
 [![Python](https://img.shields.io/badge/python-3.14+-blue)](https://python.org)
 
 > **Arquitectura Cognitiva Modular para Cerebros Especializados**
@@ -266,12 +266,13 @@ Para más detalles ver [PRP-009: Memory & Learning System](PRPs/PRP-009-memory-l
 
 | Componente | Estado |
 |------------|--------|
-| CLI v1.0.0 | ✅ Completo |
-| 7 Cerebros | ✅ Activos (122 fuentes) |
+| CLI v1.1.0 | ✅ Completo |
+| 8 Cerebros | ✅ Activos (132 fuentes) |
 | Orquestador | ✅ Funcional |
-| Testing Suite | ✅ 5/5 tests passing |
+| Testing Suite | ✅ 31/31 tests passing |
 | Installation | ✅ Funcional |
-| **Memory System** | ✅ **Fase 1: Evaluation Logger** |
+| **Memory System** | ✅ **Fase 1 + 2: Evaluation + Interview Logger** |
+| **Brain #8** | ✅ **Master Interviewer / Discovery** |
 
 ## Roadmap
 
@@ -286,9 +287,15 @@ Para más detalles ver [PRP-009: Memory & Learning System](PRPs/PRP-009-memory-l
 | PRP-006 | Orchestrator Core | ✅ Completo |
 | PRP-008 | Orchestrate Command | ✅ Completo |
 | PRP-009 | Memory & Learning System | ✅ **Fase 1: Evaluation Logger** |
+| PRP-011 | Brain #8 Core Infrastructure | ✅ Completo |
+| PRP-012 | Brain #8 NotebookLM Setup | ✅ Completo |
+| PRP-013 | Brain #8 Orchestrator Integration | ✅ Completo |
+| PRP-014 | Brain #8 Slash Command (/mm:discovery) | ✅ Completo |
+| PRP-015 | Brain #8 Learning System | ✅ Completo |
+| PRP-016 | Brain #8 Testing & Polish | ✅ Completo |
+| **PRP-017** | **Release v1.1.0** | ✅ **Completo** |
 
-**Próximas Fases (PRP-009):**
-- Fase 2: Retention Policy (hot/warm/cold)
+**Próximas Fases (Memory System):**
 - Fase 3: SQLite Migration
 - Fase 4: Vector Database + RAG
 
@@ -298,4 +305,4 @@ Copyright © 2026 MasterMind Framework. All rights reserved.
 
 ---
 
-**Versión:** 1.0.0 | **Estado:** Production Ready
+**Versión:** 1.1.0 | **Estado:** Production Ready
