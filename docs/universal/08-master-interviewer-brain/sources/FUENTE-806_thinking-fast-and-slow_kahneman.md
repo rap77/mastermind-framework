@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-806"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Thinking, Fast and Slow"
 author: "Daniel Kahneman"
 expert_id: "EXP-806"

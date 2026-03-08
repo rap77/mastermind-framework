@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-809"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Ask: The Counterintuitive Online Formula to Discover Exactly What Your Customers Want to Buy"
 author: "Ryan Levesque"
 expert_id: "EXP-809"

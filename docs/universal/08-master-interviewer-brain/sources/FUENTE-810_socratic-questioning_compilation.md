@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-810"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Socratic Questioning: The Art of Deep Inquiry"
 author: "Various (Socrates, Plato, Modern practitioners)"
 expert_id: "EXP-810"

@@ -2254,7 +2254,7 @@ When user mentions topics outside brains #1-7 expertise:
 
 ### Phase 2: NotebookLM Setup 📓 COMPLETE (PRP-012)
 
-**Create Expert Sources (docs/software-development/08-master-interviewer-brain/sources/):**
+**Create Expert Sources (docs/universal/08-master-interviewer-brain/sources/):**
 
 - [x] **2.1** `FUENTE-801_the-mom-test_fitzpatrick.md`
 - [x] **2.2** `FUENTE-802_never-split-the-difference_voss.md`
@@ -2269,7 +2269,7 @@ When user mentions topics outside brains #1-7 expertise:
 
 **NotebookLM Setup:**
 
-- [x] **2.11** Create notebook "Brain 08 - Master Interviewer" in NotebookLM
+- [x] **2.11** Create notebook "[CEREBRO] Master Interviewer - Universal" in NotebookLM
 - [x] **2.12** Upload all 10 sources to notebook
 - [x] **2.13** Verify sources are processed (check `loaded_in_notebook: true`)
 - [x] **2.14** Copy notebook ID from URL

@@ -60,7 +60,7 @@ brains:
     status: "active"
     system_prompt: "agents/brains/ui-design.md"
     notebook_id: "8d544475-6860-4cd7-9037-8549325493dd"
-    notebook_name: "[CEREBRO] UI Design — Software Development"
+    notebook_name: "[CEREBRO] UI Design - Software Development"
     expert_count: 15
     triggers:
       - "visual"
@@ -190,5 +190,34 @@ brains:
       - "REJECT"
       - "ESCALATE"
 
-version: "1.1.0"
-last_updated: "2026-02-27"
+  8:
+    id: "master-interviewer"
+    name: "Master Interviewer"
+    niche: "universal"
+    status: "active"
+    system_prompt: "agents/brains/master-interviewer.md"
+    notebook_id: "5330e845-29dc-4219-9d7e-c1ccb4851bb3"
+    notebook_name: "[CEREBRO] Master Interviewer - Universal"
+    expert_count: 10
+    triggers:
+      - "brief"
+      - "vago"
+      - "ambiguo"
+      - "no sé qué necesito"
+      - "descubrimiento"
+      - "discovery"
+      - "entender el problema"
+      - "clarificar"
+      - "requirements"
+    output_schema: "discovery-report"
+    output_format: "yaml"
+    domains:
+      - "discovery"
+      - "requirements"
+      - "interview"
+      - "problem-definition"
+    special_role: "discovery_interviewer"
+    niche_scope: "universal"
+
+version: "1.2.0"
+last_updated: "2026-03-08"

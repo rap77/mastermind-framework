@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-805"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Just Enough Research: User Interviews"
 author: "Erika Hall"
 expert_id: "EXP-805"

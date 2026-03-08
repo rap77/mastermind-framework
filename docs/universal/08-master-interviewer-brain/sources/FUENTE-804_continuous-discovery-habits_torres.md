@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-804"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Continuous Discovery Habits: Discover Products That Create Customer Impact and Business Value"
 author: "Teresa Torres"
 expert_id: "EXP-804"

@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-808"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Improve Your Retrospectives"
 author: "Judith Andres"
 expert_id: "EXP-808"

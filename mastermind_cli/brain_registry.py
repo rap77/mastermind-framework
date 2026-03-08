@@ -103,4 +103,10 @@ BRAIN_REGISTRY: dict = {
         "notebook_id": "d8de74d6-7028-44ed-b4d4-784d6a9256e6",
         "expertise": "Growth & Evaluation - Metrics, experimentation, optimization",
     },
+    "#8": {
+        "name": "Master Interviewer",
+        "notebook_id": "5330e845-29dc-4219-9d7e-c1ccb4851bb3",
+        "expertise": "Discovery & Requirements - Brief clarification, problem definition",
+        "niche": "universal",
+    },
 }

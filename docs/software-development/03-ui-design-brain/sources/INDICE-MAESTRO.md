@@ -138,7 +138,7 @@ INPUT DEL CEREBRO #2 (wireframes + journey maps + arquitectura)
 
 ## Instrucciones de Carga en NotebookLM (v2.0)
 
-**Nombre del cuaderno:** `[CEREBRO] UI Design — Software Development`
+**Nombre del cuaderno:** `[CEREBRO] UI Design - Software Development`
 
 **Orden de carga recomendado:**
 

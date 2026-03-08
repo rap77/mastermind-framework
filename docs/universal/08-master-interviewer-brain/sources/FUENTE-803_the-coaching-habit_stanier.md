@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-803"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "The Coaching Habit: Say Less, Ask More & Change the Way You Lead Forever"
 author: "Michael Bungay Stanier"
 expert_id: "EXP-803"

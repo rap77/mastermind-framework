@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-807"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Crucial Conversations: Tools for Talking When Stakes Are High"
 author: "Kerry Patterson, Joseph Grenny, Ron McMillan, Al Switzler, Stephen R. Covey"
 expert_id: "EXP-807"

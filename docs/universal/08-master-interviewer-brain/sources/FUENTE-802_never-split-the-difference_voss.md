@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-802"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "Never Split the Difference: Negotiating As If Your Life Depended On It"
 author: "Chris Voss"
 expert_id: "EXP-802"

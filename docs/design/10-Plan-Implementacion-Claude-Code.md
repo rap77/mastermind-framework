@@ -518,7 +518,7 @@ Ejecutar la evaluación y verificar que el #7:
 ```
 [MM] Product Strategy — Software Development    ← CREAR AHORA
 [MM] UX Research — Software Development         ← Fase 6+
-[MM] UI Design — Software Development           ← Fase 6+
+[CEREBRO] UI Design - Software Development           ← Fase 6+
 [MM] Frontend — Software Development            ← Fase 6+
 [MM] Backend — Software Development             ← Fase 6+
 [MM] QA/DevOps — Software Development           ← Fase 6+

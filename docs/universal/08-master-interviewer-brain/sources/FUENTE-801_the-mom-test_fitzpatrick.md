@@ -1,7 +1,7 @@
 ---
 source_id: "FUENTE-801"
-brain: "brain-software-08-master-interviewer"
-niche: "software-development"
+brain: "brain-universal-08-master-interviewer"
+niche: "universal"
 title: "The Mom Test: How to Talk to Customers & Learn if Your Business is a Good Idea When Everyone is Lying to You"
 author: "Rob Fitzpatrick"
 expert_id: "EXP-801"

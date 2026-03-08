@@ -40,7 +40,7 @@ Este documento contiene las especificaciones de los cerebros 2 a 7. Cada uno seg
 
 ## Cerebro #3 — UI Design
 
-**Nombre NotebookLM:** [CEREBRO] UI Design — Software Development
+**Nombre NotebookLM:** [CEREBRO] UI Design - Software Development
 **Rol:** Convierte la experiencia en interfaz visual atractiva, coherente, y escalable.
 **Pregunta Central:** ¿Cómo se ve y se comunica visualmente este producto?
 
