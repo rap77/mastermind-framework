@@ -43,9 +43,9 @@ def test_list_active_brains():
     """Test listing only active brains."""
     active = list_active_brains()
 
-    # Brain #8 should be 'pending', not 'active' (until PRP-012)
+    # Brain #8 is active as of PRP-015
     assert 1 in active
-    assert 8 not in active  # Pending, not active
+    assert 8 in active  # Active since PRP-015
 
 
 def test_get_brain_count():
