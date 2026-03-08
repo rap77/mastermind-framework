@@ -3,7 +3,6 @@ Coordinator - Main orchestration coordinator with iteration loop.
 """
 
 import os
-import yaml
 from typing import Dict, Optional
 
 from .flow_detector import FlowDetector
@@ -103,15 +102,10 @@ class Coordinator:
 
     def _execute_with_iterations(self, max_iterations: int) -> Dict:
         """Execute the current plan with iteration support."""
-        plan_id = self.current_plan['plan_id']
         tasks = self.current_plan['tasks']
 
         # For validation_only flow: Brain #1 → Brain #7 (with possible iteration)
         # For other flows: Execute all tasks with Brain #7 at the end
-
-        completed_tasks = 0
-        outputs = {}
-        evaluations = {}
 
         # Check if this is a validation flow (just #1 → #7)
         is_validation_flow = (
@@ -386,7 +380,7 @@ class Coordinator:
                 # Check for escalation
                 if self.rejection_count >= 3:
                     print(self.formatter.format_escalation_notice(
-                        f"3rd consecutive rejection. This brief requires human review."
+                        "3rd consecutive rejection. This brief requires human review."
                     ))
                     return {
                         'plan_id': plan_id,
@@ -883,6 +877,8 @@ Keep the JSON format clean and parseable.
 
         For each category, ask questions, route to domain brains, and collect responses.
 
+        ENHANCED: Uses historical interviews to improve questions.
+
         Args:
             interview_plan: Plan from Brain #8 with categories and questions
             brief: Original user brief
@@ -890,6 +886,37 @@ Keep the JSON format clean and parseable.
         Returns:
             Interview document with all Q&A
         """
+        # NEW: Find similar interviews for learning
+        useful_questions_from_history = set()
+        similar_interviews_count = 0
+
+        try:
+            from mastermind_cli.memory.interview_logger import InterviewLogger
+
+            interview_logger = InterviewLogger(enabled=True)
+
+            similar = interview_logger.find_similar_interviews(brief, limit=3)
+
+            if similar:
+                similar_interviews_count = len(similar)
+                print(self.formatter.format_separator())
+                print(self.formatter.format_info(
+                    f"📚 Found {similar_interviews_count} similar interview(s) for context"
+                ))
+
+                # Extract useful questions from similar interviews
+                for sim in similar:
+                    useful_questions_from_history.update(sim.get("useful_questions", []))
+
+                if useful_questions_from_history:
+                    print(self.formatter.format_info(
+                        f"💡 Learned from past: {len(useful_questions_from_history)} useful questions"
+                    ))
+                print(self.formatter.format_separator())
+        except Exception:
+            # Non-blocking: if learning fails, continue without it
+            pass
+
         strategy = interview_plan.get('plan', {}).get('interview_strategy', {})
         categories = strategy.get('categories', [])
         initial_questions = strategy.get('initial_questions', [])
@@ -994,7 +1021,10 @@ Keep the JSON format clean and parseable.
             }
 
         # Generate outcome summary
-        interview_doc['outcome'] = self._generate_interview_outcome(interview_doc)
+        interview_doc['outcome'] = self._generate_interview_outcome(
+            interview_doc,
+            useful_questions_from_history=useful_questions_from_history
+        )
 
         return interview_doc
 
@@ -1096,16 +1126,22 @@ Format as JSON:
                 'should_continue': False
             }
 
-    def _generate_interview_outcome(self, interview_doc: Dict) -> Dict:
+    def _generate_interview_outcome(self, interview_doc: Dict, useful_questions_from_history: Optional[set] = None) -> Dict:
         """Generate outcome summary from interview."""
         total_qa = len(interview_doc.get('qa_pairs', []))
         categories_complete = len(interview_doc.get('categories', {}))
 
-        return {
+        outcome = {
             'total_questions_asked': total_qa,
             'categories_completed': categories_complete,
             'status': 'complete' if total_qa > 0 else 'incomplete'
         }
+
+        # Add useful questions from learning if available
+        if useful_questions_from_history:
+            outcome['useful_questions_from_history'] = list(useful_questions_from_history)
+
+        return outcome
 
     def _generate_session_id(self) -> str:
         """Generate unique session ID."""

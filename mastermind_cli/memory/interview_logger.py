@@ -3,7 +3,7 @@ Interview Logger for Brain #8 learning system.
 Integrates with PRP-009 Evaluation Logger patterns.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 import yaml
@@ -101,16 +101,21 @@ class InterviewLogger:
 
         return str(log_path)
 
-    def find_similar_interviews(self, brief: str, limit: int = 5) -> List[Dict]:
+    def find_similar_interviews(
+        self, brief: str, limit: int = 5, min_similarity: float = 0.1
+    ) -> List[Dict]:
         """
         Find similar past interviews for learning.
+
+        Uses Jaccard similarity + keyword overlap for matching.
 
         Args:
             brief: Current brief to match against
             limit: Maximum number of similar interviews to return
+            min_similarity: Minimum similarity threshold (0-1)
 
         Returns:
-            List of similar interview summaries with similarity scores
+            List of similar interview summaries sorted by similarity
         """
         if not self.enabled:
             return []
@@ -119,29 +124,51 @@ class InterviewLogger:
         if not index_path.exists():
             return []
 
-        with open(index_path) as f:
-            index = yaml.safe_load(f) or {"interviews": []}
+        try:
+            with open(index_path) as f:
+                index = yaml.safe_load(f) or {"interviews": []}
+        except (yaml.YAMLError, IOError):
+            return []
 
-        # Simple keyword matching (can be improved with embeddings in future)
-        keywords = self._extract_keywords(brief)
+        # Extract keywords from current brief
+        current_keywords = set(self._extract_keywords(brief))
 
         matches = []
+
         for entry in index.get("interviews", []):
-            entry_keywords = entry.get("keywords", [])
-            overlap = len(set(keywords) & set(entry_keywords))
-            if overlap > 0:
+            # Get keywords from entry
+            entry_keywords = set(entry.get("keywords", []))
+
+            # Calculate Jaccard similarity
+            if len(current_keywords) == 0 or len(entry_keywords) == 0:
+                continue
+
+            intersection = len(current_keywords & entry_keywords)
+            union = len(current_keywords | entry_keywords)
+
+            jaccard = intersection / union if union > 0 else 0
+
+            # Also count raw keyword overlap
+            overlap = len(current_keywords & entry_keywords)
+
+            # Threshold adjustment: need at least min_similarity * 10 keywords
+            if overlap >= max(1, min_similarity * 10):
                 matches.append(
                     {
                         "interview_id": entry["interview_id"],
-                        "similarity_score": overlap,
+                        "similarity_score": round(jaccard, 3),
+                        "keyword_overlap": overlap,
                         "summary": entry.get("summary"),
                         "useful_questions": entry.get("useful_questions", []),
+                        "context_type": entry.get("context_type"),
                         "timestamp": entry.get("timestamp"),
+                        "brief_original": entry.get("brief_original"),
                     }
                 )
 
-        # Sort by similarity and return top N
+        # Sort by Jaccard similarity (higher is better)
         matches.sort(key=lambda x: x["similarity_score"], reverse=True)
+
         return matches[:limit]
 
     # ========== Private Helper Methods ==========
@@ -177,20 +204,135 @@ class InterviewLogger:
         return sum(1 for q in qa if q.get("follow_up_questions"))
 
     def _extract_keywords(self, brief: str) -> List[str]:
-        """Extract keywords from brief for matching."""
-        stop_words = {"el", "la", "de", "que", "y", "a", "en", "un", "es", "con"}
+        """
+        Extract keywords from brief for similarity matching.
+
+        Improved version with extended stop words (Spanish + English).
+        """
+        # Extended stop words (Spanish + English)
+        stop_words = {
+            # Spanish
+            "el",
+            "la",
+            "de",
+            "que",
+            "y",
+            "a",
+            "en",
+            "un",
+            "es",
+            "con",
+            "por",
+            "para",
+            "una",
+            "su",
+            "los",
+            "se",
+            "del",
+            "las",
+            "todo",
+            "esta",
+            "entre",
+            "cuando",
+            "muy",
+            "sin",
+            "sobre",
+            "también",
+            "pero",
+            "como",
+            "estar",
+            "tienen",
+            "desde",
+            "este",
+            "hasta",
+            "tanto",
+            "todos",
+            "más",
+            "hacer",
+            "misma",
+            "solo",
+            "donde",
+            "cada",
+            "si",
+            "nos",
+            "al",
+            "lo",
+            "le",
+            "ha",
+            "me",
+            "han",
+            "fue",
+            "son",
+            "esta",
+            # English
+            "the",
+            "and",
+            "for",
+            "are",
+            "but",
+            "not",
+            "you",
+            "all",
+            "can",
+            "had",
+            "her",
+            "was",
+            "one",
+            "our",
+            "out",
+            "has",
+            "have",
+            "from",
+            "this",
+            "that",
+            "with",
+            "they",
+            "will",
+            "would",
+            "there",
+            "their",
+            "what",
+            "about",
+            "which",
+            "when",
+            "make",
+            "like",
+            "into",
+            "year",
+            "your",
+            "just",
+            "over",
+            "also",
+            "such",
+            "because",
+            "these",
+            "first",
+            "being",
+            "through",
+            "most",
+            "must",
+            "able",
+        }
+
         words = brief.lower().split()
-        return [w for w in words if w not in stop_words and len(w) > 3]
+
+        # Filter: keep words > 3 chars, not stop words
+        keywords = [w for w in words if len(w) > 3 and w not in stop_words]
+
+        return keywords
 
     def _calculate_metrics(self, interview_doc: Dict, outcome: Dict) -> Dict:
-        """Calculate learning metrics from interview."""
+        """
+        Calculate learning metrics from interview.
+
+        ENHANCED: Add more sophisticated metrics.
+        """
         qa = interview_doc.get("document", {}).get("qa", [])
 
-        # Question effectiveness rate
+        # Existing metrics
         useful_questions = set(outcome.get("useful_questions", []))
         effectiveness_rate = len(useful_questions) / len(qa) if qa else 0
 
-        # Average confidence
         confidence_scores = {"high": 3, "medium": 2, "low": 1}
         avg_confidence = (
             sum(confidence_scores.get(q.get("confidence", "medium"), 2) for q in qa)
@@ -199,16 +341,43 @@ class InterviewLogger:
             else 2
         )
 
-        # Follow-up rate
         followup_rate = self._count_followups(interview_doc) / len(qa) if qa else 0
 
+        # NEW: Additional metrics
+
+        # 1. Question diversity (how many categories covered)
+        categories = set(q.get("category") for q in qa if q.get("category"))
+        category_diversity = len(categories)
+
+        # 2. Answer length (longer = more detail)
+        avg_answer_length = (
+            sum(len(q.get("answer", "").split()) for q in qa) / len(qa) if qa else 0
+        )
+
+        # 3. Follow-up effectiveness (did follow-ups add value?)
+        follow_ups_with_questions = [q for q in qa if q.get("follow_up_questions")]
+        follow_up_count = self._count_followups(interview_doc)
+        follow_up_effectiveness = (
+            len(follow_ups_with_questions) / follow_up_count if follow_up_count > 0 else 0
+        )
+
+        # 4. Gap detection rate
+        gaps_detected = len(interview_doc.get("document", {}).get("gaps_detected", []))
+        gap_rate = gaps_detected / len(qa) if qa else 0
+
         return {
+            # Existing
             "question_effectiveness_rate": round(effectiveness_rate, 2),
             "user_satisfaction_score": self._satisfaction_to_score(
-                outcome.get("user_satisfaction")
+                outcome.get("user_satisfaction") or "medium"
             ),
             "avg_confidence_score": self._confidence_to_label(avg_confidence),
             "followup_rate": round(followup_rate, 2),
+            # NEW
+            "category_diversity": category_diversity,
+            "avg_answer_length": round(avg_answer_length, 1),
+            "follow_up_effectiveness": round(follow_up_effectiveness, 2),
+            "gap_detection_rate": round(gap_rate, 2),
         }
 
     def _satisfaction_to_score(self, satisfaction: str) -> int:
@@ -266,6 +435,86 @@ class InterviewLogger:
 
         return "\n".join(summary_lines)
 
+    def get_learning_stats(self, days: int = 30) -> Dict:
+        """
+        Get learning statistics for recent interviews.
+
+        Args:
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            Dictionary with learning statistics
+        """
+        from datetime import timedelta
+
+        threshold = datetime.now() - timedelta(days=days)
+
+        # Load index
+        index_path = self.log_dir / "hot" / "index.yaml"
+        if not index_path.exists():
+            return {"error": "No interview history found"}
+
+        try:
+            with open(index_path) as f:
+                index = yaml.safe_load(f) or {"interviews": []}
+        except (yaml.YAMLError, IOError):
+            return {"error": "Could not read interview index"}
+
+        # Filter recent interviews
+        recent = []
+        for entry in index.get("interviews", []):
+            try:
+                entry_time = datetime.fromisoformat(entry["timestamp"])
+                if entry_time > threshold:
+                    recent.append(entry)
+            except (ValueError, KeyError):
+                continue
+
+        if not recent:
+            return {"error": "No recent interviews found"}
+
+        # Calculate stats
+        total_questions = sum(
+            self._count_questions_from_entry(entry) for entry in recent
+        )
+
+        total_gaps = sum(
+            entry.get("learning_metrics", {}).get("gap_detection_rate", 0)
+            * entry.get("interview", {}).get("questions_asked", 0)
+            for entry in recent
+        )
+
+        # Context type distribution
+        context_types = {}
+        for entry in recent:
+            ctx = entry.get("context_type", "unknown")
+            context_types[ctx] = context_types.get(ctx, 0) + 1
+
+        # Average satisfaction
+        satisfactions = [
+            entry.get("learning_metrics", {}).get("user_satisfaction_score", 3)
+            for entry in recent
+        ]
+        avg_satisfaction = sum(satisfactions) / len(satisfactions) if satisfactions else 3
+
+        return {
+            "period_days": days,
+            "total_interviews": len(recent),
+            "total_questions_asked": total_questions,
+            "total_gaps_detected": int(total_gaps),
+            "context_type_distribution": context_types,
+            "avg_satisfaction": round(avg_satisfaction, 1),
+            "most_common_context": (
+                max(context_types.items(), key=lambda x: x[1])[0]
+                if context_types
+                else None
+            ),
+        }
+
+    def _count_questions_from_entry(self, entry: Dict) -> int:
+        """Helper to count questions from index entry."""
+        return entry.get("interview", {}).get("questions_asked", 0)
+
     def _update_index(self, log_entry: Dict):
         """Update interview index for quick lookup."""
         index_path = self.log_dir / "hot" / "index.yaml"
@@ -293,3 +542,169 @@ class InterviewLogger:
 
         with open(index_path, "w") as f:
             yaml.dump(index, f, default_flow_style=False)
+
+    # ========== Retention Policy Methods ==========
+
+    def apply_retention_policy(self, hot_days: int = 30, warm_days: int = 90) -> Dict:
+        """
+        Move old interviews to warm/cold storage.
+
+        Args:
+            hot_days: Days to keep in hot storage (default: 30)
+            warm_days: Days to keep in warm storage (default: 90)
+
+        Returns:
+            Summary of retention actions
+        """
+        now = datetime.now()
+        hot_threshold = now - timedelta(days=hot_days)
+        warm_threshold = now - timedelta(days=warm_days)
+
+        results = {
+            "hot_to_warm": 0,
+            "warm_to_cold": 0,
+            "cold_deleted": 0,
+        }
+
+        # Move hot → warm
+        results["hot_to_warm"] = self._move_hot_to_warm(hot_threshold)
+
+        # Move warm → cold
+        results["warm_to_cold"] = self._move_warm_to_cold(warm_threshold)
+
+        return results
+
+    def _move_hot_to_warm(self, threshold: datetime) -> int:
+        """
+        Move interviews older than threshold from hot to warm.
+
+        Args:
+            threshold: DateTime threshold for moving files
+
+        Returns:
+            Number of files moved
+        """
+        import shutil
+
+        hot_dir = self.log_dir / "hot"
+        warm_dir = self.log_dir / "warm"
+
+        warm_dir.mkdir(parents=True, exist_ok=True)
+
+        if not hot_dir.exists():
+            return 0
+
+        moved_count = 0
+
+        # Iterate through monthly subdirectories
+        for month_dir in hot_dir.iterdir():
+            if not month_dir.is_dir():
+                continue
+
+            for interview_file in month_dir.glob("INTERVIEW-*.yaml"):
+                try:
+                    # Check file timestamp
+                    file_mtime = datetime.fromtimestamp(interview_file.stat().st_mtime)
+
+                    if file_mtime < threshold:
+                        # Move to warm
+                        rel_path = interview_file.relative_to(hot_dir)
+                        target_path = warm_dir / rel_path
+
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        # Try rename first, fall back to copy + delete
+                        try:
+                            interview_file.rename(target_path)
+                        except (PermissionError, OSError):
+                            shutil.copy2(interview_file, target_path)
+                            interview_file.unlink()
+
+                        moved_count += 1
+                except (OSError, ValueError) as e:
+                    # Log error and continue
+                    print(f"Warning: Could not move {interview_file.name}: {e}")
+                    continue
+
+        return moved_count
+
+    def _move_warm_to_cold(self, threshold: datetime) -> int:
+        """
+        Move interviews older than threshold from warm to cold.
+
+        Args:
+            threshold: DateTime threshold for moving files
+
+        Returns:
+            Number of files compressed and moved
+        """
+        import gzip
+        import shutil
+
+        warm_dir = self.log_dir / "warm"
+        cold_dir = self.log_dir / "cold"
+
+        cold_dir.mkdir(parents=True, exist_ok=True)
+
+        if not warm_dir.exists():
+            return 0
+
+        moved_count = 0
+
+        for interview_file in warm_dir.rglob("INTERVIEW-*.yaml"):
+            try:
+                file_mtime = datetime.fromtimestamp(interview_file.stat().st_mtime)
+
+                if file_mtime < threshold:
+                    # Move to cold (compress to save space)
+                    rel_path = interview_file.relative_to(warm_dir)
+                    target_path = cold_dir / rel_path
+
+                    # Change extension to .yaml.gz for compressed
+                    target_path = target_path.with_suffix(".yaml.gz")
+
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Compress and move
+                    with open(interview_file, "rb") as f_in:
+                        with gzip.open(target_path, "wb") as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+
+                    # Remove original
+                    interview_file.unlink()
+                    moved_count += 1
+            except (OSError, ValueError, gzip.BadGzipFile) as e:
+                print(f"Warning: Could not compress {interview_file.name}: {e}")
+                continue
+
+        return moved_count
+
+    def cleanup_old_cold_storage(self, days: int = 365) -> int:
+        """
+        Delete cold storage interviews older than specified days.
+
+        Args:
+            days: Days to retain in cold storage (default: 1 year)
+
+        Returns:
+            Number of files deleted
+        """
+        cold_dir = self.log_dir / "cold"
+        threshold = datetime.now() - timedelta(days=days)
+
+        if not cold_dir.exists():
+            return 0
+
+        deleted_count = 0
+
+        for interview_file in cold_dir.rglob("INTERVIEW-*.yaml.gz"):
+            try:
+                file_mtime = datetime.fromtimestamp(interview_file.stat().st_mtime)
+
+                if file_mtime < threshold:
+                    interview_file.unlink()
+                    deleted_count += 1
+            except (OSError, ValueError):
+                continue
+
+        return deleted_count
