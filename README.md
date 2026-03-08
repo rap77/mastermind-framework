@@ -21,7 +21,7 @@ Cerebro #7 (Evaluador Crítico - meta-cerebro)
 Aprobado → Entrega | Rechazado → Iteración
 ```
 
-### Los 7 Cerebros (Nicho: Software Development)
+### Los 8 Cerebros (Nicho: Software Development)
 
 | # | Cerebro | Rol | Expertos Clave |
 |---|---------|-----|----------------|
@@ -32,6 +32,7 @@ Aprobado → Entrega | Rechazado → Iteración
 | 5 | Backend | CONSTRUYE la lógica | Jin, Martin, Kleppmann, Xu, Fowler |
 | 6 | QA/DevOps | GARANTIZA estabilidad | Kim, Forsgren, Humble, Majors, Crispin |
 | 7 | Growth/Data | EVOLUCIONA todo | Munger, Kahneman, Tetlock, Hormozi |
+| **8** | **Master Interviewer** | **DESCUBRE requisitos reales** | **Fitzpatrick, Voss, Stanier, Torres** |
 
 ## Quick Start
 
@@ -152,6 +153,20 @@ mastermind orchestrate run --flow design_sprint \
 ## Claude Code Slash Commands
 
 El framework incluye **slash commands** para usar directamente desde Claude Code con el namespace `mm:`:
+
+### Discovery (Brain #8)
+
+```bash
+/mm:discovery "<brief vago>"  # Entrevista estructurada para clarificar requisitos
+```
+
+**Ejemplo:**
+```bash
+/mm:discovery "quiero una app moderna"
+# → Brain #8 detecta ambigüedad
+# → Conduce entrevista de 10-15 preguntas
+# → Genera brief clarificado + recomendaciones de cerebros #1-7
+```
 
 ### Consulta de Cerebros
 
