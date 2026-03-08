@@ -1,6 +1,6 @@
 [project]
 name = "mastermind-framework"
-version = "1.0.0"
+version = "1.1.0"
 description = "MasterMind Framework - Cognitive architecture for expert knowledge consultation"
 readme = "README.md"
 requires-python = ">=3.14"
