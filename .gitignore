@@ -45,3 +45,4 @@ dist/
 # Serena MCP - Local configuration
 .serena/
 .claude/checkpoints/
+.worktrees/
