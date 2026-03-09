@@ -36,7 +36,7 @@ class Coordinator:
         self.eval_logger = EvaluationLogger(enabled=enable_logging) if enable_logging else None
 
         # Execution state
-        self.current_plan = None
+        self.current_plan: Optional[Dict] = None
         self.execution_results = {}
         self.iteration_count = 0
         self.rejection_count = 0
@@ -102,6 +102,8 @@ class Coordinator:
 
     def _execute_with_iterations(self, max_iterations: int) -> Dict:
         """Execute the current plan with iteration support."""
+        if self.current_plan is None:
+            return self._error_report("No plan generated")
         tasks = self.current_plan['tasks']
 
         # For validation_only flow: Brain #1 → Brain #7 (with possible iteration)
@@ -271,7 +273,7 @@ class Coordinator:
             flow_type='discovery',
             score_total=outcome.get('total_questions_asked', 0),
             score_max=50,  # Arbitrary scale
-            verdict='COMPLETE',
+            verdict='APPROVE',
             issues=[],  # No issues in discovery
             strengths=[
                 f"Explored {outcome.get('categories_completed', 0)} categories",
@@ -286,6 +288,8 @@ class Coordinator:
 
     def _execute_validation_flow(self, tasks: list, max_iterations: int) -> Dict:
         """Execute validation flow (Brain #1 → Brain #7) with iteration."""
+        if self.current_plan is None:
+            return self._error_report("No plan available")
         plan_id = self.current_plan['plan_id']
         brief = self.current_plan['brief']['original']
 
@@ -447,6 +451,8 @@ class Coordinator:
 
     def _execute_standard_flow(self, tasks: list) -> Dict:
         """Execute standard flow (all tasks in sequence)."""
+        if self.current_plan is None:
+            return self._error_report("No plan available")
         plan_id = self.current_plan['plan_id']
 
         completed_tasks = 0
@@ -597,6 +603,8 @@ class Coordinator:
             brief: Original user brief
             flow_type: Flow type used
         """
+        if not self.eval_logger or self.current_plan is None:
+            return
         try:
             # Extract evaluation data
             score_data = result_7.get('score', {})
@@ -1106,7 +1114,7 @@ Format as JSON:
             'should_continue': True
         }
 
-    def _generate_basic_follow_up(self, question: str, answer: str) -> Dict:
+    def _generate_basic_follow_up(self, _question: str, answer: str) -> Dict:
         """Generate basic follow-up when brain is unavailable."""
         # Simple heuristic: if answer is short, ask for more
         if len(answer.split()) < 10:
@@ -1153,7 +1161,7 @@ Format as JSON:
         from datetime import datetime
         return datetime.now().isoformat()
 
-    def continue_plan(self, plan_id: str, plan_file: str) -> Dict:
+    def continue_plan(self, _plan_id: str, plan_file: str) -> Dict:
         """Continue execution from a saved plan."""
         # Load plan
         try:

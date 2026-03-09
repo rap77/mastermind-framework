@@ -33,6 +33,9 @@ package = true
 [tool.uv.workspace]
 members = []
 
+[tool.pyright]
+reportUnusedParameter = "none"
+
 [dependency-groups]
 dev = [
     "pydantic>=2.12.5",
