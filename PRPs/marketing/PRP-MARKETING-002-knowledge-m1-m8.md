@@ -217,10 +217,12 @@ relevancia: "[CRÍTICA|ALTA|MEDIA|BAJA — Justificación de por qué este exper
 
 > **P1: [Principio 1]**
 > [Descripción detallada del principio]
+> *Fuente: [Título libro/recurso, Capítulo X (Autor, Año)]*
 > *Contexto: [Cuándo aplicar este principio]*
 
 > **P2: [Principio 2]**
 > [Descripción detallada del principio]
+> *Fuente: [Título libro/recurso, Capítulo Y (Autor, Año)]*
 > *Contexto: [Cuándo aplicar este principio]*
 
 [...]
@@ -231,6 +233,7 @@ relevancia: "[CRÍTICA|ALTA|MEDIA|BAJA — Justificación de por qué este exper
 
 ### Framework 1: [Nombre del Framework]
 
+**Fuente:** [Título libro/recurso, Capítulo/Página (Autor, Año)]
 **Propósito:** [Cuál es el propósito de este framework]
 **Cuándo usar:** [En qué situaciones aplicar]
 
@@ -247,6 +250,7 @@ relevancia: "[CRÍTICA|ALTA|MEDIA|BAJA — Justificación de por qué este exper
 
 ### Modelo Mental 1: [Nombre]
 
+**Fuente:** [Título libro/recurso, Capítulo/Sección (Autor, Año)]
 **El modelo:** [Descripción del modelo]
 **Por qué funciona:** [Explicación]
 **Cuándo usarlo:** [Situaciones donde aplica]
@@ -257,6 +261,8 @@ relevancia: "[CRÍTICA|ALTA|MEDIA|BAJA — Justificación de por qué este exper
 ## 4. Criterios de Decisión
 
 ### Trade-off: [Nombre del trade-off]
+
+**Fuente:** [Título libro/recurso, Capítulo/Sección (Autor, Año)]
 
 **Opción A:** [Descripción]
 - **Ventajas:** [Lista]
@@ -276,6 +282,7 @@ relevancia: "[CRÍTICA|ALTA|MEDIA|BAJA — Justificación de por qué este exper
 
 ### Anti-patrón 1: [Nombre]
 
+**Fuente:** [Título libro/recurso, Capítulo/Sección (Autor, Año)]
 **Qué es:** [Descripción del error]
 **Por qué la gente lo hace:** [Causa común]
 **Consecuencias:** [Qué pasa si lo haces]
@@ -452,6 +459,21 @@ for file in docs/nichos/marketing-digital/sources/BRAIN-0{1..8}/FUENTE-*.md; do
 done
 # Expected: No MISSING messages
 
+# 3.5 Verificar ATRIBUCIÓN COMPLETA en cada fuente
+for file in docs/nichos/marketing-digital/sources/BRAIN-0{1..8}/FUENTE-*.md; do
+  # Verificar que los principios tengan "*Fuente: ..."
+  grep -A1 "^> \*\*P[0-9]" "$file" | grep -q "\*Fuente:" || echo "MISSING attribution in principles: $file"
+  # Verificar que los frameworks tengan "**Fuente:**"
+  grep -A1 "^### Framework" "$file" | grep -q "Fuente:" || echo "MISSING attribution in frameworks: $file"
+  # Verificar que los modelos mentales tengan "**Fuente:**"
+  grep -A1 "^### Modelo Mental" "$file" | grep -q "Fuente:" || echo "MISSING attribution in mental models: $file"
+  # Verificar que los trade-offs tengan "**Fuente:**"
+  grep -A2 "^### Trade-off" "$file" | grep -q "Fuente:" || echo "MISSING attribution in trade-offs: $file"
+  # Verificar que los anti-patrones tengan "**Fuente:**"
+  grep -A1 "^### Anti-patrón" "$file" | grep -q "Fuente:" || echo "MISSING attribution in anti-patterns: $file"
+done
+# Expected: No MISSING attribution messages
+
 # 4. Verificar loaded_in_notebook: true en todas las fuentes
 grep -r "loaded_in_notebook: false" docs/nichos/marketing-digital/sources/BRAIN-0{1..8}/
 # Expected: No results (todas deben ser true)
@@ -496,6 +518,7 @@ done
 - [ ] 8 notebooks creados en NotebookLM con IDs documentados
 - [ ] `brains-marketing.yaml` actualizado con notebook_ids y sources_count
 - [ ] 20-30% de fuentes en español (expertos hispanos)
+- [ ] **ATRIBUCIÓN COMPLETA** en todas las secciones (Principios, Frameworks, Modelos, Trade-offs, Anti-patrones tienen Fuente:)
 - [ ] Validación de calidad pasada (no copy/paste, mínimo 500 palabras)
 - [ ] Documentación actualizada (README + SOURCES-M1-M8.md)
 - [ ] Git commit con cambios
@@ -531,6 +554,14 @@ done
 6. **Repetición es válida:** Si dos expertos cubren lo mismo, está bien. Cada uno tiene su perspectiva.
 
 7. **URLs pueden cambiar:** Guardar el contenido clave en la destilación, no solo links.
+
+8. **ATRIBUCIÓN COMPLETA ES OBLIGATORIA:** Cada sección debe incluir la fuente específica:
+   - Principios: `*Fuente: [Título, Cap X (Autor, Año)]*`
+   - Frameworks: `**Fuente:** [Título, Cap X (Autor, Año)]`
+   - Modelos mentales: `**Fuente:** [Título, Sección (Autor, Año)]`
+   - Trade-offs: `**Fuente:** [Título, Cap X (Autor, Año)]`
+   - Anti-patrones: `**Fuente:** [Título, Cap X (Autor, Año)]`
+   - Esto permite rastrear exactamente de dónde vino cada idea.
 
 ---
 

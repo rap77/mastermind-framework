@@ -314,6 +314,21 @@ for file in docs/nichos/marketing-digital/sources/BRAIN-{09..16}/FUENTE-*.md; do
 done
 # Expected: No ERROR messages
 
+# 3.5 Verificar ATRIBUCIÓN COMPLETA en fuentes M9-M16
+for file in docs/nichos/marketing-digital/sources/BRAIN-{09..16}/FUENTE-*.md; do
+  # Verificar que los principios tengan "*Fuente: ..."
+  grep -A1 "^> \*\*P[0-9]" "$file" | grep -q "\*Fuente:" || echo "MISSING attribution in principles: $file"
+  # Verificar que los frameworks tengan "**Fuente:**"
+  grep -A1 "^### Framework" "$file" | grep -q "Fuente:" || echo "MISSING attribution in frameworks: $file"
+  # Verificar que los modelos mentales tengan "**Fuente:**"
+  grep -A1 "^### Modelo Mental" "$file" | grep -q "Fuente:" || echo "MISSING attribution in mental models: $file"
+  # Verificar que los trade-offs tengan "**Fuente:**"
+  grep -A2 "^### Trade-off" "$file" | grep -q "Fuente:" || echo "MISSING attribution in trade-offs: $file"
+  # Verificar que los anti-patrones tengan "**Fuente:**"
+  grep -A1 "^### Anti-patrón" "$file" | grep -q "Fuente:" || echo "MISSING attribution in anti-patterns: $file"
+done
+# Expected: No MISSING attribution messages
+
 # 4. Verificar brains-marketing.yaml COMPLETO
 grep -c "notebook_id: null" mastermind_cli/config/brains-marketing.yaml
 # Expected: 0 (todos deben tener notebook_id)
@@ -373,6 +388,7 @@ EOF
 - [ ] 16 notebooks en NotebookLM
 - [ ] CLI soporta multi-nicho (`--niche` flag)
 - [ ] 20-30% de fuentes en español
+- [ ] **ATRIBUCIÓN COMPLETA** en todas las fuentes (Principios, Frameworks, Modelos, Trade-offs, Anti-patrones)
 - [ ] Testing end-to-end pasando (4 tests)
 - [ ] Documentación completa (README, TESTING, NICHO-REPLICABILITY)
 - [ ] Git tag v1.2.0 creado
@@ -406,6 +422,8 @@ EOF
 5. **Release v1.2.0:** Este PRP termina con un release oficial del framework con el nuevo nicho.
 
 6. **Expertos hispanos:** M13-M16 tienen varios hispanos clave (Juan Pablo Marichal, Ignacio Alamillo, Sergio Rama, César Sandoval).
+
+7. **ATRIBUCIÓN COMPLETA ES OBLIGATORIA:** Igual que PRP-002, cada sección de cada fuente debe incluir la referencia específica (Principio, Framework, Modelo, Trade-off, Anti-patrón). Ver template en PRP-MARKETING-002.
 
 ---
 
