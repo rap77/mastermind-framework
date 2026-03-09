@@ -711,6 +711,35 @@ class Coordinator:
         # Default: use existing flow detector
         return self.flow_detector.detect(brief)
 
+    def generate_discovery_plan(self, brief: str, use_mcp: bool = False) -> Dict:
+        """
+        Generate discovery interview plan (public API for skills/CLI).
+
+        This method only generates the plan without conducting the interview.
+        Useful for external tools that want to handle the interview flow themselves.
+
+        Args:
+            brief: User's brief text
+            use_mcp: Whether to use MCP for Brain #8 query
+
+        Returns:
+            Interview plan dict with:
+            - status: 'success' or 'fallback'
+            - plan: dict with categories, questions, gaps
+            - raw_response: raw Brain #8 response
+            - method: 'mcp' or 'local'
+        """
+        # Temporarily override use_mcp for this call
+        original_use_mcp = self.use_mcp
+        self.use_mcp = use_mcp
+
+        try:
+            result = self._generate_interview_plan(brief)
+            return result
+        finally:
+            # Restore original setting
+            self.use_mcp = original_use_mcp
+
     def _generate_interview_plan(self, brief: str) -> Dict:
         """
         Generate interview plan by querying Brain #8.
