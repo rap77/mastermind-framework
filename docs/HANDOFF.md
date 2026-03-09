@@ -1,8 +1,8 @@
-# HANDOFF - Session 2026-03-08 (Post-Release Cleanup)
+# HANDOFF - Session 2026-03-09
 
-**Última actualización:** 2026-03-08
-**Sesión:** NotebookLM Standards + Brain #7 Fix
-**Estado:** ✅ Framework v1.1.0 estable — Sin PRPs pendientes
+**Última actualización:** 2026-03-09
+**Sesión:** Marketing Nicho Definition + Pyright Fixes
+**Estado:** ✅ Framework v1.1.0 + Nicho Marketing Digital Planeado
 
 ---
 
@@ -10,95 +10,118 @@
 
 ```bash
 cd /home/rpadron/proy/mastermind
-git log --oneline -5   # 485bfb4 en tope
-uv run pytest tests/ -q  # 31 passed
+git log --oneline -5   # 49b5b4f en tope
+git push origin master  # 3 commits pendientes
 ```
 
 ---
 
 ## Estado Actual
 
-### Framework v1.1.0 — RELEASED & CLEAN ✅
+### Framework v1.1.0 + Marketing Nicho Planeado ✅
 
 | Tarea | Estado | Commit |
 |-------|--------|--------|
+| Pyright type errors fix | ✅ | 844839a |
+| /mm:discovery AskUserQuestion UI | ✅ | 49b5b4f |
+| Marketing Nicho 16 brains | ✅ Planeado | 0241e60 |
 | Release v1.1.0 | ✅ | e376928 |
-| Tag v1.1.0 pusheado | ✅ | — |
-| Fix GGA nested session | ✅ | 127d329 |
-| Universal niche (Brain #8) | ✅ | 73ba3c1 |
-| Brain #7 notebook_id corregido | ✅ | f6292ab |
-| [AUDIT] naming standard | ✅ | 485bfb4 |
+| NotebookLM naming [AUDIT] | ✅ | 485bfb4 |
+
+**3 commits pendientes de push a origin/master.**
 
 ---
 
-## PRPs — TODOS COMPLETOS
+## NOVEDAD: Nicho Marketing Digital Definido ✅
+
+### Arquitectura: 16 Cerebros Especializados
+
+| # | Cerebro | Responsabilidad |
+|---|---------|-----------------|
+| M1 | Marketing Strategy & Positioning | QUÉ, a QUIÉNES, POR QUÉ |
+| M2 | Brand Identity & Design | Visual, voice, feel |
+| M3 | Content Strategy & Copywriting | Contenido que convierte |
+| M4 | Social Media Organic | Comunidad y engagement |
+| M5 | Social Media Paid | Paid social scaling |
+| M6 | Search PPC | Google/Bing Ads |
+| M7 | SEO Technical | Optimización técnica |
+| M8 | SEO Content & Link Building | Autoridad y rankings |
+| M9 | Email Marketing & Automation | Nutrir y retener |
+| M10 | Push, SMS & Retention | Comunicación directa |
+| M11 | Marketing Analytics & Data | Data-driven decisions |
+| M12 | CRO | Optimizar conversiones |
+| M13 | Marketing Automation & Ops | Automatizar operaciones |
+| M14 | Influencer & Partnerships | Escalar vía influencers |
+| M15 | Community Building | Comunidades leales |
+| M16 | Growth Partner (Evaluator) | Meta-cerebro agencia-cliente |
+
+### Expertos: 100+ (incluyendo 30+ hispanos)
+
+**Hispanos clave:**
+- Margarita Pasos (México) - #1, #4, #9, #14
+- Jesús Tronchoni (España) - #6, #7, #8, #11
+- Patrick Campbell (hispano) - #10, #16
+- Sergi Silva, Fernando Del Vecchio, Patricia Soto, y 20+ más
+
+### Documentación
+
+- `docs/nichos/marketing-digital/PROPUESTA-16-CEREBROS.md` - Arquitectura completa
+- `docs/nichos/marketing-digital/PRP-MARKETING-DIGITAL-NICHO.md` - Plan de implementación (62-82h)
+
+---
+
+## Cambios en /mm:discovery
+
+**Nuevo formato estilo `/interview-me`:**
+
+1. **Phase 1:** Pre-Analysis (forked Explore agent)
+2. **Phase 2:** Generate Plan vía `coordinator.generate_discovery_plan()`
+3. **Phase 3:** Conduct Interview con `AskUserQuestion` (2-4 opciones tabuladas)
+4. **Phase 4:** Generate Deliverable (MD + YAML + JSON)
+
+**Coverage tracker** antes de cada pregunta:
+```
+Coverage: Problem [done] | Users [in progress] | Platforms [pending]
+```
+
+---
+
+## Pyright Fixes - coordinator.py
+
+1. `self.current_plan: Optional[Dict] = None` - Type hint agregado
+2. Guards `if self.current_plan is None` en métodos que lo usan
+3. Fix: `verdict='COMPLETE'` → `'APPROVE'`
+4. Prefijo `_` en params no usados
+5. `[tool.pyright]` en `pyproject.toml` con `reportUnusedParameter = "none"`
+
+---
+
+## PRPs — Software Development: TODOS COMPLETOS
 
 | PRP | Descripción | Commit |
 |-----|-------------|--------|
-| PRP-000 | Initial Setup | ac1696a |
-| PRP-001 | mastermind-cli | b050e22 |
-| PRP-002 | YAML Versioning | — |
-| PRP-003 | System Prompts | — |
-| PRP-004 | NotebookLM Integration | 254f108 |
-| PRP-005 | Brain #7 Evaluator | 286efb8 |
-| PRP-006 | Orchestrator Core | 4873faf |
-| PRP-008 | Orchestrate Command | 78b208f |
-| PRP-009 | Memory & Learning | a83535a |
-| PRP-010 | Brain #8 Spec | docs/ |
-| PRP-011 | Brain #8 Core | ef597a7 |
-| PRP-012 | Brain #8 NotebookLM | bd57b26 |
-| PRP-013 | Brain #8 Orchestrator | 33115df |
-| PRP-014 | Brain #8 /mm:discovery | e9347d4 |
-| PRP-015 | Brain #8 Learning | 0cac0f3 |
-| PRP-016 | Brain #8 Testing & Polish | a7edd35 |
-| PRP-017 | Release v1.1.0 | e376928 |
+| PRP-000 a PRP-017 | Framework v1.1.0 completo | e376928 |
+
+**NUEVO: PRP-MARKETING-001 planeado** (no iniciado)
 
 ---
 
-## NotebookLM — Estado Final
+## NotebookLM — Estado
 
-### Estándares de Naming
-
-| Tipo | Formato |
-|------|---------|
-| Cerebro permanente | `[CEREBRO] {Nombre} - {Nicho}` |
-| Audit de proyecto | `[AUDIT] {Proyecto} - {Nicho} - {YYYY-MM-DD}` |
-
-Estándar `[AUDIT]` documentado en `.claude/commands/mm/project-health-check.md`.
-
-### 8 Cerebros en NotebookLM
+### 8 Cerebros (Software Dev + Universal)
 
 | # | Nombre | Notebook ID |
 |---|--------|-------------|
 | 1 | [CEREBRO] Product Strategy - Software Development | f276ccb3... |
 | 2 | [CEREBRO] UX Research - Software Development | ea006ece... |
 | 3 | [CEREBRO] UI Design - Software Development | 8d544475... |
-| 4 | [CEREBRO] Frontend Architecture - Software Development | 85e47142... |
-| 5 | [CEREBRO] Backend Architecture - Software Development | c6befbbc... |
+| 4 | [CEREBRO] Frontend - Software Development | 85e47142... |
+| 5 | [CEREBRO] Backend - Software Development | c6befbbc... |
 | 6 | [CEREBRO] QA/DevOps - Software Development | 74cd3a81... |
 | 7 | [CEREBRO] Growth & Data - Software Development | d8de74d6... |
 | 8 | [CEREBRO] Master Interviewer - Universal | 5330e845... |
 
----
-
-## Fix GGA Hook — Solución Definitiva
-
-**Root cause:** GGA 2.7.x cambió de `execute_claude()` a `execute_provider_with_timeout()` con `bash -c` inline. El `unset` en el proceso padre no propaga al subshell.
-
-**Fix en `providers.sh` (línea ~801):**
-```bash
-# CORRECTO — unset DENTRO del bash -c:
-execute_with_timeout "$timeout" "Claude" bash -c "unset CLAUDECODE; unset CLAUDE_CODE_ENTRYPOINT; printf '%s' \"$1\" | claude --print 2>&1" -- "$prompt"
-```
-
-**`.pre-commit-config.yaml`** (restaurado al original):
-```yaml
-entry: bash -c 'unset CLAUDECODE && unset CLAUDE_CODE_ENTRYPOINT && gga run'
-```
-
-**Documentado en:** `docs/GGA-FIX-NESTED-SESSION.md`
-
-**Nota:** Reaplicar fix en `providers.sh` después de cada `brew upgrade gga`.
+**PENDIENTE:** 16 notebooks para Marketing Digital (M1-M16)
 
 ---
 
@@ -107,23 +130,44 @@ entry: bash -c 'unset CLAUDECODE && unset CLAUDE_CODE_ENTRYPOINT && gga run'
 | Archivo | Descripción |
 |---------|-------------|
 | `RELEASES.md` | Release notes v1.0.0 + v1.1.0 |
-| `pyproject.toml` | version = "1.1.0" |
-| `agents/orchestrator/config/brains.yaml` | v1.2.1 — 8 cerebros con notebook_ids |
-| `mastermind_cli/brain_registry.py` | BRAIN_REGISTRY con Brain #8 |
-| `docs/universal/08-master-interviewer-brain/` | Fuentes Brain #8 (nicho universal) |
-| `.claude/commands/mm/project-health-check.md` | Estándar [AUDIT] para NotebookLM |
-| `docs/GGA-FIX-NESTED-SESSION.md` | Fix GGA nested session completo |
+| `pyproject.toml` | version = "1.1.0" + tool.pyright |
+| `agents/orchestrator/config/brains.yaml` | v1.2.1 — 8 cerebros |
+| `.claude/commands/mm/discovery.md` | AskUserQuestion UI |
+| `docs/nichos/marketing-digital/` | Nicho Marketing (nuevo) |
+| `mastermind_cli/orchestrator/coordinator.py` | Pyright fixes + generate_discovery_plan() |
 
 ---
 
-## Próximas Tareas (Sin PRPs definidos)
+## Próximas Tareas
 
-- Definir PRP-018+ para siguiente funcionalidad o nuevo nicho
-- Posibles expansiones: nicho E-Commerce, Healthcare, etc.
-- Cleanup periódico de notebooks [AUDIT] viejos en NotebookLM
+### Inmediatas:
+1. Push 3 commits a origin
+2. Crear estructura de directorios: `docs/nichos/marketing-digital/sources/{BRAIN-01..BRAIN-16}`
+3. Crear `mastermind_cli/config/brains-marketing.yaml`
+
+### Corto Plazo (PRP-MARKETING-001):
+1. System prompts para 16 cerebros (4h)
+2. Fuentes maestras (40-60h)
+3. NotebookLM setup (8h)
+4. Testing con briefs reales (4h)
+
+### Largo Plazo:
+- Modelo replicable para otros nichos (E-commerce, Fintech, HealthTech)
+- Meta-framework de creación de nichos documentado
 
 ---
 
-**Documento de Handoff v10.0 - Post-Release Standards Edition**
-**Generado:** 2026-03-08
-**Estado:** v1.1.0 ✅ Released & Clean — Sin deuda técnica
+## Commits Pendientes de Push
+
+```
+49b5b4f docs(discovery): update /mm:discovery with AskUserQuestion UI format
+0241e60 feat(marketing-niche): 16-brain architecture with Hispanic experts
+844839a fix(coordinator): resolve Pyright type errors and invalid EvaluationVerdict
+```
+
+---
+
+**Handoff v11.0 - Marketing Nicho Edition**
+**Generado:** 2026-03-09
+**Estado:** v1.1.0 ✅ + Marketing Nicho Planeado ✅
+**Próximo:** Implementación de PRP-MARKETING-001
