@@ -58,8 +58,24 @@ Files created in `docs/audit/`:
 - `missing-docs-{type}.md` - Generated documentation for gaps identified
 </output>
 
+<notebooklm_naming>
+When creating a NotebookLM notebook for this audit, ALWAYS use this naming standard:
+
+  [AUDIT] {Project Name} - {Niche} - {YYYY-MM-DD}
+
+Examples:
+  [AUDIT] ProSell SaaS - Software Development - 2026-03-05
+  [AUDIT] TiendaX - E-Commerce - 2026-04-01
+  [AUDIT] AppSalud - Healthcare - 2026-05-15
+
+- {Project Name}: name of the project being audited
+- {Niche}: active niche of the framework (e.g. Software Development)
+- {YYYY-MM-DD}: today's date
+</notebooklm_naming>
+
 <success_criteria>
 - All relevant brains consulted via NotebookLM MCP
+- NotebookLM audit notebook created with correct naming standard [AUDIT] format
 - Per-brain analysis documents created with actionable recommendations
 - Executive summary with health score and prioritized action items
 - Missing critical documentation generated (UI/UX, API, testing)
