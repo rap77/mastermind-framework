@@ -6,7 +6,7 @@ brains:
   - id: M1
     name: Marketing Strategy & Positioning
     short_id: marketing-strategy
-    notebook_id: null  # To be filled in PRP-002
+    notebook_id: 8ece7ed3-55c9-4692-be9f-ad1744fcf78f  # Created 2026-03-09
     system_prompt: agents/brains/marketing-01-strategy.md
     expertise:
       - Positioning strategy
@@ -16,13 +16,13 @@ brains:
       - Marketing frameworks
       - Competitive analysis
     status: active
-    sources_count: 0  # To be filled in PRP-002
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M2: Brand Identity & Design
   - id: M2
     name: Brand Identity & Design
     short_id: brand-identity
-    notebook_id: null
+    notebook_id: 4eefaf90-cc6c-487d-be3c-24f92404273a  # Created 2026-03-09
     system_prompt: agents/brains/marketing-02-brand.md
     expertise:
       - Brand identity
@@ -32,13 +32,13 @@ brains:
       - Brand guidelines
       - Rebranding
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M3: Content Strategy & Copywriting
   - id: M3
     name: Content Strategy & Copywriting
     short_id: content-strategy
-    notebook_id: null
+    notebook_id: b45a0716-3b1d-4329-a121-eca9b9bb1112  # Created 2026-03-09
     system_prompt: agents/brains/marketing-03-content.md
     expertise:
       - Copywriting
@@ -48,13 +48,13 @@ brains:
       - Content frameworks
       - Editorial calendars
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M4: Social Media Organic
   - id: M4
     name: Social Media Organic
     short_id: social-organic
-    notebook_id: null
+    notebook_id: 429743dd-14fe-482a-a943-3748f1a6dcd8  # Created 2026-03-09
     system_prompt: agents/brains/marketing-04-social-organic.md
     expertise:
       - Instagram marketing
@@ -64,13 +64,13 @@ brains:
       - Community building
       - User-generated content
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M5: Social Media Paid
   - id: M5
     name: Social Media Paid
     short_id: social-paid
-    notebook_id: null
+    notebook_id: 435d6319-f673-4638-a3fc-87ae638f4175  # Created 2026-03-09
     system_prompt: agents/brains/marketing-05-social-paid.md
     expertise:
       - Meta Ads (Facebook/Instagram)
@@ -80,13 +80,13 @@ brains:
       - Creative strategy
       - Ad scaling
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M6: Search PPC
   - id: M6
     name: Search PPC (Google/Bing)
     short_id: search-ppc
-    notebook_id: null
+    notebook_id: a6da3c46-1095-4ce2-9640-6ee7932aa245  # Created 2026-03-09
     system_prompt: agents/brains/marketing-06-search-ppc.md
     expertise:
       - Google Ads
@@ -96,13 +96,13 @@ brains:
       - Quality score
       - Bid management
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M7: SEO Technical
   - id: M7
     name: SEO Technical
     short_id: seo-technical
-    notebook_id: null
+    notebook_id: d516e4e1-af06-4ac7-af20-ed1a50b2a1c3  # Created 2026-03-09
     system_prompt: agents/brains/marketing-07-seo-technical.md
     expertise:
       - Technical SEO
@@ -112,13 +112,13 @@ brains:
       - Crawlability
       - Site speed optimization
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M8: SEO Content & Link Building
   - id: M8
     name: SEO Content & Link Building
     short_id: seo-content
-    notebook_id: null
+    notebook_id: 6d6093cf-9d3a-4b0d-86f6-24dd37b8ce85  # Created 2026-03-09
     system_prompt: agents/brains/marketing-08-seo-content.md
     expertise:
       - Content SEO
@@ -128,7 +128,7 @@ brains:
       - Local SEO
       - Keyword research
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M9: Email Marketing & Automation
   - id: M9
