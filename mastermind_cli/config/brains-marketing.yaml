@@ -1,0 +1,260 @@
+version: "1.0"
+niche: "marketing-digital"
+niche_name: "Marketing Digital y Redes Sociales"
+brains:
+  # M1: Marketing Strategy & Positioning
+  - id: M1
+    name: Marketing Strategy & Positioning
+    short_id: marketing-strategy
+    notebook_id: null  # To be filled in PRP-002
+    system_prompt: agents/brains/marketing-01-strategy.md
+    expertise:
+      - Positioning strategy
+      - Brand strategy
+      - Go-to-market strategy
+      - Pricing strategy
+      - Marketing frameworks
+      - Competitive analysis
+    status: active
+    sources_count: 0  # To be filled in PRP-002
+
+  # M2: Brand Identity & Design
+  - id: M2
+    name: Brand Identity & Design
+    short_id: brand-identity
+    notebook_id: null
+    system_prompt: agents/brains/marketing-02-brand.md
+    expertise:
+      - Brand identity
+      - Logo design
+      - Brand voice
+      - Visual design systems
+      - Brand guidelines
+      - Rebranding
+    status: active
+    sources_count: 0
+
+  # M3: Content Strategy & Copywriting
+  - id: M3
+    name: Content Strategy & Copywriting
+    short_id: content-strategy
+    notebook_id: null
+    system_prompt: agents/brains/marketing-03-content.md
+    expertise:
+      - Copywriting
+      - Content strategy
+      - Storytelling
+      - Video scripting
+      - Content frameworks
+      - Editorial calendars
+    status: active
+    sources_count: 0
+
+  # M4: Social Media Organic
+  - id: M4
+    name: Social Media Organic
+    short_id: social-organic
+    notebook_id: null
+    system_prompt: agents/brains/marketing-04-social-organic.md
+    expertise:
+      - Instagram marketing
+      - TikTok strategy
+      - LinkedIn organic
+      - Twitter/X strategy
+      - Community building
+      - User-generated content
+    status: active
+    sources_count: 0
+
+  # M5: Social Media Paid
+  - id: M5
+    name: Social Media Paid
+    short_id: social-paid
+    notebook_id: null
+    system_prompt: agents/brains/marketing-05-social-paid.md
+    expertise:
+      - Meta Ads (Facebook/Instagram)
+      - TikTok Ads
+      - LinkedIn Ads
+      - YouTube Ads
+      - Creative strategy
+      - Ad scaling
+    status: active
+    sources_count: 0
+
+  # M6: Search PPC
+  - id: M6
+    name: Search PPC (Google/Bing)
+    short_id: search-ppc
+    notebook_id: null
+    system_prompt: agents/brains/marketing-06-search-ppc.md
+    expertise:
+      - Google Ads
+      - Microsoft Ads
+      - SEM strategy
+      - Landing page optimization
+      - Quality score
+      - Bid management
+    status: active
+    sources_count: 0
+
+  # M7: SEO Technical
+  - id: M7
+    name: SEO Technical
+    short_id: seo-technical
+    notebook_id: null
+    system_prompt: agents/brains/marketing-07-seo-technical.md
+    expertise:
+      - Technical SEO
+      - On-page optimization
+      - Site architecture
+      - Core Web Vitals
+      - Crawlability
+      - Site speed optimization
+    status: active
+    sources_count: 0
+
+  # M8: SEO Content & Link Building
+  - id: M8
+    name: SEO Content & Link Building
+    short_id: seo-content
+    notebook_id: null
+    system_prompt: agents/brains/marketing-08-seo-content.md
+    expertise:
+      - Content SEO
+      - Link building
+      - Digital PR
+      - E-E-A-T optimization
+      - Local SEO
+      - Keyword research
+    status: active
+    sources_count: 0
+
+  # M9: Email Marketing & Automation
+  - id: M9
+    name: Email Marketing & Automation
+    short_id: email-marketing
+    notebook_id: null
+    system_prompt: agents/brains/marketing-09-email.md
+    expertise:
+      - Email copywriting
+      - Email strategy
+      - Marketing automation
+      - Deliverability
+      - List segmentation
+      - Drip campaigns
+    status: active
+    sources_count: 0
+
+  # M10: Push, SMS & Retention
+  - id: M10
+    name: Push, SMS & Retention
+    short_id: retention-marketing
+    notebook_id: null
+    system_prompt: agents/brains/marketing-10-retention.md
+    expertise:
+      - SMS marketing
+      - Push notifications
+      - Retention strategy
+      - LTV optimization
+      - Churn reduction
+      - Customer lifecycle
+    status: active
+    sources_count: 0
+
+  # M11: Marketing Analytics & Data
+  - id: M11
+    name: Marketing Analytics & Data
+    short_id: marketing-analytics
+    notebook_id: null
+    system_prompt: agents/brains/marketing-11-analytics.md
+    expertise:
+      - Web analytics
+      - Marketing attribution
+      - Data visualization
+      - A/B testing
+      - Marketing metrics
+      - ROI analysis
+    status: active
+    sources_count: 0
+
+  # M12: Conversion Rate Optimization (CRO)
+  - id: M12
+    name: Conversion Rate Optimization (CRO)
+    short_id: cro
+    notebook_id: null
+    system_prompt: agents/brains/marketing-12-cro.md
+    expertise:
+      - CRO strategy
+      - Landing page optimization
+      - User research
+      - Funnel optimization
+      - Heatmap analysis
+      - Conversion research
+    status: active
+    sources_count: 0
+
+  # M13: Marketing Automation & Operations
+  - id: M13
+    name: Marketing Automation & Operations
+    short_id: marketing-ops
+    notebook_id: null
+    system_prompt: agents/brains/marketing-13-ops.md
+    expertise:
+      - Marketing ops
+      - Tech stack architecture
+      - Workflow automation
+      - Lead scoring
+      - CRM integration
+      - Process optimization
+    status: active
+    sources_count: 0
+
+  # M14: Influencer & Partnerships
+  - id: M14
+    name: Influencer & Partnerships
+    short_id: influencer-marketing
+    notebook_id: null
+    system_prompt: agents/brains/marketing-14-influencer.md
+    expertise:
+      - Influencer strategy
+      - Creator economy
+      - Affiliate marketing
+      - Strategic partnerships
+      - Brand collaborations
+      - Influencer vetting
+    status: active
+    sources_count: 0
+
+  # M15: Community Building & Management
+  - id: M15
+    name: Community Building & Management
+    short_id: community-management
+    notebook_id: null
+    system_prompt: agents/brains/marketing-15-community.md
+    expertise:
+      - Community strategy
+      - Community management
+      - User-generated content
+      - Events and meetups
+      - Advocacy programs
+      - Community platforms
+    status: active
+    sources_count: 0
+
+  # M16: Growth Partner & Agency Operations (Evaluator)
+  - id: M16
+    name: Growth Partner & Agency Operations
+    short_id: growth-partner
+    notebook_id: null
+    system_prompt: agents/brains/marketing-16-growth-partner.md
+    expertise:
+      - Agency growth
+      - Client success
+      - Pricing agency services
+      - Partnership models
+      - Client retention
+      - Agency operations
+    status: active
+    sources_count: 0
+    role: evaluator  # Meta-cerebro: evaluates outputs from M1-M15

@@ -1,7 +1,15 @@
-version: "1.0"
+version: "1.2"
+# Multi-Niche Support
+# This config file supports multiple niches. Each brain has a `niche` field:
+# - "software-development": Original niche (brains #1-8)
+# - "marketing-digital": Marketing niche (see brains-marketing.yaml)
+# - "universal": Cross-niche brains (e.g., Brain #8 Master Interviewer)
+#
+# The framework loads all *.yaml files from mastermind_cli/config/ and merges them.
 brains:
-  # Existing brains #1-7 (migrated from brain_executor.py)
+  # Software Development Niche
   - id: 1
+    niche: "software-development"
     name: Product Strategy
     short_id: product-strategy
     notebook_id: f276ccb3-0bce-4069-8b55-eae8693dbe75
@@ -15,6 +23,7 @@ brains:
     status: active
 
   - id: 2
+    niche: "software-development"
     name: UX Research
     short_id: ux-research
     notebook_id: ea006ece-00a9-4d5c-91f5-012b8b712936
@@ -28,6 +37,7 @@ brains:
     status: active
 
   - id: 3
+    niche: "software-development"
     name: UI Design
     short_id: ui-design
     notebook_id: 8d544475-6860-4cd7-9037-8549325493dd
@@ -41,6 +51,7 @@ brains:
     status: active
 
   - id: 4
+    niche: "software-development"
     name: Frontend Development
     short_id: frontend
     notebook_id: 85e47142-0a65-41d9-9848-49b8b5d2db33
@@ -54,6 +65,7 @@ brains:
     status: active
 
   - id: 5
+    niche: "software-development"
     name: Backend Development
     short_id: backend
     notebook_id: c6befbbc-b7dd-4ad0-a677-314750684208
@@ -67,6 +79,7 @@ brains:
     status: active
 
   - id: 6
+    niche: "software-development"
     name: QA & DevOps
     short_id: qa-devops
     notebook_id: 74cd3a81-1350-4927-af14-c0c4fca41a8e
@@ -80,6 +93,7 @@ brains:
     status: active
 
   - id: 7
+    niche: "software-development"
     name: Growth & Data (Evaluator)
     short_id: growth-data
     notebook_id: d8de74d6-7028-44ed-b4d4-784d6a9256e6
@@ -92,8 +106,9 @@ brains:
       - Evaluation
     status: active
 
-  # Brain #8 (new - Master Interviewer / Discovery)
+  # Universal Niche (cross-domain brains)
   - id: 8
+    niche: "universal"
     name: Master Interviewer / Discovery
     short_id: master-interviewer
     notebook_id: 5330e845-29dc-4219-9d7e-c1ccb4851bb3
