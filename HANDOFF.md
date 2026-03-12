@@ -1,75 +1,93 @@
-# HANDOFF - Brain #8 Implementation
+# HANDOFF - MasterMind Framework
 
-**Fecha:** 2026-03-07
-**Sesión:** Continuación de PRPs Brain #8
-**Branch Actual:** `master`
-**Último Commit:** `e9347d4` feat(prp-014): Brain #8 Slash Command
-
----
-
-## ✅ Completado en Esta Sesión
-
-### PRP-013: Orchestrator Integration
-**Branch:** `feature/prp-013-brain-08-orchestrator-integration`
-**Commit:** `33115df`
-**Status:** ✅ Mergeado a `master`
-
-**Implementado:**
-- `FLOW_DISCOVERY` constant en Coordinator
-- `_detect_flow()` - Detección de ambigüedad (3-tier check)
-- `_generate_interview_plan()` - Query Brain #8 via MCP con fallback
-- `_execute_discovery_flow()` - Flujo principal de discovery
-- `_conduct_interview()` - Loop iterativo Q→A→Domain Brain→Follow-up
-- `_route_to_domain_brain()` - Routing a cerebros #1-7
-- OutputFormatter extensions
-- Tests: 9/9 passing
-
-### PRP-014: Slash Command
-**Branch:** `feature/prp-014-brain-08-slash-command`
-**Commit:** `e9347d4`
-**Status:** ✅ Mergeado a `master`
-
-**Implementado:**
-- `.claude/commands/mm/discovery.md` - Slash command
-- `docs/CLI-REFERENCE.md` - Discovery Commands section
-- `docs/examples/discovery-interviews.md` - 4 examples
+**Fecha:** 2026-03-12
+**Último commit:** 92ce7f3
+**Branch:** feature/prp-marketing-002-knowledge-m1-m8
 
 ---
 
-## ⏳ PRPs Restantes
+## Estado Actual
 
-| PRP | Descripción | Prioridad | Estimado |
-|-----|-------------|-----------|----------|
-| PRP-015 | Learning System | High | 6 hrs |
-| PRP-016 | Testing & Polish | Medium | 4 hrs |
-| PRP-017 | Release v1.1.0 | High | 2 hrs |
+### Framework v1.1.0
+- **Status:** Released & estable
+- **Nicho Software Development:** ✅ COMPLETE (17 PRPs)
+- **Nicho Marketing Digital:** 🟢 2/3 PRPs completados
 
-**Total:** ~12 horas
+### PRP-MARKETING-002 ✅ COMPLETADO (2026-03-12)
+
+**Commits:**
+- e18f1ba - 73 archivos, +22,954 líneas (M1-M8 completados)
+- 92ce7f3 - Handoff documentation
+
+| Cerebro | Fuentes | NotebookLM ID |
+|---------|---------|---------------|
+| M1 STRATEGY | 10 | `8ece7ed3...` |
+| M2 BRAND | 10 | `4eefaf90...` |
+| M3 CONTENT | 10 | `b45a0716...` |
+| M4 SOCIAL ORGANIC | 10 | `429743dd...` |
+| M5 SOCIAL PAID | 10 | `435d6319...` |
+| M6 SEARCH PPC | 10 | `a6da3c46...` |
+| **M7 SEO TECHNICAL** | 10 | `73e4c8c7...` ⭐ NUEVO |
+| **M8 SEO CONTENT** | 10 | `955783cb...` ⭐ NUEVO |
+
+**Total:** 80/80 fuentes creadas y cargadas en NotebookLM (100%)
 
 ---
 
-## 📋 Próximo: PRP-015 (Learning System)
+## Próximo PRP: PRP-MARKETING-003
 
-**Archivo:** `PRPs/PRP-015-brain-08-learning-system.md`
+**Objetivo:** Completar cerebros M9-M16 (40 fuentes) + Release del nicho Marketing Digital
 
-### Objetivo
-Sistema de aprendizaje para Brain #8:
-- `find_similar_interviews(brief, limit=5)`
-- Métricas de aprendizaje
-- Mejorar sugerencias con historial
+### Cerebros Pendientes
 
-### Archivos a Crear
-- `mastermind_cli/memory/interview_storage.py`
-- `mastermind_cli/memory/similarity.py`
-- `mastermind_cli/memory/metrics.py`
-- `mastermind_cli/commands/interview.py`
+| # | Cerebro | Fuentes | Expertos Clave |
+|---|---------|---------|----------------|
+| M9 | Email Marketing | 10 | Holmes, Settle, Deiss, Chaperon, Welsh |
+| M10 | Push/SMS/Retention | 10 | Schwartz, Eyal, Fogg, Cialdini |
+| M11 | Marketing Analytics | 10 | Kaushik, Eisenberg, Clifton, Waisberg |
+| M12 | CRO | 10 | Laja, Massey, McGlaughlin, Gardner |
+| M13 | Marketing Ops | 10 | Brinker, Riemersma, Montanaro |
+| M14 | Influencer/Partnerships | 10 | Schaffer, Gagliese, Henry |
+| M15 | Community Building | 10 | Solis, Millington, Spinks, Paladini |
+| M16 | Growth Partner (Evaluator) | 10 | Gould, Weiss, Weaver |
 
-### Para Empezar
+---
+
+## Comandos Útiles
+
 ```bash
-git checkout master
-git pull
-git checkout -b feature/prp-015-brain-08-learning-system
+# Crear nuevo branch para PRP-003
+git checkout -b feature/prp-marketing-003-m9-m16
+
+# Consultar cerebro
+/mm:ask-ux "brief"
+mm orchestrate run "brief"
+mm brain status
 ```
+
+---
+
+## Checklist para PRP-003
+
+Por cada cerebro M9-M16:
+- [ ] Crear directorio `BRAIN-XX-NAME/`
+- [ ] Crear `notebook-config.json`
+- [ ] Crear 10 fuentes (YAML + Markdown)
+- [ ] Crear notebook en NotebookLM
+- [ ] Cargar 10 fuentes
+- [ ] Actualizar `brains-marketing.yaml`
+- [ ] Commit
+
+Balance de idiomas: ~80% inglés, ~20% español
+
+---
+
+## Notas
+
+1. **M16 es el meta-cerebro evaluador** del nicho Marketing
+2. **No usar `--no-verify`** en git commits
+3. **NotebookLM MCP** configurado y funcionando
+4. **Checkpoint:** `memory/CHECKPOINT-2026-03-12-PRP002-COMPLETO.md`
 
 ---
 
