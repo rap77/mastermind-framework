@@ -12,7 +12,7 @@ url: "https://www.garcia-media.com/"
 skills_covered: ["H2", "H3", "H4"]
 distillation_date: "2026-03-10"
 distillation_quality: "complete"
-loaded_in_notebook: false
+loaded_in_notebook: true
 version: "1.0.0"
 last_updated: "2026-03-10"
 changelog:

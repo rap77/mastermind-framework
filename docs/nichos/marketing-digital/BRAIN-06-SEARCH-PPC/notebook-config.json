@@ -1,0 +1,95 @@
+{
+  "brain_id": "M6",
+  "brain_name": "Search PPC",
+  "notebook_id": "8f99a631-13b7-4a0a-9ca9-f8f738252257",
+  "notebook_title": "[CEREBRO] M6 Search PPC - Marketing Digital",
+  "status": "active",
+  "sources_count": 10,
+  "sources_loaded": 10,
+  "created_date": "2026-03-11",
+  "last_updated": "2026-03-11",
+  "experts": [
+    {
+      "source_id": "FUENTE-M6-001",
+      "name": "Perry Marshall",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Google Ads (SEM) fundamentals system"
+    },
+    {
+      "source_id": "FUENTE-M6-002",
+      "name": "Brad Geddes",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Advanced Google Ads strategies"
+    },
+    {
+      "source_id": "FUENTE-M6-003",
+      "name": "Frederick Vallaeys",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Google Ads automation y optimization tools"
+    },
+    {
+      "source_id": "FUENTE-M6-004",
+      "name": "Larry Kim",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "PPC strategy y methodology"
+    },
+    {
+      "source_id": "FUENTE-M6-005",
+      "name": "Mike Rhodes",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "PPC search marketing methodology"
+    },
+    {
+      "source_id": "FUENTE-M6-006",
+      "name": "Iñaki Huerta",
+      "relevance": "CRÍTICA",
+      "language": "es",
+      "contribution": "Google Ads en español para mercado hispano"
+    },
+    {
+      "source_id": "FUENTE-M6-007",
+      "name": "Gregorio Delfino",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "SEM y PPC para mercado europeo"
+    },
+    {
+      "source_id": "FUENTE-M6-008",
+      "name": "José Facchin",
+      "relevance": "ALTA",
+      "language": "es",
+      "contribution": "Google Ads para PYMES hispanas"
+    },
+    {
+      "source_id": "FUENTE-M6-009",
+      "name": "David Carrero",
+      "relevance": "ALTA",
+      "language": "es",
+      "contribution": "Google Ads comprehensive guide en español"
+    },
+    {
+      "source_id": "FUENTE-M6-010",
+      "name": "Sergio Redondo",
+      "relevance": "CRÍTICA",
+      "language": "es",
+      "contribution": "SEM avanzado para scaling a gran escala"
+    }
+  ],
+  "topics_covered": [
+    "Google Ads (SEM)",
+    "Microsoft Ads (Bing)",
+    "Keyword research y strategy",
+    "Quality Score optimization",
+    "Landing page optimization",
+    "Campaign structure",
+    "Bidding strategies",
+    "Remarketing y retargeting",
+    "PPC automation",
+    "SEM analytics y tracking"
+  ]
+}

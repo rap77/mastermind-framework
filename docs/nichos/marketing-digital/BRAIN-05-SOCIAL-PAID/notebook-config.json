@@ -1,0 +1,93 @@
+{
+  "brain_id": "M5",
+  "brain_name": "Social Media Paid",
+  "notebook_id": "435d6319-f673-4638-a3fc-87ae638f4175",
+  "notebook_title": "[CEREBRO] M5 Social Paid - Marketing Digital",
+  "status": "active",
+  "sources_count": 10,
+  "sources_loaded": 10,
+  "created_date": "2026-03-11",
+  "last_updated": "2026-03-11",
+  "experts": [
+    {
+      "source_id": "FUENTE-M5-001",
+      "name": "Perry Marshall",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Meta Ads (Facebook/Instagram) system completo"
+    },
+    {
+      "source_id": "FUENTE-M5-002",
+      "name": "Dennis Yu",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Facebook Ads scaling strategies"
+    },
+    {
+      "source_id": "FUENTE-M5-003",
+      "name": "Amanda Bond",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Instagram Ads creative strategy"
+    },
+    {
+      "source_id": "FUENTE-M5-004",
+      "name": "Akvile Sava",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "TikTok Ads platform expertise"
+    },
+    {
+      "source_id": "FUENTE-M5-005",
+      "name": "AJ Wilcox",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "LinkedIn Ads para B2B"
+    },
+    {
+      "source_id": "FUENTE-M5-006",
+      "name": "Luis Miguel Villanueva",
+      "relevance": "CRÍTICA",
+      "language": "es",
+      "contribution": "Facebook Ads para emprendedores hispanos"
+    },
+    {
+      "source_id": "FUENTE-M5-007",
+      "name": "Pol Salvat",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "Instagram Ads en español"
+    },
+    {
+      "source_id": "FUENTE-M5-008",
+      "name": "Merce Cardus",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "Social media advertising multi-plataforma"
+    },
+    {
+      "source_id": "FUENTE-M5-009",
+      "name": "Héctor Domínguez",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "TikTok Ads en mercado hispano"
+    },
+    {
+      "source_id": "FUENTE-M5-010",
+      "name": "Gabriel Bau",
+      "relevance": "CRÍTICA",
+      "language": "es",
+      "contribution": "Meta Ads avanzado (scaling, optimization)"
+    }
+  ],
+  "topics_covered": [
+    "Meta Ads (Facebook/Instagram)",
+    "TikTok Ads",
+    "LinkedIn Ads",
+    "Campaign scaling strategies",
+    "Creative strategy for social ads",
+    "Advanced optimization techniques",
+    "B2B social advertising",
+    "Market-specific strategies (Hispanic/Latam)"
+  ]
+}

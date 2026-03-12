@@ -1,0 +1,104 @@
+{
+  "brain_id": "M8",
+  "brain_name": "SEO Content",
+  "notebook_id": "955783cb-27d7-463a-ae31-82549eada64f",
+  "notebook_title": "[CEREBRO] M8 SEO Content - Marketing Digital",
+  "status": "loaded",
+  "sources_count": 10,
+  "sources_loaded": 10,
+  "created_date": "2026-03-11",
+  "last_updated": "2026-03-12",
+  "experts": [
+    {
+      "source_id": "FUENTE-M8-001",
+      "name": "Andy Crestodina",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Content SEO framework, research → optimize → promote → measure cycle"
+    },
+    {
+      "source_id": "FUENTE-M8-002",
+      "name": "Jon Cooper",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Link building strategies, outreach, broken link building, digital PR"
+    },
+    {
+      "source_id": "FUENTE-M8-003",
+      "name": "Neil Patel",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Keyword research, long-tail strategy, content scaling systems"
+    },
+    {
+      "source_id": "FUENTE-M8-004",
+      "name": "Ross Hudgens",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Content operations, workflows, briefs, team management, scaling systems"
+    },
+    {
+      "source_id": "FUENTE-M8-005",
+      "name": "Brian Clark",
+      "relevance": "MEDIA",
+      "language": "en",
+      "contribution": "SEO copywriting, headlines, storytelling, scannable writing, conversion optimization"
+    },
+    {
+      "source_id": "FUENTE-M8-006",
+      "name": "Marcus Tober",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Content performance analysis, A/B testing, content scoring, Searchmetrics"
+    },
+    {
+      "source_id": "FUENTE-M8-007",
+      "name": "Gael Breton",
+      "relevance": "MEDIA",
+      "language": "en",
+      "contribution": "Niche sites, topical authority, keyword clusters, Authority Hacker framework"
+    },
+    {
+      "source_id": "FUENTE-M8-008",
+      "name": "Ann Smarty",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Content strategy, content distribution, repurposing, competitive analysis"
+    },
+    {
+      "source_id": "FUENTE-M8-009",
+      "name": "Luis M. Villar",
+      "relevance": "ALTA",
+      "language": "es",
+      "contribution": "Content marketing en español, copywriting hispano, storytelling cultural"
+    },
+    {
+      "source_id": "FUENTE-M8-010",
+      "name": "Gabriel Ortiz Silva",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "Engagement strategies, contenido viral, community building, UGC hispano"
+    }
+  ],
+  "topics_covered": [
+    "Content SEO framework",
+    "Link building strategies",
+    "Keyword research",
+    "Search intent matching",
+    "On-page optimization",
+    "Content operations",
+    "SEO copywriting",
+    "Content performance analysis",
+    "Niche sites",
+    "Topical authority",
+    "Content scaling",
+    "Content repurposing",
+    "Content distribution",
+    "Storytelling",
+    "Engagement strategies",
+    "Content marketing en español",
+    "UGC (User Generated Content)",
+    "Community building",
+    "E-E-A-T para content"
+  ]
+}

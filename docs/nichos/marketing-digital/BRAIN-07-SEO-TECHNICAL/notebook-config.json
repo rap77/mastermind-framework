@@ -1,0 +1,104 @@
+{
+  "brain_id": "M7",
+  "brain_name": "SEO Technical",
+  "notebook_id": "73e4c8c7-7011-472b-bf92-5252d40f9763",
+  "notebook_title": "[CEREBRO] M7 SEO Technical - Marketing Digital",
+  "status": "loaded",
+  "sources_count": 10,
+  "sources_loaded": 10,
+  "created_date": "2026-03-11",
+  "last_updated": "2026-03-12",
+  "experts": [
+    {
+      "source_id": "FUENTE-M7-001",
+      "name": "Aleyda Solís",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "International SEO, technical SEO audits, site migrations, hreflang implementation"
+    },
+    {
+      "source_id": "FUENTE-M7-002",
+      "name": "Brian Dean",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "SEO ranking factors, Core Web Vitals, structured data, on-page optimization"
+    },
+    {
+      "source_id": "FUENTE-M7-003",
+      "name": "Barry Schwartz",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Google algorithm updates, core updates, helpful content, E-E-A-T"
+    },
+    {
+      "source_id": "FUENTE-M7-004",
+      "name": "Cyrus Shepard",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "Site architecture, internal linking, crawl budget, orphan pages"
+    },
+    {
+      "source_id": "FUENTE-M7-005",
+      "name": "Annie Cushing",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "Google Search Console analytics, technical SEO data analysis"
+    },
+    {
+      "source_id": "FUENTE-M7-006",
+      "name": "Rand Fishkin",
+      "relevance": "CRÍTICA",
+      "language": "en",
+      "contribution": "SEO fundamentals, search engine how it works, link building, Domain Authority"
+    },
+    {
+      "source_id": "FUENTE-M7-007",
+      "name": "Eric Enge",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "SEO audit methodology, canonicalization, redirects, site migrations"
+    },
+    {
+      "source_id": "FUENTE-M7-008",
+      "name": "Fernando Maciá",
+      "relevance": "ALTA",
+      "language": "es",
+      "contribution": "SEO técnico en español, indexación hispana, hreflang español/latino"
+    },
+    {
+      "source_id": "FUENTE-M7-009",
+      "name": "David Ayala",
+      "relevance": "MEDIA",
+      "language": "es",
+      "contribution": "SEO LATAM, keyword research hispano, geo-targeting latinoamericano"
+    },
+    {
+      "source_id": "FUENTE-M7-010",
+      "name": "Lily Ray",
+      "relevance": "ALTA",
+      "language": "en",
+      "contribution": "E-E-A-T, YMYL, helpful content, AI content vs human content"
+    }
+  ],
+  "topics_covered": [
+    "Crawling e indexación",
+    "Core Web Vitals",
+    "Site architecture",
+    "Internal linking",
+    "Crawl budget optimization",
+    "Canonicalization",
+    "Redirects (301)",
+    "Google Search Console",
+    "Google algorithm updates",
+    "E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness)",
+    "International SEO (hreflang)",
+    "SEO técnico en español",
+    "SEO LATAM",
+    "Structured data (Schema.org)",
+    "Mobile-first indexing",
+    "HTTPS y seguridad",
+    "XML sitemaps",
+    "Robots.txt",
+    "SEO audits methodology"
+  ]
+}

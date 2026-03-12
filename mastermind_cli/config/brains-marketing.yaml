@@ -102,7 +102,7 @@ brains:
   - id: M7
     name: SEO Technical
     short_id: seo-technical
-    notebook_id: d516e4e1-af06-4ac7-af20-ed1a50b2a1c3  # Created 2026-03-09
+    notebook_id: 73e4c8c7-7011-472b-bf92-5252d40f9763  # Created 2026-03-12
     system_prompt: agents/brains/marketing-07-seo-technical.md
     expertise:
       - Technical SEO
@@ -118,7 +118,7 @@ brains:
   - id: M8
     name: SEO Content & Link Building
     short_id: seo-content
-    notebook_id: 6d6093cf-9d3a-4b0d-86f6-24dd37b8ce85  # Created 2026-03-09
+    notebook_id: 955783cb-27d7-463a-ae31-82549eada64f  # Created 2026-03-12
     system_prompt: agents/brains/marketing-08-seo-content.md
     expertise:
       - Content SEO
