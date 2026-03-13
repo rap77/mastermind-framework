@@ -60,7 +60,7 @@ Requirements for v2.0 initial release. Each maps to roadmap phases.
 
 ### Performance
 
-- [ ] **PERF-01**: Parallel execution achieves 3-10x speedup for independent brains vs sequential
+- [x] **PERF-01**: Parallel execution achieves 3-10x speedup for independent brains vs sequential
 - [ ] **PERF-02**: Task state queries complete in <100ms (SQLite indexed)
 - [ ] **PERF-03**: WebSocket latency for progress updates <500ms
 - [ ] **PERF-04**: Web dashboard initial page load <2 seconds
@@ -137,7 +137,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PAR-07 | Phase 2 | Complete |
 | PAR-08 | Phase 2 | Pending |
 | PAR-09 | Phase 2 | Complete |
-| PERF-01 | Phase 2 | Pending |
+| PERF-01 | Phase 2 | Complete |
 
 ### Phase 3: Web UI Platform
 
