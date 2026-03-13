@@ -21,13 +21,13 @@ Requirements for v2.0 initial release. Each maps to roadmap phases.
 
 ### Type Safety
 
-- [ ] **TS-01**: All data structures have Pydantic v2 models (requests, responses, brain outputs, configs)
+- [x] **TS-01**: All data structures have Pydantic v2 models (requests, responses, brain outputs, configs)
 - [ ] **TS-02**: Codebase passes `mypy --strict` mode without errors
 - [ ] **TS-03**: MCP wrapper is type-safe (request/response models, validated)
-- [ ] **TS-04**: System validates types at runtime before execution (Pydantic validation)
+- [x] **TS-04**: System validates types at runtime before execution (Pydantic validation)
 - [ ] **TS-05**: System provides clear type error messages for mismatches
 - [ ] **TS-06**: CLI-to-Orchestrator boundary uses typed interfaces (no raw dicts)
-- [ ] **TS-07**: Brain outputs conform to typed schemas (backward compatible with v1 brains)
+- [x] **TS-07**: Brain outputs conform to typed schemas (backward compatible with v1 brains)
 
 ### Web UI
 
@@ -116,13 +116,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TS-01 | Phase 1 | Pending |
+| TS-01 | Phase 1 | Complete |
 | TS-02 | Phase 1 | Pending |
 | TS-03 | Phase 1 | Pending |
-| TS-04 | Phase 1 | Pending |
+| TS-04 | Phase 1 | Complete |
 | TS-05 | Phase 1 | Pending |
 | TS-06 | Phase 1 | Pending |
-| TS-07 | Phase 1 | Pending |
+| TS-07 | Phase 1 | Complete |
 
 ### Phase 2: Parallel Execution Core
 
