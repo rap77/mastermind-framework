@@ -4,7 +4,7 @@ Coordinator request and response models.
 
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class CoordinatorRequest(BaseModel):
@@ -23,5 +23,5 @@ class CoordinatorResponse(BaseModel):
     plan: Optional[Dict[str, Any]] = Field(None, description="Generated execution plan")
     results: Optional[Dict[str, Any]] = Field(None, description="Execution results by brain")
     output: Optional[str] = Field(None, description="Formatted output text")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Response timestamp")
     iterations: int = Field(0, description="Number of iterations performed")
