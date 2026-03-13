@@ -172,3 +172,50 @@ def find_sources_by_id(source_id: str, search_paths: List[str]) -> List[str]:
                 matches.append(str(source_file))
 
     return matches
+
+
+# ============================================================================
+# Runtime Validation Helpers (Pydantic v2)
+# ============================================================================
+
+import click as click_import
+from pydantic import TypeAdapter as PydanticTypeAdapter, ValidationError as PydanticValidationError
+from typing import Annotated as TypingAnnotated, Any as TypingAny
+
+
+class TypeAdapterParam(click_import.ParamType):
+    """Click parameter type with TypeAdapter validation.
+
+    Implements Pydantic-to-Click Bridge from CONTEXT.md.
+    """
+    name = "typed"
+
+    def __init__(self, model: TypingAny):
+        self.adapter = PydanticTypeAdapter(model)
+        self.model_name = model.__name__ if hasattr(model, '__name__') else str(model)
+
+    def convert(self, value: str, param: TypingAny, ctx: TypingAny) -> TypingAny:
+        import json
+
+        try:
+            # Parse JSON string to dict first
+            data = json.loads(value)
+            return self.adapter.validate_python(data)
+        except json.JSONDecodeError as e:
+            self.fail(f"Invalid JSON: {e}", param, ctx)
+        except PydanticValidationError as e:
+            error_msg = e.errors()[0]['msg']
+            self.fail(f"Invalid {self.model_name}: {error_msg}", param, ctx)
+
+
+def validate_brain_output(data: dict, schema: type) -> TypingAny:
+    """Validate brain output using TypeAdapter.
+
+    Runtime validation at boundaries per CONTEXT.md.
+    """
+    adapter = PydanticTypeAdapter(schema)
+    try:
+        return adapter.validate_python(data)
+    except PydanticValidationError as e:
+        # Return structured error for CLI formatting
+        return {"validation_error": e.errors(), "raw_data": data}
