@@ -112,31 +112,77 @@ Explicitly excluded. Documented to prevent scope creep.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
+### Phase 1: Type Safety Foundation
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PAR-01 | Phase 1 | Pending |
-| PAR-02 | Phase 1 | Pending |
-| PAR-03 | Phase 1 | Pending |
-| PAR-04 | Phase 1 | Pending |
-| TS-01 | Phase 2 | Pending |
-| TS-02 | Phase 2 | Pending |
-| TS-03 | Phase 2 | Pending |
+| TS-01 | Phase 1 | Pending |
+| TS-02 | Phase 1 | Pending |
+| TS-03 | Phase 1 | Pending |
+| TS-04 | Phase 1 | Pending |
+| TS-05 | Phase 1 | Pending |
+| TS-06 | Phase 1 | Pending |
+| TS-07 | Phase 1 | Pending |
+
+### Phase 2: Parallel Execution Core
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PAR-01 | Phase 2 | Pending |
+| PAR-02 | Phase 2 | Pending |
+| PAR-03 | Phase 2 | Pending |
+| PAR-04 | Phase 2 | Pending |
+| PAR-05 | Phase 2 | Pending |
+| PAR-06 | Phase 2 | Pending |
+| PAR-07 | Phase 2 | Pending |
+| PAR-08 | Phase 2 | Pending |
+| PAR-09 | Phase 2 | Pending |
+| PERF-01 | Phase 2 | Pending |
+
+### Phase 3: Web UI Platform
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 3 | Pending |
 | UI-04 | Phase 3 | Pending |
+| UI-05 | Phase 3 | Pending |
+| UI-06 | Phase 3 | Pending |
+| UI-07 | Phase 3 | Pending |
+| UI-08 | Phase 3 | Pending |
+| UI-09 | Phase 3 | Pending |
+| UI-10 | Phase 3 | Pending |
+| ARCH-03 | Phase 3 | Pending |
+| PERF-02 | Phase 3 | Pending |
+| PERF-03 | Phase 3 | Pending |
+| PERF-04 | Phase 3 | Pending |
+
+### Phase 4: Experience Store & Production
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
 | ARCH-01 | Phase 4 | Pending |
 | ARCH-02 | Phase 4 | Pending |
-| ARCH-03 | Phase 3 | Pending |
-| BC-01 | Phase 5 | Pending |
-| PERF-01 | Phase 1 | Pending |
-| TEST-01 | Phase 5 | Pending |
+| ARCH-04 | Phase 4 | Pending |
+| ARCH-05 | Phase 4 | Pending |
+| BC-01 | Phase 4 | Pending |
+| BC-02 | Phase 4 | Pending |
+| BC-03 | Phase 4 | Pending |
+| BC-04 | Phase 4 | Pending |
+| BC-05 | Phase 4 | Pending |
+| TEST-01 | Phase 4 | Pending |
+| TEST-02 | Phase 4 | Pending |
+| TEST-03 | Phase 4 | Pending |
+| TEST-04 | Phase 4 | Pending |
+| TEST-05 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 34 total
-- Mapped to phases: 0 (roadmap not created yet)
-- Unmapped: 34 ⚠️
+- Mapped to phases: 34 ✓
+- Unmapped: 0
+- Coverage: 100%
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after initial definition*
+*Last updated: 2026-03-13 after roadmap creation*
