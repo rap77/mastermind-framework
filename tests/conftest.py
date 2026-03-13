@@ -10,11 +10,25 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 from mastermind_cli.types.parallel import FlowConfig, ProviderConfig
+from mastermind_cli.state.database import DatabaseConnection
 
 
 # Paths to test configuration files
 CONFIG_DIR = Path(__file__).parent.parent / "mastermind_cli" / "config"
 PROVIDERS_CONFIG_PATH = CONFIG_DIR / "providers.yaml"
+
+
+@pytest.fixture
+async def async_db():
+    """Async in-memory database fixture.
+
+    Provides a clean in-memory database for each test.
+    Automatically creates tasks schema.
+    """
+    db = DatabaseConnection(db_path=":memory:")
+    async with db:
+        await db.create_task_schema()
+        yield db
 
 
 @pytest.fixture

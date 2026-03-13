@@ -1,0 +1,220 @@
+"""
+Parallel executor using asyncio.TaskGroup with semaphore throttling.
+
+This module provides ParallelExecutor for running independent brains
+concurrently with retry logic, Circuit Breaker, and state persistence.
+"""
+
+import asyncio
+import random
+from typing import Dict, Any, List, Optional
+
+from ..types.parallel import FlowConfig, ProviderConfig, TaskState
+from ..state.repositories import TaskRepository
+from ..orchestrator.mcp_wrapper import TypeSafeMCPWrapper
+
+
+class ParallelExecutor:
+    """Execute brains in parallel using asyncio.TaskGroup.
+
+    This executor manages concurrent brain execution with:
+    - Per-provider semaphores for rate limiting
+    - Retry logic with exponential backoff (1s, 2s, 4s) + jitter
+    - Circuit Breaker that opens after 3 consecutive failures per brain
+    - Task state persistence before/after execution
+
+    Example:
+        >>> executor = ParallelExecutor(task_repo, mcp_client, provider_configs)
+        >>> results = await executor.execute_brains_parallel(flow, "brief")
+        >>> print(results["brain-01"]["result"])
+    """
+
+    def __init__(
+        self,
+        task_repo: TaskRepository,
+        mcp_client: TypeSafeMCPWrapper,
+        provider_configs: List[ProviderConfig]
+    ):
+        """Initialize executor with repository, MCP client, and provider configs.
+
+        Args:
+            task_repo: TaskRepository for state persistence
+            mcp_client: TypeSafeMCPWrapper for brain queries
+            provider_configs: List of ProviderConfig for rate limiting
+        """
+        self.task_repo = task_repo
+        self.mcp_client = mcp_client
+        self.semaphores = {
+            p.name: asyncio.Semaphore(p.max_concurrent_calls)
+            for p in provider_configs
+        }
+        self.cancel_event = asyncio.Event()
+        # Circuit Breaker state: brain_id -> consecutive_failure_count
+        self._circuit_breakers: Dict[str, int] = {}
+        self.CIRCUIT_BREAKER_THRESHOLD = 3
+
+    async def execute_brain(
+        self,
+        task_id: str,
+        brain_id: str,
+        query: str,
+        provider_name: str = "notebooklm"
+    ) -> Dict[str, Any]:
+        """Execute a single brain with semaphore limiting and retry logic.
+
+        Args:
+            task_id: Unique task identifier
+            brain_id: Brain to execute
+            query: Query string
+            provider_name: Provider for rate limiting (default: notebooklm)
+
+        Returns:
+            Dictionary with brain_id, status, and result/error
+
+        Raises:
+            asyncio.CancelledError: If task is cancelled
+        """
+        semaphore = self.semaphores.get(provider_name)
+        if not semaphore:
+            raise ValueError(f"Unknown provider: {provider_name}")
+
+        # Check Circuit Breaker
+        if self._circuit_breakers.get(brain_id, 0) >= self.CIRCUIT_BREAKER_THRESHOLD:
+            await self.task_repo.update_status(
+                task_id,
+                TaskState.FAILED,
+                error=f"Circuit Breaker open for {brain_id} (too many failures)"
+            )
+            return {
+                "brain_id": brain_id,
+                "status": "failed",
+                "error": f"Circuit Breaker open for {brain_id}"
+            }
+
+        async with semaphore:
+            if self.cancel_event.is_set():
+                raise asyncio.CancelledError("Task cancelled")
+
+            await self.task_repo.update_status(task_id, TaskState.RUNNING)
+
+            # Retry loop with exponential backoff + jitter
+            max_attempts = 3
+            base_delay = 1.0  # seconds
+            jitter_percent = 0.2  # ±20%
+
+            for attempt in range(max_attempts):
+                try:
+                    # Call MCP wrapper's async method (if exists) or sync method
+                    result = await self._call_brain(brain_id, query)
+                    # Success: reset Circuit Breaker
+                    self._circuit_breakers[brain_id] = 0
+                    await self.task_repo.update_result(task_id, result)
+                    return {"brain_id": brain_id, "status": "completed", "result": result}
+
+                except asyncio.CancelledError:
+                    await self.task_repo.update_status(task_id, TaskState.CANCELLED)
+                    raise
+
+                except Exception as e:
+                    is_last_attempt = attempt == max_attempts - 1
+
+                    if is_last_attempt:
+                        # All retries exhausted: increment Circuit Breaker
+                        self._circuit_breakers[brain_id] = self._circuit_breakers.get(brain_id, 0) + 1
+                        await self.task_repo.update_status(
+                            task_id,
+                            TaskState.FAILED,
+                            error=str(e)
+                        )
+                        return {
+                            "brain_id": brain_id,
+                            "status": "failed",
+                            "error": str(e)
+                        }
+                    else:
+                        # Exponential backoff with jitter
+                        delay = base_delay * (2 ** attempt)  # 1s, 2s, 4s
+                        jitter = delay * jitter_percent * (random.random() * 2 - 1)  # ±20%
+                        await asyncio.sleep(delay + jitter)
+
+    async def _call_brain(self, brain_id: str, query: str) -> Dict[str, Any]:
+        """Call brain via MCP wrapper.
+
+        This method handles both sync and async MCP clients.
+
+        Args:
+            brain_id: Brain identifier
+            query: Query string
+
+        Returns:
+            Brain response as dictionary
+        """
+        # Check if MCP client has async query_brain method
+        if hasattr(self.mcp_client, 'call_mcp'):
+            # Use TypeSafeMCPWrapper's sync method
+            response = self.mcp_client.call_mcp(brain_id, query)
+            if response.success:
+                return {"response": response.response}
+            else:
+                raise Exception(response.error or "MCP call failed")
+        elif asyncio.iscoroutinefunction(self.mcp_client.query_brain):
+            # Use async method
+            return await self.mcp_client.query_brain(brain_id, query)
+        else:
+            # Use sync method in thread pool
+            return await asyncio.to_thread(self.mcp_client.query_brain, brain_id, query)
+
+    async def execute_brains_parallel(
+        self,
+        flow: FlowConfig,
+        brief: str
+    ) -> Dict[str, Any]:
+        """Execute multiple brains in parallel using TaskGroup.
+
+        This method creates tasks for all brains in the flow and executes
+        them concurrently using asyncio.TaskGroup. Independent brains
+        (no dependencies) run in parallel.
+
+        Args:
+            flow: FlowConfig with brain nodes
+            brief: Brief/query to execute
+
+        Returns:
+            Dictionary mapping brain_id to execution results
+        """
+        results = {}
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tasks = {}
+                for brain_id in flow.nodes.keys():
+                    task_id = f"{brain_id}-{id(brief)}"
+                    await self.task_repo.create(task_id, brain_id)
+
+                    task = tg.create_task(
+                        self.execute_brain(task_id, brain_id, brief)
+                    )
+                    tasks[brain_id] = task
+
+                for brain_id, task in tasks.items():
+                    result = await task
+                    results[brain_id] = result
+
+        except* Exception as eg:
+            # Handle exception group (multiple failures)
+            for exc in eg.exceptions:
+                print(f"Task failed: {exc}")
+
+        return results
+
+    def cancel(self):
+        """Cancel all running tasks."""
+        self.cancel_event.set()
+
+    def reset_circuit_breaker(self, brain_id: str):
+        """Reset Circuit Breaker for a specific brain (manual recovery).
+
+        Args:
+            brain_id: Brain to reset Circuit Breaker for
+        """
+        if brain_id in self._circuit_breakers:
+            del self._circuit_breakers[brain_id]
