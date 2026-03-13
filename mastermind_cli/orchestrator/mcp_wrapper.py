@@ -6,13 +6,107 @@ Claude Code to invoke MCP tools like NotebookLM.
 """
 
 import json
-from typing import Any
+from typing import Any, Annotated
 
+from pydantic import validate_call, Field, ValidationError
 from mastermind_cli.types import MCPRequest, MCPResponse
 
 
-class MCPWrapper:
-    """Wrapper for Claude Code MCP tools.
+class TypeSafeMCPWrapper:
+    """Type-safe wrapper for NotebookLM MCP integration.
+
+    Implements runtime validation per CONTEXT.md:
+    - Validates requests with MCPRequest model
+    - Returns MCPResponse with extra='allow' for evolutivo approach
+    - Graceful error handling on MCP failures
+    """
+
+    def __init__(self, mcp_client: Any):
+        """Initialize MCP wrapper.
+
+        Args:
+            mcp_client: MCP client instance (must have query_brain method)
+        """
+        self.mcp_client = mcp_client
+
+    @validate_call
+    def call_mcp(
+        self,
+        brain_id: str,
+        query: Annotated[str, Field(min_length=1)],
+        context: dict[str, Any] | None = None,
+        timeout: Annotated[int, Field(ge=5, le=300)] = 30
+    ) -> MCPResponse:
+        """Call MCP with type-safe request/response.
+
+        Args:
+            brain_id: Brain identifier to query
+            query: Query text (validated: min_length=1)
+            context: Optional context dictionary
+            timeout: Timeout in seconds (validated: 5-300)
+
+        Returns:
+            MCPResponse with extra='allow' for evolutivo approach
+        """
+        # Create MCPRequest (validates via Pydantic)
+        request = MCPRequest(
+            brain_id=brain_id,
+            query=query,
+            context=context,
+            timeout=timeout
+        )
+
+        # Call actual MCP integration
+        try:
+            raw_response = self.mcp_client.query_brain(
+                brain_id=request.brain_id,
+                query=request.query,
+                timeout=request.timeout
+            )
+
+            # Return MCPResponse (extra='allow' preserves unknown fields)
+            return MCPResponse(
+                brain_id=request.brain_id,
+                response=raw_response.get("response", ""),
+                success=raw_response.get("success", True),
+                error=raw_response.get("error"),
+                timestamp=raw_response.get("timestamp"),
+                **{k: v for k, v in raw_response.items()
+                   if k not in ["brain_id", "response", "success", "error", "timestamp"]}
+            )
+
+        except Exception as e:
+            # Graceful error handling per CONTEXT.md
+            return MCPResponse(
+                brain_id=request.brain_id,
+                response="",
+                success=False,
+                error=f"MCP call failed: {str(e)}"
+            )
+
+    def format_validation_error(error: ValidationError) -> str:
+        """Format ValidationError with context.
+
+        Implements "Contextual Diagnostics" from CONTEXT.md.
+        """
+        errors = error.errors()
+        formatted = []
+
+        for err in errors:
+            loc = " -> ".join(str(l) for l in err["loc"])
+            formatted.append(f"  - {loc}: {err['msg']}")
+            if "ctx" in err:
+                formatted.append(f"    Context: {err['ctx']}")
+
+        return "Validation errors:\n" + "\n".join(formatted)
+
+
+# Alias for backward compatibility
+MCPWrapper = TypeSafeMCPWrapper
+
+
+class LegacyMCPWrapper:
+    """Legacy wrapper for Claude Code MCP tools.
 
     When running in Claude Code, the actual MCP tools are invoked
     at the tool level. This class provides a Python API that
