@@ -116,3 +116,69 @@ async def test_crud_operations():
         failed_tasks = await repo.get_by_status(status="failed")
         assert len(failed_tasks) == 1
         assert failed_tasks[0].id == "task-002"
+
+
+@pytest.mark.asyncio
+async def test_task_status_performance():
+    """Test task status query with <100ms performance target."""
+    import time
+    from mastermind_cli.state.repositories import TaskRepository
+
+    db = DatabaseConnection(db_path=":memory:")
+
+    async with db:
+        await db.create_task_schema()
+        repo = TaskRepository(db)
+
+        # Create a task
+        task = await repo.create(task_id="task-perf-001", brain_id="brain-01")
+
+        # Measure query performance
+        start = time.perf_counter()
+        retrieved = await repo.get_task_status(task_id="task-perf-001")
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Verify result
+        assert retrieved is not None
+        assert retrieved.id == "task-perf-001"
+
+        # Verify performance target (<100ms)
+        assert elapsed_ms < 100, f"Query took {elapsed_ms:.2f}ms, exceeds 100ms target"
+
+        print(f"✓ Task status query: {elapsed_ms:.2f}ms (<100ms target)")
+
+
+@pytest.mark.asyncio
+async def test_get_all_statuses():
+    """Test retrieving all tasks for dashboard display."""
+    from mastermind_cli.state.repositories import TaskRepository
+
+    db = DatabaseConnection(db_path=":")
+
+    async with db:
+        await db.create_task_schema()
+        repo = TaskRepository(db)
+
+        # Create multiple tasks with different statuses
+        await repo.create(task_id="task-001", brain_id="brain-01")
+        await repo.update_status(task_id="task-001", status="completed")
+
+        await repo.create(task_id="task-002", brain_id="brain-02")
+        await repo.update_status(task_id="task-002", status="running")
+
+        await repo.create(task_id="task-003", brain_id="brain-03")
+
+        # Get all tasks
+        all_tasks = await repo.get_all_statuses()
+
+        # Verify all tasks are returned (ordered by created_at DESC)
+        assert len(all_tasks) == 3
+        assert all_tasks[0].id == "task-003"  # Most recent first
+        assert all_tasks[1].id == "task-002"
+        assert all_tasks[2].id == "task-001"
+
+        # Verify statuses
+        statuses = [t.status for t in all_tasks]
+        assert "completed" in statuses
+        assert "running" in statuses
+        assert "pending" in statuses
