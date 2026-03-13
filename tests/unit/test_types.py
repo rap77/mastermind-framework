@@ -118,3 +118,84 @@ class TestCoordinatorModels:
         field_info = CoordinatorRequest.model_fields['brief']
         assert field_info.description is not None
         assert "brief" in field_info.description.lower() or "text" in field_info.description.lower()
+
+
+class TestMCPModels:
+    """Test MCP request and response models."""
+
+    def test_mcp_request_validates_brain_id_and_query(self):
+        """Test that MCPRequest validates brain_id and query."""
+        from mastermind_cli.types import MCPRequest
+
+        request = MCPRequest(brain_id="brain-1", query="What is product strategy?")
+        assert request.brain_id == "brain-1"
+        assert request.query == "What is product strategy?"
+        assert request.timeout == 30  # Default value
+
+    def test_mcp_request_accepts_optional_context_dict(self):
+        """Test that MCPRequest accepts optional context dict."""
+        from mastermind_cli.types import MCPRequest
+
+        request = MCPRequest(
+            brain_id="brain-1",
+            query="Test query",
+            context={"project": "CRM", "user": "alice"},
+            timeout=60
+        )
+        assert request.context is not None
+        assert request.context["project"] == "CRM"
+        assert request.timeout == 60
+
+    def test_mcp_request_validates_constraints(self):
+        """Test that MCPRequest validates field constraints."""
+        from mastermind_cli.types import MCPRequest
+        from pydantic import ValidationError
+
+        # timeout must be between 5 and 300
+        with pytest.raises(ValidationError):
+            MCPRequest(brain_id="brain-1", query="Test", timeout=4)
+
+        with pytest.raises(ValidationError):
+            MCPRequest(brain_id="brain-1", query="Test", timeout=301)
+
+        # query must have min_length=1
+        with pytest.raises(ValidationError):
+            MCPRequest(brain_id="brain-1", query="")
+
+    def test_mcp_response_uses_extra_allow_for_evolutivo_approach(self):
+        """Test that MCPResponse uses extra='allow' for evolutivo approach."""
+        from mastermind_cli.types import MCPResponse
+
+        # Create response with extra fields
+        response = MCPResponse(
+            brain_id="brain-1",
+            response="Strategy output",
+            success=True,
+            unknown_field="preserved",  # This should be preserved
+            another_unknown=42
+        )
+
+        # Extra fields should be preserved
+        assert hasattr(response, 'unknown_field')
+        assert response.unknown_field == "preserved"
+        assert hasattr(response, 'another_unknown')
+        assert response.another_unknown == 42
+
+    def test_mcp_response_preserves_unknown_fields_from_notebooklm(self):
+        """Test that MCPResponse preserves unknown fields from NotebookLM."""
+        from mastermind_cli.types import MCPResponse
+
+        # Simulate NotebookLM response with evolving schema
+        raw_data = {
+            "brain_id": "brain-1",
+            "response": "Output",
+            "success": True,
+            "new_field_v2": "new value",  # Field added in NotebookLM v2
+            "metadata": {"source": "notebooklm", "version": "2.0"}
+        }
+
+        response = MCPResponse(**raw_data)
+
+        # All fields should be preserved
+        assert response.new_field_v2 == "new value"
+        assert response.metadata["source"] == "notebooklm"
