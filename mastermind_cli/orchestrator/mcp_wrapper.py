@@ -6,7 +6,9 @@ Claude Code to invoke MCP tools like NotebookLM.
 """
 
 import json
-from typing import Dict, Optional, List
+from typing import Any
+
+from mastermind_cli.types import MCPRequest, MCPResponse
 
 
 class MCPWrapper:
@@ -26,8 +28,8 @@ class MCPWrapper:
     def create_notebook_query_spec(
         notebook_id: str,
         query: str,
-        source_ids: Optional[List[str]] = None
-    ) -> Dict:
+        source_ids: list[str] | None = None
+    ) -> dict[str, Any]:
         """Create a specification for a NotebookLM query.
 
         This spec can be used to invoke the MCP tool:
@@ -50,7 +52,7 @@ class MCPWrapper:
         }
 
     @staticmethod
-    def parse_notebook_response(response: str) -> Dict:
+    def parse_notebook_response(response: str) -> dict[str, Any]:
         """Parse a NotebookLM query response.
 
         Args:
@@ -98,7 +100,7 @@ class MCPWrapper:
 
     @staticmethod
     def format_evaluation_query(
-        output: Dict,
+        output: dict[str, Any],
         matrix_id: str,
         brain_id: int
     ) -> str:
@@ -153,8 +155,8 @@ class DirectMCPInvoker:
         cls,
         brain_id: int,
         query: str,
-        source_ids: Optional[List[str]] = None
-    ) -> Dict:
+        source_ids: list[str] | None = None
+    ) -> dict[str, Any]:
         """Query a brain's notebook.
 
         NOTE: This method returns a specification for the MCP tool call.
@@ -251,7 +253,7 @@ Ensure your response follows the exact YAML structure above.
 """
 
     @classmethod
-    def create_brain_7_query(cls, output: Dict, brain_id: int = 1) -> str:
+    def create_brain_7_query(cls, output: dict[str, Any], brain_id: int = 1) -> str:
         """Create a formatted query for Brain #7 (Evaluator)."""
         matrix_id = "MATRIX-product-brief"  # Default for Brain #1 outputs
 
@@ -308,12 +310,12 @@ redirect_instructions:
 """
 
 
-def get_brain_notebook_id(brain_id: int) -> Optional[str]:
+def get_brain_notebook_id(brain_id: int) -> str | None:
     """Get the NotebookLM notebook ID for a brain."""
     return DirectMCPInvoker.NOTEBOOK_IDS.get(brain_id)
 
 
-def list_active_brains() -> List[Dict]:
+def list_active_brains() -> list[dict[str, Any]]:
     """List all brains with active notebooks."""
     return [
         {
