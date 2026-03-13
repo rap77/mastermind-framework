@@ -61,9 +61,9 @@ class DatabaseConnection:
         return self._conn
 
     async def create_task_schema(self):
-        """Create tasks table with indexes.
+        """Create tasks and executions tables with indexes.
 
-        Schema:
+        Tasks Schema:
             - id: Task ID (primary key)
             - brain_id: Brain being executed
             - status: Task state (pending, running, completed, failed, cancelled, killed)
@@ -72,6 +72,13 @@ class DatabaseConnection:
             - error: Error message if failed
             - created_at: Creation timestamp
             - updated_at: Last update timestamp
+
+        Executions Schema:
+            - id: Execution ID (primary key)
+            - flow_config: FlowConfig as JSON
+            - brief: User's brief
+            - created_at: Creation timestamp
+            - status: Execution status (pending, running, completed, failed)
         """
         await self.conn.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
@@ -83,6 +90,17 @@ class DatabaseConnection:
                 error TEXT,
                 created_at TIMESTAMP,
                 updated_at TIMESTAMP
+            )
+        """)
+
+        # Create executions table for config persistence
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS executions (
+                id TEXT PRIMARY KEY,
+                flow_config TEXT NOT NULL,
+                brief TEXT NOT NULL,
+                created_at TIMESTAMP,
+                status TEXT
             )
         """)
 

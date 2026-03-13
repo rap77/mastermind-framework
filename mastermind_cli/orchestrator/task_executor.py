@@ -182,6 +182,10 @@ class ParallelExecutor:
         Returns:
             Dictionary mapping brain_id to execution results
         """
+        # Generate execution_id and save config for re-run capability
+        execution_id = f"exec-{flow.flow_id}-{id(brief)}"
+        await self.save_config(execution_id, flow, brief)
+
         results = {}
         try:
             async with asyncio.TaskGroup() as tg:
@@ -218,3 +222,63 @@ class ParallelExecutor:
         """
         if brain_id in self._circuit_breakers:
             del self._circuit_breakers[brain_id]
+
+    async def save_config(
+        self,
+        execution_id: str,
+        flow: FlowConfig,
+        brief: str
+    ) -> str:
+        """Save execution configuration for re-run.
+
+        This method persists the FlowConfig and brief to the executions table,
+        enabling reproducible executions and workflow re-execution.
+
+        Args:
+            execution_id: Unique execution identifier
+            flow: Flow configuration
+            brief: User's brief
+
+        Returns:
+            execution_id (the same as input for convenience)
+        """
+        from datetime import datetime, timezone
+
+        flow_json = flow.model_dump_json()
+        now = datetime.now(timezone.utc).isoformat()
+
+        await self.task_repo.db.conn.execute(
+            """INSERT INTO executions (id, flow_config, brief, created_at, status)
+               VALUES (?, ?, ?, ?, 'pending')""",
+            (execution_id, flow_json, brief, now)
+        )
+        await self.task_repo.db.conn.commit()
+        return execution_id
+
+    async def load_config(self, execution_id: str) -> Optional[dict]:
+        """Load saved execution configuration.
+
+        This method retrieves a previously saved execution configuration,
+        allowing workflows to be re-run with identical parameters.
+
+        Args:
+            execution_id: Execution identifier to load
+
+        Returns:
+            Dict with flow_config and brief, or None if not found
+        """
+        cursor = await self.task_repo.db.conn.execute(
+            "SELECT flow_config, brief FROM executions WHERE id = ?",
+            (execution_id,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            import json
+            from ..types.parallel import FlowConfig
+            flow_config = FlowConfig.model_validate_json(row[0])
+            return {
+                "flow": flow_config,
+                "brief": row[1]
+            }
+        return None
