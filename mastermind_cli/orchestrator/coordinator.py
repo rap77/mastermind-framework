@@ -3,7 +3,7 @@ Coordinator - Main orchestration coordinator with iteration loop.
 """
 
 import os
-from typing import Dict, Optional
+from typing import Any
 
 from .flow_detector import FlowDetector
 from .plan_generator import PlanGenerator
@@ -18,7 +18,12 @@ class Coordinator:
     FLOW_DISCOVERY = "discovery"
     MAX_ITERATIONS = 3
 
-    def __init__(self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False, enable_logging: bool = True):
+    def __init__(
+        self,
+        formatter: OutputFormatter | None = None,
+        use_mcp: bool = False,
+        enable_logging: bool = True
+    ) -> None:
         """Initialize coordinator.
 
         Args:
@@ -29,15 +34,15 @@ class Coordinator:
         from .mcp_integration import MCPIntegration
 
         self.flow_detector = FlowDetector()
-        self.plan_generator = PlanGenerator(self.flow_detector)
+        self.plan_generator = PlanGenerator(self.flow_detector)  # type: ignore[no-untyped-call]
         self.mcp_integration = MCPIntegration(use_mcp=use_mcp)
         self.brain_executor = BrainExecutor(mcp_client=self.mcp_integration)
         self.formatter = formatter or OutputFormatter()
         self.eval_logger = EvaluationLogger(enabled=enable_logging) if enable_logging else None
 
         # Execution state
-        self.current_plan: Optional[Dict] = None
-        self.execution_results = {}
+        self.current_plan: dict[str, Any] | None = None
+        self.execution_results: dict[str, Any] = {}
         self.iteration_count = 0
         self.rejection_count = 0
         self.use_mcp = use_mcp
@@ -45,12 +50,12 @@ class Coordinator:
     def orchestrate(
         self,
         brief: str,
-        flow: Optional[str] = None,
+        flow: str | None = None,
         dry_run: bool = False,
-        output_file: Optional[str] = None,
+        output_file: str | None = None,
         max_iterations: int = MAX_ITERATIONS,
         use_mcp: bool = False
-    ) -> Dict:
+    ) -> dict[str, Any]:
         """
         Main orchestration entry point with iteration support.
 
@@ -100,7 +105,7 @@ class Coordinator:
 
         return execution_report
 
-    def _execute_with_iterations(self, max_iterations: int) -> Dict:
+    def _execute_with_iterations(self, max_iterations: int) -> dict[str, Any]:
         """Execute the current plan with iteration support."""
         if self.current_plan is None:
             return self._error_report("No plan generated")
@@ -130,7 +135,7 @@ class Coordinator:
             # Standard flow execution
             return self._execute_standard_flow(tasks)
 
-    def _execute_discovery_flow(self, brief: str) -> Dict:
+    def _execute_discovery_flow(self, brief: str) -> dict[str, Any]:
         """
         Execute discovery interview with Brain #8.
 
@@ -203,7 +208,7 @@ class Coordinator:
         except Exception as e:
             return self._error_report(f"Discovery flow error: {str(e)}")
 
-    def _format_interview_deliverable(self, interview_doc: Dict) -> str:
+    def _format_interview_deliverable(self, interview_doc: dict[str, Any]) -> str:
         """Format interview document as final deliverable."""
         lines = []
         lines.append("# Discovery Interview Results")
@@ -231,7 +236,7 @@ class Coordinator:
         qa_pairs = interview_doc.get('qa_pairs', [])
         if qa_pairs:
             # Group by category
-            by_category = {}
+            by_category: dict[str, list[dict[str, Any]]] = {}
             for qa in qa_pairs:
                 cat = qa.get('category', 'General')
                 if cat not in by_category:
@@ -258,7 +263,7 @@ class Coordinator:
 
         return "\n".join(lines)
 
-    def _log_interview_as_evaluation(self, interview_doc: Dict, brief: str):
+    def _log_interview_as_evaluation(self, interview_doc: dict[str, Any], brief: str) -> None:
         """Log interview as evaluation for tracking."""
         if not self.eval_logger:
             return
@@ -286,15 +291,15 @@ class Coordinator:
             ]
         )
 
-    def _execute_validation_flow(self, tasks: list, max_iterations: int) -> Dict:
+    def _execute_validation_flow(self, tasks: list[dict[str, Any]], max_iterations: int) -> dict[str, Any]:
         """Execute validation flow (Brain #1 → Brain #7) with iteration."""
         if self.current_plan is None:
             return self._error_report("No plan available")
         plan_id = self.current_plan['plan_id']
         brief = self.current_plan['brief']['original']
 
-        outputs = {}
-        evaluations = {}
+        outputs: dict[str, Any] = {}
+        evaluations: dict[str, Any] = {}
 
         for iteration in range(1, max_iterations + 1):
             self.iteration_count = iteration
@@ -449,7 +454,7 @@ class Coordinator:
             'evaluations': evaluations
         }
 
-    def _execute_standard_flow(self, tasks: list) -> Dict:
+    def _execute_standard_flow(self, tasks: list[dict[str, Any]]) -> dict[str, Any]:
         """Execute standard flow (all tasks in sequence)."""
         if self.current_plan is None:
             return self._error_report("No plan available")
@@ -513,7 +518,7 @@ class Coordinator:
             'final_deliverable': self._generate_deliverable(outputs, evaluations)
         }
 
-    def _generate_deliverable(self, outputs: Dict, evaluations: Dict) -> str:
+    def _generate_deliverable(self, outputs: dict[str, Any], evaluations: dict[str, Any]) -> str:
         """Generate final deliverable from outputs."""
         if not outputs:
             return "No outputs generated."
@@ -581,7 +586,7 @@ class Coordinator:
 
         return "\n".join(lines)
 
-    def _error_report(self, error: str) -> Dict:
+    def _error_report(self, error: str) -> dict[str, Any]:
         """Generate error report."""
         return {
             'status': 'error',
@@ -589,13 +594,13 @@ class Coordinator:
             'plan': self.current_plan
         }
 
-    def _save_output(self, output: str, filepath: str):
+    def _save_output(self, output: str, filepath: str) -> None:
         """Save output to file."""
         os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
         with open(filepath, 'w') as f:
             f.write(output)
 
-    def _log_evaluation(self, result_7: dict, brief: str, flow_type: str):
+    def _log_evaluation(self, result_7: dict[str, Any], brief: str, flow_type: str) -> None:
         """Log evaluation to memory system.
 
         Args:
@@ -711,7 +716,7 @@ class Coordinator:
         # Default: use existing flow detector
         return self.flow_detector.detect(brief)
 
-    def generate_discovery_plan(self, brief: str, use_mcp: bool = False) -> Dict:
+    def generate_discovery_plan(self, brief: str, use_mcp: bool = False) -> dict[str, Any]:
         """
         Generate discovery interview plan (public API for skills/CLI).
 
@@ -740,7 +745,7 @@ class Coordinator:
             # Restore original setting
             self.use_mcp = original_use_mcp
 
-    def _generate_interview_plan(self, brief: str) -> Dict:
+    def _generate_interview_plan(self, brief: str) -> dict[str, Any]:
         """
         Generate interview plan by querying Brain #8.
 
@@ -814,7 +819,7 @@ Keep the JSON format clean and parseable.
             print(self.formatter.format_warning(f"Brain #8 query failed: {e}. Using basic plan."))
             return self._generate_basic_interview_plan(brief)
 
-    def _parse_interview_plan(self, content: str) -> Optional[Dict]:
+    def _parse_interview_plan(self, content: str) -> dict[str, Any] | None:
         """Parse interview plan from Brain #8 response."""
         import json
         import re
@@ -825,14 +830,14 @@ Keep the JSON format clean and parseable.
         if json_match:
             try:
                 plan_data = json.loads(json_match.group())
-                return plan_data
+                return plan_data if isinstance(plan_data, dict) else None
             except json.JSONDecodeError:
                 pass
 
         # If parsing failed, try to extract structure manually
         return None
 
-    def _generate_basic_interview_plan(self, brief: str) -> Dict:
+    def _generate_basic_interview_plan(self, brief: str) -> dict[str, Any]:
         """Generate a basic interview plan when Brain #8 is unavailable."""
         # Simple heuristic-based plan generation
         word_count = len(brief.split())
@@ -889,7 +894,7 @@ Keep the JSON format clean and parseable.
             }
             initial_questions.append({
                 "category": category["id"],
-                "question": question_templates.get(category["id"], "Tell me more about this"),
+                "question": question_templates.get(str(category["id"]), "Tell me more about this"),
                 "target_brain": category["target_brain"],
                 "context": f"Understanding {category['name']}"
             })
@@ -908,7 +913,7 @@ Keep the JSON format clean and parseable.
             'method': 'fallback'
         }
 
-    def _conduct_interview(self, interview_plan: Dict, brief: str) -> Dict:
+    def _conduct_interview(self, interview_plan: dict[str, Any], brief: str) -> dict[str, Any]:
         """
         Conduct iterative interview with user.
 
@@ -965,7 +970,7 @@ Keep the JSON format clean and parseable.
             }
 
         # Initialize interview document
-        interview_doc = {
+        interview_doc: dict[str, Any] = {
             'metadata': {
                 'session_id': self._generate_session_id(),
                 'brief': brief,
@@ -1065,7 +1070,7 @@ Keep the JSON format clean and parseable.
 
         return interview_doc
 
-    def _route_to_domain_brain(self, question: str, answer: str, brain_id: int, brief: str) -> Dict:
+    def _route_to_domain_brain(self, question: str, answer: str, brain_id: int, brief: str) -> dict[str, Any]:
         """
         Route user's answer to domain brain and get follow-up.
 
@@ -1121,7 +1126,7 @@ Format as JSON:
                 'should_continue': False
             }
 
-    def _parse_follow_up(self, content: str) -> Dict:
+    def _parse_follow_up(self, content: str) -> dict[str, Any]:
         """Parse follow-up from brain response."""
         import json
         import re
@@ -1130,7 +1135,8 @@ Format as JSON:
 
         if json_match:
             try:
-                return json.loads(json_match.group())
+                parsed = json.loads(json_match.group())
+                return parsed if isinstance(parsed, dict) else {}
             except json.JSONDecodeError:
                 pass
 
@@ -1143,7 +1149,7 @@ Format as JSON:
             'should_continue': True
         }
 
-    def _generate_basic_follow_up(self, _question: str, answer: str) -> Dict:
+    def _generate_basic_follow_up(self, _question: str, answer: str) -> dict[str, Any]:
         """Generate basic follow-up when brain is unavailable."""
         # Simple heuristic: if answer is short, ask for more
         if len(answer.split()) < 10:
@@ -1163,12 +1169,16 @@ Format as JSON:
                 'should_continue': False
             }
 
-    def _generate_interview_outcome(self, interview_doc: Dict, useful_questions_from_history: Optional[set] = None) -> Dict:
+    def _generate_interview_outcome(
+        self,
+        interview_doc: dict[str, Any],
+        useful_questions_from_history: set[str] | None = None
+    ) -> dict[str, Any]:
         """Generate outcome summary from interview."""
         total_qa = len(interview_doc.get('qa_pairs', []))
         categories_complete = len(interview_doc.get('categories', {}))
 
-        outcome = {
+        outcome: dict[str, Any] = {
             'total_questions_asked': total_qa,
             'categories_completed': categories_complete,
             'status': 'complete' if total_qa > 0 else 'incomplete'
@@ -1190,7 +1200,7 @@ Format as JSON:
         from datetime import datetime
         return datetime.now().isoformat()
 
-    def continue_plan(self, _plan_id: str, plan_file: str) -> Dict:
+    def continue_plan(self, _plan_id: str, plan_file: str) -> dict[str, Any]:
         """Continue execution from a saved plan."""
         # Load plan
         try:
