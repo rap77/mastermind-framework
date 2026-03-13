@@ -10,14 +10,14 @@ Requirements for v2.0 initial release. Each maps to roadmap phases.
 ### Parallel Execution
 
 - [ ] **PAR-01**: System resolves brain dependencies from flow configurations and builds directed acyclic graph (DAG)
-- [ ] **PAR-02**: System executes independent brains in parallel using asyncio.TaskGroup
-- [ ] **PAR-03**: System maintains centralized task state in SQLite database (status, progress, result)
+- [x] **PAR-02**: System executes independent brains in parallel using asyncio.TaskGroup
+- [x] **PAR-03**: System maintains centralized task state in SQLite database (status, progress, result)
 - [ ] **PAR-04**: User can cancel running tasks with graceful shutdown (in-flight brains complete)
-- [ ] **PAR-05**: System provides task status indication (progress percentage, current brain, ETA)
+- [x] **PAR-05**: System provides task status indication (progress percentage, current brain, ETA)
 - [ ] **PAR-06**: System displays clear error messages when brains fail (not stack traces)
-- [ ] **PAR-07**: System persists execution configurations for re-run (save/load configs)
+- [x] **PAR-07**: System persists execution configurations for re-run (save/load configs)
 - [ ] **PAR-08**: System provides real-time progress dashboard via WebSocket (live task cards)
-- [ ] **PAR-09**: System prevents false parallelism (no threading for I/O-bound work, asyncio only)
+- [x] **PAR-09**: System prevents false parallelism (no threading for I/O-bound work, asyncio only)
 
 ### Type Safety
 
@@ -129,14 +129,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PAR-01 | Phase 2 | Pending |
-| PAR-02 | Phase 2 | Pending |
-| PAR-03 | Phase 2 | Pending |
+| PAR-02 | Phase 2 | Complete |
+| PAR-03 | Phase 2 | Complete |
 | PAR-04 | Phase 2 | Pending |
-| PAR-05 | Phase 2 | Pending |
+| PAR-05 | Phase 2 | Complete |
 | PAR-06 | Phase 2 | Pending |
-| PAR-07 | Phase 2 | Pending |
+| PAR-07 | Phase 2 | Complete |
 | PAR-08 | Phase 2 | Pending |
-| PAR-09 | Phase 2 | Pending |
+| PAR-09 | Phase 2 | Complete |
 | PERF-01 | Phase 2 | Pending |
 
 ### Phase 3: Web UI Platform
