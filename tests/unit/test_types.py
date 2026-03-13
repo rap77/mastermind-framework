@@ -373,3 +373,37 @@ class TestDiscriminatedUnions:
         # Error should mention the invalid literal value
         error_str = str(exc_info.value)
         assert "unknown-type" in error_str
+
+
+class TestCommonTypes:
+    """Test common types module."""
+
+    def test_flow_type_enum_has_all_valid_flow_types(self):
+        """Test that FlowType enum has all valid flow types."""
+        from mastermind_cli.types import FlowType
+
+        assert FlowType.DISCOVERY == "discovery"
+        assert FlowType.VALIDATION_ONLY == "validation_only"
+        assert FlowType.FULL_PRODUCT == "full_product"
+
+    def test_evaluation_verdict_enum_has_all_verdict_values(self):
+        """Test that EvaluationVerdict enum has all verdict values."""
+        from mastermind_cli.types import EvaluationVerdict
+
+        assert EvaluationVerdict.APPROVE == "APPROVE"
+        assert EvaluationVerdict.CONDITIONAL == "CONDITIONAL"
+        assert EvaluationVerdict.REJECT == "REJECT"
+        assert EvaluationVerdict.ESCALATE == "ESCALATE"
+
+    def test_enums_can_be_serialized_to_strings(self):
+        """Test that enums can be serialized to strings."""
+        from mastermind_cli.types import FlowType, EvaluationVerdict
+
+        # Enum values should be strings
+        flow = FlowType.DISCOVERY
+        assert isinstance(flow.value, str)
+        assert flow == "discovery"
+
+        verdict = EvaluationVerdict.APPROVE
+        assert isinstance(verdict.value, str)
+        assert verdict == "APPROVE"
