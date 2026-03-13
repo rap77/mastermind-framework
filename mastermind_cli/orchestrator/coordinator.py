@@ -3,8 +3,9 @@ Coordinator - Main orchestration coordinator with iteration loop.
 """
 
 import os
-from typing import Any
+from typing import Any, Annotated
 
+from pydantic import validate_call, Field, ValidationError
 from .flow_detector import FlowDetector
 from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
@@ -47,13 +48,14 @@ class Coordinator:
         self.rejection_count = 0
         self.use_mcp = use_mcp
 
+    @validate_call
     def orchestrate(
         self,
-        brief: str,
+        brief: Annotated[str, Field(min_length=1)],
         flow: str | None = None,
         dry_run: bool = False,
         output_file: str | None = None,
-        max_iterations: int = MAX_ITERATIONS,
+        max_iterations: Annotated[int, Field(ge=1, le=10)] = MAX_ITERATIONS,
         use_mcp: bool = False
     ) -> dict[str, Any]:
         """
@@ -600,7 +602,13 @@ class Coordinator:
         with open(filepath, 'w') as f:
             f.write(output)
 
-    def _log_evaluation(self, result_7: dict[str, Any], brief: str, flow_type: str) -> None:
+    @validate_call
+    def _log_evaluation(
+        self,
+        result_7: dict[str, Any],
+        brief: Annotated[str, Field(min_length=1)],
+        flow_type: str
+    ) -> None:
         """Log evaluation to memory system.
 
         Args:

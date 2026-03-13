@@ -125,8 +125,16 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
             flow=request.flow,
             dry_run=request.dry_run,
             output_file=request.output_file,
+            max_iterations=request.max_iterations,
             use_mcp=request.use_mcp
         )
+
+    except ValidationError as e:
+        # Handle validation errors from @validate_call
+        from mastermind_cli.utils.validation import format_validation_error_compact
+        error_msg = format_validation_error_compact(e)
+        click.echo(f"Runtime Validation Error: {error_msg}", err=True)
+        sys.exit(1)
 
         # Handle result
         if result.get('status') == 'error':
