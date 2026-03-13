@@ -134,7 +134,7 @@ brains:
   - id: M9
     name: Email Marketing & Automation
     short_id: email-marketing
-    notebook_id: null
+    notebook_id: 93b13581-6d81-46fc-9311-29b040bcc7f4  # Created 2026-03-12
     system_prompt: agents/brains/marketing-09-email.md
     expertise:
       - Email copywriting
@@ -144,13 +144,13 @@ brains:
       - List segmentation
       - Drip campaigns
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M10: Push, SMS & Retention
   - id: M10
     name: Push, SMS & Retention
     short_id: retention-marketing
-    notebook_id: null
+    notebook_id: 46d50200-e270-47af-b4cd-035d685cbc28  # Created 2026-03-12
     system_prompt: agents/brains/marketing-10-retention.md
     expertise:
       - SMS marketing
@@ -160,13 +160,13 @@ brains:
       - Churn reduction
       - Customer lifecycle
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M11: Marketing Analytics & Data
   - id: M11
     name: Marketing Analytics & Data
     short_id: marketing-analytics
-    notebook_id: null
+    notebook_id: 5ab68353-ae56-41b0-8caf-2290ea5f72fe  # Created 2026-03-12
     system_prompt: agents/brains/marketing-11-analytics.md
     expertise:
       - Web analytics
@@ -176,13 +176,13 @@ brains:
       - Marketing metrics
       - ROI analysis
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M12: Conversion Rate Optimization (CRO)
   - id: M12
     name: Conversion Rate Optimization (CRO)
     short_id: cro
-    notebook_id: null
+    notebook_id: a5695761-ea8d-496a-965b-fedef050e851  # Created 2026-03-12
     system_prompt: agents/brains/marketing-12-cro.md
     expertise:
       - CRO strategy
@@ -192,13 +192,13 @@ brains:
       - Heatmap analysis
       - Conversion research
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M13: Marketing Automation & Operations
   - id: M13
     name: Marketing Automation & Operations
     short_id: marketing-ops
-    notebook_id: null
+    notebook_id: 0aade2c4-d829-4407-b8ad-45ef94a15cbe  # Created 2026-03-12
     system_prompt: agents/brains/marketing-13-ops.md
     expertise:
       - Marketing ops
@@ -208,13 +208,13 @@ brains:
       - CRM integration
       - Process optimization
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M14: Influencer & Partnerships
   - id: M14
     name: Influencer & Partnerships
     short_id: influencer-marketing
-    notebook_id: null
+    notebook_id: b7d80212-e1b9-49f7-b716-6853a28dadae  # Created 2026-03-12
     system_prompt: agents/brains/marketing-14-influencer.md
     expertise:
       - Influencer strategy
@@ -224,13 +224,13 @@ brains:
       - Brand collaborations
       - Influencer vetting
     status: active
-    sources_count: 0
+    sources_count: 11  # Updated 2026-03-12 - PRP-003
 
   # M15: Community Building & Management
   - id: M15
     name: Community Building & Management
     short_id: community-management
-    notebook_id: null
+    notebook_id: 69e952cd-06b8-46ea-bea9-ba4094e9bbc1  # Created 2026-03-12
     system_prompt: agents/brains/marketing-15-community.md
     expertise:
       - Community strategy
@@ -240,13 +240,13 @@ brains:
       - Advocacy programs
       - Community platforms
     status: active
-    sources_count: 0
+    sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M16: Growth Partner & Agency Operations (Evaluator)
   - id: M16
     name: Growth Partner & Agency Operations
     short_id: growth-partner
-    notebook_id: null
+    notebook_id: 52d45c27-fe72-4211-9b6a-2098822c2689  # Created 2026-03-12
     system_prompt: agents/brains/marketing-16-growth-partner.md
     expertise:
       - Agency growth
@@ -256,5 +256,5 @@ brains:
       - Client retention
       - Agency operations
     status: active
-    sources_count: 0
+    sources_count: 11  # Updated 2026-03-12 - PRP-003
     role: evaluator  # Meta-cerebro: evaluates outputs from M1-M15

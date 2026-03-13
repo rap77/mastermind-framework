@@ -1,8 +1,10 @@
 # MasterMind Framework - Testing Suite
 
-> **Propósito:** Validar el framework completo con briefs de prueba que cubren diferentes escenarios y flujos de los 7 cerebros.
+> **Propósito:** Validar el framework completo con briefs de prueba que cubren diferentes escenarios y flujos de los cerebros.
 
 ## Estructura de Tests
+
+### Nicho Software Development (Brain #1-#7)
 
 | Test | Tipo | Flujo Esperado | Veredicto Esperado |
 |------|------|----------------|-------------------|
@@ -11,6 +13,15 @@
 | 03 | Good Brief | validation_only | **APPROVE** |
 | 04 | Full Product | full_product | **APPROVE** (todos los cerebros) |
 | 05 | Optimization | optimization | **APPROVE** (con métricas) |
+
+### Nicho Marketing Digital (Brain M1-M16)
+
+| Test | Tipo | Cerebros Involucrados | Veredicto Esperado |
+|------|------|----------------------|-------------------|
+| MARKETING-01 | Brand Awareness (App Launch) | M1, M2, M3, M4, M9, M15, M16 | **APPROVE** con recomendaciones |
+| MARKETING-02 | B2B Lead Gen (SaaS) | M1, M3, M5, M6, M9, M11, M12, M13, M16 | **APPROVE** con gaps identificados |
+| MARKETING-03 | Ecommerce CRO (Fashion) | M1, M2, M3, M6, M7, M8, M11, M12, M16 | **APPROVE** con optimización prioritaria |
+| MARKETING-04 | B2B Retention (SaaS) | M1, M9, M10, M11, M13, M15, M16 | **APPROVE** con retention-first mindset |
 
 ## Cómo Usar
 
@@ -97,6 +108,32 @@ mastermind test report --last
 - Brain #1 propone estrategia optimizada
 - Métricas de mejora claras
 
+### Marketing Digital Tests
+
+#### Test MARKETING-01: Brand Awareness (APPROVE esperado)
+- App de fitness para millennials
+- Estrategia multi-channel con $15k budget
+- Pre-lanzamiento + community building
+- Métricas de awareness + conversión
+
+#### Test MARKETING-02: B2B Lead Gen (APPROVE esperado)
+- SaaS B2B project management
+- Goal: 200 → 500 leads/mes
+- Funnel optimization + lead scoring
+- Multi-touch attribution
+
+#### Test MARKETING-03: Ecommerce CRO (APPROVE esperado)
+- Moda sustentable ecommerce
+- Conversión 0.8% → 1.5% target
+- Funnel leak identification
+- Retention focus (70% churn)
+
+#### Test MARKETING-04: B2B Retention (APPROVE esperado)
+- SaaS email marketing automation
+- Churn 5% → 3% monthly
+- Health scoring + lifecycle emails
+- Onboarding optimization
+
 ## Reporte de Resultados
 
 ### Formato Esperado
@@ -140,6 +177,7 @@ Los precedents se guardan en: `tests/precedents/`
 
 ---
 
-**Versión:** 1.0.0
-**Fecha:** 2026-02-28
-**Estado:** Ready for testing
+**Versión:** 1.3.0
+**Fecha:** 2026-03-12
+**Estado:** Ready for Marketing Digital testing
+**Nuevos:** 4 tests E2E para Marketing Digital (M1-M16)
