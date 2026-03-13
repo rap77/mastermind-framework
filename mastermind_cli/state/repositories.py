@@ -150,3 +150,67 @@ class TaskRepository:
             )
             for row in rows
         ]
+
+    async def get_task_status(self, task_id: str) -> Optional[TaskRecord]:
+        """Get task status with <100ms performance target.
+
+        This method retrieves a single task by ID with performance monitoring.
+        Uses indexed columns for fast queries.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            TaskRecord or None if not found
+
+        Performance:
+            Uses indexed status column for fast queries.
+            Target: <100ms for single task lookup.
+            Logs warning if query exceeds 100ms.
+        """
+        import time
+        start = time.perf_counter()
+
+        cursor = await self.db.conn.execute(
+            "SELECT * FROM tasks WHERE id = ?",
+            (task_id,)
+        )
+        row = await cursor.fetchone()
+
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        if row:
+            task = TaskRecord(
+                id=row[0], brain_id=row[1], status=row[2],
+                progress=row[3], result=row[4], error=row[5],
+                created_at=row[6], updated_at=row[7]
+            )
+            # Log performance (warn if >100ms)
+            if elapsed_ms > 100:
+                print(f"⚠️  Slow query: {elapsed_ms:.2f}ms for task_id={task_id}")
+            return task
+
+        return None
+
+    async def get_all_statuses(self) -> List[TaskRecord]:
+        """Get all tasks for dashboard display.
+
+        This method retrieves all tasks ordered by creation time (newest first),
+        useful for dashboard views and progress monitoring.
+
+        Returns:
+            List of all TaskRecords ordered by created_at DESC
+        """
+        cursor = await self.db.conn.execute(
+            "SELECT * FROM tasks ORDER BY created_at DESC"
+        )
+        rows = await cursor.fetchall()
+
+        return [
+            TaskRecord(
+                id=row[0], brain_id=row[1], status=row[2],
+                progress=row[3], result=row[4], error=row[5],
+                created_at=row[6], updated_at=row[7]
+            )
+            for row in rows
+        ]

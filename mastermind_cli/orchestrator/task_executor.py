@@ -121,15 +121,20 @@ class ParallelExecutor:
                     if is_last_attempt:
                         # All retries exhausted: increment Circuit Breaker
                         self._circuit_breakers[brain_id] = self._circuit_breakers.get(brain_id, 0) + 1
+
+                        # Format error using BrainErrorFormatter
+                        from .error_formatter import BrainErrorFormatter
+                        formatted_error = BrainErrorFormatter.format_error(brain_id, e)
+
                         await self.task_repo.update_status(
                             task_id,
                             TaskState.FAILED,
-                            error=str(e)
+                            error=formatted_error
                         )
                         return {
                             "brain_id": brain_id,
                             "status": "failed",
-                            "error": str(e)
+                            "error": formatted_error
                         }
                     else:
                         # Exponential backoff with jitter
