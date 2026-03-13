@@ -267,3 +267,109 @@ version: "v2.0.0"
         assert result.content == "Only content provided"
         assert result.version == "v1.0.0"  # Default
         assert result.raw_fallback is None
+
+
+class TestDiscriminatedUnions:
+    """Test YAML config models with discriminated unions."""
+
+    def test_brain_config_validates_based_on_type_field_discriminator(self):
+        """Test that BrainConfig validates based on type field discriminator."""
+        from mastermind_cli.types import BrainConfig, VectorSearchBrain, GenerativeBrain
+
+        # Vector search brain
+        vector_config = VectorSearchBrain(
+            type="vector-search",
+            top_k=10,
+            embedding_model="text-embedding-ada-002"
+        )
+        assert isinstance(vector_config, VectorSearchBrain)
+
+        # Generative brain
+        generative_config = GenerativeBrain(
+            type="generative",
+            temperature=0.7,
+            max_tokens=1000
+        )
+        assert isinstance(generative_config, GenerativeBrain)
+
+    def test_vector_search_brain_requires_top_k_and_embedding_model(self):
+        """Test that VectorSearchBrain requires top_k (embedding_model has default)."""
+        from mastermind_cli.types import VectorSearchBrain
+        from pydantic import ValidationError
+
+        # top_k is required (no default)
+        with pytest.raises(ValidationError):
+            VectorSearchBrain(type="vector-search")  # Missing top_k
+
+        # top_k must be between 1 and 100
+        with pytest.raises(ValidationError):
+            VectorSearchBrain(type="vector-search", top_k=0)
+
+        with pytest.raises(ValidationError):
+            VectorSearchBrain(type="vector-search", top_k=101)
+
+        # embedding_model has default value
+        config = VectorSearchBrain(type="vector-search", top_k=10)
+        assert config.embedding_model == "text-embedding-ada-002"  # Default
+
+        # Can override default
+        config2 = VectorSearchBrain(type="vector-search", top_k=10, embedding_model="custom-model")
+        assert config2.embedding_model == "custom-model"
+
+    def test_generative_brain_requires_temperature_and_max_tokens(self):
+        """Test that GenerativeBrain requires temperature and max_tokens."""
+        from mastermind_cli.types import GenerativeBrain
+        from pydantic import ValidationError
+
+        # Missing required fields
+        with pytest.raises(ValidationError):
+            GenerativeBrain(type="generative", temperature=0.7)
+
+        # temperature must be between 0.0 and 2.0
+        with pytest.raises(ValidationError):
+            GenerativeBrain(type="generative", temperature=-0.1, max_tokens=100)
+
+        with pytest.raises(ValidationError):
+            GenerativeBrain(type="generative", temperature=2.1, max_tokens=100)
+
+        # max_tokens must be > 0
+        with pytest.raises(ValidationError):
+            GenerativeBrain(type="generative", temperature=0.7, max_tokens=0)
+
+    def test_discriminated_union_selects_correct_model_based_on_type_field(self):
+        """Test that discriminated union selects correct model based on type field."""
+        from mastermind_cli.types import VectorSearchBrain, GenerativeBrain
+        from pydantic import ValidationError
+
+        # Valid vector-search config
+        config1 = VectorSearchBrain.model_validate({
+            "type": "vector-search",
+            "top_k": 5,
+            "embedding_model": "model-1"
+        })
+        assert config1.type == "vector-search"
+        assert config1.top_k == 5
+
+        # Valid generative config
+        config2 = GenerativeBrain.model_validate({
+            "type": "generative",
+            "temperature": 0.8,
+            "max_tokens": 500
+        })
+        assert config2.type == "generative"
+        assert config2.temperature == 0.8
+
+    def test_invalid_discriminator_value_raises_clear_error(self):
+        """Test that invalid discriminator value raises clear error."""
+        from mastermind_cli.types import VectorSearchBrain
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError) as exc_info:
+            VectorSearchBrain.model_validate({
+                "type": "unknown-type",  # Invalid literal
+                "top_k": 5
+            })
+
+        # Error should mention the invalid literal value
+        error_str = str(exc_info.value)
+        assert "unknown-type" in error_str
