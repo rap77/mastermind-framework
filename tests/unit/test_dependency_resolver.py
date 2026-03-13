@@ -303,3 +303,198 @@ class TestFlowConfigEdgeCases:
         # Verify chain 2 order
         assert order.index("chain2-A") < order.index("chain2-B")
         assert order.index("chain2-B") < order.index("chain2-C")
+
+
+class TestDependencyResolver:
+    """Test DependencyResolver service for wave building."""
+
+    @pytest.fixture
+    def mock_brain_registry(self, mocker):
+        """Create mock brain registry with available brains."""
+        registry = mocker.Mock()
+        registry.list_brains.return_value = [
+            "brain-01", "brain-02", "brain-03", "brain-04", "brain-05"
+        ]
+        return registry
+
+    @pytest.mark.asyncio
+    async def test_resolve_simple_linear_flow(self, mock_brain_registry):
+        """Test resolving simple linear flow (A→B→C)."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(
+            flow_id="linear-flow",
+            nodes={
+                "brain-01": [],
+                "brain-02": ["brain-01"],
+                "brain-03": ["brain-02"]
+            }
+        )
+
+        resolver = DependencyResolver(mock_brain_registry)
+        graph = await resolver.resolve(flow)
+
+        assert graph.total_brains == 3
+        assert len(graph.levels) == 3  # Each brain in its own wave
+        assert graph.levels[0].brain_ids == ["brain-01"]
+        assert graph.levels[1].brain_ids == ["brain-02"]
+        assert graph.levels[2].brain_ids == ["brain-03"]
+        assert graph.max_parallelism == 1
+
+    @pytest.mark.asyncio
+    async def test_resolve_parallel_branches(self, mock_brain_registry):
+        """Test resolving flow with parallel branches."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(
+            flow_id="parallel-flow",
+            nodes={
+                "brain-01": [],
+                "brain-02": [],
+                "brain-03": ["brain-01"],
+                "brain-04": ["brain-02"],
+                "brain-05": ["brain-03", "brain-04"]
+            }
+        )
+
+        resolver = DependencyResolver(mock_brain_registry)
+        graph = await resolver.resolve(flow)
+
+        assert graph.total_brains == 5
+        assert len(graph.levels) == 3
+
+        # Wave 0: brain-01 and brain-02 (no deps)
+        wave_0_brains = set(graph.levels[0].brain_ids)
+        assert wave_0_brains == {"brain-01", "brain-02"}
+
+        # Wave 1: brain-03 and brain-04 (depend on wave 0)
+        wave_1_brains = set(graph.levels[1].brain_ids)
+        assert wave_1_brains == {"brain-03", "brain-04"}
+
+        # Wave 2: brain-05 (depends on wave 1)
+        assert graph.levels[2].brain_ids == ["brain-05"]
+
+        assert graph.max_parallelism == 2
+
+    @pytest.mark.asyncio
+    async def test_resolve_diamond_pattern(self, mock_brain_registry):
+        """Test resolving diamond pattern (A→B, A→C, B→D, C→D)."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(
+            flow_id="diamond-flow",
+            nodes={
+                "brain-01": [],
+                "brain-02": ["brain-01"],
+                "brain-03": ["brain-01"],
+                "brain-04": ["brain-02", "brain-03"]
+            }
+        )
+
+        resolver = DependencyResolver(mock_brain_registry)
+        graph = await resolver.resolve(flow)
+
+        assert graph.total_brains == 4
+        assert len(graph.levels) == 3
+
+        # Wave 0: brain-01
+        assert graph.levels[0].brain_ids == ["brain-01"]
+
+        # Wave 1: brain-02 and brain-03 (both depend on brain-01)
+        wave_1_brains = set(graph.levels[1].brain_ids)
+        assert wave_1_brains == {"brain-02", "brain-03"}
+
+        # Wave 2: brain-04 (depends on both wave 1 brains)
+        assert graph.levels[2].brain_ids == ["brain-04"]
+
+        assert graph.max_parallelism == 2
+
+    @pytest.mark.asyncio
+    async def test_resolve_validates_brain_existence(self, mock_brain_registry):
+        """Test that resolve() validates brain IDs exist in registry."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(
+            flow_id="invalid-brain-flow",
+            nodes={
+                "brain-01": [],
+                "brain-99": ["brain-01"]  # brain-99 doesn't exist
+            }
+        )
+
+        resolver = DependencyResolver(mock_brain_registry)
+
+        with pytest.raises(ValueError) as exc_info:
+            await resolver.resolve(flow)
+
+        error_msg = str(exc_info.value)
+        assert "brain-99" in error_msg or "not found" in error_msg.lower()
+
+    @pytest.mark.asyncio
+    async def test_resolve_empty_flow(self, mock_brain_registry):
+        """Test resolving empty flow (no brains)."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(flow_id="empty-flow", nodes={})
+
+        resolver = DependencyResolver(mock_brain_registry)
+        graph = await resolver.resolve(flow)
+
+        assert graph.total_brains == 0
+        assert len(graph.levels) == 0
+        assert graph.max_parallelism == 0
+
+    @pytest.mark.asyncio
+    async def test_resolve_max_parallelism_calculation(self, mock_brain_registry):
+        """Test max_parallelism is calculated correctly."""
+        from mastermind_cli.orchestrator.dependency_resolver import DependencyResolver
+
+        flow = FlowConfig(
+            flow_id="max-parallel-flow",
+            nodes={
+                "brain-01": [],
+                "brain-02": [],
+                "brain-03": [],
+                "brain-04": ["brain-01", "brain-02", "brain-03"],
+                "brain-05": ["brain-04"]
+            }
+        )
+
+        resolver = DependencyResolver(mock_brain_registry)
+        graph = await resolver.resolve(flow)
+
+        # Wave 0 has 3 brains in parallel
+        assert graph.max_parallelism == 3
+        assert len(graph.levels[0].brain_ids) == 3
+
+
+class TestExecutionGraph:
+    """Test ExecutionGraph model."""
+
+    def test_execution_graph_creation(self):
+        """Test ExecutionGraph model creation."""
+        from mastermind_cli.types.parallel import ExecutionLevel, ExecutionGraph
+
+        graph = ExecutionGraph(
+            levels=[
+                ExecutionLevel(wave_number=0, brain_ids=["brain-01", "brain-02"]),
+                ExecutionLevel(wave_number=1, brain_ids=["brain-03"])
+            ],
+            total_brains=3,
+            max_parallelism=2
+        )
+
+        assert len(graph.levels) == 2
+        assert graph.total_brains == 3
+        assert graph.max_parallelism == 2
+        assert graph.levels[0].wave_number == 0
+        assert graph.levels[1].wave_number == 1
+
+    def test_execution_level_defaults(self):
+        """Test ExecutionLevel model with defaults."""
+        from mastermind_cli.types.parallel import ExecutionLevel
+
+        level = ExecutionLevel(wave_number=0)
+
+        assert level.wave_number == 0
+        assert level.brain_ids == []
