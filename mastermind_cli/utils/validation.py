@@ -219,3 +219,54 @@ def validate_brain_output(data: dict, schema: type) -> TypingAny:
     except PydanticValidationError as e:
         # Return structured error for CLI formatting
         return {"validation_error": e.errors(), "raw_data": data}
+
+
+def format_validation_error_compact(error: PydanticValidationError) -> str:
+    """Compact format for CLI (single line per error).
+
+    Implements "Contextual Diagnostics" from CONTEXT.md.
+    """
+    errors = []
+    for err in error.errors():
+        loc = ".".join(str(l) for l in err["loc"])
+        errors.append(f"{loc}: {err['msg']}")
+    return "; ".join(errors)
+
+
+def format_validation_error(
+    error: PydanticValidationError,
+    context: str | None = None
+) -> str:
+    """Format ValidationError with contextual diagnostics.
+
+    Implements "Contextual Diagnostics" from CONTEXT.md.
+    """
+    from rich.console import Console
+
+    console = Console()
+
+    lines = []
+    if context:
+        lines.append(f"Error in {context}:")
+
+    for err in error.errors():
+        # Field location
+        loc = " -> ".join(str(l) for l in err["loc"])
+        lines.append(f"\n✗ {loc}")
+
+        # Error message
+        lines.append(f"  {err['msg']}")
+
+        # Expected type
+        if "type" in err:
+            lines.append(f"  Expected type: {err['type']}")
+
+        # Context (if available)
+        if "ctx" in err:
+            ctx = err["ctx"]
+            if "constraint" in ctx:
+                lines.append(f"  Constraint: {ctx['constraint']}")
+            if "given" in ctx:
+                lines.append(f"  Given: {ctx['given']}")
+
+    return "\n".join(lines)

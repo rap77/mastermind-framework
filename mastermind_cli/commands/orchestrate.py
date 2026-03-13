@@ -10,6 +10,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from mastermind_cli.orchestrator import Coordinator, OutputFormatter
+from mastermind_cli.types import CoordinatorRequest
+from pydantic import ValidationError
 
 
 @click.group()
@@ -81,8 +83,25 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     os.chdir(project_root)
 
+    # Validate and create CoordinatorRequest (Pydantic validates constraints)
+    try:
+        request = CoordinatorRequest(
+            brief=brief_text,
+            flow=flow,
+            dry_run=dry_run,
+            output_file=output,
+            use_mcp=use_mcp
+        )
+    except ValidationError as e:
+        # Format validation error with context
+        from mastermind_cli.utils.validation import format_validation_error_compact
+        error_msg = format_validation_error_compact(e)
+        click.echo(f"Validation Error: {error_msg}", err=True)
+        click.echo("\nHint: Check parameter constraints (e.g., max_iterations must be 1-10)", err=True)
+        raise click.Abort()
+
     # Show MCP status
-    if use_mcp:
+    if request.use_mcp:
         click.echo("🔌 MCP mode enabled (requires nlm CLI)")
         if verbose:
             click.echo("   Install: https://github.com/automation-tools/nlm")
@@ -90,23 +109,23 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
 
     # Create coordinator
     formatter = OutputFormatter()
-    coordinator = Coordinator(formatter=formatter, use_mcp=use_mcp)
+    coordinator = Coordinator(formatter=formatter, use_mcp=request.use_mcp)
 
     # Show what we're doing
     if verbose:
-        click.echo(f"📋 Brief: {brief_text[:80]}...")
-        click.echo(f"🔄 Flow: {flow or 'auto-detect'}")
-        click.echo(f"🔌 MCP: {'enabled' if use_mcp else 'disabled (mock mode)'}")
+        click.echo(f"📋 Brief: {request.brief[:80]}...")
+        click.echo(f"🔄 Flow: {request.flow or 'auto-detect'}")
+        click.echo(f"🔌 MCP: {'enabled' if request.use_mcp else 'disabled (mock mode)'}")
         click.echo("")
 
     try:
-        # Run orchestration
+        # Run orchestration with validated request
         result = coordinator.orchestrate(
-            brief=brief_text,
-            flow=flow,
-            dry_run=dry_run,
-            output_file=output,
-            use_mcp=use_mcp
+            brief=request.brief,
+            flow=request.flow,
+            dry_run=request.dry_run,
+            output_file=request.output_file,
+            use_mcp=request.use_mcp
         )
 
         # Handle result
