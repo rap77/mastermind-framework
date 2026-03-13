@@ -56,7 +56,8 @@ class Coordinator:
         dry_run: bool = False,
         output_file: str | None = None,
         max_iterations: Annotated[int, Field(ge=1, le=10)] = MAX_ITERATIONS,
-        use_mcp: bool = False
+        use_mcp: bool = False,
+        parallel: bool = False
     ) -> dict[str, Any]:
         """
         Main orchestration entry point with iteration support.
@@ -68,10 +69,13 @@ class Coordinator:
             output_file: Save output to file
             max_iterations: Maximum iteration attempts (default: 3)
             use_mcp: Use MCP for real NotebookLM calls (default: False)
+            parallel: Execute brains in parallel when dependencies allow (default: False)
 
         Returns:
             Execution report
         """
+        import asyncio
+
         self.iteration_count = 0
         self.rejection_count = 0
         self.use_mcp = use_mcp
@@ -97,7 +101,15 @@ class Coordinator:
             }
 
         # Step 4: Execute with iteration loop
-        execution_report = self._execute_with_iterations(max_iterations)
+        if parallel:
+            # Run async execution in event loop
+            try:
+                execution_report = asyncio.run(self._execute_parallel(max_iterations))
+            except KeyboardInterrupt:
+                # Already handled in _execute_parallel
+                execution_report = {'status': 'cancelled', 'results': {}}
+        else:
+            execution_report = self._execute_with_iterations(max_iterations, parallel)
 
         # Step 5: Format and deliver final result
         final_output = self.formatter.format_final_deliverable(execution_report)
@@ -107,8 +119,16 @@ class Coordinator:
 
         return execution_report
 
-    def _execute_with_iterations(self, max_iterations: int) -> dict[str, Any]:
-        """Execute the current plan with iteration support."""
+    def _execute_with_iterations(self, max_iterations: int, parallel: bool = False) -> dict[str, Any]:
+        """Execute the current plan with iteration support.
+
+        Args:
+            max_iterations: Maximum iteration attempts
+            parallel: Whether to use parallel execution
+
+        Returns:
+            Execution report
+        """
         if self.current_plan is None:
             return self._error_report("No plan generated")
         tasks = self.current_plan['tasks']
@@ -130,6 +150,9 @@ class Coordinator:
             # Use discovery flow with Brain #8
             brief = self.current_plan['brief']['original']
             return self._execute_discovery_flow(brief)
+        elif parallel:
+            # Use parallel execution
+            return self._execute_parallel(max_iterations)
         elif is_validation_flow:
             # Use iteration loop for validation
             return self._execute_validation_flow(tasks, max_iterations)
@@ -455,6 +478,137 @@ class Coordinator:
             'outputs': outputs,
             'evaluations': evaluations
         }
+
+    async def _execute_parallel(
+        self,
+        max_iterations: int = 3
+    ) -> dict[str, Any]:
+        """Execute brains in parallel using wave-based dependency resolution.
+
+        This method uses ParallelExecutor to run independent brains concurrently,
+        respecting dependencies via wave-based execution.
+
+        Args:
+            max_iterations: Maximum iteration attempts (for compatibility)
+
+        Returns:
+            Execution report with results by brain
+        """
+        from .dependency_resolver import DependencyResolver
+        from .task_executor import ParallelExecutor
+        from ..state.repositories import TaskRepository
+        from ..state.database import DatabaseConnection
+        from pathlib import Path
+        import yaml
+
+        if self.current_plan is None:
+            return self._error_report("No plan available")
+
+        brief = self.current_plan['brief']['original']
+
+        # Create a simple FlowConfig for all brains in the plan
+        # In a real implementation, this would be parsed from the plan
+        from ..types.parallel import FlowConfig
+
+        # For now, create a simple flow with all brains as independent nodes
+        # This will be improved in future plans to parse actual dependencies
+        nodes = {}
+        tasks = self.current_plan.get('tasks', [])
+        for task in tasks:
+            brain_id = f"brain-{task['brain_id']:02d}"
+            nodes[brain_id] = []  # No dependencies for now
+
+        flow = FlowConfig(flow_id="test-flow", nodes=nodes)
+
+        # Create a simple registry wrapper for DependencyResolver
+        class SimpleBrainRegistry:
+            """Simple registry wrapper for brain_executor.BRAIN_CONFIGS."""
+            def __init__(self, brain_configs: dict):
+                self.brain_configs = brain_configs
+
+            def list_brains(self) -> list[str]:
+                """List all brain IDs in 'brain-XX' format."""
+                return [
+                    f"brain-{brain_id:02d}"
+                    for brain_id in self.brain_configs.keys()
+                ]
+
+        resolver = DependencyResolver(
+            SimpleBrainRegistry(self.brain_executor.BRAIN_CONFIGS)
+        )
+        execution_graph = await resolver.resolve(flow)
+
+        # Setup database and executor
+        async with DatabaseConnection(":memory:") as db:
+            await db.create_task_schema()
+            task_repo = TaskRepository(db)
+            provider_configs = self._load_provider_configs()
+            executor = ParallelExecutor(task_repo, self.mcp_integration, provider_configs)
+
+            results = {}
+            try:
+                for level_idx, level in enumerate(execution_graph.levels):
+                    # Execute all brains in this wave concurrently
+                    print(self.formatter.format_info(
+                        f"Wave {level_idx + 1}/{len(execution_graph.levels)}: "
+                        f"Executing {len(level.brain_ids)} brains"
+                    ))
+
+                    wave_results = await executor.execute_brains_parallel(flow, brief)
+                    results.update(wave_results)
+
+                    # Check for failures
+                    failed = [bid for bid, res in wave_results.items() if res.get("status") == "failed"]
+                    if failed:
+                        return self._error_report(f"Brains failed: {', '.join(failed)}")
+
+                return {
+                    'status': 'success',
+                    'results': results,
+                    'iterations': 1,
+                    'waves': len(execution_graph.levels)
+                }
+            except KeyboardInterrupt:
+                # Handle cancellation
+                from .error_formatter import BrainErrorFormatter
+                print("\n⚠️  Cancellation requested...")
+
+                # Use CancellationManager for graceful shutdown
+                from .cancellation import CancellationManager
+                cancellation_mgr = CancellationManager(grace_period=5.0)
+                cancel_results = await cancellation_mgr.cancel(executor)
+
+                print(BrainErrorFormatter.format_parallel_summary(results))
+
+                return {
+                    'status': 'cancelled',
+                    'results': results,
+                    'cancellation': cancel_results
+                }
+
+    def _load_provider_configs(self) -> list:
+        """Load provider configurations from YAML.
+
+        Returns:
+            List of ProviderConfig objects
+        """
+        from pathlib import Path
+        import yaml
+        from ..types.parallel import ProviderConfig
+
+        config_path = Path(__file__).parent.parent / "config" / "providers.yaml"
+        if not config_path.exists():
+            # Return default config if file doesn't exist
+            return [ProviderConfig(
+                name="notebooklm",
+                max_concurrent_calls=5,
+                base_url="http://localhost:8000"
+            )]
+
+        with open(config_path) as f:
+            data = yaml.safe_load(f)
+
+        return [ProviderConfig(**p) for p in data.get("providers", [])]
 
     def _execute_standard_flow(self, tasks: list[dict[str, Any]]) -> dict[str, Any]:
         """Execute standard flow (all tasks in sequence)."""

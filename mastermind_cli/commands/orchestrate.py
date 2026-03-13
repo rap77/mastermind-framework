@@ -26,9 +26,10 @@ def orchestrate():
 @click.option('--flow', type=click.Choice(['full_product', 'validation_only', 'design_sprint', 'build_feature', 'optimization', 'technical_review']), help='Force specific flow')
 @click.option('--dry-run', is_flag=True, help='Generate plan without executing')
 @click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls (requires Claude Code environment)')
+@click.option('--parallel', is_flag=True, help='Execute brains in parallel when dependencies allow')
 @click.option('--output', '-o', type=click.Path(), help='Save output to file')
 @click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def run(brief, file, flow, dry_run, use_mcp, output, verbose):
+def run(brief, file, flow, dry_run, use_mcp, parallel, output, verbose):
     """Orchestrate brains to process user brief.
 
     Examples:
@@ -48,6 +49,10 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         \b
         # Use real NotebookLM calls (requires Claude Code + nlm CLI)
         mm orchestrate run --use-mcp "es buena idea esta app?"
+
+        \b
+        # Execute brains in parallel (when dependencies allow)
+        mm orchestrate run --parallel "procesar esto"
 
         \b
         # Force specific flow
@@ -100,6 +105,11 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         click.echo("\nHint: Check parameter constraints (e.g., max_iterations must be 1-10)", err=True)
         raise click.Abort()
 
+    # Show parallel mode status
+    if parallel:
+        click.echo("⚡ Parallel execution enabled")
+        click.echo("")
+
     # Show MCP status
     if request.use_mcp:
         click.echo("🔌 MCP mode enabled (requires nlm CLI)")
@@ -116,6 +126,7 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         click.echo(f"📋 Brief: {request.brief[:80]}...")
         click.echo(f"🔄 Flow: {request.flow or 'auto-detect'}")
         click.echo(f"🔌 MCP: {'enabled' if request.use_mcp else 'disabled (mock mode)'}")
+        click.echo(f"⚡ Parallel: {'enabled' if parallel else 'disabled'}")
         click.echo("")
 
     try:
@@ -126,9 +137,9 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
             dry_run=request.dry_run,
             output_file=request.output_file,
             max_iterations=request.max_iterations,
-            use_mcp=request.use_mcp
+            use_mcp=request.use_mcp,
+            parallel=parallel
         )
-
     except ValidationError as e:
         # Handle validation errors from @validate_call
         from mastermind_cli.utils.validation import format_validation_error_compact
@@ -136,21 +147,21 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         click.echo(f"Runtime Validation Error: {error_msg}", err=True)
         sys.exit(1)
 
-        # Handle result
-        if result.get('status') == 'error':
-            click.echo(formatter.format_error(result['error']), err=True)
-            sys.exit(1)
+    # Handle result
+    if result.get('status') == 'error':
+        click.echo(formatter.format_error(result['error']), err=True)
+        sys.exit(1)
 
-        elif result.get('status') == 'dry_run_complete':
-            # Print execution plan
-            click.echo(result['output'])
-            click.echo("")
-            click.echo("ℹ️  Dry run complete. Use without --dry-run to execute.", err=True)
+    elif result.get('status') == 'dry_run_complete':
+        # Print execution plan
+        click.echo(result['output'])
+        click.echo("")
+        click.echo("ℹ️  Dry run complete. Use without --dry-run to execute.", err=True)
 
-        elif result.get('status') == 'completed':
-            # Results already printed during execution
-            if output:
-                click.echo(f"\n✅ Output saved to: {output}")
+    elif result.get('status') == 'completed':
+        # Results already printed during execution
+        if output:
+            click.echo(f"\n✅ Output saved to: {output}")
 
     except Exception as e:
         click.echo(formatter.format_error(f"Orchestration failed: {str(e)}"), err=True)
@@ -161,20 +172,20 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
 
 
 # Alias for shorter command
-# Alias for shorter command
 @orchestrate.command()
 @click.argument('brief', required=False)
 @click.option('--file', '-f', type=click.Path(exists=True), help='Read brief from file')
 @click.option('--flow', type=click.Choice(['full_product', 'validation_only', 'design_sprint', 'build_feature', 'optimization', 'technical_review']), help='Force specific flow')
 @click.option('--dry-run', is_flag=True, help='Generate plan without executing')
 @click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls (requires Claude Code environment)')
+@click.option('--parallel', is_flag=True, help='Execute brains in parallel when dependencies allow')
 @click.option('--output', '-o', type=click.Path(), help='Save output to file')
 @click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def go(brief, file, flow, dry_run, use_mcp, output, verbose):
+def go(brief, file, flow, dry_run, use_mcp, parallel, output, verbose):
     """Quick command to orchestrate (same as 'run')."""
     # Call the run command with the same arguments
     ctx = click.Context(run)
-    run.invoke(brief, file=file, flow=flow, dry_run=dry_run, use_mcp=use_mcp, output=output, verbose=verbose)
+    run.invoke(brief, file=file, flow=flow, dry_run=dry_run, use_mcp=use_mcp, parallel=parallel, output=output, verbose=verbose)
 
 
 @orchestrate.command()
