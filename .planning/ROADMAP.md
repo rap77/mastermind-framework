@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. MCP wrapper validates request/response models at runtime
   4. Type errors provide clear messages indicating exact mismatch location
   5. Brain outputs conform to typed schemas while remaining backward compatible with v1.3.0 brains
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 01-01: Create comprehensive Pydantic models for all orchestration data structures
@@ -46,7 +46,7 @@ Plans:
   3. Task state persists to SQLite database with accurate status/progress/result tracking
   4. User can cancel running tasks with graceful shutdown (in-flight brains complete cleanly)
   5. System provides clear error messages when brains fail (no raw stack traces to users)
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 02-01: Build dependency resolver that constructs DAG from brain flow configurations
@@ -64,7 +64,7 @@ Plans:
   3. Multiple users have isolated sessions (no cross-user task pollution)
   4. User can trigger brain execution via web form and export results in JSON/YAML/Markdown
   5. UI is responsive on mobile and tablet devices using CSS grid/flexbox
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 03-01: Build FastAPI backend with REST routes and WebSocket support
@@ -82,7 +82,7 @@ Plans:
   3. Experience storage uses JSONB files with keyword-based search (upgradable to PostgreSQL + pgvector)
   4. All existing v1.3.0 CLI commands work without changes
   5. All 23 existing brains (Software Dev + Marketing) remain compatible and E2E tests pass
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 04-01: Implement ExperienceRecord schema and JSONB-based storage with keyword search
