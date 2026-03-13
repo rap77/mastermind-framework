@@ -28,7 +28,8 @@ def normalize_brain_output(raw_yaml: str) -> StandardSchema:
         return StandardSchema(
             brain_id=data.get("brain_id", "unknown"),
             content=data.get("content", raw_yaml),
-            version=data.get("version", "v1.0.0")
+            version=data.get("version", "v1.0.0"),
+            raw_fallback=None
         )
     except yaml.YAMLError:
         return StandardSchema(

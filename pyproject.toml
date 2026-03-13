@@ -36,9 +36,46 @@ members = []
 [tool.pyright]
 reportUnusedParameter = "none"
 
+[tool.mypy]
+# Tier 1: Function signatures must be typed
+python_version = "3.14"
+disallow_untyped_defs = true  # Tier 1 - require type hints on function signatures
+warn_return_any = false  # Tier 2 - enable in next phase
+warn_unused_ignores = false  # Tier 3 - enable in final phase
+show_error_codes = true  # Always show error codes for ignores
+
+# Per-module overrides - strict for new/migrated code only
+[[tool.mypy.overrides]]
+module = "mastermind_cli.types.*"
+strict = true  # New type modules are strict from day 1
+
+[[tool.mypy.overrides]]
+module = "mastermind_cli.memory.models"
+strict = true  # Migrated in this plan
+
+[[tool.mypy.overrides]]
+module = "mastermind_cli.orchestrator.coordinator"
+strict = true  # Migrated in this plan
+
+[[tool.mypy.overrides]]
+module = "mastermind_cli.orchestrator.mcp_wrapper"
+strict = true  # Migrated in this plan
+
+[[tool.mypy.overrides]]
+module = "mastermind_cli.brains_legacy.*"
+disallow_untyped_defs = false  # Legacy brains stay loose until later
+
+# Pydantic plugin (REQUIRED for v2)
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
 [dependency-groups]
 dev = [
+    "mypy>=1.14.0",
     "pydantic>=2.12.5",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "types-pyyaml>=6.0.12.20250915",
 ]
