@@ -153,7 +153,7 @@ async def test_get_all_statuses():
     """Test retrieving all tasks for dashboard display."""
     from mastermind_cli.state.repositories import TaskRepository
 
-    db = DatabaseConnection(db_path=":")
+    db = DatabaseConnection(db_path=":memory:")
 
     async with db:
         await db.create_task_schema()
