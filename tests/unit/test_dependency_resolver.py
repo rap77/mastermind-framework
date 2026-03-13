@@ -498,3 +498,63 @@ class TestExecutionGraph:
 
         assert level.wave_number == 0
         assert level.brain_ids == []
+
+
+class TestFixtures:
+    """Test that fixtures load correctly."""
+
+    def test_mock_flow_yaml_fixture(self, mock_flow_yaml):
+        """Test mock_flow_yaml fixture provides valid structure."""
+        assert mock_flow_yaml["flow_id"] == "test-flow"
+        assert len(mock_flow_yaml["nodes"]) == 5
+        assert "brain-01" in mock_flow_yaml["nodes"]
+        assert "brain-02" in mock_flow_yaml["nodes"]
+
+    def test_cyclic_flow_yaml_fixture(self, cyclic_flow_yaml):
+        """Test cyclic_flow_yaml fixture has cycle."""
+        assert cyclic_flow_yaml["flow_id"] == "cyclic-flow"
+        assert "brain-A" in cyclic_flow_yaml["nodes"]
+        assert "brain-B" in cyclic_flow_yaml["nodes"]
+
+    def test_linear_flow_yaml_fixture(self, linear_flow_yaml):
+        """Test linear_flow_yaml fixture is linear."""
+        assert linear_flow_yaml["flow_id"] == "linear-flow"
+        assert len(linear_flow_yaml["nodes"]) == 4
+
+    def test_diamond_flow_yaml_fixture(self, diamond_flow_yaml):
+        """Test diamond_flow_yaml fixture has diamond pattern."""
+        assert diamond_flow_yaml["flow_id"] == "diamond-flow"
+        assert len(diamond_flow_yaml["nodes"]) == 4
+
+    def test_empty_flow_yaml_fixture(self, empty_flow_yaml):
+        """Test empty_flow_yaml fixture has no nodes."""
+        assert empty_flow_yaml["flow_id"] == "empty-flow"
+        assert len(empty_flow_yaml["nodes"]) == 0
+
+    def test_provider_configs_load(self, provider_configs):
+        """Test provider_configs fixture loads from YAML."""
+        assert len(provider_configs) >= 2  # At least notebooklm and claude
+
+        # Check notebooklm exists
+        notebooklm = next((p for p in provider_configs if p.name == "notebooklm"), None)
+        assert notebooklm is not None
+        assert notebooklm.max_concurrent_calls == 2
+
+        # Check claude exists
+        claude = next((p for p in provider_configs if p.name == "claude"), None)
+        assert claude is not None
+        assert claude.max_concurrent_calls == 10
+
+    def test_notebooklm_provider_fixture(self, notebooklm_provider):
+        """Test notebooklm_provider fixture has correct values."""
+        assert notebooklm_provider.name == "notebooklm"
+        assert notebooklm_provider.max_concurrent_calls == 2
+        assert notebooklm_provider.retry_attempts == 3
+        assert notebooklm_provider.backoff_base == 1.0
+
+    def test_claude_provider_fixture(self, claude_provider):
+        """Test claude_provider fixture has correct values."""
+        assert claude_provider.name == "claude"
+        assert claude_provider.max_concurrent_calls == 10
+        assert claude_provider.retry_attempts == 3
+        assert claude_provider.backoff_base == 1.0

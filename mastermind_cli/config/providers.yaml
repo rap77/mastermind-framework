@@ -1,0 +1,28 @@
+# Provider Configuration for Rate Limiting
+#
+# This file defines rate limiting parameters for external API providers.
+# Each provider has limits on concurrent calls to prevent API throttling.
+#
+# max_concurrent_calls: Maximum number of parallel API calls (1-100)
+# retry_attempts: Number of retry attempts on transient failures (0-10)
+# backoff_base: Base for exponential backoff in seconds (0.1-60.0)
+#
+# Note: These values are conservative defaults. Adjust based on your API tier.
+providers:
+  - name: notebooklm
+    max_concurrent_calls: 2
+    retry_attempts: 3
+    backoff_base: 1.0
+    description: "NotebookLM via MCP (experimental, rate limited)"
+
+  - name: claude
+    max_concurrent_calls: 10
+    retry_attempts: 3
+    backoff_base: 1.0
+    description: "Claude API (stable, higher throughput)"
+
+  - name: openai
+    max_concurrent_calls: 5
+    retry_attempts: 3
+    backoff_base: 1.0
+    description: "OpenAI API (moderate throughput)"

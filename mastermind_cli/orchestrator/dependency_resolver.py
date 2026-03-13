@@ -6,7 +6,7 @@ Brains are grouped into waves where each wave contains independent brains that
 can execute concurrently.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Any
 from pydantic import BaseModel
 
 from mastermind_cli.types.parallel import FlowConfig, ExecutionGraph, ExecutionLevel
@@ -26,7 +26,7 @@ class DependencyResolver:
         ...     print(f"Wave {level.wave_number}: {level.brain_ids}")
     """
 
-    def __init__(self, brain_registry):
+    def __init__(self, brain_registry: Any) -> None:
         """Initialize resolver with brain registry.
 
         Args:
