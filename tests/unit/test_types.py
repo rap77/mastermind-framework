@@ -199,3 +199,71 @@ class TestMCPModels:
         # All fields should be preserved
         assert response.new_field_v2 == "new value"
         assert response.metadata["source"] == "notebooklm"
+
+
+class TestBrainNormalization:
+    """Test brain output models and normalizer."""
+
+    def test_standard_schema_validates_brain_id_content_version(self):
+        """Test that StandardSchema validates brain_id, content, version."""
+        from mastermind_cli.types import StandardSchema
+
+        schema = StandardSchema(
+            brain_id="brain-1",
+            content="Strategy output",
+            version="v2.0.0"
+        )
+        assert schema.brain_id == "brain-1"
+        assert schema.content == "Strategy output"
+        assert schema.version == "v2.0.0"
+
+    def test_standard_schema_accepts_optional_raw_fallback_field(self):
+        """Test that StandardSchema accepts optional raw_fallback field."""
+        from mastermind_cli.types import StandardSchema
+
+        schema = StandardSchema(
+            brain_id="brain-1",
+            content="Output",
+            raw_fallback="Original unparseable text"
+        )
+        assert schema.raw_fallback == "Original unparseable text"
+
+    def test_normalize_brain_output_handles_valid_yaml(self):
+        """Test that normalize_brain_output() handles valid YAML."""
+        from mastermind_cli.types import normalize_brain_output
+
+        raw_yaml = """
+brain_id: "strategy-01"
+content: "Product validation successful"
+version: "v2.0.0"
+"""
+        result = normalize_brain_output(raw_yaml)
+        assert result.brain_id == "strategy-01"
+        assert result.content == "Product validation successful"
+        assert result.version == "v2.0.0"
+        assert result.raw_fallback is None
+
+    def test_normalize_brain_output_falls_back_on_parse_error(self):
+        """Test that normalize_brain_output() falls back to raw_fallback on parse error."""
+        from mastermind_cli.types import normalize_brain_output
+
+        # Invalid YAML
+        raw_yaml = "this is not valid yaml: {unclosed bracket"
+
+        result = normalize_brain_output(raw_yaml)
+        assert result.brain_id == "parse_error"
+        assert result.content == ""
+        assert result.raw_fallback == raw_yaml
+
+    def test_normalize_brain_output_fills_missing_fields_with_defaults(self):
+        """Test that normalize_brain_output() fills missing fields with defaults."""
+        from mastermind_cli.types import normalize_brain_output
+
+        # YAML with missing fields
+        raw_yaml = "content: Only content provided"
+
+        result = normalize_brain_output(raw_yaml)
+        assert result.brain_id == "unknown"  # Default
+        assert result.content == "Only content provided"
+        assert result.version == "v1.0.0"  # Default
+        assert result.raw_fallback is None
