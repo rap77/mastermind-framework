@@ -44,11 +44,11 @@ Requirements for v2.0 initial release. Each maps to roadmap phases.
 
 ### Architecture Foundation (v3.0 Prep)
 
-- [ ] **ARCH-01**: System logs all executions with ExperienceRecord schema (including embedding_stub placeholder)
+- [x] **ARCH-01**: System logs all executions with ExperienceRecord schema (including embedding_stub placeholder)
 - [x] **ARCH-02**: Brain-to-brain communication protocol defined (message format, routing)
 - [ ] **ARCH-03**: System supports session isolation (no shared global state in coordinator)
-- [ ] **ARCH-04**: Experience storage uses JSONB files (upgradable to PostgreSQL + pgvector in v3.0)
-- [ ] **ARCH-05**: System provides keyword-based search over execution logs (semantic search deferred to v3.0)
+- [x] **ARCH-04**: Experience storage uses JSONB files (upgradable to PostgreSQL + pgvector in v3.0)
+- [x] **ARCH-05**: System provides keyword-based search over execution logs (semantic search deferred to v3.0)
 
 ### Backward Compatibility
 
@@ -162,10 +162,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 4 | Pending |
+| ARCH-01 | Phase 4 | Complete |
 | ARCH-02 | Phase 4 | Complete |
-| ARCH-04 | Phase 4 | Pending |
-| ARCH-05 | Phase 4 | Pending |
+| ARCH-04 | Phase 4 | Complete |
+| ARCH-05 | Phase 4 | Complete |
 | BC-01 | Phase 4 | Pending |
 | BC-02 | Phase 4 | Pending |
 | BC-03 | Phase 4 | Pending |
