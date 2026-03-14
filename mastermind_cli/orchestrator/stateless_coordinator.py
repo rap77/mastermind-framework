@@ -18,6 +18,8 @@ from mastermind_cli.types.interfaces import (
     BrainInput,
     Brief,
 )
+from mastermind_cli.types.protocol import BrainEnvelope, BrainOutputType
+from mastermind_cli.types.parallel import FlowConfig
 from mastermind_cli.brain_registry import BrainRegistry
 
 
@@ -87,10 +89,13 @@ class StatelessCoordinator:
         # Store ONLY immutable config (frozen dataclass)
         self.config = config
 
-        # NO other instance variables!
-        # NO self.results = {}
-        # NO self.current_plan = {}
-        # NO self.iteration_count = 0
+        # Per-request execution state (reset for each execute_flow call)
+        self.message_log: list = []  # In-memory trace of BrainEnvelope
+        self.brain_outputs: dict = {}  # brain_id -> output (for parent passing)
+        self.correlation_id: str = ""  # Flow correlation ID
+
+        # Flow configuration (for DAG execution)
+        self.flow_config = None
 
     async def execute_flow(
         self,
@@ -120,6 +125,11 @@ class StatelessCoordinator:
             ... )
             >>> print(results["brain-01-product-strategy"].positioning)
         """
+        # Reset per-request state
+        self.message_log = []
+        self.brain_outputs = {}
+        self.correlation_id = f"corr-{id(brief)}-{id(self)}"
+
         # Step 1: Resolve dependencies into waves
         waves = await self._resolve_waves(brain_ids)
 
@@ -133,7 +143,8 @@ class StatelessCoordinator:
             wave_results = await self._execute_wave(
                 wave.brain_ids,
                 brief,
-                results
+                results,
+                self.correlation_id
             )
 
             # Merge wave results into main results
@@ -145,7 +156,8 @@ class StatelessCoordinator:
         self,
         brain_ids: list[str],
         brief: Brief,
-        previous_results: dict[str, BaseModel]
+        previous_results: dict[str, BaseModel],
+        correlation_id: str
     ) -> dict[str, BaseModel]:
         """
         Execute a single wave of brains in parallel.
@@ -156,6 +168,7 @@ class StatelessCoordinator:
             brain_ids: List of brain IDs to execute
             brief: User's brief
             previous_results: Outputs from previous waves
+            correlation_id: Flow correlation ID
 
         Returns:
             Dict mapping brain_id → output_model for this wave
@@ -163,7 +176,12 @@ class StatelessCoordinator:
         # Create tasks for all brains in this wave
         tasks = {
             brain_id: asyncio.create_task(
-                self._execute_brain(brain_id, brief, previous_results)
+                self._execute_brain_with_message(
+                    brain_id=brain_id,
+                    brief=brief,
+                    correlation_id=correlation_id,
+                    previous_results=previous_results
+                )
             )
             for brain_id in brain_ids
         }
@@ -222,6 +240,91 @@ class StatelessCoordinator:
             print(f"[StatelessCoordinator] Completed: {brain_id}")
 
         return output
+
+    async def _execute_brain_with_message(
+        self,
+        brain_id: str,
+        brief: Brief,
+        correlation_id: str,
+        previous_results: dict[str, BaseModel]
+    ) -> BaseModel:
+        """
+        Execute brain with message logging and parent output passing.
+
+        This wraps _execute_brain to add:
+        - BrainEnvelope creation for logging
+        - Parent output storage for dependent brains
+        - Correlation ID tracking
+
+        Args:
+            brain_id: Brain ID (e.g., "brain-01-product-strategy")
+            brief: User's brief
+            correlation_id: Flow correlation ID
+            previous_results: Outputs from previous waves (parent outputs)
+
+        Returns:
+            Brain output model (ProductStrategy, UXResearch, etc.)
+        """
+        # Get parent outputs for this brain (from flow config)
+        parent_outputs = self._get_parent_outputs(brain_id, previous_results)
+
+        # Execute brain
+        output = await self._execute_brain(brain_id, brief, previous_results)
+
+        # Store output for dependent brains
+        self.brain_outputs[brain_id] = output
+
+        # Create BrainEnvelope for logging
+        envelope = BrainEnvelope.create(
+            from_brain=brain_id,
+            to_brain="orchestrator",  # Or next brain in DAG
+            payload=output,
+            correlation_id=correlation_id,
+            task_id=f"task-{brain_id}",
+            message_type=BrainOutputType.OUTPUT
+        )
+
+        # Add parent outputs to transport metadata for traceability
+        if parent_outputs:
+            envelope.transport_metadata["parent_outputs"] = [
+                {k: v for k, v in po.model_dump().items() if k != 'raw_output'}
+                for po in parent_outputs
+            ]
+
+        self.message_log.append(envelope)
+
+        return output
+
+    def _get_parent_outputs(
+        self,
+        brain_id: str,
+        previous_results: dict[str, BaseModel]
+    ) -> list[BaseModel]:
+        """
+        Get outputs from parent brains (dependencies).
+
+        Args:
+            brain_id: Brain being executed
+            previous_results: All previous results
+
+        Returns:
+            List of parent brain outputs (empty if no dependencies)
+        """
+        if self.flow_config is None:
+            return []
+
+        # Get dependencies from flow config
+        dependencies = self.flow_config.nodes.get(brain_id, [])
+
+        # Resolve parent outputs
+        parent_outputs = []
+        for dep_id in dependencies:
+            if dep_id in self.brain_outputs:
+                parent_outputs.append(self.brain_outputs[dep_id])
+            elif dep_id in previous_results:
+                parent_outputs.append(previous_results[dep_id])
+
+        return parent_outputs
 
     def _prepare_input(
         self,

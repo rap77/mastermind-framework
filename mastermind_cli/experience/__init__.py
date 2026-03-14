@@ -12,15 +12,15 @@ Key features:
 """
 
 from .models import ExperienceRecord
+from .redaction import redact_pii, redact_for_storage
 
-# Import other modules when they're implemented
-# from .redaction import redact_pii, redact_for_storage
+# Import logger when it's implemented
 # from .logger import ExperienceLogger, log_execution
 
 __all__ = [
     "ExperienceRecord",
-    # "redact_pii",
-    # "redact_for_storage",
+    "redact_pii",
+    "redact_for_storage",
     # "ExperienceLogger",
     # "log_execution",
 ]
