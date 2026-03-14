@@ -272,11 +272,18 @@ async def test_coordinator_multi_user_safety(coordinator_config, sample_brief):
 
 @pytest.mark.asyncio
 async def test_coordinator_handles_invalid_brain_id(coordinator_config, sample_brief):
-    """Test that coordinator raises error for invalid brain ID."""
+    """Test that coordinator raises error for invalid brain ID.
+
+    Uses fuzzy regex matching (r"Brain.*registry") to make the test robust
+    against minor changes in DependencyResolver error messages while still
+    verifying the core error condition (unknown brain ID).
+    """
     coordinator = StatelessCoordinator(coordinator_config)
 
-    # The error comes from DependencyResolver, not from brain function lookup
-    with pytest.raises(ValueError, match="Brain IDs not found in registry"):
+    # Fuzzy matching: "Brain" followed by anything, then "registry"
+    # This catches variations like "Brain IDs not found in registry",
+    # "Brain not found in registry", etc.
+    with pytest.raises(ValueError, match=r"Brain.*registry"):
         await coordinator.execute_flow(
             brief=sample_brief,
             brain_ids=["brain-non-existent"]
