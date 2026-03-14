@@ -1,0 +1,50 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+.venv.bak/
+
+# Git
+.git/
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+tests/
+.coverage
+coverage.xml
+*.cover
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Planning files
+.planning/
+
+# Logs
+*.log
+mastermind.db
+
+# Archive
+/archive/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
