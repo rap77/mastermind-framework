@@ -10,9 +10,8 @@ Requirements: UI-02, UI-03, UI-07
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
@@ -22,7 +21,6 @@ from mastermind_cli.types.auth import (
     TokenResponse,
     APIKeyCreate,
     APIKeyResponse,
-    hash_password,
     verify_password,
     hash_token,
     generate_api_key,

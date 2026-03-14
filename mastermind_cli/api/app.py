@@ -9,11 +9,9 @@ import time
 import hashlib
 import uuid
 from datetime import datetime
-from typing import Optional
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from mastermind_cli.api.routes import auth, tasks
 from mastermind_cli.api.websocket import router as websocket_router

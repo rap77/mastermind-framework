@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Any
-from pydantic import TypeAdapter
 
 
 class EvaluationVerdict(str, Enum):

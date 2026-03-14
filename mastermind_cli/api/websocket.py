@@ -10,9 +10,9 @@ import asyncio
 import time
 import uuid
 from collections import deque
-from typing import Dict, Set, List, Any
+from typing import Dict, Set, List
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
 
 from mastermind_cli.state.database import DatabaseConnection

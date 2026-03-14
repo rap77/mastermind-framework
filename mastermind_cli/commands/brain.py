@@ -1,13 +1,11 @@
 """Brain commands for MasterMind CLI."""
 
 from pathlib import Path
-from typing import Dict, List
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 
 from ..utils.yaml import read_yaml_frontmatter
 
@@ -40,7 +38,7 @@ def brain_status(brain_id: str):
 
     if not brain_path.exists():
         console.print(f"[red]Error: Brain not found: {brain_id}[/red]")
-        console.print(f"\n[yellow]Available brains:[/yellow]")
+        console.print("\n[yellow]Available brains:[/yellow]")
         for d in (project_root / "docs" / "software-development").iterdir():
             if d.is_dir() and d.name.endswith("-brain"):
                 console.print(f"  • {d.name.replace('-brain', '')}")
@@ -129,7 +127,7 @@ def brain_validate(brain_id: str):
     results = validate_brain_sources(str(brain_path))
 
     if not results:
-        console.print(f"[yellow]No sources found to validate[/yellow]")
+        console.print("[yellow]No sources found to validate[/yellow]")
         return
 
     # Count issues

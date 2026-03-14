@@ -5,7 +5,7 @@ Coordinator - Main orchestration coordinator with iteration loop.
 import os
 from typing import Any, Annotated
 
-from pydantic import validate_call, Field, ValidationError
+from pydantic import validate_call, Field
 from .flow_detector import FlowDetector
 from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
@@ -498,8 +498,6 @@ class Coordinator:
         from .task_executor import ParallelExecutor
         from ..state.repositories import TaskRepository
         from ..state.database import DatabaseConnection
-        from pathlib import Path
-        import yaml
 
         if self.current_plan is None:
             return self._error_report("No plan available")

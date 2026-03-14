@@ -4,9 +4,6 @@ NotebookLM MCP Client - Wrapper for NotebookLM MCP operations.
 This module provides a Python interface to NotebookLM MCP tools.
 """
 
-import os
-import json
-import time
 from typing import Dict, Optional, List
 
 

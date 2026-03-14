@@ -2,7 +2,7 @@
 Output Formatter - Formats orchestrator outputs for human consumption.
 """
 
-from typing import Dict, Optional
+from typing import Dict
 
 
 class OutputFormatter:
@@ -128,7 +128,7 @@ class OutputFormatter:
 
         # Summary
         if result.get('summary'):
-            lines.append(f"📝 Summary:")
+            lines.append("📝 Summary:")
             lines.append(f"   {result['summary']}")
             lines.append("")
 
@@ -175,7 +175,7 @@ class OutputFormatter:
             lines.append(f"   Action: {redirect.get('action', 'ITERATE')}")
             fixes = redirect.get('specific_fixes', [])
             if fixes:
-                lines.append(f"   Fixes to apply:")
+                lines.append("   Fixes to apply:")
                 for i, fix in enumerate(fixes[:3], 1):
                     lines.append(f"      {i}. {fix[:70]}...")
             lines.append("")

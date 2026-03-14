@@ -133,7 +133,7 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
     if active_file.exists() and not force:
         console.print("[yellow]⚠ MasterMind is already installed in this project[/yellow]")
         console.print("   Use --force to reinstall")
-        console.print(f"\n   Run: [cyan]mastermind install status[/cyan]")
+        console.print("\n   Run: [cyan]mastermind install status[/cyan]")
         raise click.Abort()
 
     # Parse brains selection
@@ -401,9 +401,9 @@ def status() -> None:
 
     # Show integration files
     console.print("\n[bold]Integration Files:[/bold]\n")
-    console.print(f"  [cyan].mastermind-active[/cyan] - Activation file")
-    console.print(f"  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
-    console.print(f"  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)")
+    console.print("  [cyan].mastermind-active[/cyan] - Activation file")
+    console.print("  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
+    console.print("  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)")
 
     # Show available slash commands
     console.print("\n[bold]Available Slash Commands:[/bold]\n")

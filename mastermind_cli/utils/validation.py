@@ -1,7 +1,7 @@
 """Validation functions for source files."""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from pathlib import Path
 
 
@@ -180,7 +180,7 @@ def find_sources_by_id(source_id: str, search_paths: List[str]) -> List[str]:
 
 import click as click_import
 from pydantic import TypeAdapter as PydanticTypeAdapter, ValidationError as PydanticValidationError
-from typing import Annotated as TypingAnnotated, Any as TypingAny
+from typing import Any as TypingAny
 
 
 class TypeAdapterParam(click_import.ParamType):

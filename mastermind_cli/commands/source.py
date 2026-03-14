@@ -1,20 +1,17 @@
 """Source commands for MasterMind CLI."""
 
-import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 
-from ..utils.yaml import read_yaml_frontmatter, write_yaml_frontmatter, update_yaml_metadata
-from ..utils.git import git_commit, is_repo_dirty
-from ..utils.validation import validate_source_file, validate_brain_sources, find_sources_by_id
+from ..utils.yaml import read_yaml_frontmatter, update_yaml_metadata
+from ..utils.git import git_commit
+from ..utils.validation import validate_brain_sources, find_sources_by_id
 
 console = Console()
 
@@ -61,7 +58,7 @@ def source_new(source_id: str, brain: str, title: str, author: str, type: str, y
 
     if not sources_dir.exists():
         console.print(f"[red]Error: Brain directory not found: {sources_dir}[/red]")
-        console.print(f"[yellow]Available brains:[/yellow]")
+        console.print("[yellow]Available brains:[/yellow]")
         for d in (project_root / "docs" / "software-development").iterdir():
             if d.is_dir() and d.name.endswith("-brain"):
                 console.print(f"  • {d.name.replace('-brain', '')}")
@@ -195,7 +192,7 @@ def source_update(source_id: str, change: str):
         raise click.Abort()
 
     if len(matches) > 1:
-        console.print(f"[yellow]Warning: Found multiple sources:[/yellow]")
+        console.print("[yellow]Warning: Found multiple sources:[/yellow]")
         for m in matches:
             console.print(f"  • {m}")
         source_file = matches[0]

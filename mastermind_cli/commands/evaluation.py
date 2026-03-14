@@ -4,7 +4,7 @@ import click
 from pathlib import Path
 import yaml
 
-from mastermind_cli.memory import EvaluationLogger, EvaluationVerdict
+from mastermind_cli.memory import EvaluationLogger
 
 
 @click.group()
@@ -50,7 +50,7 @@ def list(limit: int, verbose: bool):
         if verbose:
             click.echo(f"   Score: {eval.score}")
         else:
-            click.secho(f"   Verdict: ", nl=False)
+            click.secho("   Verdict: ", nl=False)
             click.secho(f"{eval.verdict.value}", fg=color)
 
         # Show tags if present
@@ -109,12 +109,12 @@ def show(evaluation_id: str):
     }
     color = verdict_colors.get(eval_entry.verdict.value, "white")
 
-    click.echo(f"\n--- Verdict ---")
+    click.echo("\n--- Verdict ---")
     click.secho(f"Verdict: {eval_entry.verdict.value}", fg=color, bold=True)
     click.echo(f"Score: {eval_entry.score}")
 
     # Brief
-    click.echo(f"\n--- Brief ---")
+    click.echo("\n--- Brief ---")
     click.echo(eval_entry.brief)
 
     # Issues
@@ -137,12 +137,12 @@ def show(evaluation_id: str):
 
     # Tags
     if eval_entry.tags:
-        click.echo(f"\n--- Tags ---")
+        click.echo("\n--- Tags ---")
         click.echo(f"  {', '.join(eval_entry.tags)}")
 
     # Full output
     if eval_entry.full_output:
-        click.echo(f"\n--- Full Evaluation Output ---")
+        click.echo("\n--- Full Evaluation Output ---")
         click.echo(eval_entry.full_output)
 
     click.echo()
@@ -239,7 +239,7 @@ def stats(verdict: str):
 
     stats = logger.get_stats()
 
-    click.echo(f"\n📊 Evaluation Statistics\n")
+    click.echo("\n📊 Evaluation Statistics\n")
     click.echo(f"{'='*40}")
 
     if stats.get("total_evaluations", 0) == 0:
@@ -252,7 +252,7 @@ def stats(verdict: str):
     # Verdict breakdown
     verdict_breakdown = stats.get("verdict_breakdown", {})
     if verdict_breakdown:
-        click.echo(f"\nVerdict Breakdown:")
+        click.echo("\nVerdict Breakdown:")
         for v, count in verdict_breakdown.items():
             color = {
                 "APPROVE": "green",
@@ -265,7 +265,7 @@ def stats(verdict: str):
     # Top projects
     top_projects = stats.get("top_projects", {})
     if top_projects:
-        click.echo(f"\nTop Projects:")
+        click.echo("\nTop Projects:")
         for project, count in list(top_projects.items())[:5]:
             click.echo(f"  {project}: {count}")
 

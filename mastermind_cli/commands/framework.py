@@ -1,13 +1,11 @@
 """Framework commands for MasterMind CLI."""
 
 from pathlib import Path
-from typing import Dict, List
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 
 from ..utils.yaml import read_yaml_frontmatter
 
@@ -120,7 +118,6 @@ def framework_release(version: str, message: str):
     """Create release with git tag and changelog."""
     try:
         from ..utils.git import get_repo
-        from git import GitCommandError
 
         repo = get_repo()
 

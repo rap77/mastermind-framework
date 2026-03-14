@@ -177,7 +177,8 @@ Please provide:
 
 Provide a clear, concise response."""
 
-    knowledge = mcp_client.query_notebooklm(
+    # Query NotebookLM (result not used in mock implementation)
+    _ = mcp_client.query_notebooklm(
         notebook_id=notebook_id,
         query=query
     )
@@ -330,7 +331,8 @@ Generate questions to clarify:
 
 Provide questions in a clear, numbered format."""
 
-    knowledge = mcp_client.query_notebooklm(
+    # Query NotebookLM (result not used in mock implementation)
+    _ = mcp_client.query_notebooklm(
         notebook_id=notebook_id,
         query=query
     )

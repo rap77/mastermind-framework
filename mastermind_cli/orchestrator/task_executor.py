@@ -279,7 +279,6 @@ class ParallelExecutor:
         row = await cursor.fetchone()
 
         if row:
-            import json
             from ..types.parallel import FlowConfig
             flow_config = FlowConfig.model_validate_json(row[0])
             return {

@@ -10,7 +10,7 @@ we DON'T have shared state pollution."
 """
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel

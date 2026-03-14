@@ -3,7 +3,6 @@
 import os
 from typing import Optional
 from git import Repo, InvalidGitRepositoryError
-from pathlib import Path
 
 
 def get_repo(path: str = ".") -> Repo:

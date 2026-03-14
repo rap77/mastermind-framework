@@ -7,7 +7,6 @@ can execute concurrently.
 """
 
 from typing import Dict, List, Any
-from pydantic import BaseModel
 
 from mastermind_cli.types.parallel import FlowConfig, ExecutionGraph, ExecutionLevel
 

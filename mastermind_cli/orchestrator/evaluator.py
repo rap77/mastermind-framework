@@ -4,7 +4,6 @@ Evaluator Module - Brain #7 Evaluation Logic.
 Implements the evaluation protocol from skills/evaluator/SKILL.md
 """
 
-import os
 import yaml
 from typing import Dict, List, Optional
 from pathlib import Path

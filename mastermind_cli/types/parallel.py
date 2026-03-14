@@ -11,7 +11,7 @@ This module defines Pydantic models for:
 from enum import Enum
 from typing import Dict, List, Optional
 from collections import deque
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class TaskState(str, Enum):
