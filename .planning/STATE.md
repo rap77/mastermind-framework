@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 04-01 ExperienceRecord Schema and JSONB Storage
-last_updated: "2026-03-14T17:02:15.117Z"
-last_activity: 2026-03-14 — 04-RESEARCH.md written (300+ lines, all technical decisions documented)
+status: in_progress
+stopped_at: Completed 04-04 Comprehensive E2E Test Suite
+last_updated: "2026-03-14T18:30:00.000Z"
+last_activity: 2026-03-14 — 04-04 E2E tests complete (24 tests: multi-user isolation, MCP load, experience logging)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 17
-  completed_plans: 13
-  percent: 80
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Expert AI collaboration that scales through parallel execution, type safety, and web interface
-**Current focus:** Phase 4 Planning (Experience Store & Production)
+**Current focus:** Phase 4 Execution (Experience Store & Production)
 
 ## Current Position
 
 Phase: 4 of 4 (Experience Store & Production)
-Plan: 04-RESEARCH.md created ✅ | Planning pending (rate limit interrupted)
-Status: Phase 4 research complete, ready for gsd-planner
-Last activity: 2026-03-14 — 04-RESEARCH.md written (300+ lines, all technical decisions documented)
+Plan: 04-04 (Comprehensive E2E Test Suite) ✅ COMPLETE
+Status: Wave 2 complete (04-01, 04-02, 04-03, 04-04), ready for 04-05 (CI Pipeline)
+Last activity: 2026-03-14 — 04-04 complete: 24 E2E tests created with mocks for multi-user isolation, MCP load, experience logging
 
-Progress: [████████░░] 80% (12/15 plans complete, Phase 4 ready for planning)
+Progress: [█████████░] 88% (15/17 plans complete, 2 plans remaining in Phase 4)
 
 ## Performance Metrics
 
@@ -107,6 +107,14 @@ Recent decisions affecting current work:
 - [Phase 04]: Hybrid Pulse pattern: Envelope separates transport metadata from content
 - [Phase 04]: Per-request state tracking: message_log, brain_outputs reset on each execute_flow()
 - [Phase 04]: SmartReference stub: v3.0 placeholder for lazy-loading parent outputs from experience store
+
+**Phase 4 (Experience Store & Production):**
+- [Phase 04-03]: Used sentence-transformers (all-MiniLM-L6-v2) for semantic similarity - 384d, fast, good quality
+- [Phase 04-03]: Brain-specific thresholds (finance=0.98, brand=0.85, default=0.90) instead of one-size-fits-all
+- [Phase 04-03]: Lazy-loaded sentence-transformers model to avoid startup overhead
+- [Phase 04-03]: Graceful fallback if sentence-transformers not installed (tests skip, not blocking)
+- [Phase 04-03]: Hybrid testing approach: Core brains automated (Product Strategy, Growth, Master Interviewer), rest manual quarterly
+- [Phase 04-03]: Snapshot Pinning Pattern: Golden outputs + embeddings + cosine similarity for regression detection
 
 ### Pending Todos
 
