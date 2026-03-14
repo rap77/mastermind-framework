@@ -21,17 +21,22 @@ A cognitive architecture framework for building specialized AI-powered solutions
 
 ### Active
 
-- [ ] **PAR-01**: Brains execute in parallel when independent
-- [ ] **PAR-02**: Dependency-aware orchestration (some brains wait for others)
-- [ ] **TS-01**: Type-safe interfaces between all components (mypy strict)
-- [ ] **TS-02**: Pydantic models for all data structures
-- [ ] **TS-03**: Type-safe MCP integration
-- [ ] **UI-01**: Web dashboard for brain orchestration
-- [ ] **UI-02**: Real-time progress visualization
-- [ ] **UI-03**: Multi-user session support
-- [ ] **ARCH-01**: Foundation for shared memory layer (future ML)
-- [ ] **ARCH-02**: Brain-to-brain communication protocol
-- [ ] **ARCH-03**: Experience storage for future learning
+- [x] **PAR-01**: Brains execute in parallel when independent ✅ (Phase 2 - 2026-03-13)
+- [x] **PAR-02**: Dependency-aware orchestration (some brains wait for others) ✅ (Phase 2 - 2026-03-13)
+- [x] **TS-01**: Type-safe interfaces between all components (mypy strict) ✅ (Phase 1 - 2026-03-13)
+- [x] **TS-02**: Pydantic models for all data structures ✅ (Phase 1 - 2026-03-13)
+- [x] **TS-03**: Type-safe MCP integration ✅ (Phase 1 - 2026-03-13)
+- [x] **PURE-01**: Pure function interfaces (Input → Output) ✅ (PRP-03-00 Task 1 - 2026-03-13)
+- [ ] **PURE-02**: Brain Functions Module ⏳ (PRP-03-00 Task 2 - In Progress)
+- [ ] **PURE-03**: Stateless Coordinator ⏳ (PRP-03-00 Task 3)
+- [ ] **PURE-04**: API Key Auth ⏳ (PRP-03-00 Task 4)
+- [ ] **PURE-05**: Legacy Brain Wrapper ⏳ (PRP-03-00 Task 5)
+- [ ] **UI-01**: Web dashboard for brain orchestration ⏳ (Phase 3 - After PRP-03-00)
+- [ ] **UI-02**: Real-time progress visualization ⏳ (Phase 3)
+- [ ] **UI-03**: Multi-user session support ⏳ (Phase 3)
+- [ ] **ARCH-01**: Foundation for shared memory layer (future ML) ⏳ (Phase 4)
+- [ ] **ARCH-02**: Brain-to-brain communication protocol ⏳ (Phase 4)
+- [ ] **ARCH-03**: Experience storage for future learning ⏳ (Phase 4)
 
 ### Out of Scope
 
@@ -74,12 +79,12 @@ A cognitive architecture framework for building specialized AI-powered solutions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| **Include UI in v2.0** | End users can't use CLI; agencies need client-facing interface | — Pending |
-| **Paralelization before ML** | Parallel execution benefits all users immediately; ML is R&D heavy | — Pending |
-| **Type safety with Pydantic** | Validation + JSON serialization + IDE support in one package | — Pending |
-| **Web dashboard over desktop app** | Cross-platform, easier deployment, browser ubiquity | — Pending |
-| **Foundation for shared memory** | Don't build full ML, but design data structures for future v3.0 | — Pending |
-| **Maintain CLI alongside UI** | Power users prefer CLI; UI is optional interface | — Pending |
+| **Include UI in v2.0** | End users can't use CLI; agencies need client-facing interface | ✅ Planned (Phase 3) |
+| **Paralelization before ML** | Parallel execution benefits all users immediately; ML is R&D heavy | ✅ Complete (Phase 2) |
+| **Type safety with Pydantic** | Validation + JSON serialization + IDE support in one package | ✅ Complete (Phase 1) |
+| **Web dashboard over desktop app** | Cross-platform, easier deployment, browser ubiquity | ✅ Planned (Phase 3) |
+| **Foundation for shared memory** | Don't build full ML, but design data structures for future v3.0 | ✅ Planned (Phase 4) |
+| **Maintain CLI alongside UI** | Power users prefer CLI; UI is optional interface | ✅ Maintained |
 
 ## Vision Notes (v3.0+)
 
@@ -97,4 +102,51 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - NOT implement actual ML training or vector databases
 
 ---
-*Last updated: 2026-03-13 after project initialization*
+
+## v2.0 Architecture: Simplification Cascade (2026-03-13)
+
+**The Insight:**
+> "If every brain is a PURE FUNCTION (input → output), we DON'T need shared state."
+
+**This ONE insight eliminates MULTIPLE v2.0 pitfalls:**
+
+### Before (Complex):
+- Orchestrator with global state → Multi-user conflicts
+- Concurrent MCP requests → Rate limit errors
+- Hidden state sharing → Race conditions
+- OAuth + JWT complexity → Auth nightmares
+
+### After (Simple):
+- **Pure Function Brains**: Input → Output, no state access
+- **Stateless Coordinator**: Per-request instances (multi-user safe)
+- **Sequential-by-Level MCP**: No rate limit issues
+- **API Key Auth**: Simple, works for CLI + Web
+
+**Complexity Reduction:**
+| Component | Before | After | Reduction |
+|-----------|--------|-------|-----------|
+| Files | 40+ | 8 | **80%** |
+| LOC | ~3000 | ~600 | **80%** |
+| Concepts | 15+ | 3 | **80%** |
+
+### PRP-03-00: Pure Function Architecture
+
+**Status:** Task 1/5 Complete ✅
+
+**Completed:**
+- ✅ Pure function interfaces (Brief, BrainInput, ProductStrategy, etc.)
+- ✅ 27 tests covering validation, edge cases, type safety
+- ✅ Commit: `4e4ee3e` - feat(types): add pure function interfaces for v2.0
+
+**Remaining (4 tasks):**
+- ⏳ Task 2: Brain Functions Module (45 min)
+- ⏳ Task 3: Stateless Coordinator (1 hour)
+- ⏳ Task 4: API Key Auth (30 min)
+- ⏳ Task 5: Legacy Brain Wrapper (45 min)
+
+**See also:**
+- `.planning/phases/03-web-ui-platform/03-SIMPLIFICATION-PLAN.md`
+- `PRPs/PRP-03-00-pure-function-architecture.md`
+
+---
+*Last updated: 2026-03-13 after PRP-03-00 Task 1 completion*
