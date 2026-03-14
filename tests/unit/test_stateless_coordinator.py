@@ -6,8 +6,14 @@ Tests verify:
 2. Multi-user safety (parallel execution)
 3. Wave-based parallelism
 4. Type safety
+
+Mock Design Pattern:
+- MockMCPClient generates unique responses per query using content hashing
+- This ensures stateless coordinator tests can verify isolation between executions
+- Without unique responses, tests couldn't detect cross-talk between coordinator instances
 """
 
+import hashlib
 import pytest
 import asyncio
 from pydantic import BaseModel
@@ -31,25 +37,44 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
 # =============================================================================
 
 class MockMCPClient:
-    """Mock MCP client for testing."""
+    """Mock MCP client for testing.
+
+    Design:
+    - Generates unique responses per query using SHA256 content hashing
+    - Stores query history in self.queries for debugging (not asserted in tests)
+    - Uses call counter to differentiate sequential calls with same query
+
+    Performance: O(n) where n = query length. Negligible for typical test queries.
+    """
+
+    # 8 hex chars = 32 bits, sufficient for test uniqueness
+    _HASH_LENGTH = 8
 
     def __init__(self):
+        # Queries logged for debugging purposes (not asserted in tests)
         self.queries = []
         self._call_count = 0
 
     def query_notebooklm(self, notebook_id: str, query: str) -> str:
         """Mock query that returns unique response per call.
 
-        Includes a hash of the query to ensure different briefs produce
+        Uses SHA256 hash of query content to ensure different briefs produce
         different responses, making stateless coordinator tests work.
+
+        Args:
+            notebook_id: Notebook identifier
+            query: Query string (hashed for uniqueness)
+
+        Returns:
+            Mock response with hash and call counter for debugging
         """
+        # Log query for debugging (side-effect, not asserted in tests)
         self.queries.append((notebook_id, query))
         self._call_count += 1
 
-        # Create unique response based on query content
-        # This ensures different briefs produce different outputs
-        import hashlib
-        query_hash = hashlib.md5(query.encode()).hexdigest()[:8]
+        # Create unique response based on query content using SHA256
+        # SHA256 is cryptographically secure and best practice (vs MD5)
+        query_hash = hashlib.sha256(query.encode()).hexdigest()[:self._HASH_LENGTH]
 
         return (
             f"Mock response for {notebook_id}: {query[:50]}... "
@@ -93,7 +118,13 @@ def sample_brief():
 
 @pytest.mark.asyncio
 async def test_coordinator_is_stateless(coordinator_config, sample_brief):
-    """Test that coordinator has no shared state between instances."""
+    """Test that coordinator has no shared state between instances.
+
+    This verifies the core pure function architecture principle:
+    - Different briefs MUST produce different outputs
+    - If coordinators shared state, they'd return identical mock responses
+    - MockMCPClient uses SHA256 hash to ensure query-based uniqueness
+    """
     # Create two coordinator instances
     coord1 = StatelessCoordinator(coordinator_config)
     coord2 = StatelessCoordinator(coordinator_config)
@@ -116,9 +147,11 @@ async def test_coordinator_is_stateless(coordinator_config, sample_brief):
         brain_ids=["brain-01-product-strategy"]
     )
 
-    # Results should be different (no cross-talk)
+    # Different briefs should produce different results (no shared state)
+    # If this assertion fails, coordinators are sharing state somehow
     assert results1["brain-01-product-strategy"].positioning != \
-           results2["brain-01-product-strategy"].positioning
+           results2["brain-01-product-strategy"].positioning, \
+           "Different briefs should produce different results (no shared state)"
 
 
 @pytest.mark.asyncio
@@ -348,3 +381,64 @@ async def test_brain_input_contains_execution_metadata(coordinator_config, sampl
 
     assert "brain-01-product-strategy" in results
     # If execution succeeded, metadata was included
+
+
+# =============================================================================
+# TESTS: MOCK CLIENT (REGRESSION)
+# =============================================================================
+
+def test_mock_mcp_unique_responses_per_query():
+    """Verify MockMCPClient produces unique responses for different queries.
+
+    Regression test: Ensures hash-based uniqueness prevents false positives
+    in stateless coordinator tests. If different queries produce the same
+    response, tests can't detect cross-talk between coordinator instances.
+    """
+    mock = MockMCPClient()
+
+    # Different queries should produce different responses
+    resp1 = mock.query_notebooklm("nb-id", "Build a CRM for small businesses")
+    resp2 = mock.query_notebooklm("nb-id", "Build an e-commerce platform")
+
+    # Hash-based uniqueness should prevent collisions
+    assert resp1 != resp2, "Different queries must produce different responses"
+
+    # Verify hash format is correct
+    assert "[hash:" in resp1
+    assert "[hash:" in resp2
+    assert "call:" in resp1
+    assert "call:" in resp2
+
+    # Call counter should increment
+    assert "call:1" in resp1
+    assert "call:2" in resp2
+
+
+def test_mock_mcp_same_query_same_response():
+    """Verify MockMCPClient is deterministic for same query."""
+    mock = MockMCPClient()
+
+    # Same query should produce same hash (but different call count)
+    resp1 = mock.query_notebooklm("nb-id", "same query")
+    resp2 = mock.query_notebooklm("nb-id", "same query")
+
+    # Hash should be identical, but call count should differ
+    hash1 = resp1.split("[hash:")[1].split()[0]
+    hash2 = resp2.split("[hash:")[1].split()[0]
+    assert hash1 == hash2, "Same query should produce same hash"
+
+    assert "call:1" in resp1
+    assert "call:2" in resp2
+
+
+def test_mock_mcp_queries_logged():
+    """Verify MockMCPClient logs queries for debugging purposes."""
+    mock = MockMCPClient()
+
+    mock.query_notebooklm("nb-1", "query one")
+    mock.query_notebooklm("nb-2", "query two")
+
+    # Queries should be logged (side-effect for debugging)
+    assert len(mock.queries) == 2
+    assert mock.queries[0] == ("nb-1", "query one")
+    assert mock.queries[1] == ("nb-2", "query two")
