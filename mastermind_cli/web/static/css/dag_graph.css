@@ -1,0 +1,345 @@
+/**
+ * DAG Graph Visualization Styles for MasterMind Framework.
+ *
+ * Provides styling for D3.js dependency graph including:
+ * - Node states with color coding
+ * - Animations (pulse for running, shake for failed)
+ * - Edge styling with arrowheads
+ * - Responsive layout
+ * - Tooltip styling
+ *
+ * Requirements: UI-09, PERF-03
+ */
+
+/* ===== Graph Container ===== */
+
+#dag-graph {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border-radius: 8px;
+}
+
+/* ===== SVG Styles ===== */
+
+.dag-graph-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+.dag-graph-svg:active {
+    cursor: grabbing;
+}
+
+.dag-graph-group {
+    transition: transform 0.3s ease;
+}
+
+/* ===== Nodes ===== */
+
+.node {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.node-rect {
+    transition: fill 0.5s ease, stroke 0.3s ease, filter 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.node-rect:hover {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+    stroke-width: 3px;
+}
+
+/* Node States */
+
+.node-pending {
+    fill: #64748B; /* gray */
+}
+
+.node-running {
+    fill: #3B82F6; /* blue */
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.node-completed {
+    fill: #10B981; /* green */
+}
+
+.node-failed {
+    fill: #EF4444; /* red */
+    animation: shake 0.5s ease-in-out;
+}
+
+.node-cancelled {
+    fill: #F59E0B; /* yellow */
+}
+
+/* ===== Node Animations ===== */
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
+    }
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.6));
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-3px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(3px);
+    }
+}
+
+/* Apply animations to node groups (not rects, since they're in g elements) */
+
+.node.node-running .node-rect {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.node.node-failed .node-rect {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* ===== Edges ===== */
+
+.edge {
+    transition: stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
+}
+
+.edge:hover {
+    stroke: #3B82F6;
+    stroke-width: 3px;
+}
+
+/* ===== Tooltip ===== */
+
+#graph-tooltip {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.95);
+    color: #F8FAFC;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 250px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#graph-tooltip.visible {
+    opacity: 1;
+}
+
+#graph-tooltip .tooltip-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #60A5FA;
+}
+
+#graph-tooltip .tooltip-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+#graph-tooltip .tooltip-status.pending {
+    background: #64748B;
+}
+
+#graph-tooltip .tooltip-status.running {
+    background: #3B82F6;
+}
+
+#graph-tooltip .tooltip-status.completed {
+    background: #10B981;
+}
+
+#graph-tooltip .tooltip-status.failed {
+    background: #EF4444;
+}
+
+#graph-tooltip .tooltip-status.cancelled {
+    background: #F59E0B;
+}
+
+#graph-tooltip .tooltip-progress {
+    font-size: 11px;
+    color: #94A3B8;
+}
+
+/* ===== Analyze Button (appears on failure) ===== */
+
+.analyze-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: #EF4444;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.analyze-button:hover {
+    background: #DC2626;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+}
+
+.analyze-button.hidden {
+    display: none;
+}
+
+/* ===== Placeholder ===== */
+
+.graph-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748B;
+    font-size: 14px;
+    text-align: center;
+    padding: 40px;
+}
+
+/* ===== Responsive Design ===== */
+
+@media (max-width: 1024px) {
+    #dag-graph {
+        min-height: 350px;
+    }
+
+    .node-rect {
+        /* Slightly smaller on tablets */
+    }
+}
+
+@media (max-width: 768px) {
+    #dag-graph {
+        min-height: 300px;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .dag-graph-svg {
+        min-width: 600px;
+    }
+
+    #graph-tooltip {
+        max-width: 200px;
+        font-size: 12px;
+    }
+
+    .analyze-button {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
+
+/* ===== Loading State ===== */
+
+.graph-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748B;
+}
+
+.graph-loading::after {
+    content: '';
+    width: 30px;
+    height: 30px;
+    border: 3px solid #334155;
+    border-top-color: #3B82F6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 12px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Error State ===== */
+
+.graph-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #EF4444;
+    text-align: center;
+    padding: 20px;
+}
+
+.graph-error svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.7;
+}
+
+/* ===== Empty State ===== */
+
+.graph-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748B;
+    text-align: center;
+    padding: 40px;
+}
+
+.graph-empty svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.graph-empty h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #94A3B8;
+}
+
+.graph-empty p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748B;
+}

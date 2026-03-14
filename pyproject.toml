@@ -11,6 +11,15 @@ dependencies = [
     "gitpython>=3.1.0",
     "semver>=3.0.0",
     "pydantic>=2.0.0",
+    # Phase 3: FastAPI and Web UI
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-jose[cryptography]>=3.3.0",
+    "bcrypt>=4.2.0",
+    "python-multipart>=0.0.20",
+    "aiofiles>=24.0.0",
+    "websockets>=14.0",
+    "aiosqlite>=0.22.1",
 ]
 
 [project.scripts]
@@ -71,6 +80,34 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
+# Pytest configuration for Phase 3
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=mastermind_cli",
+    "--cov-report=term-missing:skip-covered",
+]
+markers = [
+    "asyncio: mark test as async",
+    "benchmark: mark test as performance benchmark",
+    "integration: mark test as integration test",
+    "e2e: mark test as end-to-end test",
+]
+log_cli = true
+log_cli_level = "INFO"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
 [dependency-groups]
 dev = [
     "mypy>=1.14.0",
@@ -78,4 +115,9 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "types-pyyaml>=6.0.12.20250915",
+    # Phase 3: Testing dependencies
+    "pytest-asyncio>=0.24.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-playwright>=0.5.0",
+    "httpx-ws>=0.6.0",
 ]

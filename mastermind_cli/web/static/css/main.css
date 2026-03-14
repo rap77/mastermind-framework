@@ -1,0 +1,464 @@
+/* Cyber-Modern Theme for MasterMind Framework
+
+Color Palette:
+- Background: #0F172A (deep slate)
+- Secondary: #1E293B (lighter slate)
+- Border: #334155 (subtle)
+- Accent Blue: #3B82F6
+- Accent Green: #10B981
+- Accent Red: #EF4444
+- Accent Yellow: #F59E0B
+- Text Primary: #F8FAFC
+- Text Secondary: #94A3B8
+- Font: JetBrains Mono, monospace
+
+*/
+
+/* ===== CSS Variables ===== */
+:root {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --bg-tertiary: #334155;
+    --border-color: #334155;
+    --accent-blue: #3B82F6;
+    --accent-green: #10B981;
+    --accent-red: #EF4444;
+    --accent-yellow: #F59E0B;
+    --accent-gray: #64748B;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --font-mono: 'JetBrains Mono', 'Geist Mono', 'Courier New', monospace;
+    --glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+    --glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
+    --glow-red: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* ===== Reset & Base ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-mono);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ===== Layout: Hybrid Command Center ===== */
+.dashboard-shell {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 250px 1fr;
+    min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.app-header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.user-menu {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.sidebar nav a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* ===== Main Content ===== */
+.main-content {
+    grid-column: 2;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* ===== Bento Grid ===== */
+.bento-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.bento-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.bento-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--accent-blue);
+}
+
+/* ===== Login Form ===== */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.login-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: var(--glow-blue);
+}
+
+.login-card h1 {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: var(--accent-blue);
+}
+
+.subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+/* ===== Forms ===== */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background-color: #2563EB;
+    box-shadow: var(--glow-blue);
+}
+
+.error {
+    color: var(--accent-red);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* ===== Metrics ===== */
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metric:last-child {
+    border-bottom: none;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* ===== Provider Status ===== */
+.provider-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.status-ok {
+    background-color: var(--accent-green);
+    box-shadow: var(--glow-green);
+}
+
+.status-error {
+    background-color: var(--accent-red);
+    box-shadow: var(--glow-red);
+}
+
+/* ===== Task List ===== */
+.task-list-section {
+    margin-top: 2rem;
+}
+
+.task-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.task-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-gray);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.task-card.status-pending {
+    border-left-color: var(--accent-gray);
+}
+
+.task-card.status-running {
+    border-left-color: var(--accent-blue);
+    animation: pulse 2s infinite;
+}
+
+.task-card.status-completed {
+    border-left-color: var(--accent-green);
+}
+
+.task-card.status-failed {
+    border-left-color: var(--accent-red);
+}
+
+.task-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-pending .status-badge {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-gray);
+}
+
+.status-running .status-badge {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: var(--accent-blue);
+}
+
+.status-completed .status-badge {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--accent-green);
+}
+
+.status-failed .status-badge {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--accent-red);
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.task-actions button {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* ===== Logs Panel (Bottom Drawer) ===== */
+.logs-panel {
+    grid-column: 1 / -1;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    max-height: 300px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    transition: max-height 0.3s;
+}
+
+.logs-panel.collapsed {
+    max-height: 48px;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-tertiary);
+}
+
+.logs-header h3 {
+    font-size: 1rem;
+}
+
+.logs-content {
+    padding: 1rem;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.log-info { color: var(--text-secondary); }
+.log-warning { color: var(--accent-yellow); }
+.log-error { color: var(--accent-red); }
+.log-success { color: var(--accent-green); }
+
+/* ===== Graph Placeholder ===== */
+#dag-graph {
+    min-height: 400px;
+    background-color: var(--bg-primary);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.placeholder {
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ===== Animations ===== */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1024px) {
+    .bento-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .graph-card {
+        grid-column: span 2 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none; /* TODO: Hamburger menu */
+    }
+
+    .main-content {
+        grid-column: 1;
+    }
+
+    .bento-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .task-actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* ===== Utilities ===== */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.grid { display: grid; }
+.text-accent { color: var(--accent-blue); }
+.text-secondary { color: var(--text-secondary); }

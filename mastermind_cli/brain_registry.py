@@ -65,6 +65,47 @@ def get_brain_count() -> int:
     return len(BRAIN_CONFIGS)
 
 
+class BrainRegistry:
+    """
+    Brain registry for dependency resolver.
+
+    Provides list_brains() method for DependencyResolver integration.
+    """
+
+    def __init__(self, brains: Dict[int, Dict] | None = None):
+        """Initialize registry with brain configs.
+
+        Args:
+            brains: Optional brain configs dict (defaults to BRAIN_CONFIGS)
+        """
+        self.brains = brains if brains is not None else BRAIN_CONFIGS
+
+    def list_brains(self) -> List[str]:
+        """List all brain IDs as strings.
+
+        Returns:
+            List of brain IDs in format "brain-01-product-strategy"
+        """
+        # Map numeric IDs to string IDs
+        brain_map = {
+            1: "brain-01-product-strategy",
+            2: "brain-02-ux-research",
+            3: "brain-03-ui-design",
+            4: "brain-04-frontend",
+            5: "brain-05-backend",
+            6: "brain-06-qa-devops",
+            7: "brain-07-growth-data",
+            8: "brain-08-master-interviewer",
+        }
+
+        # Return only brains that exist in our configs
+        return [
+            brain_map[brain_id]
+            for brain_id in sorted(self.brains.keys())
+            if brain_id in brain_map
+        ]
+
+
 # Public notebook identifiers (legacy - for external reference)
 # Safe to version control - these are configuration, not credentials.
 BRAIN_REGISTRY: dict = {

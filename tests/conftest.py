@@ -1,13 +1,13 @@
 """
 Pytest configuration and shared fixtures.
 
-This module provides fixtures for testing parallel execution components.
+This module provides fixtures for testing parallel execution components and Phase 3 API testing.
 """
 
 import pytest
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, AsyncGenerator, Generator
 
 from mastermind_cli.types.parallel import FlowConfig, ProviderConfig
 from mastermind_cli.state.database import DatabaseConnection
@@ -133,3 +133,32 @@ def claude_provider() -> ProviderConfig:
         retry_attempts=3,
         backoff_base=1.0
     )
+
+
+# ===== Phase 3 Fixtures (FastAPI, Auth, WebSocket) =====
+
+@pytest.fixture
+def mock_auth_headers() -> Dict[str, str]:
+    """Mock authentication headers for testing.
+
+    TODO: Implement after Plan 01 Task 1 - Return valid JWT token in Authorization header.
+    """
+    return {"Authorization": "Bearer test_token"}
+
+
+@pytest.fixture
+def mock_user() -> Dict[str, str]:
+    """Mock user object for testing.
+
+    TODO: Implement after Plan 01 Task 1 - Return user dict with id, username.
+    """
+    return {"id": "test-user-1", "username": "testuser"}
+
+
+@pytest.fixture
+def mock_api_key_headers() -> Dict[str, str]:
+    """Mock API key authentication headers for testing.
+
+    TODO: Implement after Plan 01 Task 1 - Return valid API key in Authorization header.
+    """
+    return {"Authorization": "Bearer mm_test1234567890abcdef"}

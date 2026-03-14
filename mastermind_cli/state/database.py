@@ -113,6 +113,86 @@ class DatabaseConnection:
         )
         await self.conn.commit()
 
+    async def create_auth_schema(self):
+        """Create authentication tables for JWT and API key management.
+
+        Auth Schema (Phase 3 - UI-02, UI-03, UI-07):
+            - users: User accounts with password hashes
+            - sessions: Refresh token sessions with rotation support
+            - api_keys: API keys for CLI access
+            - audit_log: Audit trail for all mutations
+
+        Creates admin user on first run if no users exist.
+        """
+        # Users table
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Sessions table for refresh token rotation
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                refresh_token_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                rotation_count INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+
+        # API keys table for CLI access
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                key_hash TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+
+        # Audit log table for all mutations
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                method TEXT NOT NULL,
+                request_hash TEXT,
+                response_status INTEGER NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+
+        # Create indexes for auth queries
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token_hash ON sessions(refresh_token_hash)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id, timestamp DESC)"
+        )
+
+        await self.conn.commit()
+
     async def close(self):
         """Close database connection."""
         if self._conn:

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline';">
+    <title>MasterMind Framework - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/dag_graph.css">
+</head>
+<body x-data="dashboard()" x-init="init()">
+    <!-- Login Form -->
+    <div x-show="!authenticated" class="login-container">
+        <div class="login-card">
+            <h1>MasterMind Framework</h1>
+            <p class="subtitle">AI-Powered Brain Orchestration</p>
+
+            <form @submit.prevent="login($event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit">Login</button>
+                <p x-text="loginError" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Shell -->
+    <div x-show="authenticated" class="dashboard-shell">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <h1>MasterMind</h1>
+            </div>
+            <div class="user-menu">
+                <span x-text="username"></span>
+                <button @click="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav>
+                    <a href="#" class="active">Tasks</a>
+                    <a href="#">Brains</a>
+                    <a href="#">Settings</a>
+                </nav>
+            </aside>
+
+            <!-- Bento Grid -->
+            <div class="bento-grid">
+                <!-- Task Form (60%) -->
+                <div class="bento-card task-form-card">
+                    <h2>Create Task</h2>
+                    <form @submit.prevent="createTask($event)">
+                        <div class="form-group">
+                            <label for="brief">Brief</label>
+                            <textarea id="brief" name="brief" rows="4" placeholder="Describe what you need..." required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="flow">Flow</label>
+                                <select id="flow" name="flow">
+                                    <option value="">Default</option>
+                                    <option value="product">Product Strategy</option>
+                                    <option value="marketing">Marketing</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="max_iterations">Max Iterations</label>
+                                <input type="number" id="max_iterations" name="max_iterations" value="3" min="1" max="10">
+                            </div>
+                        </div>
+                        <button type="submit">Create Task</button>
+                        <p x-text="taskError" class="error"></p>
+                    </form>
+                </div>
+
+                <!-- Metrics (20%) -->
+                <div class="bento-card metrics-card">
+                    <h2>Metrics</h2>
+                    <div class="metric">
+                        <span class="metric-value" x-text="metrics.totalTasks">0</span>
+                        <span class="metric-label">Total Tasks</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" x-text="metrics.running">0</span>
+                        <span class="metric-label">Running</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" x-text="metrics.completed">0</span>
+                        <span class="metric-label">Completed</span>
+                    </div>
+                </div>
+
+                <!-- Providers (20%) -->
+                <div class="bento-card providers-card">
+                    <h2>Providers</h2>
+                    <div class="provider-status">
+                        <span class="status-dot status-ok"></span>
+                        <span>NotebookLM</span>
+                    </div>
+                    <div class="provider-status">
+                        <span class="status-dot status-ok"></span>
+                        <span>Claude</span>
+                    </div>
+                </div>
+
+                <!-- DAG Graph Container (Plan 03-03) -->
+                <div class="bento-card graph-card" style="grid-column: span 2;">
+                    <h2>Execution Graph</h2>
+                    <div id="dag-graph">
+                        <p class="graph-placeholder">Create a task to see the execution graph...</p>
+                    </div>
+                    <div id="graph-tooltip" class="hidden"></div>
+                    <button id="analyze-button" class="analyze-button hidden">Analyze Root Cause</button>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <section class="task-list-section">
+                <h2>Tasks</h2>
+                <div class="task-list">
+                    <template x-for="task in tasks" :key="task.id">
+                        <div class="task-card" :class="'status-' + task.status">
+                            <h3 x-text="task.brief"></h3>
+                            <p>Status: <span class="status-badge" x-text="task.status"></span></p>
+                            <p>Created: <span x-text="new Date(task.created_at).toLocaleString()"></span></p>
+                            <div class="task-actions">
+                                <button @click="exportTask(task.id, 'json')">Export JSON</button>
+                                <button @click="exportTask(task.id, 'yaml')">Export YAML</button>
+                                <button @click="exportTask(task.id, 'markdown')">Export MD</button>
+                                <button x-show="task.status === 'pending' || task.status === 'running'" @click="cancelTask(task.id)">Cancel</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+        </main>
+
+        <!-- Logs Panel (Bottom Drawer) -->
+        <div class="logs-panel" :class="{ collapsed: logsCollapsed }">
+            <div class="logs-header">
+                <h3>Logs</h3>
+                <button @click="logsCollapsed = !logsCollapsed">
+                    <span x-text="logsCollapsed ? 'Show' : 'Hide'"></span>
+                </button>
+            </div>
+            <div class="logs-content" x-show="!logsCollapsed">
+                <template x-for="log in logs" :key="log.id">
+                    <p :class="'log-' + log.level" x-text="log.message"></p>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10/dist/htmx.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+    <!-- App Scripts -->
+    <script defer src="/static/js/auth.js"></script>
+    <script defer src="/static/js/dashboard.js"></script>
+    <script defer src="/static/js/websocket.js"></script>
+    <script defer src="/static/js/dag_graph.js"></script>
+</body>
+</html>
