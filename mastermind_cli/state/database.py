@@ -192,6 +192,56 @@ class DatabaseConnection:
 
         await self.conn.commit()
 
+    async def create_experience_schema(self):
+        """Create experience_records table for full-fidelity execution logging.
+
+        Experience Schema (Phase 4 - 04-01):
+            - id: Record ID (UUID4, primary key)
+            - brain_id: Brain being executed
+            - input_hash: SHA256 of input_json for deduplication
+            - output_json: Complete output from brain (redacted)
+            - timestamp: ISO 8601 timestamp (UTC)
+            - duration_ms: Execution duration in milliseconds
+            - status: Execution status (success, failure, timeout)
+            - embedding_stub: Placeholder for v3.0 pgvector embeddings
+            - parent_brain_id: Parent brain that triggered this execution
+            - trace_context_id: Trace context for distributed tracing
+            - custom_metadata: Extensible metadata (JSONB)
+
+        Indexes:
+            - idx_experience_brain_timestamp: (brain_id, timestamp DESC)
+            - idx_experience_trace: (trace_context_id)
+        """
+        # Create experience_records table
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS experience_records (
+                id TEXT PRIMARY KEY,
+                brain_id TEXT NOT NULL,
+                input_hash TEXT NOT NULL,
+                output_json TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                duration_ms INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                embedding_stub BLOB,
+                parent_brain_id TEXT,
+                trace_context_id TEXT,
+                custom_metadata TEXT NOT NULL DEFAULT '{}'
+            )
+        """)
+
+        # Create indexes for common queries
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_experience_brain_timestamp "
+            "ON experience_records(brain_id, timestamp DESC)"
+        )
+
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_experience_trace "
+            "ON experience_records(trace_context_id)"
+        )
+
+        await self.conn.commit()
+
     async def close(self):
         """Close database connection."""
         if self._conn:
