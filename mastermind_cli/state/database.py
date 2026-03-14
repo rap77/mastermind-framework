@@ -7,7 +7,6 @@ and schema creation for task state persistence.
 
 import aiosqlite
 from typing import Optional
-from pathlib import Path
 
 
 class DatabaseConnection:
@@ -207,3 +206,131 @@ class DatabaseConnection:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
+
+    # ===== API KEY METHODS =====
+
+    async def get_api_key(self, key_hash: str) -> dict | None:
+        """Get API key by hash.
+
+        Args:
+            key_hash: SHA256 hash of the API key
+
+        Returns:
+            API key data dict or None if not found
+        """
+        cursor = await self.conn.execute(
+            "SELECT id, user_id, key_hash, name, created_at, last_used FROM api_keys WHERE key_hash = ?",
+            (key_hash,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            return {
+                "key": "",  # Never return actual key from DB
+                "key_hash": row[2],
+                "owner": row[1],  # user_id maps to owner
+                "created_at": row[3],
+                "is_active": True,  # Add to api_keys schema in v2.1
+                "scopes": ["read", "write"],  # Add to api_keys schema in v2.1
+            }
+        return None
+
+    async def save_api_key(self, key_data: dict) -> bool:
+        """Save API key to database.
+
+        Args:
+            key_data: API key data dict with key_hash, owner, created_at
+
+        Returns:
+            True if saved successfully
+        """
+        import uuid
+        from datetime import datetime, timezone
+
+        key_id = str(uuid.uuid4())
+        await self.conn.execute(
+            """INSERT INTO api_keys (id, user_id, key_hash, name, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (key_id, key_data["owner"], key_data["key_hash"],
+             f"API Key for {key_data['owner']}",
+             datetime.now(timezone.utc).isoformat())
+        )
+        await self.conn.commit()
+        return True
+
+    async def revoke_api_key(self, key_hash: str) -> bool:
+        """Revoke API key by deleting it.
+
+        Args:
+            key_hash: SHA256 hash of the key to revoke
+
+        Returns:
+            True if revoked, False if not found
+        """
+        cursor = await self.conn.execute(
+            "DELETE FROM api_keys WHERE key_hash = ?",
+            (key_hash,)
+        )
+        await self.conn.commit()
+        return cursor.rowcount > 0
+
+    async def list_api_keys(self, owner: str | None = None) -> list[dict]:
+        """List all API keys, optionally filtered by owner.
+
+        Args:
+            owner: Optional owner (user_id) filter
+
+        Returns:
+            List of API key data dicts
+        """
+        if owner:
+            cursor = await self.conn.execute(
+                """SELECT id, user_id, key_hash, name, created_at, last_used
+                   FROM api_keys WHERE user_id = ?""",
+                (owner,)
+            )
+        else:
+            cursor = await self.conn.execute(
+                """SELECT id, user_id, key_hash, name, created_at, last_used
+                   FROM api_keys"""
+            )
+
+        rows = await cursor.fetchall()
+
+        return [
+            {
+                "key": "",
+                "key_hash": row[2],
+                "owner": row[1],
+                "created_at": row[3],
+                "is_active": True,
+                "scopes": ["read", "write"],
+            }
+            for row in rows
+        ]
+
+
+# ===== SINGLETON DATABASE INSTANCE =====
+
+_db_instance: DatabaseConnection | None = None
+
+
+def get_db(db_path: str = ":memory:") -> DatabaseConnection:
+    """Get or create singleton database instance.
+
+    Args:
+        db_path: Path to database file (default: ":memory:")
+
+    Returns:
+        DatabaseConnection instance
+
+    Note:
+        This is a synchronous wrapper that creates an async connection.
+        The async methods must be called from an async context.
+    """
+    global _db_instance
+
+    if _db_instance is None:
+        _db_instance = DatabaseConnection(db_path)
+
+    return _db_instance

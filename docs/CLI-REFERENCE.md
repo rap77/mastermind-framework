@@ -99,39 +99,64 @@ mastermind brain package 01-product-strategy --output dist/packages
 
 ### Comandos Orchestrate
 
-Orquestación de cerebros para procesar briefs de usuarios.
+Orquestación de cerebros para procesar briefs de usuarios (v2.0 Pure Function Architecture).
+
+#### Configuración de API Key (Requerido)
+
+Antes de usar los comandos orchestrate, configura tu API key:
+
+```bash
+# Opción 1: Usar API key existente
+export MM_API_KEY="mmsk_your_api_key_here"
+
+# Opción 2: Generar nueva API key (próximamente)
+mm auth create-key
+```
+
+**Importante:** El comando `orchestrate` requiere `MM_API_KEY` configurado. Sin esto, el comando fallará con un error.
 
 #### `mastermind orchestrate run`
 
 Ejecutar flujo de orquestación completo.
 
 ```bash
-# Validación simple (modo mock)
-mm orchestrate run "validar idea de app de viajes"
+# Ejecución básica
+export MM_API_KEY="mmsk_your_key"
+mm orchestrate run "Build a CRM for small businesses"
 
-# Con flow específico
-mm orchestrate run --flow validation_only "es buena idea esta app?"
+# Especificar cerebros específicos
+mm orchestrate run --brains brain-01-product-strategy,brain-02-ux-research "My startup idea"
 
-# Dry run para ver el plan
-mm orchestrate run --dry-run "mi idea de startup"
-
-# Guardar output en archivo
-mm orchestrate run -o output.yaml "mi idea"
+# Dry run para ver el plan sin ejecutar
+mm orchestrate run --dry-run "Idea validation"
 
 # Leer brief desde archivo
 mm orchestrate run --file brief.md
 
 # Usar MCP real (requiere nlm CLI)
-mm orchestrate run --use-mcp "validar mi idea con NotebookLM real"
+mm orchestrate run --use-mcp "Validate my idea with real NotebookLM"
+
+# Guardar output en archivo
+mm orchestrate run -o output.json "My idea"
+
+# Verbose mode
+mm orchestrate run --verbose "My idea"
 ```
 
 **Opciones:**
 - `--file, -f`: Leer brief desde archivo
-- `--flow`: Forzar flow específico (full_product, validation_only, design_sprint, build_feature, optimization, technical_review)
+- `--brains, -b`: Lista separada por comas de brain IDs (ej: brain-01-product-strategy,brain-02-ux-research)
 - `--dry-run`: Generar plan sin ejecutar
 - `--use-mcp`: Usar MCP para llamadas reales a NotebookLM (requiere CLI `nlm`)
-- `--output, -o`: Guardar output en archivo
+- `--output, -o`: Guardar output en archivo (JSON/YAML)
 - `--verbose, -v`: Output detallado
+
+**Cambios en v2.0:**
+- ✅ **API Key requerida**: Todas las ejecuciones requieren `MM_API_KEY`
+- ✅ **Stateless Architecture**: Cada solicitud crea un nuevo coordinador (multi-user safe)
+- ✅ **Type Safety**: Inputs validados con Pydantic
+- ❌ **Eliminado**: `--flow` (usa `--brains` para especificar cerebros)
+- ❌ **Eliminado**: `--parallel` (wave-based parallelism es automático)
 
 #### `mastermind orchestrate go`
 
