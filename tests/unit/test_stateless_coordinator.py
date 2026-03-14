@@ -35,11 +35,26 @@ class MockMCPClient:
 
     def __init__(self):
         self.queries = []
+        self._call_count = 0
 
     def query_notebooklm(self, notebook_id: str, query: str) -> str:
-        """Mock query that returns predefined response."""
+        """Mock query that returns unique response per call.
+
+        Includes a hash of the query to ensure different briefs produce
+        different responses, making stateless coordinator tests work.
+        """
         self.queries.append((notebook_id, query))
-        return f"Mock response for {notebook_id}: {query[:50]}..."
+        self._call_count += 1
+
+        # Create unique response based on query content
+        # This ensures different briefs produce different outputs
+        import hashlib
+        query_hash = hashlib.md5(query.encode()).hexdigest()[:8]
+
+        return (
+            f"Mock response for {notebook_id}: {query[:50]}... "
+            f"[hash:{query_hash} call:{self._call_count}]"
+        )
 
 
 # =============================================================================
@@ -227,7 +242,8 @@ async def test_coordinator_handles_invalid_brain_id(coordinator_config, sample_b
     """Test that coordinator raises error for invalid brain ID."""
     coordinator = StatelessCoordinator(coordinator_config)
 
-    with pytest.raises(ValueError, match="Brain function not found"):
+    # The error comes from DependencyResolver, not from brain function lookup
+    with pytest.raises(ValueError, match="Brain IDs not found in registry"):
         await coordinator.execute_flow(
             brief=sample_brief,
             brain_ids=["brain-non-existent"]
