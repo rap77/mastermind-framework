@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  # Level 1: Type checking (runs on all PRs)
+  level1-typecheck:
+    name: Level 1 - Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run mypy strict mode
+        run: uv run mypy --strict mastermind_cli/
+
+      - name: Run ruff linter
+        run: uv run ruff check .
+
+  # Level 2: Unit & Contract Tests (runs on all PRs)
+  level2-tests:
+    name: Level 2 - Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run unit tests
+        run: uv run pytest tests/unit/ -v --cov=mastermind_cli --cov-report=xml
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration/ -v -m "not slow"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  # Level 3: Semantic Integration (runs on main only - token cost control)
+  level3-semantic:
+    name: Level 3 - Semantic Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run E2E tests
+        run: uv run pytest tests/e2e/ -v
+
+      - name: Run semantic regression tests
+        run: uv run pytest tests/integration/test_semantic_regression.py -v -m slow
+
+      - name: Run backward compatibility tests
+        run: uv run pytest tests/integration/test_backward_compat.py -v -m slow
