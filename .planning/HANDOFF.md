@@ -1,8 +1,8 @@
 # Handoff - MasterMind Framework v2.0 Development
 
-**Last updated:** 2026-03-14 23:00 UTC
-**Current phase:** Phase 4 CONTEXT COMPLETE ✅ | Ready for Planning
-**Tests:** All tests passing | **Next action:** `/gsd:plan-phase 04` OR `/clear` first
+**Last updated:** 2026-03-14 13:30 UTC
+**Current phase:** Phase 4 RESEARCH COMPLETE ✅ | Planning Pending (rate limit interrupted)
+**Tests:** All tests passing | **Next action:** `/gsd:plan-phase 04` (resume planning)
 
 ---
 
@@ -10,53 +10,44 @@
 
 **Project:** MasterMind Framework v2.0 - Parallel AI Brain Orchestration
 **Stack:** Python 3.14, asyncio, Pydantic v2, FastAPI, HTMX/Alpine.js, D3.js
-**Status:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 CONTEXT ✅ |
+**Status:** Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 RESEARCH ✅ | PLANNING ⏳ |
 
 ---
 
 ## Session Summary (2026-03-14)
 
-### ✅ PRP-03-00 Complete & Pushed
+### ✅ Cleanup Commit Complete
 
-**Commit:** `47d4a22` - feat(prp-03-00): pure function architecture complete
-**Push:** 74 commits pushed to origin (9dc0712..47d4a22)
+**Commit:** `795dc0a` - chore: cleanup unused imports and add phase 3 summaries
 
-All 10 tasks complete:
-- Pure function interfaces, brain functions, stateless coordinator
-- API Key auth system, legacy brain wrapper
-- CLI updates, database logger, integration tests
-- Documentation, code review (all ruff issues fixed)
+31 files changed (+888/-421 lines):
+- Cleanup unused imports (EvaluationVerdict, field, Optional, StaticFiles)
+- Improve semantic: use '_ = ' for ignored query results
+- Add Phase 3 completion summaries (03-00, 03-01, 03-02)
+- Update session tracking (HANDOFF, RESUME, STATE)
 
-### ✅ Phase 4: Experience Store & Production - CONTEXT GATHERED
+### ✅ Phase 4: Research Complete (Planning Interrupted)
 
-**Context File:** `.planning/phases/04-experience-store-production/04-CONTEXT.md`
-**Commit:** `82ce6f9` - docs(04): capture phase 4 context
+**Files Created:**
+1. `.planning/phases/04-experience-store-production/04-CONTEXT.md` (222 lines)
+   - Experience Logging Strategy (JSON completo, PII redacción, Archive JSONL)
+   - Brain-to-Brain Protocol (State-Machine Orchestrator + Hybrid Pulse)
+   - Backward Compatibility (Snapshot Pinning, Semantic Similarity)
+   - CI Pipeline (Tiered Verification, uv, Trufflehog)
 
-#### 4 Areas Discussed & Decisions:
+2. `.planning/phases/04-experience-store-production/04-RESEARCH.md` (300+ lines)
+   - ExperienceRecord schema design (SQLite JSONB pattern)
+   - PII Redaction Strategy (regex + Pydantic SecretStr)
+   - Semantic Similarity Testing (sentence-transformers)
+   - CI Pipeline with uv (GitHub Actions pattern)
+   - Validation Architecture (Nyquist Dimension 8)
 
-**1. Experience Logging Strategy**
-- JSON Completo (full fidelity para debugging/fine-tuning/RAG)
-- Semantic Redaction (Pydantic SecretStr + regex auto-filter)
-- Archive JSONL (30 días DB → .jsonl.gz comprimidos)
-- Extensible JSONB schema + Lineage fields (parent_brain_id, trace_context_id)
-
-**2. Brain-to-Brain Protocol**
-- State-Machine Orchestrator + Hybrid Pulse (Event-Bus + 500ms check-in)
-- Typed Interfaces (Pydantic) con Smart Reference (Lazy Loading)
-- Wrapped Envelope format (propio simple + YAML-based content)
-- Orchestrator-directed DAG routing (Conditional Branching evolución)
-
-**3. Backward Compatibility**
-- Snapshot Pinning (prompt hash en flow.yaml, avisa cambios)
-- Additive Only = OK (agregar campos safe, borrar breaking)
-- Hybrid Testing (Core brains #1, #7, #8 automated; resto manual quarterly)
-- Semantic Similarity (embeddings, score >90% para deploy)
-
-**4. CI Pipeline**
-- Tiered Verification (Nivel 1: mypy+ruff todos PRs | Nivel 2: tests PRs | Nivel 3: semantic releases)
-- Runner-native con uv (uv run pytest, uv.lock paridad WSL2)
-- Secrets Only (Trufflehog CI) + Git-Hook Shield (pre-commit local)
-- Docker Registry deployment (git push + registry + docker pull)
+**Technical Feasibility:** ✅ All 5 plans confirmed feasible
+**Integration Points Identified:**
+- `mastermind_cli/experience/logger.py` (new module)
+- `stateless_coordinator.py` enhancement for brain-to-brain
+- `tests/integration/test_backward_compat.py` (23 brains × 5 briefs)
+- `.github/workflows/ci.yml` (3-level CI)
 
 ---
 
@@ -69,60 +60,66 @@ All 10 tasks complete:
 | Phase 1 | 3/3 | ✅ Complete | Type Safety Foundation (75 tests) |
 | Phase 2 | 4/4 | ✅ Complete | Parallel Execution (4.65x speedup) |
 | Phase 3 | 4/4 | ✅ Complete | Web UI Platform (FastAPI + HTMX + D3.js) |
-| **Phase 4** | **0/5** | **⏳ Ready** | **CONTEXT complete, ready for planning** |
+| **Phase 4** | **0/5** | **⏳ Planning** | **RESEARCH complete, plans pending** |
 
 ### Repository Status
 
-- **Branch:** master (sync with origin)
-- **Latest:** 82ce6f9 docs(04): capture phase 4 context
-- **Unstaged:** Phase 3 Web UI files (modified, not staged - may need review)
+- **Branch:** master (2 commits ahead of origin)
+- **Latest:** 795dc0a chore: cleanup unused imports + phase 3 summaries
+- **Working dir:** Clean ✅
 
 ---
 
 ## Next Session Options
 
-### Option A: Plan Phase 4 (RECOMMENDED)
+### Option A: Resume Phase 4 Planning (RECOMMENDED)
 ```bash
-/clear                    # Clear context first (recommended)
-/gsd:plan-phase 04        # Create 5 execution plans
+/gs:plan-phase 04        # Research exists, will spawn gsd-planner directly
 ```
+**Expected flow:**
+1. Load 04-RESEARCH.md (already complete)
+2. Spawn gsd-planner to create 5 PLAN.md files
+3. Spawn gsd-plan-checker for verification
+4. Present final plans
+
 **Plans to create:**
-- 04-01: ExperienceRecord schema and JSONB-based storage
-- 04-02: Brain-to-brain communication protocol
-- 04-03: Backward compatibility verification
-- 04-04: Comprehensive E2E test suite
-- 04-05: CI pipeline setup
+- 04-01: ExperienceRecord schema and JSONB storage (~300 LOC)
+- 04-02: Brain-to-brain communication protocol (~200 LOC)
+- 04-03: Backward compatibility verification (115 tests)
+- 04-04: Comprehensive E2E test suite (~500 LOC)
+- 04-05: CI pipeline setup (3 workflows + Dockerfile)
 
-### Option B: Skip Research
+### Option B: Push Commits First
 ```bash
-/clear
-/gsd:plan-phase 04 --skip-research
+git push origin master    # Push 2 commits (795dc0a, 82ce6f9)
 ```
+Then resume planning.
 
-### Option C: Review Unstaged Changes
+### Option C: Review Research Before Planning
 ```bash
-git status
-git diff mastermind_cli/api/ mastermind_cli/orchestrator/
+cat .planning/phases/04-experience-store-production/04-RESEARCH.md
 ```
-Phase 3 Web UI files may need commit before Phase 4.
+Verify technical decisions before proceeding.
 
 ---
 
-## Context Warning
+## Rate Limit Note
 
-**Token Usage:** 85% (29% remaining)
-
-Recommendation: Use `/clear` before starting Phase 4 planning to avoid mid-plan cutoff.
+**Issue:** gsd-phase-researcher hit rate limit (429 error) during planning
+**Workaround:** Research completed manually based on CONTEXT.md
+**Impact:** None - research is complete and comprehensive
 
 ---
 
 ## Memories Created
 
+- `QUICK-RESUME-2026-03-14-COMMIT-CLEANUP` - Post-cleanup session checkpoint
 - `PHASE4-CONTEXT-COMPLETE-2026-03-14` - Phase 4 decisions captured
-- `PRP-03-00-COMMIT-COMPLETE-2026-03-14` - PRP commit & push complete
-- `GIT-PUSH-COMPLETE-2026-03-14` - 74 commits pushed
+- `PHASE4-RESEARCH-COMPLETE-2026-03-14` - Research complete, validation architecture defined
 
 ---
 
-*Session: 2026-03-14*
-*Next: Plan Phase 4 OR review unstaged changes*
+*Session: 2026-03-14 (interrupted)*
+*Next: Resume /gsd:plan-phase 04 OR git push*
+*Research: ✅ Complete*
+*Planning: ⏳ Pending*
