@@ -11,6 +11,7 @@ from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
 from .output_formatter import OutputFormatter
 from ..memory import EvaluationLogger
+from ..types.parallel import ProviderConfig
 
 
 class Coordinator:
@@ -23,7 +24,7 @@ class Coordinator:
         self,
         formatter: OutputFormatter | None = None,
         use_mcp: bool = False,
-        enable_logging: bool = True
+        enable_logging: bool = True,
     ) -> None:
         """Initialize coordinator.
 
@@ -35,11 +36,13 @@ class Coordinator:
         from .mcp_integration import MCPIntegration
 
         self.flow_detector = FlowDetector()
-        self.plan_generator = PlanGenerator(self.flow_detector)  # type: ignore[no-untyped-call]
+        self.plan_generator = PlanGenerator(self.flow_detector)
         self.mcp_integration = MCPIntegration(use_mcp=use_mcp)
         self.brain_executor = BrainExecutor(mcp_client=self.mcp_integration)
         self.formatter = formatter or OutputFormatter()
-        self.eval_logger = EvaluationLogger(enabled=enable_logging) if enable_logging else None
+        self.eval_logger = (
+            EvaluationLogger(enabled=enable_logging) if enable_logging else None
+        )
 
         # Execution state
         self.current_plan: dict[str, Any] | None = None
@@ -57,7 +60,7 @@ class Coordinator:
         output_file: str | None = None,
         max_iterations: Annotated[int, Field(ge=1, le=10)] = MAX_ITERATIONS,
         use_mcp: bool = False,
-        parallel: bool = False
+        parallel: bool = False,
     ) -> dict[str, Any]:
         """
         Main orchestration entry point with iteration support.
@@ -95,9 +98,9 @@ class Coordinator:
             if output_file:
                 self._save_output(plan_output, output_file)
             return {
-                'status': 'dry_run_complete',
-                'plan': self.current_plan,
-                'output': plan_output
+                "status": "dry_run_complete",
+                "plan": self.current_plan,
+                "output": plan_output,
             }
 
         # Step 4: Execute with iteration loop
@@ -107,7 +110,7 @@ class Coordinator:
                 execution_report = asyncio.run(self._execute_parallel(max_iterations))
             except KeyboardInterrupt:
                 # Already handled in _execute_parallel
-                execution_report = {'status': 'cancelled', 'results': {}}
+                execution_report = {"status": "cancelled", "results": {}}
         else:
             execution_report = self._execute_with_iterations(max_iterations, parallel)
 
@@ -119,7 +122,9 @@ class Coordinator:
 
         return execution_report
 
-    def _execute_with_iterations(self, max_iterations: int, parallel: bool = False) -> dict[str, Any]:
+    def _execute_with_iterations(
+        self, max_iterations: int, parallel: bool = False
+    ) -> dict[str, Any]:
         """Execute the current plan with iteration support.
 
         Args:
@@ -131,28 +136,23 @@ class Coordinator:
         """
         if self.current_plan is None:
             return self._error_report("No plan generated")
-        tasks = self.current_plan['tasks']
+        tasks = self.current_plan["tasks"]
 
         # For validation_only flow: Brain #1 → Brain #7 (with possible iteration)
         # For other flows: Execute all tasks with Brain #7 at the end
 
         # Check if this is a validation flow (just #1 → #7)
         is_validation_flow = (
-            len(tasks) == 2 and
-            tasks[0]['brain_id'] == 1 and
-            tasks[1]['brain_id'] == 7
+            len(tasks) == 2 and tasks[0]["brain_id"] == 1 and tasks[1]["brain_id"] == 7
         )
 
         # Check if this is a discovery flow
-        is_discovery_flow = self.current_plan.get('flow_type') == self.FLOW_DISCOVERY
+        is_discovery_flow = self.current_plan.get("flow_type") == self.FLOW_DISCOVERY
 
         if is_discovery_flow:
             # Use discovery flow with Brain #8
-            brief = self.current_plan['brief']['original']
+            brief = self.current_plan["brief"]["original"]
             return self._execute_discovery_flow(brief)
-        elif parallel:
-            # Use parallel execution
-            return self._execute_parallel(max_iterations)
         elif is_validation_flow:
             # Use iteration loop for validation
             return self._execute_validation_flow(tasks, max_iterations)
@@ -174,29 +174,41 @@ class Coordinator:
         """
         plan_id = self._generate_session_id()
 
-        print(self.formatter.format_info("🎤 Starting Discovery Interview with Brain #8"))
+        print(
+            self.formatter.format_info("🎤 Starting Discovery Interview with Brain #8")
+        )
         print(self.formatter.format_separator())
 
         try:
             # Step 1: Generate interview plan via Brain #8
-            print(self.formatter.format_info("Step 1: Generating interview strategy..."))
+            print(
+                self.formatter.format_info("Step 1: Generating interview strategy...")
+            )
             interview_plan = self._generate_interview_plan(brief)
 
-            if not interview_plan or interview_plan.get('status') == 'error':
+            if not interview_plan or interview_plan.get("status") == "error":
                 return self._error_report("Failed to generate interview plan")
 
             print(self.formatter.format_interview_plan(interview_plan))
 
             # Step 2: Execute iterative interview
             print(self.formatter.format_info("Step 2: Conducting interview..."))
-            print(self.formatter.format_info("(Type your answers. Press Ctrl+C to end interview early)"))
+            print(
+                self.formatter.format_info(
+                    "(Type your answers. Press Ctrl+C to end interview early)"
+                )
+            )
             print(self.formatter.format_separator())
 
             interview_doc = self._conduct_interview(interview_plan, brief)
 
             # Step 3: Generate final deliverable
             print(self.formatter.format_separator())
-            print(self.formatter.format_info("Step 3: Generating final recommendations..."))
+            print(
+                self.formatter.format_info(
+                    "Step 3: Generating final recommendations..."
+                )
+            )
 
             # Format the interview document as deliverable
             deliverable = self._format_interview_deliverable(interview_doc)
@@ -214,21 +226,21 @@ class Coordinator:
                     print(f"Warning: Could not log interview: {e}")
 
             return {
-                'plan_id': plan_id,
-                'status': 'completed',
-                'flow_type': 'discovery',
-                'interview_document': interview_doc,
-                'final_deliverable': deliverable,
-                'message': 'Discovery interview completed successfully'
+                "plan_id": plan_id,
+                "status": "completed",
+                "flow_type": "discovery",
+                "interview_document": interview_doc,
+                "final_deliverable": deliverable,
+                "message": "Discovery interview completed successfully",
             }
 
         except KeyboardInterrupt:
             print(self.formatter.format_warning("\nInterview interrupted by user."))
             return {
-                'plan_id': plan_id,
-                'status': 'interrupted',
-                'flow_type': 'discovery',
-                'message': 'Discovery interview interrupted by user'
+                "plan_id": plan_id,
+                "status": "interrupted",
+                "flow_type": "discovery",
+                "message": "Discovery interview interrupted by user",
             }
         except Exception as e:
             return self._error_report(f"Discovery flow error: {str(e)}")
@@ -240,7 +252,7 @@ class Coordinator:
         lines.append("")
 
         # Metadata
-        metadata = interview_doc.get('metadata', {})
+        metadata = interview_doc.get("metadata", {})
         lines.append("## Interview Metadata")
         lines.append(f"- **Session ID:** {metadata.get('session_id', 'unknown')}")
         lines.append(f"- **Date:** {metadata.get('timestamp', 'unknown')}")
@@ -248,22 +260,26 @@ class Coordinator:
         lines.append("")
 
         # Summary
-        outcome = interview_doc.get('outcome', {})
+        outcome = interview_doc.get("outcome", {})
         lines.append("## Summary")
-        lines.append(f"- **Questions Asked:** {outcome.get('total_questions_asked', 0)}")
-        lines.append(f"- **Categories Explored:** {outcome.get('categories_completed', 0)}")
+        lines.append(
+            f"- **Questions Asked:** {outcome.get('total_questions_asked', 0)}"
+        )
+        lines.append(
+            f"- **Categories Explored:** {outcome.get('categories_completed', 0)}"
+        )
         lines.append("")
 
         # Q&A by Category
         lines.append("## Questions & Answers")
         lines.append("")
 
-        qa_pairs = interview_doc.get('qa_pairs', [])
+        qa_pairs = interview_doc.get("qa_pairs", [])
         if qa_pairs:
             # Group by category
             by_category: dict[str, list[dict[str, Any]]] = {}
             for qa in qa_pairs:
-                cat = qa.get('category', 'General')
+                cat = qa.get("category", "General")
                 if cat not in by_category:
                     by_category[cat] = []
                 by_category[cat].append(qa)
@@ -279,8 +295,8 @@ class Coordinator:
                     lines.append("")
 
                     # Add follow-up insights if available
-                    follow_up = qa.get('follow_up', {})
-                    insights = follow_up.get('insights', [])
+                    follow_up = qa.get("follow_up", {})
+                    insights = follow_up.get("insights", [])
                     if insights:
                         lines.append(f"*Insights:* {', '.join(insights[:3])}")
                         lines.append("")
@@ -288,40 +304,43 @@ class Coordinator:
 
         return "\n".join(lines)
 
-    def _log_interview_as_evaluation(self, interview_doc: dict[str, Any], brief: str) -> None:
+    def _log_interview_as_evaluation(
+        self, interview_doc: dict[str, Any], brief: str
+    ) -> None:
         """Log interview as evaluation for tracking."""
         if not self.eval_logger:
             return
 
-        outcome = interview_doc.get('outcome', {})
-        metadata = interview_doc.get('metadata', {})
+        outcome = interview_doc.get("outcome", {})
+        metadata = interview_doc.get("metadata", {})
 
         # Convert interview to evaluation format
         self.eval_logger.log_evaluation(
-            project=metadata.get('session_id', 'discovery'),
+            project=metadata.get("session_id", "discovery"),
             brief=brief,
-            flow_type='discovery',
-            score_total=outcome.get('total_questions_asked', 0),
+            flow_type="discovery",
+            score_total=outcome.get("total_questions_asked", 0),
             score_max=50,  # Arbitrary scale
-            verdict='APPROVE',
+            verdict="APPROVE",
             issues=[],  # No issues in discovery
             strengths=[
                 f"Explored {outcome.get('categories_completed', 0)} categories",
-                f"Asked {outcome.get('total_questions_asked', 0)} questions"
+                f"Asked {outcome.get('total_questions_asked', 0)} questions",
             ],
             full_output=self._format_interview_deliverable(interview_doc),
-            tags=['discovery', 'brain_8'],
-            brains_involved=[8] + [
-                qa.get('brain', 0) for qa in interview_doc.get('qa_pairs', [])
-            ]
+            tags=["discovery", "brain_8"],
+            brains_involved=[8]
+            + [qa.get("brain", 0) for qa in interview_doc.get("qa_pairs", [])],
         )
 
-    def _execute_validation_flow(self, tasks: list[dict[str, Any]], max_iterations: int) -> dict[str, Any]:
+    def _execute_validation_flow(
+        self, tasks: list[dict[str, Any]], max_iterations: int
+    ) -> dict[str, Any]:
         """Execute validation flow (Brain #1 → Brain #7) with iteration."""
         if self.current_plan is None:
             return self._error_report("No plan available")
-        plan_id = self.current_plan['plan_id']
-        brief = self.current_plan['brief']['original']
+        plan_id = self.current_plan["plan_id"]
+        brief = self.current_plan["brief"]["original"]
 
         outputs: dict[str, Any] = {}
         evaluations: dict[str, Any] = {}
@@ -339,150 +358,177 @@ class Coordinator:
             # Add context from previous iterations if any
             if iteration > 1 and evaluations:
                 last_eval = list(evaluations.values())[-1]
-                redirect = last_eval.get('redirect_instructions')
+                redirect = last_eval.get("redirect_instructions")
                 if redirect:
-                    task_1['inputs']['feedback'] = redirect.get('specific_fixes', [])
-                    task_1['inputs']['iteration'] = iteration
+                    task_1["inputs"]["feedback"] = redirect.get("specific_fixes", [])
+                    task_1["inputs"]["iteration"] = iteration
 
             result_1 = self.brain_executor.execute(1, task_1, use_mcp=self.use_mcp)
             print(self.formatter.format_brain_output(result_1, task_1))
 
-            outputs['TASK-001'] = result_1.get('output', {})
+            outputs["TASK-001"] = result_1.get("output", {})
 
             # --- Task 2: Brain #7 (Evaluator) ---
             task_7 = tasks[1]
-            task_7['output_to_evaluate'] = result_1.get('output', {})
-            task_7['previous_brain_id'] = 1
+            task_7["output_to_evaluate"] = result_1.get("output", {})
+            task_7["previous_brain_id"] = 1
 
             print(self.formatter.format_task_start(task_7))
-            result_7 = self.brain_executor.execute(7, task_7, use_mcp=False)  # Evaluator uses local logic
+            result_7 = self.brain_executor.execute(
+                7, task_7, use_mcp=False
+            )  # Evaluator uses local logic
 
             # Format evaluation result
             print(self.formatter.format_evaluation_result(result_7))
 
             # Log evaluation if enabled
             if self.eval_logger:
-                self._log_evaluation(result_7, brief, self.current_plan.get('flow_type', 'validation_only'))
+                self._log_evaluation(
+                    result_7,
+                    brief,
+                    self.current_plan.get("flow_type", "validation_only"),
+                )
 
-            evaluations['TASK-002'] = result_7
-            outputs['TASK-002'] = result_7
+            evaluations["TASK-002"] = result_7
+            outputs["TASK-002"] = result_7
 
             # Check veredict
-            veredict = result_7.get('veredict', 'UNKNOWN')
+            veredict = result_7.get("veredict", "UNKNOWN")
 
-            if veredict == 'APPROVE':
+            if veredict == "APPROVE":
                 # Success! Exit iteration loop
                 self.rejection_count = 0
                 return {
-                    'plan_id': plan_id,
-                    'status': 'completed',
-                    'tasks_completed': 2,
-                    'tasks_total': 2,
-                    'iterations': iteration,
-                    'outputs': outputs,
-                    'evaluations': evaluations,
-                    'final_deliverable': self._generate_deliverable(outputs, evaluations),
-                    'veredict': 'APPROVE'
+                    "plan_id": plan_id,
+                    "status": "completed",
+                    "tasks_completed": 2,
+                    "tasks_total": 2,
+                    "iterations": iteration,
+                    "outputs": outputs,
+                    "evaluations": evaluations,
+                    "final_deliverable": self._generate_deliverable(
+                        outputs, evaluations
+                    ),
+                    "veredict": "APPROVE",
                 }
 
-            elif veredict == 'CONDITIONAL':
+            elif veredict == "CONDITIONAL":
                 # Try one more iteration with fixes
                 if iteration < max_iterations:
-                    print(self.formatter.format_info(
-                        f"Conditional approval. Applying fixes and retrying... ({iteration}/{max_iterations})"
-                    ))
+                    print(
+                        self.formatter.format_info(
+                            f"Conditional approval. Applying fixes and retrying... ({iteration}/{max_iterations})"
+                        )
+                    )
                     continue
                 else:
-                    print(self.formatter.format_warning(
-                        f"Reached max iterations ({max_iterations}) with conditional approval."
-                    ))
+                    print(
+                        self.formatter.format_warning(
+                            f"Reached max iterations ({max_iterations}) with conditional approval."
+                        )
+                    )
                     return {
-                        'plan_id': plan_id,
-                        'status': 'completed',
-                        'tasks_completed': 2,
-                        'tasks_total': 2,
-                        'iterations': iteration,
-                        'outputs': outputs,
-                        'evaluations': evaluations,
-                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
-                        'veredict': 'CONDITIONAL'
+                        "plan_id": plan_id,
+                        "status": "completed",
+                        "tasks_completed": 2,
+                        "tasks_total": 2,
+                        "iterations": iteration,
+                        "outputs": outputs,
+                        "evaluations": evaluations,
+                        "final_deliverable": self._generate_deliverable(
+                            outputs, evaluations
+                        ),
+                        "veredict": "CONDITIONAL",
                     }
 
-            elif veredict == 'REJECT':
+            elif veredict == "REJECT":
                 self.rejection_count += 1
 
                 # Check for escalation
                 if self.rejection_count >= 3:
-                    print(self.formatter.format_escalation_notice(
-                        "3rd consecutive rejection. This brief requires human review."
-                    ))
+                    print(
+                        self.formatter.format_escalation_notice(
+                            "3rd consecutive rejection. This brief requires human review."
+                        )
+                    )
                     return {
-                        'plan_id': plan_id,
-                        'status': 'escalated',
-                        'tasks_completed': 2,
-                        'tasks_total': 2,
-                        'iterations': iteration,
-                        'outputs': outputs,
-                        'evaluations': evaluations,
-                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
-                        'veredict': 'ESCALATE',
-                        'escalation_reason': '3rd consecutive rejection'
+                        "plan_id": plan_id,
+                        "status": "escalated",
+                        "tasks_completed": 2,
+                        "tasks_total": 2,
+                        "iterations": iteration,
+                        "outputs": outputs,
+                        "evaluations": evaluations,
+                        "final_deliverable": self._generate_deliverable(
+                            outputs, evaluations
+                        ),
+                        "veredict": "ESCALATE",
+                        "escalation_reason": "3rd consecutive rejection",
                     }
 
                 # Try again if we have iterations left
                 if iteration < max_iterations:
-                    print(self.formatter.format_info(
-                        f"Rejected. Re-submitting with feedback... ({iteration}/{max_iterations})"
-                    ))
+                    print(
+                        self.formatter.format_info(
+                            f"Rejected. Re-submitting with feedback... ({iteration}/{max_iterations})"
+                        )
+                    )
                     continue
                 else:
                     # Max iterations reached, still rejected
-                    print(self.formatter.format_warning(
-                        f"Reached max iterations ({max_iterations}) with rejection."
-                    ))
+                    print(
+                        self.formatter.format_warning(
+                            f"Reached max iterations ({max_iterations}) with rejection."
+                        )
+                    )
                     return {
-                        'plan_id': plan_id,
-                        'status': 'completed',
-                        'tasks_completed': 2,
-                        'tasks_total': 2,
-                        'iterations': iteration,
-                        'outputs': outputs,
-                        'evaluations': evaluations,
-                        'final_deliverable': self._generate_deliverable(outputs, evaluations),
-                        'veredict': 'REJECT'
+                        "plan_id": plan_id,
+                        "status": "completed",
+                        "tasks_completed": 2,
+                        "tasks_total": 2,
+                        "iterations": iteration,
+                        "outputs": outputs,
+                        "evaluations": evaluations,
+                        "final_deliverable": self._generate_deliverable(
+                            outputs, evaluations
+                        ),
+                        "veredict": "REJECT",
                     }
 
-            elif veredict == 'ESCALATE':
+            elif veredict == "ESCALATE":
                 # Immediate escalation
-                print(self.formatter.format_escalation_notice(
-                    result_7.get('evaluation', {}).get('summary', 'Evaluator requested escalation.')
-                ))
+                print(
+                    self.formatter.format_escalation_notice(
+                        result_7.get("evaluation", {}).get(
+                            "summary", "Evaluator requested escalation."
+                        )
+                    )
+                )
                 return {
-                    'plan_id': plan_id,
-                    'status': 'escalated',
-                    'tasks_completed': 2,
-                    'tasks_total': 2,
-                    'iterations': iteration,
-                    'outputs': outputs,
-                    'evaluations': evaluations,
-                    'final_deliverable': self._generate_deliverable(outputs, evaluations),
-                    'veredict': 'ESCALATE',
-                    'escalation_reason': 'Evaluator requested escalation'
+                    "plan_id": plan_id,
+                    "status": "escalated",
+                    "tasks_completed": 2,
+                    "tasks_total": 2,
+                    "iterations": iteration,
+                    "outputs": outputs,
+                    "evaluations": evaluations,
+                    "final_deliverable": self._generate_deliverable(
+                        outputs, evaluations
+                    ),
+                    "veredict": "ESCALATE",
+                    "escalation_reason": "Evaluator requested escalation",
                 }
 
         # Should not reach here, but fallback
         return {
-            'plan_id': plan_id,
-            'status': 'error',
-            'error': 'Unexpected end of iteration loop',
-            'outputs': outputs,
-            'evaluations': evaluations
+            "plan_id": plan_id,
+            "status": "error",
+            "error": "Unexpected end of iteration loop",
+            "outputs": outputs,
+            "evaluations": evaluations,
         }
 
-    async def _execute_parallel(
-        self,
-        max_iterations: int = 3
-    ) -> dict[str, Any]:
+    async def _execute_parallel(self, max_iterations: int = 3) -> dict[str, Any]:
         """Execute brains in parallel using wave-based dependency resolution.
 
         This method uses ParallelExecutor to run independent brains concurrently,
@@ -502,7 +548,7 @@ class Coordinator:
         if self.current_plan is None:
             return self._error_report("No plan available")
 
-        brief = self.current_plan['brief']['original']
+        brief = self.current_plan["brief"]["original"]
 
         # Create a simple FlowConfig for all brains in the plan
         # In a real implementation, this would be parsed from the plan
@@ -510,8 +556,8 @@ class Coordinator:
 
         # For now, create a simple flow with all brains as independent nodes
         # This will be improved in future plans to parse actual dependencies
-        nodes = {}
-        tasks = self.current_plan.get('tasks', [])
+        nodes: dict[str, list[str]] = {}
+        tasks = self.current_plan.get("tasks", [])
         for task in tasks:
             brain_id = f"brain-{task['brain_id']:02d}"
             nodes[brain_id] = []  # No dependencies for now
@@ -521,14 +567,14 @@ class Coordinator:
         # Create a simple registry wrapper for DependencyResolver
         class SimpleBrainRegistry:
             """Simple registry wrapper for brain_executor.BRAIN_CONFIGS."""
-            def __init__(self, brain_configs: dict):
+
+            def __init__(self, brain_configs: dict[int, Any]):
                 self.brain_configs = brain_configs
 
             def list_brains(self) -> list[str]:
                 """List all brain IDs in 'brain-XX' format."""
                 return [
-                    f"brain-{brain_id:02d}"
-                    for brain_id in self.brain_configs.keys()
+                    f"brain-{brain_id:02d}" for brain_id in self.brain_configs.keys()
                 ]
 
         resolver = DependencyResolver(
@@ -541,50 +587,62 @@ class Coordinator:
             await db.create_task_schema()
             task_repo = TaskRepository(db)
             provider_configs = self._load_provider_configs()
-            executor = ParallelExecutor(task_repo, self.mcp_integration, provider_configs)
+            # Wrap MCP integration in TypeSafeMCPWrapper
+            from .mcp_wrapper import TypeSafeMCPWrapper
+
+            mcp_wrapper = TypeSafeMCPWrapper(self.mcp_integration)
+            executor = ParallelExecutor(task_repo, mcp_wrapper, provider_configs)
 
             results = {}
             try:
                 for level_idx, level in enumerate(execution_graph.levels):
                     # Execute all brains in this wave concurrently
-                    print(self.formatter.format_info(
-                        f"Wave {level_idx + 1}/{len(execution_graph.levels)}: "
-                        f"Executing {len(level.brain_ids)} brains"
-                    ))
+                    print(
+                        self.formatter.format_info(
+                            f"Wave {level_idx + 1}/{len(execution_graph.levels)}: "
+                            f"Executing {len(level.brain_ids)} brains"
+                        )
+                    )
 
                     wave_results = await executor.execute_brains_parallel(flow, brief)
                     results.update(wave_results)
 
                     # Check for failures
-                    failed = [bid for bid, res in wave_results.items() if res.get("status") == "failed"]
+                    failed = [
+                        bid
+                        for bid, res in wave_results.items()
+                        if res.get("status") == "failed"
+                    ]
                     if failed:
                         return self._error_report(f"Brains failed: {', '.join(failed)}")
 
                 return {
-                    'status': 'success',
-                    'results': results,
-                    'iterations': 1,
-                    'waves': len(execution_graph.levels)
+                    "status": "success",
+                    "results": results,
+                    "iterations": 1,
+                    "waves": len(execution_graph.levels),
                 }
             except KeyboardInterrupt:
                 # Handle cancellation
                 from .error_formatter import BrainErrorFormatter
+
                 print("\n⚠️  Cancellation requested...")
 
                 # Use CancellationManager for graceful shutdown
                 from .cancellation import CancellationManager
+
                 cancellation_mgr = CancellationManager(grace_period=5.0)
                 cancel_results = await cancellation_mgr.cancel(executor)
 
                 print(BrainErrorFormatter.format_parallel_summary(results))
 
                 return {
-                    'status': 'cancelled',
-                    'results': results,
-                    'cancellation': cancel_results
+                    "status": "cancelled",
+                    "results": results,
+                    "cancellation": cancel_results,
                 }
 
-    def _load_provider_configs(self) -> list:
+    def _load_provider_configs(self) -> list[ProviderConfig]:
         """Load provider configurations from YAML.
 
         Returns:
@@ -597,11 +655,7 @@ class Coordinator:
         config_path = Path(__file__).parent.parent / "config" / "providers.yaml"
         if not config_path.exists():
             # Return default config if file doesn't exist
-            return [ProviderConfig(
-                name="notebooklm",
-                max_concurrent_calls=5,
-                base_url="http://localhost:8000"
-            )]
+            return [ProviderConfig(name="notebooklm", max_concurrent_calls=5)]
 
         with open(config_path) as f:
             data = yaml.safe_load(f)
@@ -612,21 +666,23 @@ class Coordinator:
         """Execute standard flow (all tasks in sequence)."""
         if self.current_plan is None:
             return self._error_report("No plan available")
-        plan_id = self.current_plan['plan_id']
+        plan_id = self.current_plan["plan_id"]
 
         completed_tasks = 0
         outputs = {}
         evaluations = {}
 
         for task in tasks:
-            task_id = task['task_id']
-            brain_id = task['brain_id']
+            task_id = task["task_id"]
+            brain_id = task["brain_id"]
 
             # Check if brain is available
             if not self.brain_executor.is_brain_available(brain_id):
-                print(self.formatter.format_warning(
-                    f"Brain #{brain_id} is not implemented. Skipping."
-                ))
+                print(
+                    self.formatter.format_warning(
+                        f"Brain #{brain_id} is not implemented. Skipping."
+                    )
+                )
                 if brain_id not in [1, 7]:
                     outputs[task_id] = f"Skipped: Brain #{brain_id} not implemented"
                     completed_tasks += 1
@@ -641,13 +697,15 @@ class Coordinator:
 
             # Execute brain (use MCP only for non-evaluator brains)
             use_mcp_for_brain = self.use_mcp if brain_id != 7 else False
-            result = self.brain_executor.execute(brain_id, task, use_mcp=use_mcp_for_brain)
+            result = self.brain_executor.execute(
+                brain_id, task, use_mcp=use_mcp_for_brain
+            )
 
             # Format and print brain output
             print(self.formatter.format_brain_output(result, task))
 
             # Store output
-            outputs[task_id] = result.get('output', {})
+            outputs[task_id] = result.get("output", {})
 
             # If this is Brain #7 (evaluator), format evaluation
             if brain_id == 7:
@@ -655,30 +713,36 @@ class Coordinator:
                 evaluations[task_id] = result
 
                 # Check veredict - may want to stop early
-                veredict = result.get('veredict', 'PLACEHOLDER')
-                if veredict == 'ESCALATE':
-                    print(self.formatter.format_escalation_notice("Evaluator requested escalation."))
+                veredict = result.get("veredict", "PLACEHOLDER")
+                if veredict == "ESCALATE":
+                    print(
+                        self.formatter.format_escalation_notice(
+                            "Evaluator requested escalation."
+                        )
+                    )
                     break
 
             completed_tasks += 1
 
         return {
-            'plan_id': plan_id,
-            'status': 'completed',
-            'tasks_completed': completed_tasks,
-            'tasks_total': len(tasks),
-            'outputs': outputs,
-            'evaluations': evaluations,
-            'final_deliverable': self._generate_deliverable(outputs, evaluations)
+            "plan_id": plan_id,
+            "status": "completed",
+            "tasks_completed": completed_tasks,
+            "tasks_total": len(tasks),
+            "outputs": outputs,
+            "evaluations": evaluations,
+            "final_deliverable": self._generate_deliverable(outputs, evaluations),
         }
 
-    def _generate_deliverable(self, outputs: dict[str, Any], evaluations: dict[str, Any]) -> str:
+    def _generate_deliverable(
+        self, outputs: dict[str, Any], evaluations: dict[str, Any]
+    ) -> str:
         """Generate final deliverable from outputs."""
         if not outputs:
             return "No outputs generated."
 
         # Find the main strategy output (from Brain #1)
-        strategy_output = outputs.get('TASK-001', {})
+        strategy_output = outputs.get("TASK-001", {})
 
         if not strategy_output:
             return "Orchestration complete. See outputs above."
@@ -689,49 +753,57 @@ class Coordinator:
 
         if isinstance(strategy_output, dict):
             # Persona
-            if strategy_output.get('persona'):
-                persona = strategy_output['persona']
+            if strategy_output.get("persona"):
+                persona = strategy_output["persona"]
                 if isinstance(persona, dict):
                     lines.append(f"**Target Persona:** {persona.get('name', 'N/A')}")
-                    if persona.get('description'):
+                    if persona.get("description"):
                         lines.append(f"{persona['description']}")
                     lines.append("")
 
             # Value Proposition
-            if strategy_output.get('value_proposition'):
-                lines.append(f"**Value Proposition:** {strategy_output['value_proposition']}")
+            if strategy_output.get("value_proposition"):
+                lines.append(
+                    f"**Value Proposition:** {strategy_output['value_proposition']}"
+                )
                 lines.append("")
 
             # Key Features
-            if strategy_output.get('key_features'):
-                features = strategy_output['key_features']
+            if strategy_output.get("key_features"):
+                features = strategy_output["key_features"]
                 lines.append("**Key Features:**")
                 if isinstance(features, list):
                     for feature in features[:5]:  # Limit to top 5
                         if isinstance(feature, dict):
-                            name = feature.get('feature', feature.get('name', 'Unknown'))
-                            priority = feature.get('priority', '')
-                            lines.append(f"- {name} ({priority})" if priority else f"- {name}")
+                            name = feature.get(
+                                "feature", feature.get("name", "Unknown")
+                            )
+                            priority = feature.get("priority", "")
+                            lines.append(
+                                f"- {name} ({priority})" if priority else f"- {name}"
+                            )
                         else:
                             lines.append(f"- {feature}")
                 lines.append("")
 
             # Success Metrics
-            if strategy_output.get('success_metrics'):
-                metrics = strategy_output['success_metrics']
+            if strategy_output.get("success_metrics"):
+                metrics = strategy_output["success_metrics"]
                 lines.append("**Success Metrics:**")
                 if isinstance(metrics, list):
                     for metric in metrics[:5]:
                         if isinstance(metric, dict):
-                            name = metric.get('metric', 'Unknown')
-                            target = metric.get('target', '')
-                            confidence = metric.get('confidence', '')
-                            lines.append(f"- {name}: {target} (confidence: {confidence})")
+                            name = metric.get("metric", "Unknown")
+                            target = metric.get("target", "")
+                            confidence = metric.get("confidence", "")
+                            lines.append(
+                                f"- {name}: {target} (confidence: {confidence})"
+                            )
                 lines.append("")
 
             # Risks
-            if strategy_output.get('risks'):
-                risks = strategy_output['risks']
+            if strategy_output.get("risks"):
+                risks = strategy_output["risks"]
                 lines.append("**Key Risks:**")
                 if isinstance(risks, dict):
                     for risk_type, description in risks.items():
@@ -742,16 +814,15 @@ class Coordinator:
 
     def _error_report(self, error: str) -> dict[str, Any]:
         """Generate error report."""
-        return {
-            'status': 'error',
-            'error': error,
-            'plan': self.current_plan
-        }
+        return {"status": "error", "error": error, "plan": self.current_plan}
 
     def _save_output(self, output: str, filepath: str) -> None:
         """Save output to file."""
-        os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
-        with open(filepath, 'w') as f:
+        os.makedirs(
+            os.path.dirname(filepath) if os.path.dirname(filepath) else ".",
+            exist_ok=True,
+        )
+        with open(filepath, "w") as f:
             f.write(output)
 
     @validate_call
@@ -759,7 +830,7 @@ class Coordinator:
         self,
         result_7: dict[str, Any],
         brief: Annotated[str, Field(min_length=1)],
-        flow_type: str
+        flow_type: str,
     ) -> None:
         """Log evaluation to memory system.
 
@@ -772,53 +843,57 @@ class Coordinator:
             return
         try:
             # Extract evaluation data
-            score_data = result_7.get('score', {})
-            veredict = result_7.get('veredict', 'UNKNOWN')
+            score_data = result_7.get("score", {})
+            veredict = result_7.get("veredict", "UNKNOWN")
 
             # Convert failed_checks to issues format
             issues = []
-            for failed in result_7.get('failed_checks', []):
-                issues.append({
-                    'type': failed.get('check_id', 'unknown'),
-                    'severity': 'high',
-                    'description': failed.get('reason', ''),
-                    'recommendation': failed.get('fix_instruction', '')
-                })
+            for failed in result_7.get("failed_checks", []):
+                issues.append(
+                    {
+                        "type": failed.get("check_id", "unknown"),
+                        "severity": "high",
+                        "description": failed.get("reason", ""),
+                        "recommendation": failed.get("fix_instruction", ""),
+                    }
+                )
 
             # Convert passed_checks to strengths
             strengths = [
-                passed.get('justification', passed.get('check', ''))
-                for passed in result_7.get('passed_checks', [])
+                passed.get("justification", passed.get("check", ""))
+                for passed in result_7.get("passed_checks", [])
             ]
 
             # Build full output text
-            full_output = result_7.get('summary', '')
-            if result_7.get('failed_checks'):
+            full_output = result_7.get("summary", "")
+            if result_7.get("failed_checks"):
                 full_output += "\n\n**Issues Found:**\n"
-                for failed in result_7.get('failed_checks', []):
-                    full_output += f"- {failed.get('check', '')}: {failed.get('reason', '')}\n"
+                for failed in result_7.get("failed_checks", []):
+                    full_output += (
+                        f"- {failed.get('check', '')}: {failed.get('reason', '')}\n"
+                    )
 
             # Generate tags from flow and brief
             tags = [flow_type]
             brief_lower = brief.lower()
-            if 'b2b' in brief_lower or 'saas' in brief_lower:
-                tags.append('b2b')
-            elif 'b2c' in brief_lower or 'app' in brief_lower:
-                tags.append('b2c')
+            if "b2b" in brief_lower or "saas" in brief_lower:
+                tags.append("b2b")
+            elif "b2c" in brief_lower or "app" in brief_lower:
+                tags.append("b2c")
 
             # Log the evaluation
             self.eval_logger.log_evaluation(
-                project=self.current_plan.get('project_name', 'unknown'),
+                project=self.current_plan.get("project_name", "unknown"),
                 brief=brief,
                 flow_type=flow_type,
-                score_total=score_data.get('points', 0),
-                score_max=score_data.get('total', 100),
+                score_total=score_data.get("points", 0),
+                score_max=score_data.get("total", 100),
                 verdict=veredict,
                 issues=issues,
                 strengths=strengths,
                 full_output=full_output,
                 tags=tags,
-                brains_involved=[1, 7]
+                brains_involved=[1, 7],
             )
         except Exception as e:
             # Don't fail orchestration if logging fails
@@ -842,15 +917,24 @@ class Coordinator:
         # Check 1: Word count
         word_count = len(brief.split())
         if word_count < 15:
-            print(self.formatter.format_info(
-                f"Brief is too short ({word_count} words). Starting discovery interview."
-            ))
+            print(
+                self.formatter.format_info(
+                    f"Brief is too short ({word_count} words). Starting discovery interview."
+                )
+            )
             return self.FLOW_DISCOVERY
 
         # Check 2: Ambiguity markers
         ambiguity_markers = [
-            "moderno", "nuevo", "buena", "mejor", "app",
-            "sistema", "plataforma", "feature", "algo"
+            "moderno",
+            "nuevo",
+            "buena",
+            "mejor",
+            "app",
+            "sistema",
+            "plataforma",
+            "feature",
+            "algo",
         ]
 
         brief_lower = brief.lower()
@@ -858,25 +942,40 @@ class Coordinator:
 
         # If 2+ ambiguity markers, needs discovery
         if marker_count >= 2:
-            print(self.formatter.format_info(
-                f"Brief contains {marker_count} ambiguity markers. Starting discovery interview."
-            ))
+            print(
+                self.formatter.format_info(
+                    f"Brief contains {marker_count} ambiguity markers. Starting discovery interview."
+                )
+            )
             return self.FLOW_DISCOVERY
 
         # Check 3: Missing problem statement keywords
-        problem_keywords = ["problema", "necesito", "requiero", "quiero", "goal", "objetivo", "issue", "error"]
+        problem_keywords = [
+            "problema",
+            "necesito",
+            "requiero",
+            "quiero",
+            "goal",
+            "objetivo",
+            "issue",
+            "error",
+        ]
         has_problem = any(kw in brief_lower for kw in problem_keywords)
 
         if not has_problem and word_count < 30:
-            print(self.formatter.format_info(
-                "Brief lacks clear problem statement. Starting discovery interview."
-            ))
+            print(
+                self.formatter.format_info(
+                    "Brief lacks clear problem statement. Starting discovery interview."
+                )
+            )
             return self.FLOW_DISCOVERY
 
         # Default: use existing flow detector
         return self.flow_detector.detect(brief)
 
-    def generate_discovery_plan(self, brief: str, use_mcp: bool = False) -> dict[str, Any]:
+    def generate_discovery_plan(
+        self, brief: str, use_mcp: bool = False
+    ) -> dict[str, Any]:
         """
         Generate discovery interview plan (public API for skills/CLI).
 
@@ -956,7 +1055,11 @@ Keep the JSON format clean and parseable.
 
         try:
             # Try MCP first
-            if self.use_mcp and self.mcp_integration and self.mcp_integration.is_available():
+            if (
+                self.use_mcp
+                and self.mcp_integration
+                and self.mcp_integration.is_available()
+            ):
                 response = self.mcp_integration.query_notebook(brain_id=8, query=query)
 
                 if response.get("status") == "success":
@@ -966,17 +1069,21 @@ Keep the JSON format clean and parseable.
 
                     if parsed_plan:
                         return {
-                            'status': 'success',
-                            'plan': parsed_plan,
-                            'raw_response': content,
-                            'method': 'mcp'
+                            "status": "success",
+                            "plan": parsed_plan,
+                            "raw_response": content,
+                            "method": "mcp",
                         }
 
             # Fallback: Generate basic plan locally
             return self._generate_basic_interview_plan(brief)
 
         except Exception as e:
-            print(self.formatter.format_warning(f"Brain #8 query failed: {e}. Using basic plan."))
+            print(
+                self.formatter.format_warning(
+                    f"Brain #8 query failed: {e}. Using basic plan."
+                )
+            )
             return self._generate_basic_interview_plan(brief)
 
     def _parse_interview_plan(self, content: str) -> dict[str, Any] | None:
@@ -985,7 +1092,7 @@ Keep the JSON format clean and parseable.
         import re
 
         # Try to extract JSON from the response
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+        json_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", content, re.DOTALL)
 
         if json_match:
             try:
@@ -1007,41 +1114,49 @@ Keep the JSON format clean and parseable.
         categories = []
 
         # Always include users/personas
-        categories.append({
-            "id": "users",
-            "name": "Users & Personas",
-            "target_brain": 2,
-            "priority": "high"
-        })
+        categories.append(
+            {
+                "id": "users",
+                "name": "Users & Personas",
+                "target_brain": 2,
+                "priority": "high",
+            }
+        )
 
         # Add platform if tech keywords present
         tech_keywords = ["web", "app", "móvil", "api", "frontend", "backend"]
         if any(kw in brief_lower for kw in tech_keywords):
-            categories.append({
-                "id": "platforms",
-                "name": "Platforms & Tech Stack",
-                "target_brain": 4,
-                "priority": "medium"
-            })
+            categories.append(
+                {
+                    "id": "platforms",
+                    "name": "Platforms & Tech Stack",
+                    "target_brain": 4,
+                    "priority": "medium",
+                }
+            )
 
         # Add monetization if business keywords
         business_keywords = ["venta", "pago", "suscripción", "negocio", "ingresos"]
         if any(kw in brief_lower for kw in business_keywords):
-            categories.append({
-                "id": "monetization",
-                "name": "Monetization & Business Model",
-                "target_brain": 1,
-                "priority": "high"
-            })
+            categories.append(
+                {
+                    "id": "monetization",
+                    "name": "Monetization & Business Model",
+                    "target_brain": 1,
+                    "priority": "high",
+                }
+            )
 
         # Add problem domain if vague
         if word_count < 20:
-            categories.append({
-                "id": "problem",
-                "name": "Problem Domain",
-                "target_brain": 1,
-                "priority": "high"
-            })
+            categories.append(
+                {
+                    "id": "problem",
+                    "name": "Problem Domain",
+                    "target_brain": 1,
+                    "priority": "high",
+                }
+            )
 
         # Generate initial questions
         initial_questions = []
@@ -1050,30 +1165,36 @@ Keep the JSON format clean and parseable.
                 "users": "What type of users will use this?",
                 "platforms": "What platforms should we target?",
                 "monetization": "How will this make money?",
-                "problem": "What problem are you trying to solve?"
+                "problem": "What problem are you trying to solve?",
             }
-            initial_questions.append({
-                "category": category["id"],
-                "question": question_templates.get(str(category["id"]), "Tell me more about this"),
-                "target_brain": category["target_brain"],
-                "context": f"Understanding {category['name']}"
-            })
+            initial_questions.append(
+                {
+                    "category": category["id"],
+                    "question": question_templates.get(
+                        str(category["id"]), "Tell me more about this"
+                    ),
+                    "target_brain": category["target_brain"],
+                    "context": f"Understanding {category['name']}",
+                }
+            )
 
         return {
-            'status': 'success',
-            'plan': {
+            "status": "success",
+            "plan": {
                 "interview_strategy": {
                     "assessment": f"Basic plan generated (word count: {word_count})",
                     "categories": categories,
                     "initial_questions": initial_questions,
                     "detected_gaps": ["Brief needs clarification"],
-                    "estimated_questions": len(initial_questions) * 2
+                    "estimated_questions": len(initial_questions) * 2,
                 }
             },
-            'method': 'fallback'
+            "method": "fallback",
         }
 
-    def _conduct_interview(self, interview_plan: dict[str, Any], brief: str) -> dict[str, Any]:
+    def _conduct_interview(
+        self, interview_plan: dict[str, Any], brief: str
+    ) -> dict[str, Any]:
         """
         Conduct iterative interview with user.
 
@@ -1102,63 +1223,69 @@ Keep the JSON format clean and parseable.
             if similar:
                 similar_interviews_count = len(similar)
                 print(self.formatter.format_separator())
-                print(self.formatter.format_info(
-                    f"📚 Found {similar_interviews_count} similar interview(s) for context"
-                ))
+                print(
+                    self.formatter.format_info(
+                        f"📚 Found {similar_interviews_count} similar interview(s) for context"
+                    )
+                )
 
                 # Extract useful questions from similar interviews
                 for sim in similar:
-                    useful_questions_from_history.update(sim.get("useful_questions", []))
+                    useful_questions_from_history.update(
+                        sim.get("useful_questions", [])
+                    )
 
                 if useful_questions_from_history:
-                    print(self.formatter.format_info(
-                        f"💡 Learned from past: {len(useful_questions_from_history)} useful questions"
-                    ))
+                    print(
+                        self.formatter.format_info(
+                            f"💡 Learned from past: {len(useful_questions_from_history)} useful questions"
+                        )
+                    )
                 print(self.formatter.format_separator())
         except Exception:
             # Non-blocking: if learning fails, continue without it
             pass
 
-        strategy = interview_plan.get('plan', {}).get('interview_strategy', {})
-        categories = strategy.get('categories', [])
-        initial_questions = strategy.get('initial_questions', [])
+        strategy = interview_plan.get("plan", {}).get("interview_strategy", {})
+        categories = strategy.get("categories", [])
+        initial_questions = strategy.get("initial_questions", [])
 
         if not categories:
-            return {
-                'status': 'error',
-                'error': 'No categories in interview plan'
-            }
+            return {"status": "error", "error": "No categories in interview plan"}
 
         # Initialize interview document
         interview_doc: dict[str, Any] = {
-            'metadata': {
-                'session_id': self._generate_session_id(),
-                'brief': brief,
-                'timestamp': self._get_timestamp(),
-                'categories_count': len(categories)
+            "metadata": {
+                "session_id": self._generate_session_id(),
+                "brief": brief,
+                "timestamp": self._get_timestamp(),
+                "categories_count": len(categories),
             },
-            'categories': {},
-            'qa_pairs': [],
-            'outcome': {}
+            "categories": {},
+            "qa_pairs": [],
+            "outcome": {},
         }
 
         print(self.formatter.format_separator())
-        print(self.formatter.format_info(f"Interview Plan: {len(categories)} categories to explore"))
+        print(
+            self.formatter.format_info(
+                f"Interview Plan: {len(categories)} categories to explore"
+            )
+        )
         print(self.formatter.format_separator())
 
         # Process each category
         for category in categories:
-            category_id = category.get('id')
-            category_name = category.get('name')
-            target_brain = category.get('target_brain')
+            category_id = category.get("id")
+            category_name = category.get("name")
+            target_brain = category.get("target_brain")
 
             print(f"\n📂 Category: {category_name}")
             print(f"   Target Brain: #{target_brain}")
 
             # Get initial question for this category
             category_questions = [
-                q for q in initial_questions
-                if q.get('category') == category_id
+                q for q in initial_questions if q.get("category") == category_id
             ]
 
             if not category_questions:
@@ -1169,7 +1296,7 @@ Keep the JSON format clean and parseable.
             category_qa = []
 
             for question_item in category_questions:
-                question = question_item.get('question')
+                question = question_item.get("question")
 
                 # Ask question to user
                 print(self.formatter.format_question_to_user(question))
@@ -1178,7 +1305,11 @@ Keep the JSON format clean and parseable.
                 try:
                     user_response = input("Your answer: ").strip()
                 except (EOFError, KeyboardInterrupt):
-                    print(self.formatter.format_warning("\nInterview interrupted by user."))
+                    print(
+                        self.formatter.format_warning(
+                            "\nInterview interrupted by user."
+                        )
+                    )
                     break
 
                 if not user_response:
@@ -1192,45 +1323,50 @@ Keep the JSON format clean and parseable.
 
                 # Store Q&A
                 qa_pair = {
-                    'category': category_name,
-                    'category_id': category_id,
-                    'brain': target_brain,
-                    'question': question,
-                    'user_answer': user_response,
-                    'follow_up': follow_up,
-                    'timestamp': self._get_timestamp()
+                    "category": category_name,
+                    "category_id": category_id,
+                    "brain": target_brain,
+                    "question": question,
+                    "user_answer": user_response,
+                    "follow_up": follow_up,
+                    "timestamp": self._get_timestamp(),
                 }
 
                 category_qa.append(qa_pair)
-                interview_doc['qa_pairs'].append(qa_pair)
+                interview_doc["qa_pairs"].append(qa_pair)
 
                 # Display follow-up
-                if follow_up.get('has_follow_up'):
-                    print(self.formatter.format_followup_response(follow_up.get('follow_up_question', 'Thinking...')))
+                if follow_up.get("has_follow_up"):
+                    print(
+                        self.formatter.format_followup_response(
+                            follow_up.get("follow_up_question", "Thinking...")
+                        )
+                    )
 
                     # Check if we should continue or move on
-                    if follow_up.get('should_continue'):
+                    if follow_up.get("should_continue"):
                         # Could ask another question here
                         pass
                     else:
                         # This category is complete
                         break
 
-            interview_doc['categories'][category_id] = {
-                'name': category_name,
-                'qa_count': len(category_qa),
-                'status': 'complete'
+            interview_doc["categories"][category_id] = {
+                "name": category_name,
+                "qa_count": len(category_qa),
+                "status": "complete",
             }
 
         # Generate outcome summary
-        interview_doc['outcome'] = self._generate_interview_outcome(
-            interview_doc,
-            useful_questions_from_history=useful_questions_from_history
+        interview_doc["outcome"] = self._generate_interview_outcome(
+            interview_doc, useful_questions_from_history=useful_questions_from_history
         )
 
         return interview_doc
 
-    def _route_to_domain_brain(self, question: str, answer: str, brain_id: int, brief: str) -> dict[str, Any]:
+    def _route_to_domain_brain(
+        self, question: str, answer: str, brain_id: int, brief: str
+    ) -> dict[str, Any]:
         """
         Route user's answer to domain brain and get follow-up.
 
@@ -1266,8 +1402,14 @@ Format as JSON:
 """
 
         try:
-            if self.use_mcp and self.mcp_integration and self.mcp_integration.is_available():
-                response = self.mcp_integration.query_notebook(brain_id=brain_id, query=query)
+            if (
+                self.use_mcp
+                and self.mcp_integration
+                and self.mcp_integration.is_available()
+            ):
+                response = self.mcp_integration.query_notebook(
+                    brain_id=brain_id, query=query
+                )
 
                 if response.get("status") == "success":
                     content = response.get("content", "")
@@ -1280,10 +1422,10 @@ Format as JSON:
         except Exception as e:
             print(self.formatter.format_warning(f"Domain brain query failed: {e}"))
             return {
-                'has_follow_up': False,
-                'insights': [answer[:100]],  # Partial insight
-                'gaps': [],
-                'should_continue': False
+                "has_follow_up": False,
+                "insights": [answer[:100]],  # Partial insight
+                "gaps": [],
+                "should_continue": False,
             }
 
     def _parse_follow_up(self, content: str) -> dict[str, Any]:
@@ -1291,7 +1433,7 @@ Format as JSON:
         import json
         import re
 
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+        json_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", content, re.DOTALL)
 
         if json_match:
             try:
@@ -1302,11 +1444,11 @@ Format as JSON:
 
         # Fallback
         return {
-            'has_follow_up': True,
-            'follow_up_question': "Tell me more about that.",
-            'insights': [content[:200]],
-            'gaps': [],
-            'should_continue': True
+            "has_follow_up": True,
+            "follow_up_question": "Tell me more about that.",
+            "insights": [content[:200]],
+            "gaps": [],
+            "should_continue": True,
         }
 
     def _generate_basic_follow_up(self, _question: str, answer: str) -> dict[str, Any]:
@@ -1314,50 +1456,54 @@ Format as JSON:
         # Simple heuristic: if answer is short, ask for more
         if len(answer.split()) < 10:
             return {
-                'has_follow_up': True,
-                'follow_up_question': "Could you elaborate on that?",
-                'insights': [answer],
-                'gaps': ['More detail needed'],
-                'should_continue': True
+                "has_follow_up": True,
+                "follow_up_question": "Could you elaborate on that?",
+                "insights": [answer],
+                "gaps": ["More detail needed"],
+                "should_continue": True,
             }
         else:
             return {
-                'has_follow_up': False,
-                'follow_up_question': None,
-                'insights': [answer],
-                'gaps': [],
-                'should_continue': False
+                "has_follow_up": False,
+                "follow_up_question": None,
+                "insights": [answer],
+                "gaps": [],
+                "should_continue": False,
             }
 
     def _generate_interview_outcome(
         self,
         interview_doc: dict[str, Any],
-        useful_questions_from_history: set[str] | None = None
+        useful_questions_from_history: set[str] | None = None,
     ) -> dict[str, Any]:
         """Generate outcome summary from interview."""
-        total_qa = len(interview_doc.get('qa_pairs', []))
-        categories_complete = len(interview_doc.get('categories', {}))
+        total_qa = len(interview_doc.get("qa_pairs", []))
+        categories_complete = len(interview_doc.get("categories", {}))
 
         outcome: dict[str, Any] = {
-            'total_questions_asked': total_qa,
-            'categories_completed': categories_complete,
-            'status': 'complete' if total_qa > 0 else 'incomplete'
+            "total_questions_asked": total_qa,
+            "categories_completed": categories_complete,
+            "status": "complete" if total_qa > 0 else "incomplete",
         }
 
         # Add useful questions from learning if available
         if useful_questions_from_history:
-            outcome['useful_questions_from_history'] = list(useful_questions_from_history)
+            outcome["useful_questions_from_history"] = list(
+                useful_questions_from_history
+            )
 
         return outcome
 
     def _generate_session_id(self) -> str:
         """Generate unique session ID."""
         import uuid
+
         return f"session-{uuid.uuid4().hex[:8]}"
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
         from datetime import datetime
+
         return datetime.now().isoformat()
 
     def continue_plan(self, _plan_id: str, plan_file: str) -> dict[str, Any]:
@@ -1369,4 +1515,4 @@ Format as JSON:
             return self._error_report(f"Plan file not found: {plan_file}")
 
         # Execute remaining tasks
-        return self._execute_standard_flow(self.current_plan['tasks'])
+        return self._execute_standard_flow(self.current_plan["tasks"])

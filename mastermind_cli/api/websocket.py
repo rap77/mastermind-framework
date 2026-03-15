@@ -10,7 +10,7 @@ import asyncio
 import time
 import uuid
 from collections import deque
-from typing import Dict, Set, List
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
@@ -25,13 +25,13 @@ ALGORITHM = "HS256"
 class ThrottledBroadcaster:
     """Throttles WebSocket broadcasts to max 1 per 300ms (Smart Focus)."""
 
-    def __init__(self, interval_ms: int = 300):
+    def __init__(self, interval_ms: int = 300) -> None:
         self.interval = interval_ms / 1000
-        self.accumulated: Dict[str, List[Dict]] = {}
-        self.last_broadcast: Dict[str, float] = {}
+        self.accumulated: dict[str, list[dict[str, Any]]] = {}
+        self.last_broadcast: dict[str, float] = {}
         self._lock = asyncio.Lock()
 
-    async def add_update(self, task_id: str, update_data: Dict):
+    async def add_update(self, task_id: str, update_data: dict[str, Any]) -> None:
         """Add update to accumulator, broadcast if interval elapsed."""
         async with self._lock:
             if task_id not in self.accumulated:
@@ -41,7 +41,7 @@ class ThrottledBroadcaster:
             if time.time() - self.last_broadcast.get(task_id, 0) >= self.interval:
                 await self._flush(task_id)
 
-    async def _flush(self, task_id: str):
+    async def _flush(self, task_id: str) -> None:
         """Broadcast accumulated updates to all clients."""
         updates = self.accumulated.get(task_id, [])
         if not updates:
@@ -61,12 +61,14 @@ class ThrottledBroadcaster:
 class WebSocketManager:
     """Manage WebSocket connections with Ghost Mode buffer."""
 
-    def __init__(self):
-        self.connections: Dict[str, Set[WebSocket]] = {}
-        self.buffers: Dict[str, deque] = {}  # Ghost Mode: ~100 events per task
+    def __init__(self) -> None:
+        self.connections: dict[str, set[WebSocket]] = {}
+        self.buffers: dict[
+            str, deque[dict[str, Any]]
+        ] = {}  # Ghost Mode: ~100 events per task
         self.broadcaster = ThrottledBroadcaster()
 
-    async def connect(self, websocket: WebSocket, task_id: str, user_id: str):
+    async def connect(self, websocket: WebSocket, task_id: str, user_id: str) -> None:
         """Register WebSocket connection."""
         await websocket.accept()
         if task_id not in self.connections:
@@ -74,33 +76,41 @@ class WebSocketManager:
             self.buffers[task_id] = deque(maxlen=100)  # Ghost Mode buffer
         self.connections[task_id].add(websocket)
 
-    def disconnect(self, websocket: WebSocket, task_id: str):
+    def disconnect(self, websocket: WebSocket, task_id: str) -> None:
         """Unregister WebSocket connection."""
         if task_id in self.connections:
             self.connections[task_id].discard(websocket)
 
-    async def broadcast_task_update(self, task_id: str, update_data: Dict):
+    async def broadcast_task_update(
+        self, task_id: str, update_data: dict[str, Any]
+    ) -> None:
         """Broadcast task update (throttled to 300ms)."""
         # Add to Ghost Mode buffer
         if task_id in self.buffers:
-            self.buffers[task_id].append({
-                "event_id": str(uuid.uuid4()),
-                "timestamp": time.time(),
-                "data": update_data,
-            })
+            self.buffers[task_id].append(
+                {
+                    "event_id": str(uuid.uuid4()),
+                    "timestamp": time.time(),
+                    "data": update_data,
+                }
+            )
 
         # Throttled broadcast
         await self.broadcaster.add_update(task_id, update_data)
 
-    def get_recent_events(self, task_id: str, last_event_id: str) -> List[Dict]:
+    def get_recent_events(
+        self, task_id: str, last_event_id: str
+    ) -> list[dict[str, Any]]:
         """Get recent events for resync (Ghost Mode)."""
         if task_id not in self.buffers:
             return []
         events = list(self.buffers[task_id])
         # Return events after last_event_id
         try:
-            idx = next(i for i, e in enumerate(events) if e["event_id"] == last_event_id)
-            return events[idx + 1:]
+            idx = next(
+                i for i, e in enumerate(events) if e["event_id"] == last_event_id
+            )
+            return events[idx + 1 :]
         except StopIteration:
             return events
 
@@ -115,7 +125,7 @@ router = APIRouter()
 
 
 @router.websocket("/ws/tasks/{task_id}")
-async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str):
+async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str) -> None:
     """WebSocket endpoint for real-time progress updates.
 
     Query params:
@@ -130,6 +140,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str):
         if token.startswith("mm_"):
             async with DatabaseConnection(":memory:") as db:
                 from mastermind_cli.types.auth import hash_token
+
                 cursor = await db.conn.execute(
                     "SELECT user_id FROM api_keys WHERE key_hash = ?",
                     [hash_token(token)],
@@ -144,7 +155,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str):
             await websocket.close(code=1008)
             return
 
-    await manager.connect(websocket, task_id, user_id)
+    await manager.connect(websocket, task_id, str(user_id) if user_id else "anonymous")
 
     try:
         while True:

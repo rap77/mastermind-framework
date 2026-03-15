@@ -3,7 +3,7 @@ import os
 import shutil
 import yaml
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from mastermind_cli.brain_registry import BRAIN_REGISTRY
 
@@ -20,6 +20,7 @@ def get_framework_root() -> Optional[Path]:
     """Get the MasterMind Framework root directory."""
     try:
         from mastermind_cli import __file__ as module_file
+
         module_path = Path(module_file).resolve()
         # Go up from mastermind_cli/ to framework root
         # Structure: tools/mastermind-cli/mastermind_cli/
@@ -39,7 +40,9 @@ def get_framework_root() -> Optional[Path]:
                 Path.home() / "projects" / "mastermind",
                 Path.home() / "mastermind",
             ]:
-                if (candidate / "docs" / "design" / "00-PRD-MasterMind-Framework.md").exists():
+                if (
+                    candidate / "docs" / "design" / "00-PRD-MasterMind-Framework.md"
+                ).exists():
                     return candidate
         return None
     except (ImportError, OSError, ValueError) as e:
@@ -47,7 +50,7 @@ def get_framework_root() -> Optional[Path]:
         return None
 
 
-def get_brain_registry() -> dict:
+def get_brain_registry() -> dict[str, Any]:
     """Get the brain registry with NotebookLM notebook identifiers.
 
     Returns:
@@ -64,7 +67,7 @@ def get_brain_registry() -> dict:
 
 
 @click.group()
-def install():
+def install() -> None:
     """Install MasterMind Framework in the current project."""
     pass
 
@@ -95,7 +98,13 @@ def install():
     is_flag=True,
     help="Use uvx for installation (experimental)",
 )
-def init(brains: str, config: Optional[str], framework_path: Optional[str], force: bool, uvx: bool) -> None:
+def init(
+    brains: str,
+    config: Optional[str],
+    framework_path: Optional[str],
+    force: bool,
+    uvx: bool,
+) -> None:
     """
     Install MasterMind Framework in the current project.
 
@@ -117,7 +126,11 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
     if framework_path:
         framework_root = Path(framework_path).resolve()
     else:
-        framework_root = get_framework_root()
+        root = get_framework_root()
+        if root is None:
+            framework_root = Path.cwd()
+        else:
+            framework_root = root
 
     if not framework_root or not framework_root.exists():
         console.print("[red]❌ Could not find MasterMind Framework directory[/red]")
@@ -125,13 +138,17 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
         console.print("  1. Set MASTERMIND_FRAMEWORK_PATH environment variable")
         console.print("  2. Use --framework-path option")
         console.print("  3. Clone framework to ~/proy/mastermind")
-        console.print("\n[dim]Framework should contain docs/design/00-PRD-MasterMind-Framework.md[/dim]")
+        console.print(
+            "\n[dim]Framework should contain docs/design/00-PRD-MasterMind-Framework.md[/dim]"
+        )
         raise click.Abort()
 
     # Check if already installed
     active_file = project_path / ".mastermind-active"
     if active_file.exists() and not force:
-        console.print("[yellow]⚠ MasterMind is already installed in this project[/yellow]")
+        console.print(
+            "[yellow]⚠ MasterMind is already installed in this project[/yellow]"
+        )
         console.print("   Use --force to reinstall")
         console.print("\n   Run: [cyan]mastermind install status[/cyan]")
         raise click.Abort()
@@ -145,7 +162,9 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
         invalid = [b for b in brain_ids if b not in registry]
         if invalid:
             console.print(f"[red]❌ Invalid brain IDs: {', '.join(invalid)}[/red]")
-            console.print(f"\n[yellow]Valid brains:[/yellow] {', '.join(registry.keys())}")
+            console.print(
+                f"\n[yellow]Valid brains:[/yellow] {', '.join(registry.keys())}"
+            )
             raise click.Abort()
 
     # Installation progress
@@ -171,21 +190,21 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
             # Generate default config using yaml.dump to avoid special char issues
             active_brains = brain_ids if brain_ids else list(registry.keys())
             config_data = {
-                'project': {
-                    'name': project_path.name,
-                    'path': str(project_path),
+                "project": {
+                    "name": project_path.name,
+                    "path": str(project_path),
                 },
-                'framework': {
-                    'version': '1.0.0',
-                    'path': str(framework_root),
+                "framework": {
+                    "version": "1.0.0",
+                    "path": str(framework_root),
                 },
-                'brains': {
-                    brain_id.lstrip('#'): {
-                        'id': brain_id,
-                        'name': registry[brain_id]['name'],
-                        'notebook_id': registry[brain_id]['id'],
-                        'expertise': registry[brain_id]['expertise'],
-                        'active': True,
+                "brains": {
+                    brain_id.lstrip("#"): {
+                        "id": brain_id,
+                        "name": registry[brain_id]["name"],
+                        "notebook_id": registry[brain_id]["id"],
+                        "expertise": registry[brain_id]["expertise"],
+                        "active": True,
                     }
                     for brain_id in active_brains
                 },
@@ -193,7 +212,12 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
             config_content = (
                 "# MasterMind Framework - Project Configuration\n"
                 "# Generated by mastermind install init\n\n"
-                + yaml.dump(config_data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+                + yaml.dump(
+                    config_data,
+                    default_flow_style=False,
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
             )
 
             config_content += """# Usage Notes
@@ -236,7 +260,7 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
         # Hooks (mm namespace)
         if framework_hooks.exists():
             for hook_file in framework_hooks.glob("*"):
-                if hook_file.name.startswith('.'):
+                if hook_file.name.startswith("."):
                     continue
                 dest = claude_hooks / hook_file.name
                 if dest.exists() or dest.is_symlink():
@@ -249,7 +273,7 @@ def init(brains: str, config: Optional[str], framework_path: Optional[str], forc
         # Agents (mm namespace)
         if framework_agents.exists():
             for agent_file in framework_agents.glob("*"):
-                if agent_file.name.startswith('.'):
+                if agent_file.name.startswith("."):
                     continue
                 dest = claude_agents / agent_file.name
                 if dest.exists() or dest.is_symlink():
@@ -331,22 +355,24 @@ Run `mastermind install status` for more information.
         progress.update(task, description="✓ Installation complete!")
 
     # Success message
-    console.print(Panel.fit(
-        f"[green bold]✓ MasterMind Framework installed successfully![/green bold]\n\n"
-        f"[cyan]Project:[/cyan] {project_path.name}\n"
-        f"[cyan]Framework:[/cyan] {framework_root}\n"
-        f"[cyan]Active brains:[/cyan] {len(active_brains) if brain_ids else 7}\n\n"
-        f"[yellow]Next steps:[/yellow]\n"
-        f"  1. Restart Claude Code in this project\n"
-        f"  2. Use [cyan]/mm:ask-product[/cyan] to consult the Product brain\n"
-        f"  3. Use [cyan]/mm:project-audit[/cyan] for full 7-brain analysis\n"
-        f"  4. Run [cyan]mastermind install status[/cyan] to verify\n\n"
-        f"[dim]Configuration: .mastermind/config.yaml[/dim]\n"
-        f"[dim]Commands: .claude/commands/mm/*.md[/dim]\n"
-        f"[dim]All commands use /mm: namespace[/dim]",
-        title="Installation Complete",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[green bold]✓ MasterMind Framework installed successfully![/green bold]\n\n"
+            f"[cyan]Project:[/cyan] {project_path.name}\n"
+            f"[cyan]Framework:[/cyan] {framework_root}\n"
+            f"[cyan]Active brains:[/cyan] {len(active_brains) if brain_ids else 7}\n\n"
+            f"[yellow]Next steps:[/yellow]\n"
+            f"  1. Restart Claude Code in this project\n"
+            f"  2. Use [cyan]/mm:ask-product[/cyan] to consult the Product brain\n"
+            f"  3. Use [cyan]/mm:project-audit[/cyan] for full 7-brain analysis\n"
+            f"  4. Run [cyan]mastermind install status[/cyan] to verify\n\n"
+            f"[dim]Configuration: .mastermind/config.yaml[/dim]\n"
+            f"[dim]Commands: .claude/commands/mm/*.md[/dim]\n"
+            f"[dim]All commands use /mm: namespace[/dim]",
+            title="Installation Complete",
+            border_style="green",
+        )
+    )
 
 
 @install.command()
@@ -371,15 +397,17 @@ def status() -> None:
                 active_data[key] = value
 
     # Display status
-    console.print(Panel.fit(
-        f"[green bold]✓ MasterMind Framework Active[/green bold]\n\n"
-        f"[cyan]Version:[/cyan] {active_data.get('version', 'unknown')}\n"
-        f"[cyan]Framework Path:[/cyan] {active_data.get('framework_path', 'unknown')}\n"
-        f"[cyan]Active Brains:[/cyan] {active_data.get('brains', 'all')}\n"
-        f"[cyan]Install Method:[/cyan] {active_data.get('install_method', 'standard')}\n",
-        title="MasterMind Status",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[green bold]✓ MasterMind Framework Active[/green bold]\n\n"
+            f"[cyan]Version:[/cyan] {active_data.get('version', 'unknown')}\n"
+            f"[cyan]Framework Path:[/cyan] {active_data.get('framework_path', 'unknown')}\n"
+            f"[cyan]Active Brains:[/cyan] {active_data.get('brains', 'all')}\n"
+            f"[cyan]Install Method:[/cyan] {active_data.get('install_method', 'standard')}\n",
+            title="MasterMind Status",
+            border_style="green",
+        )
+    )
 
     # Show brain status if config exists
     if config_file.exists():
@@ -403,7 +431,9 @@ def status() -> None:
     console.print("\n[bold]Integration Files:[/bold]\n")
     console.print("  [cyan].mastermind-active[/cyan] - Activation file")
     console.print("  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
-    console.print("  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)")
+    console.print(
+        "  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)"
+    )
 
     # Show available slash commands
     console.print("\n[bold]Available Slash Commands:[/bold]\n")
@@ -432,7 +462,9 @@ def status() -> None:
     is_flag=True,
     help="Also remove MasterMind section from README.md",
 )
-@click.confirmation_option(prompt="Are you sure you want to uninstall MasterMind from this project?")
+@click.confirmation_option(
+    prompt="Are you sure you want to uninstall MasterMind from this project?"
+)
 def uninstall(keep_config: bool, remove_readme: bool) -> None:
     """Remove MasterMind Framework from the current project."""
     project_path = Path.cwd()
@@ -462,7 +494,9 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
                 console.print(f"[green]✓ Removed .claude/{ns_folder}/[/green]")
                 removed_count += 1
             except OSError as e:
-                console.print(f"[yellow]⚠ Could not remove .claude/{ns_folder}/: {e}[/yellow]")
+                console.print(
+                    f"[yellow]⚠ Could not remove .claude/{ns_folder}/: {e}[/yellow]"
+                )
 
     # Clean up empty parent directories
     for parent_dir in ["commands", "hooks", "agents"]:
@@ -489,23 +523,28 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
                 content = readme.read_text()
                 # Remove MasterMind section (from ## 🧠 to next ## or end)
                 import re
-                pattern = r'\n## 🧠 MasterMind Framework.*(?=\n## |\Z)'
-                new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+
+                pattern = r"\n## 🧠 MasterMind Framework.*(?=\n## |\Z)"
+                new_content = re.sub(pattern, "", content, flags=re.DOTALL)
                 if new_content != content:
                     readme.write_text(new_content)
-                    console.print("[green]✓ Removed MasterMind section from README.md[/green]")
+                    console.print(
+                        "[green]✓ Removed MasterMind section from README.md[/green]"
+                    )
             except Exception as e:
                 console.print(f"[yellow]⚠ Could not update README.md: {e}[/yellow]")
 
-    console.print(Panel.fit(
-        f"[green bold]✓ MasterMind Framework uninstalled[/green bold]\n\n"
-        f"[cyan]Removed:[/cyan] {removed_count} namespace folder(s)\n"
-        f"[cyan]Config kept:[/cyan] {keep_config}\n\n"
-        "[yellow]Note: If you want to remove the MasterMind section from README.md, run:[/yellow]\n"
-        "[dim]  mastermind install uninstall --remove-readme[/dim]",
-        title="Uninstallation Complete",
-        border_style="yellow"
-    ))
+    console.print(
+        Panel.fit(
+            f"[green bold]✓ MasterMind Framework uninstalled[/green bold]\n\n"
+            f"[cyan]Removed:[/cyan] {removed_count} namespace folder(s)\n"
+            f"[cyan]Config kept:[/cyan] {keep_config}\n\n"
+            "[yellow]Note: If you want to remove the MasterMind section from README.md, run:[/yellow]\n"
+            "[dim]  mastermind install uninstall --remove-readme[/dim]",
+            title="Uninstallation Complete",
+            border_style="yellow",
+        )
+    )
 
 
 @install.command()

@@ -6,9 +6,6 @@ Tests will be implemented after Plan 01 Task 2.
 Requirements: PERF-02
 """
 
-import pytest
-from mastermind_cli.state.repositories import TaskRepository
-
 
 def test_query_latency(benchmark):
     """Test task state queries complete in <100ms.

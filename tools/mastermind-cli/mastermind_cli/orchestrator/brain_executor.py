@@ -4,16 +4,17 @@ Brain Executor - Executes brain tasks via NotebookLM MCP.
 
 import os
 import sys
-import yaml
-from typing import Dict, Optional
+from typing import Dict
 
 # Add project root to path for imports
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from .notebooklm_client import NotebookLMClient
-from .evaluator import Evaluator
+from .notebooklm_client import NotebookLMClient  # noqa: E402
+from .evaluator import Evaluator  # noqa: E402
 
 
 class BrainExecutor:
@@ -22,48 +23,48 @@ class BrainExecutor:
     # Brain configurations
     BRAIN_CONFIGS = {
         1: {
-            'id': 'product-strategy',
-            'name': 'Product Strategy',
-            'system_prompt': 'agents/brains/product-strategy.md',
-            'notebook_id': 'f276ccb3-0bce-4069-8b55-eae8693dbe75',
-            'status': 'active'
+            "id": "product-strategy",
+            "name": "Product Strategy",
+            "system_prompt": "agents/brains/product-strategy.md",
+            "notebook_id": "f276ccb3-0bce-4069-8b55-eae8693dbe75",
+            "status": "active",
         },
         2: {
-            'id': 'ux-research',
-            'name': 'UX Research',
-            'notebook_id': 'ea006ece-00a9-4d5c-91f5-012b8b712936',
-            'status': 'active'
+            "id": "ux-research",
+            "name": "UX Research",
+            "notebook_id": "ea006ece-00a9-4d5c-91f5-012b8b712936",
+            "status": "active",
         },
         3: {
-            'id': 'ui-design',
-            'name': 'UI Design',
-            'notebook_id': '8d544475-6860-4cd7-9037-8549325493dd',
-            'status': 'active'
+            "id": "ui-design",
+            "name": "UI Design",
+            "notebook_id": "8d544475-6860-4cd7-9037-8549325493dd",
+            "status": "active",
         },
         4: {
-            'id': 'frontend',
-            'name': 'Frontend Development',
-            'notebook_id': '85e47142-0a65-41d9-9848-49b8b5d2db33',
-            'status': 'active'
+            "id": "frontend",
+            "name": "Frontend Development",
+            "notebook_id": "85e47142-0a65-41d9-9848-49b8b5d2db33",
+            "status": "active",
         },
         5: {
-            'id': 'backend',
-            'name': 'Backend Development',
-            'notebook_id': 'c6befbbc-b7dd-4ad0-a677-314750684208',
-            'status': 'active'
+            "id": "backend",
+            "name": "Backend Development",
+            "notebook_id": "c6befbbc-b7dd-4ad0-a677-314750684208",
+            "status": "active",
         },
         6: {
-            'id': 'qa-devops',
-            'name': 'QA & DevOps',
-            'notebook_id': '74cd3a81-1350-4927-af14-c0c4fca41a8e',
-            'status': 'active'
+            "id": "qa-devops",
+            "name": "QA & DevOps",
+            "notebook_id": "74cd3a81-1350-4927-af14-c0c4fca41a8e",
+            "status": "active",
         },
         7: {
-            'id': 'growth-data',
-            'name': 'Growth & Data (Evaluator)',
-            'notebook_id': 'd8de74d6-7028-44ed-b4d5-784d6a9256e6',
-            'status': 'active'
-        }
+            "id": "growth-data",
+            "name": "Growth & Data (Evaluator)",
+            "notebook_id": "d8de74d6-7028-44ed-b4d5-784d6a9256e6",
+            "status": "active",
+        },
     }
 
     def __init__(self, mcp_client=None, skills_dir: str = None):
@@ -94,7 +95,7 @@ class BrainExecutor:
         if not brain_config:
             return self._unimplemented_brain(brain_id, task)
 
-        if brain_config['status'] != 'active':
+        if brain_config["status"] != "active":
             return self._unimplemented_brain(brain_id, task)
 
         # Route to appropriate executor
@@ -107,7 +108,7 @@ class BrainExecutor:
 
     def _execute_brain_1(self, task: Dict, use_mcp: bool = True) -> Dict:
         """Execute Product Strategy brain via NotebookLM."""
-        brief = task['inputs'].get('brief', '')
+        brief = task["inputs"].get("brief", "")
 
         # Construct query for Brain #1
         query = f"""Based on the following product brief, provide a comprehensive product strategy analysis:
@@ -173,15 +174,16 @@ evidence:
         if use_mcp and self.mcp_client and self.mcp_client.is_available():
             # Use MCP to query NotebookLM
             try:
-                response = self.mcp_client.query_notebook(
-                    brain_id=1,
-                    query=query
-                )
-                if response.get('status') == 'success':
-                    return self._format_brain_response(1, response.get('content', ''), brief)
+                response = self.mcp_client.query_notebook(brain_id=1, query=query)
+                if response.get("status") == "success":
+                    return self._format_brain_response(
+                        1, response.get("content", ""), brief
+                    )
                 else:
                     # MCP error, fallback to mock
-                    return self._mock_brain_1_response(brief, query, error=response.get('error'))
+                    return self._mock_brain_1_response(
+                        brief, query, error=response.get("error")
+                    )
             except Exception as e:
                 # Fallback to mock response if MCP fails
                 return self._mock_brain_1_response(brief, query, error=str(e))
@@ -192,8 +194,8 @@ evidence:
     def _execute_brain_7(self, task: Dict, use_mcp: bool = True) -> Dict:
         """Execute Growth & Data (Evaluator) brain."""
         # Get the output to evaluate
-        output_to_evaluate = task.get('output_to_evaluate', {})
-        previous_brain_id = task.get('previous_brain_id', 1)
+        output_to_evaluate = task.get("output_to_evaluate", {})
+        previous_brain_id = task.get("previous_brain_id", 1)
 
         # Determine which matrix to use
         matrix_map = {
@@ -202,32 +204,32 @@ evidence:
             3: "MATRIX-ui-design",
             4: "MATRIX-frontend",
             5: "MATRIX-backend",
-            6: "MATRIX-qa-devops"
+            6: "MATRIX-qa-devops",
         }
         matrix_id = matrix_map.get(previous_brain_id, "MATRIX-product-brief")
 
         # Use the Evaluator class
         evaluation = self.evaluator.evaluate(
-            output=output_to_evaluate,
-            matrix_id=matrix_id,
-            brain_id=previous_brain_id
+            output=output_to_evaluate, matrix_id=matrix_id, brain_id=previous_brain_id
         )
 
         return {
-            'brain_id': 7,
-            'brain_name': 'Growth & Data (Evaluator)',
-            'status': 'completed',
-            'veredict': evaluation['veredict'],
-            'score': evaluation['score'],
-            'evaluation': evaluation,
-            'message': f"Brain #7 evaluation complete: {evaluation['veredict']} ({evaluation['score']['percentage']}%)"
+            "brain_id": 7,
+            "brain_name": "Growth & Data (Evaluator)",
+            "status": "completed",
+            "veredict": evaluation["veredict"],
+            "score": evaluation["score"],
+            "evaluation": evaluation,
+            "message": f"Brain #7 evaluation complete: {evaluation['veredict']} ({evaluation['score']['percentage']}%)",
         }
 
-    def _execute_generic_brain(self, brain_id: int, task: Dict, use_mcp: bool = True) -> Dict:
+    def _execute_generic_brain(
+        self, brain_id: int, task: Dict, use_mcp: bool = True
+    ) -> Dict:
         """Execute a generic brain (2-6)."""
         brain_config = self.BRAIN_CONFIGS[brain_id]
-        brief = task['inputs'].get('brief', '')
-        context = task.get('context', {})
+        brief = task["inputs"].get("brief", "")
+        context = task.get("context", {})
 
         query = f"""As a {brain_config['name']} expert, analyze the following:
 
@@ -241,13 +243,16 @@ Please provide your analysis and recommendations.
         if use_mcp and self.mcp_client and self.mcp_client.is_available():
             try:
                 response = self.mcp_client.query_notebook(
-                    brain_id=brain_id,
-                    query=query
+                    brain_id=brain_id, query=query
                 )
-                if response.get('status') == 'success':
-                    return self._format_brain_response(brain_id, response.get('content', ''), brief)
+                if response.get("status") == "success":
+                    return self._format_brain_response(
+                        brain_id, response.get("content", ""), brief
+                    )
                 else:
-                    return self._mock_generic_response(brain_id, brief, error=response.get('error'))
+                    return self._mock_generic_response(
+                        brain_id, brief, error=response.get("error")
+                    )
             except Exception as e:
                 return self._mock_generic_response(brain_id, brief, error=str(e))
         else:
@@ -273,86 +278,86 @@ Please provide your analysis and recommendations.
         # Try to parse YAML from response
         parsed = self.notebooklm_client.parse_yaml_response(response)
 
-        if 'error' in parsed:
+        if "error" in parsed:
             # Return raw text response
             return {
-                'brain_id': brain_id,
-                'brain_name': brain_config['name'],
-                'status': 'completed',
-                'output': {
-                    'raw_response': response,
-                    'brief': brief
-                },
-                'message': f"Brain #{brain_id} execution complete (text format)"
+                "brain_id": brain_id,
+                "brain_name": brain_config["name"],
+                "status": "completed",
+                "output": {"raw_response": response, "brief": brief},
+                "message": f"Brain #{brain_id} execution complete (text format)",
             }
 
         return {
-            'brain_id': brain_id,
-            'brain_name': brain_config['name'],
-            'status': 'completed',
-            'output': parsed,
-            'brief': brief,
-            'message': f"Brain #{brain_id} execution complete (parsed)"
+            "brain_id": brain_id,
+            "brain_name": brain_config["name"],
+            "status": "completed",
+            "output": parsed,
+            "brief": brief,
+            "message": f"Brain #{brain_id} execution complete (parsed)",
         }
 
     def _mock_brain_1_response(self, brief: str, query: str, error: str = None) -> Dict:
         """Generate a mock response for Brain #1 (for testing without MCP)."""
         return {
-            'brain_id': 1,
-            'brain_name': 'Product Strategy',
-            'status': 'mock',
-            'output': {
-                'note': 'This is a mock response. MCP integration will query NotebookLM for real responses.',
-                'query_preview': query[:200] + '...',
-                'brief': brief,
-                'mcp_error': error
+            "brain_id": 1,
+            "brain_name": "Product Strategy",
+            "status": "mock",
+            "output": {
+                "note": "This is a mock response. MCP integration will query NotebookLM for real responses.",
+                "query_preview": query[:200] + "...",
+                "brief": brief,
+                "mcp_error": error,
             },
-            'message': 'Brain #1 mock response (MCP not available in this environment)'
+            "message": "Brain #1 mock response (MCP not available in this environment)",
         }
 
-    def _mock_generic_response(self, brain_id: int, brief: str, error: str = None) -> Dict:
+    def _mock_generic_response(
+        self, brain_id: int, brief: str, error: str = None
+    ) -> Dict:
         """Generate a mock response for brains 2-6."""
         brain_config = self.BRAIN_CONFIGS[brain_id]
         return {
-            'brain_id': brain_id,
-            'brain_name': brain_config['name'],
-            'status': 'mock',
-            'output': {
-                'note': f'This is a mock response. Brain #{brain_id} will be implemented with NotebookLM integration.',
-                'brief': brief,
-                'mcp_error': error
+            "brain_id": brain_id,
+            "brain_name": brain_config["name"],
+            "status": "mock",
+            "output": {
+                "note": f"This is a mock response. Brain #{brain_id} will be implemented with NotebookLM integration.",
+                "brief": brief,
+                "mcp_error": error,
             },
-            'message': f'Brain #{brain_id} mock response (MCP not available)'
+            "message": f"Brain #{brain_id} mock response (MCP not available)",
         }
 
     def _unimplemented_brain(self, brain_id: int, task: Dict) -> Dict:
         """Return response for unimplemented brain."""
         brain_names = {
-            2: 'UX Research',
-            3: 'UI Design',
-            4: 'Frontend Development',
-            5: 'Backend Development',
-            6: 'QA & DevOps'
+            2: "UX Research",
+            3: "UI Design",
+            4: "Frontend Development",
+            5: "Backend Development",
+            6: "QA & DevOps",
         }
 
-        name = brain_names.get(brain_id, f'Brain {brain_id}')
+        name = brain_names.get(brain_id, f"Brain {brain_id}")
 
         return {
-            'brain_id': brain_id,
-            'brain_name': name,
-            'status': 'unimplemented',
-            'error': f'Brain #{brain_id} ({name}) is not yet fully implemented.',
-            'message': f'To use this flow, implement Brain #{brain_id} first or use validation_only flow.'
+            "brain_id": brain_id,
+            "brain_name": name,
+            "status": "unimplemented",
+            "error": f"Brain #{brain_id} ({name}) is not yet fully implemented.",
+            "message": f"To use this flow, implement Brain #{brain_id} first or use validation_only flow.",
         }
 
     def is_brain_available(self, brain_id: int) -> bool:
         """Check if a brain is available for execution."""
         config = self.BRAIN_CONFIGS.get(brain_id)
-        return config and config.get('status') == 'active'
+        return config and config.get("status") == "active"
 
     def get_available_brains(self) -> list:
         """Get list of available brain IDs."""
         return [
-            brain_id for brain_id, config in self.BRAIN_CONFIGS.items()
-            if config.get('status') == 'active'
+            brain_id
+            for brain_id, config in self.BRAIN_CONFIGS.items()
+            if config.get("status") == "active"
         ]

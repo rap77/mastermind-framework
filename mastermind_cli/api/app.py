@@ -5,10 +5,10 @@ This module creates and configures the FastAPI application for the MasterMind Fr
 Requirements: UI-01, UI-07
 """
 
-import time
 import hashlib
 import uuid
 from datetime import datetime
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,10 +46,8 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
     # Register audit middleware (UI-07 requirement)
     @app.middleware("http")
-    async def audit_middleware(request: Request, call_next):
+    async def audit_middleware(request: Request, call_next: Any) -> Any:
         """Log all POST/PUT/DELETE requests to audit_log table."""
-        start_time = time.time()
-
         # Extract user_id from JWT if present (set by auth dependency)
         user_id = getattr(request.state, "user_id", None)
 
@@ -63,7 +61,9 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
         # Write audit log for mutations
         if request.method in ["POST", "PUT", "DELETE"] and user_id:
-            request_hash = hashlib.sha256(request_body).hexdigest()[:16] if request_body else None
+            request_hash = (
+                hashlib.sha256(request_body).hexdigest()[:16] if request_body else None
+            )
 
             async with DatabaseConnection(db_path) as db:
                 await db.conn.execute(
@@ -86,7 +86,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
     # Health check endpoint
     @app.get("/")
-    async def health_check():
+    async def health_check() -> dict[str, str]:
         """Health check endpoint."""
         return {"status": "healthy", "version": "1.1.0"}
 
@@ -101,7 +101,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
     # Startup event: create database schema
     @app.on_event("startup")
-    async def startup_event():
+    async def startup_event() -> None:
         """Initialize database schemas on startup."""
         async with DatabaseConnection(db_path) as db:
             await db.create_task_schema()
@@ -120,7 +120,7 @@ def get_app() -> FastAPI:
 
 
 # Dependency for database access
-async def get_db() -> DatabaseConnection:
+async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
     """Database dependency for FastAPI routes."""
     db = DatabaseConnection(":memory:")
     await db.connect()

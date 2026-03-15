@@ -48,9 +48,7 @@ def write_yaml_frontmatter(
         f.write(f"---\n{yaml_str}---\n\n{content}")
 
 
-def update_yaml_metadata(
-    filepath: str, updates: Dict[str, Any]
-) -> Dict[str, Any]:
+def update_yaml_metadata(filepath: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     """
     Update specific fields in YAML front matter.
 

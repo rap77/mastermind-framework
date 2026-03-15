@@ -24,9 +24,7 @@ def get_repo(path: str = ".") -> Repo:
         raise ValueError(f"Not a git repository: {path}")
 
 
-def git_commit(
-    filepath: str, message: str, repo: Optional[Repo] = None
-) -> str:
+def git_commit(filepath: str, message: str, repo: Optional[Repo] = None) -> str:
     """
     Create git commit for file change.
 

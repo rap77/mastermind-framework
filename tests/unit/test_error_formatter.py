@@ -3,8 +3,7 @@ Tests for BrainErrorFormatter - error message formatting without stack traces.
 """
 
 import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 
 from mastermind_cli.orchestrator.error_formatter import BrainErrorFormatter
 
@@ -71,7 +70,9 @@ class TestBrainErrorFormatter:
         )
 
         # Should contain traceback in debug mode (has error type twice)
-        assert formatted.count("RuntimeError") >= 2, "Should have error in message and traceback"
+        assert (
+            formatted.count("RuntimeError") >= 2
+        ), "Should have error in message and traceback"
 
     def test_format_parallel_summary_all_success(self):
         """Test parallel summary when all tasks succeed."""
@@ -137,7 +138,6 @@ class TestErrorFormatterWiredToExecutor:
     async def test_executor_uses_error_formatter_on_failure(self):
         """Test that TaskExecutor uses BrainErrorFormatter for error messages."""
         from mastermind_cli.orchestrator.task_executor import ParallelExecutor
-        from mastermind_cli.orchestrator.mcp_wrapper import TypeSafeMCPWrapper
         from mastermind_cli.state.repositories import TaskRepository
         from mastermind_cli.state.database import DatabaseConnection
         from mastermind_cli.types.parallel import ProviderConfig
@@ -151,8 +151,7 @@ class TestErrorFormatterWiredToExecutor:
             mcp_client = MagicMock()
             mcp_client.call_mcp = MagicMock(
                 return_value=MagicMock(
-                    success=False,
-                    error="Rate limit exceeded for API calls"
+                    success=False, error="Rate limit exceeded for API calls"
                 )
             )
 
@@ -160,7 +159,7 @@ class TestErrorFormatterWiredToExecutor:
             provider_config = ProviderConfig(
                 name="notebooklm",
                 max_concurrent_calls=5,
-                base_url="http://localhost:8000"
+                base_url="http://localhost:8000",
             )
             executor = ParallelExecutor(task_repo, mcp_client, [provider_config])
 
@@ -169,7 +168,7 @@ class TestErrorFormatterWiredToExecutor:
                 task_id="test-001",
                 brain_id="brain-01",
                 query="test query",
-                provider_name="notebooklm"
+                provider_name="notebooklm",
             )
 
             # Verify result contains formatted error
@@ -179,14 +178,15 @@ class TestErrorFormatterWiredToExecutor:
             # Verify error is formatted (has brain_id and hint, not just raw message)
             error_msg = result["error"]
             assert "brain-01" in error_msg, "Error should contain brain_id"
-            assert "Hint:" in error_msg or "💡" in error_msg, "Error should contain hint"
+            assert (
+                "Hint:" in error_msg or "💡" in error_msg
+            ), "Error should contain hint"
             assert "Rate limit" in error_msg, "Error should contain original message"
 
     @pytest.mark.asyncio
     async def test_executor_hides_stack_trace_by_default(self):
         """Test that TaskExecutor doesn't include stack traces in errors."""
         from mastermind_cli.orchestrator.task_executor import ParallelExecutor
-        from mastermind_cli.orchestrator.mcp_wrapper import TypeSafeMCPWrapper
         from mastermind_cli.state.repositories import TaskRepository
         from mastermind_cli.state.database import DatabaseConnection
         from mastermind_cli.types.parallel import ProviderConfig
@@ -206,7 +206,7 @@ class TestErrorFormatterWiredToExecutor:
             provider_config = ProviderConfig(
                 name="notebooklm",
                 max_concurrent_calls=5,
-                base_url="http://localhost:8000"
+                base_url="http://localhost:8000",
             )
             executor = ParallelExecutor(task_repo, mcp_client, [provider_config])
 
@@ -215,7 +215,7 @@ class TestErrorFormatterWiredToExecutor:
                 task_id="test-002",
                 brain_id="brain-02",
                 query="test query",
-                provider_name="notebooklm"
+                provider_name="notebooklm",
             )
 
             # Verify error doesn't contain stack trace

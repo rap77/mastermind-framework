@@ -16,10 +16,8 @@ Mock Design Pattern:
 import hashlib
 import pytest
 import asyncio
-from pydantic import BaseModel
 
 from mastermind_cli.types.interfaces import (
-    BrainInput,
     Brief,
     ProductStrategy,
     UXResearch,
@@ -28,13 +26,13 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
     StatelessCoordinator,
     CoordinatorConfig,
     create_stateless_coordinator,
-    MCPClient,
 )
 
 
 # =============================================================================
 # MOCK MCP CLIENT
 # =============================================================================
+
 
 class MockMCPClient:
     """Mock MCP client for testing.
@@ -74,7 +72,7 @@ class MockMCPClient:
 
         # Create unique response based on query content using SHA256
         # SHA256 is cryptographically secure and best practice (vs MD5)
-        query_hash = hashlib.sha256(query.encode()).hexdigest()[:self._HASH_LENGTH]
+        query_hash = hashlib.sha256(query.encode()).hexdigest()[: self._HASH_LENGTH]
 
         return (
             f"Mock response for {notebook_id}: {query[:50]}... "
@@ -86,6 +84,7 @@ class MockMCPClient:
 # TEST FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def mock_mcp():
     """Mock MCP client."""
@@ -95,10 +94,7 @@ def mock_mcp():
 @pytest.fixture
 def coordinator_config(mock_mcp):
     """Coordinator config for testing."""
-    return CoordinatorConfig(
-        mcp_client=mock_mcp,
-        enable_logging=False
-    )
+    return CoordinatorConfig(mcp_client=mock_mcp, enable_logging=False)
 
 
 @pytest.fixture
@@ -108,13 +104,14 @@ def sample_brief():
         problem_statement="Build a CRM for small businesses",
         context="Need to manage customer relationships",
         constraints=["Low budget", "Quick launch"],
-        target_audience="Small business owners"
+        target_audience="Small business owners",
     )
 
 
 # =============================================================================
 # TESTS: STATELESS COORDINATOR
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_coordinator_is_stateless(coordinator_config, sample_brief):
@@ -134,24 +131,23 @@ async def test_coordinator_is_stateless(coordinator_config, sample_brief):
     brief2 = Brief(
         problem_statement="Build a project management tool",
         context="Different context",
-        constraints=["Different constraints"]
+        constraints=["Different constraints"],
     )
 
     # Execute concurrently (should not interfere)
     results1 = await coord1.execute_flow(
-        brief=brief1,
-        brain_ids=["brain-01-product-strategy"]
+        brief=brief1, brain_ids=["brain-01-product-strategy"]
     )
     results2 = await coord2.execute_flow(
-        brief=brief2,
-        brain_ids=["brain-01-product-strategy"]
+        brief=brief2, brain_ids=["brain-01-product-strategy"]
     )
 
     # Different briefs should produce different results (no shared state)
     # If this assertion fails, coordinators are sharing state somehow
-    assert results1["brain-01-product-strategy"].positioning != \
-           results2["brain-01-product-strategy"].positioning, \
-           "Different briefs should produce different results (no shared state)"
+    assert (
+        results1["brain-01-product-strategy"].positioning
+        != results2["brain-01-product-strategy"].positioning
+    ), "Different briefs should produce different results (no shared state)"
 
 
 @pytest.mark.asyncio
@@ -160,8 +156,7 @@ async def test_coordinator_executes_single_brain(coordinator_config, sample_brie
     coordinator = StatelessCoordinator(coordinator_config)
 
     results = await coordinator.execute_flow(
-        brief=sample_brief,
-        brain_ids=["brain-01-product-strategy"]
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
     )
 
     assert "brain-01-product-strategy" in results
@@ -176,10 +171,7 @@ async def test_coordinator_executes_multiple_brains(coordinator_config, sample_b
 
     results = await coordinator.execute_flow(
         brief=sample_brief,
-        brain_ids=[
-            "brain-01-product-strategy",
-            "brain-02-ux-research"
-        ]
+        brain_ids=["brain-01-product-strategy", "brain-02-ux-research"],
     )
 
     # Should have both brains
@@ -192,13 +184,14 @@ async def test_coordinator_executes_multiple_brains(coordinator_config, sample_b
 
 
 @pytest.mark.asyncio
-async def test_coordinator_passes_context_to_dependent_brains(coordinator_config, sample_brief):
+async def test_coordinator_passes_context_to_dependent_brains(
+    coordinator_config, sample_brief
+):
     """Test that coordinator passes previous outputs as context."""
     coordinator = StatelessCoordinator(coordinator_config)
 
     results = await coordinator.execute_flow(
-        brief=sample_brief,
-        brain_ids=["brain-01-product-strategy"]
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
     )
 
     # Verify context was passed (additional_context should have previous results)
@@ -210,8 +203,7 @@ async def test_coordinator_passes_context_to_dependent_brains(coordinator_config
 async def test_coordinator_factory_function(mock_mcp, sample_brief):
     """Test that factory function creates coordinator correctly."""
     coordinator = create_stateless_coordinator(
-        mcp_client=mock_mcp,
-        enable_logging=False
+        mcp_client=mock_mcp, enable_logging=False
     )
 
     assert coordinator.config.mcp_client == mock_mcp
@@ -219,8 +211,7 @@ async def test_coordinator_factory_function(mock_mcp, sample_brief):
 
     # Should execute normally
     results = await coordinator.execute_flow(
-        brief=sample_brief,
-        brain_ids=["brain-01-product-strategy"]
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
     )
 
     assert "brain-01-product-strategy" in results
@@ -245,19 +236,17 @@ async def test_coordinator_multi_user_safety(coordinator_config, sample_brief):
     brief2 = Brief(
         problem_statement="Build an e-commerce platform",
         context="User 2's request",
-        constraints=["Different requirements"]
+        constraints=["Different requirements"],
     )
 
     # Execute concurrently
     results = await asyncio.gather(
         coordinator1.execute_flow(
-            brief=brief1,
-            brain_ids=["brain-01-product-strategy"]
+            brief=brief1, brain_ids=["brain-01-product-strategy"]
         ),
         coordinator2.execute_flow(
-            brief=brief2,
-            brain_ids=["brain-01-product-strategy"]
-        )
+            brief=brief2, brain_ids=["brain-01-product-strategy"]
+        ),
     )
 
     results1, results2 = results
@@ -285,14 +274,14 @@ async def test_coordinator_handles_invalid_brain_id(coordinator_config, sample_b
     # "Brain not found in registry", etc.
     with pytest.raises(ValueError, match=r"Brain.*registry"):
         await coordinator.execute_flow(
-            brief=sample_brief,
-            brain_ids=["brain-non-existent"]
+            brief=sample_brief, brain_ids=["brain-non-existent"]
         )
 
 
 # =============================================================================
 # TESTS: WAVE-BASED PARALLELISM
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_coordinator_resolves_waves(coordinator_config, sample_brief):
@@ -302,10 +291,7 @@ async def test_coordinator_resolves_waves(coordinator_config, sample_brief):
     # Request multiple brains (they should be resolved into waves)
     results = await coordinator.execute_flow(
         brief=sample_brief,
-        brain_ids=[
-            "brain-01-product-strategy",
-            "brain-02-ux-research"
-        ]
+        brain_ids=["brain-01-product-strategy", "brain-02-ux-research"],
     )
 
     # All brains should execute
@@ -328,8 +314,7 @@ async def test_brain_input_contains_previous_results(coordinator_config, sample_
     coordinator._prepare_input = mock_prepare
 
     await coordinator.execute_flow(
-        brief=sample_brief,
-        brain_ids=["brain-01-product-strategy"]
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
     )
 
     # Verify _prepare_input was called
@@ -342,6 +327,7 @@ async def test_brain_input_contains_previous_results(coordinator_config, sample_
 # =============================================================================
 # TESTS: TYPE SAFETY
 # =============================================================================
+
 
 def test_coordinator_config_requires_mcp_client():
     """Test that CoordinatorConfig requires mcp_client."""
@@ -374,16 +360,18 @@ def test_coordinator_init_requires_config():
 # TESTS: EXECUTION METADATA
 # =============================================================================
 
+
 @pytest.mark.asyncio
-async def test_brain_input_contains_execution_metadata(coordinator_config, sample_brief):
+async def test_brain_input_contains_execution_metadata(
+    coordinator_config, sample_brief
+):
     """Test that BrainInput includes execution metadata."""
     coordinator = StatelessCoordinator(coordinator_config)
 
     # We'll verify this indirectly by checking execution succeeds
     # (metadata is used internally by brain functions)
     results = await coordinator.execute_flow(
-        brief=sample_brief,
-        brain_ids=["brain-01-product-strategy"]
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
     )
 
     assert "brain-01-product-strategy" in results
@@ -393,6 +381,7 @@ async def test_brain_input_contains_execution_metadata(coordinator_config, sampl
 # =============================================================================
 # TESTS: MOCK CLIENT (REGRESSION)
 # =============================================================================
+
 
 def test_mock_mcp_unique_responses_per_query():
     """Verify MockMCPClient produces unique responses for different queries.

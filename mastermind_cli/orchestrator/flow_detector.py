@@ -10,33 +10,66 @@ class FlowDetector:
 
     # Flow triggers from agents/orchestrator/config/flows.yaml
     FLOW_TRIGGERS = {
-        'full_product': [
-            'nuevo proyecto', 'app completa', 'producto desde cero',
-            'startup', 'crear una app', 'nuevo producto', 'nueva app',
-            'desarrollar una app', 'construir una app'
+        "full_product": [
+            "nuevo proyecto",
+            "app completa",
+            "producto desde cero",
+            "startup",
+            "crear una app",
+            "nuevo producto",
+            "nueva app",
+            "desarrollar una app",
+            "construir una app",
         ],
-        'validation_only': [
-            'validar idea', 'es buena idea', 'viabilidad',
-            'feedback concepto', 'market fit', 'opinión sobre',
-            'crees que', 'funcionaría', 'vale la pena'
+        "validation_only": [
+            "validar idea",
+            "es buena idea",
+            "viabilidad",
+            "feedback concepto",
+            "market fit",
+            "opinión sobre",
+            "crees que",
+            "funcionaría",
+            "vale la pena",
         ],
-        'design_sprint': [
-            'diseñar', 'prototipar', 'wireframe', 'mockup',
-            'design sprint', 'diseño de interfaz', 'diseñar ux',
-            'diseñar ui', 'prototipo'
+        "design_sprint": [
+            "diseñar",
+            "prototipar",
+            "wireframe",
+            "mockup",
+            "design sprint",
+            "diseño de interfaz",
+            "diseñar ux",
+            "diseñar ui",
+            "prototipo",
         ],
-        'build_feature': [
-            'implementar', 'construir', 'codificar', 'feature',
-            'desarrollar', 'programar', 'crear feature'
+        "build_feature": [
+            "implementar",
+            "construir",
+            "codificar",
+            "feature",
+            "desarrollar",
+            "programar",
+            "crear feature",
         ],
-        'optimization': [
-            'optimizar', 'mejorar', 'crecimiento', 'métricas',
-            'performance', 'retención', 'aumentar', 'reducir'
+        "optimization": [
+            "optimizar",
+            "mejorar",
+            "crecimiento",
+            "métricas",
+            "performance",
+            "retención",
+            "aumentar",
+            "reducir",
         ],
-        'technical_review': [
-            'auditoría técnica', 'revisión de código', 'qa',
-            'seguridad', 'refactor', 'revisar código'
-        ]
+        "technical_review": [
+            "auditoría técnica",
+            "revisión de código",
+            "qa",
+            "seguridad",
+            "refactor",
+            "revisar código",
+        ],
     }
 
     def __init__(self) -> None:
@@ -47,7 +80,7 @@ class FlowDetector:
     def _load_flows(self) -> None:
         """Load flow configuration from YAML."""
         try:
-            with open('agents/orchestrator/config/flows.yaml', 'r') as f:
+            with open("agents/orchestrator/config/flows.yaml", "r") as f:
                 self.flow_config = yaml.safe_load(f)
         except FileNotFoundError:
             # Use hardcoded triggers if config not found
@@ -74,10 +107,10 @@ class FlowDetector:
 
         # Return flow with highest score
         if flow_scores:
-            return max(flow_scores, key=flow_scores.get)
+            return max(flow_scores.keys(), key=lambda k: flow_scores[k])
 
         # Default to validation_only if no matches
-        return 'validation_only'
+        return "validation_only"
 
     def get_flow_sequence(self, flow_type: str) -> list[int]:
         """
@@ -89,26 +122,26 @@ class FlowDetector:
         Returns:
             List of brain IDs in sequence
         """
-        if self.flow_config and 'flows' in self.flow_config:
-            flow = self.flow_config['flows'].get(flow_type)
+        if self.flow_config and "flows" in self.flow_config:
+            flow = self.flow_config["flows"].get(flow_type)
             if flow:
-                return flow.get('sequence', [])
+                return flow.get("sequence", [])
 
         # Fallback sequences
         sequences = {
-            'full_product': [1, 2, 3, 4, 5, 6, 7],
-            'validation_only': [1, 7],
-            'design_sprint': [1, 2, 3, 7],
-            'build_feature': [4, 5, 6, 7],
-            'optimization': [7, 1],
-            'technical_review': [5, 6, 7],
+            "full_product": [1, 2, 3, 4, 5, 6, 7],
+            "validation_only": [1, 7],
+            "design_sprint": [1, 2, 3, 7],
+            "build_feature": [4, 5, 6, 7],
+            "optimization": [7, 1],
+            "technical_review": [5, 6, 7],
         }
         return sequences.get(flow_type, [1, 7])
 
     def get_available_flows(self) -> list[str]:
         """Get list of available flow types."""
-        if self.flow_config and 'flows' in self.flow_config:
-            return list(self.flow_config['flows'].keys())
+        if self.flow_config and "flows" in self.flow_config:
+            return list(self.flow_config["flows"].keys())
         return list(self.FLOW_TRIGGERS.keys())
 
     def validate_flow(self, flow_type: str) -> bool:

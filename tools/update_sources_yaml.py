@@ -10,9 +10,10 @@ Campos a agregar:
 
 import re
 from pathlib import Path
-from datetime import date
 
-SOURCES_DIR = Path("/home/rpadron/proy/mastermind/docs/software-development/01-product-strategy-brain/sources")
+SOURCES_DIR = Path(
+    "/home/rpadron/proy/mastermind/docs/software-development/01-product-strategy-brain/sources"
+)
 
 # Campos de versioning a agregar
 VERSIONING_YAML = """version: "1.0.0"
@@ -37,13 +38,15 @@ def add_versioning_to_source(filepath: Path) -> bool:
 
     # Buscar el patrón de cierre del YAML y agregar versioning antes
     # Patrón: loaded_in_notebook: true/false\n---
-    pattern = r'(loaded_in_notebook:\s*(?:true|false)\n)'
-    replacement = rf'\1{VERSIONING_YAML}\n'
+    pattern = r"(loaded_in_notebook:\s*(?:true|false)\n)"
+    replacement = rf"\1{VERSIONING_YAML}\n"
 
     new_content = re.sub(pattern, replacement, content)
 
     if new_content == content:
-        print(f"✗ {filepath.name}: No se pudo agregar versioning (patrón no encontrado)")
+        print(
+            f"✗ {filepath.name}: No se pudo agregar versioning (patrón no encontrado)"
+        )
         return False
 
     filepath.write_text(new_content)
@@ -69,7 +72,7 @@ def main():
             skipped += 1
 
     print()
-    print(f"Resumen:")
+    print("Resumen:")
     print(f"  Modificadas: {modified}")
     print(f"  Ya tenían versioning: {skipped}")
     print(f"  Total: {len(sources)}")

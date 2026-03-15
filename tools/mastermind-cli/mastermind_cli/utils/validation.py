@@ -1,7 +1,7 @@
 """Validation functions for source files."""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from pathlib import Path
 
 
@@ -83,7 +83,9 @@ def validate_source_file(filepath: str) -> ValidationResult:
         # Validate required YAML fields
         for field in REQUIRED_YAML_FIELDS:
             if field not in metadata:
-                result.add_error(f"yaml.{field}", f"Required field '{field}' is missing")
+                result.add_error(
+                    f"yaml.{field}", f"Required field '{field}' is missing"
+                )
 
         # Validate source_id format
         source_id = metadata.get("source_id", "")

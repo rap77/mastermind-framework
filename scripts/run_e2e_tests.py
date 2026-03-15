@@ -21,9 +21,9 @@ def extract_brief_from_test_file(test_file: Path) -> str:
     # Find the brief section - look for "## El Brief (Usuario)" or similar
     # Then extract everything until the next "##" heading
     patterns = [
-        r'## El Brief \(Usuario\)\s*---\s*\n(.+?)\s*(?=##\s+\w|\Z)',
-        r'## El Brief \(Usuario\)\s*\n---\s*\n(.+?)\s*(?=##|\Z)',
-        r'## Brief \(Usuario\)\s*\n---\s*\n(.+?)\s*(?=##|\Z)',
+        r"## El Brief \(Usuario\)\s*---\s*\n(.+?)\s*(?=##\s+\w|\Z)",
+        r"## El Brief \(Usuario\)\s*\n---\s*\n(.+?)\s*(?=##|\Z)",
+        r"## Brief \(Usuario\)\s*\n---\s*\n(.+?)\s*(?=##|\Z)",
     ]
 
     for pattern in patterns:
@@ -31,11 +31,13 @@ def extract_brief_from_test_file(test_file: Path) -> str:
         if match:
             brief = match.group(1).strip()
             # Remove any trailing "---" or empty lines
-            brief = re.sub(r'\n---$', '', brief).strip()
+            brief = re.sub(r"\n---$", "", brief).strip()
             return brief
 
     # Fallback: extract everything after "## El Brief (Usuario)" until next "##"
-    match = re.search(r'## El Brief \(Usuario\)\s*\n(.+?)\s*##\s+\w', content, re.DOTALL)
+    match = re.search(
+        r"## El Brief \(Usuario\)\s*\n(.+?)\s*##\s+\w", content, re.DOTALL
+    )
     if match:
         return match.group(1).strip()
 
@@ -48,21 +50,21 @@ def extract_expected_results(test_file: Path) -> Dict[str, Any]:
     metadata = {}
 
     # Extract frontmatter metadata
-    tipo_match = re.search(r'\*\*Tipo de Test:\*\*\s*(.+)', content)
+    tipo_match = re.search(r"\*\*Tipo de Test:\*\*\s*(.+)", content)
     if tipo_match:
-        metadata['tipo'] = tipo_match.group(1).strip()
+        metadata["tipo"] = tipo_match.group(1).strip()
 
-    veredicto_match = re.search(r'\*\*Veredicto Esperado:\*\*\s*(.+)', content)
+    veredicto_match = re.search(r"\*\*Veredicto Esperado:\*\*\s*(.+)", content)
     if veredicto_match:
-        metadata['veredicto'] = veredicto_match.group(1).strip()
+        metadata["veredicto"] = veredicto_match.group(1).strip()
 
-    cerebros_match = re.search(r'\*\*Cerebros Involucrados:\*\*\s*(.+)', content)
+    cerebros_match = re.search(r"\*\*Cerebros Involucrados:\*\*\s*(.+)", content)
     if cerebros_match:
-        metadata['cerebros'] = cerebros_match.group(1).strip()
+        metadata["cerebros"] = cerebros_match.group(1).strip()
 
-    complejidad_match = re.search(r'\*\*Complejidad:\*\*\s*(.+)', content)
+    complejidad_match = re.search(r"\*\*Complejidad:\*\*\s*(.+)", content)
     if complejidad_match:
-        metadata['complejidad'] = complejidad_match.group(1).strip()
+        metadata["complejidad"] = complejidad_match.group(1).strip()
 
     return metadata
 
@@ -72,8 +74,11 @@ def run_orchestration(brief: str, use_mcp: bool = True) -> Dict[str, Any]:
     project_root = Path(__file__).parent.parent
 
     cmd = [
-        sys.executable, "-m", "mastermind_cli.commands.orchestrate",
-        "run", brief,
+        sys.executable,
+        "-m",
+        "mastermind_cli.commands.orchestrate",
+        "run",
+        brief,
         "--use-mcp" if use_mcp else "",
     ]
 
@@ -82,7 +87,7 @@ def run_orchestration(brief: str, use_mcp: bool = True) -> Dict[str, Any]:
         cwd=project_root,
         capture_output=True,
         text=True,
-        timeout=300  # 5 minutes max per test
+        timeout=300,  # 5 minutes max per test
     )
 
     return {
@@ -141,11 +146,9 @@ def main():
         if not brief:
             print_test_result(test_name, False, "No brief found in test file")
             summary["failed"] += 1
-            results.append({
-                "test": test_name,
-                "status": "FAIL",
-                "error": "No brief found"
-            })
+            results.append(
+                {"test": test_name, "status": "FAIL", "error": "No brief found"}
+            )
             continue
 
         print(f"📋 Brief Preview: {brief[:100]}...")
@@ -161,40 +164,50 @@ def main():
             if result["exit_code"] == 0:
                 print_test_result(test_name, True)
                 summary["passed"] += 1
-                results.append({
-                    "test": test_name,
-                    "status": "PASS",
-                    "expected": expected,
-                })
+                results.append(
+                    {
+                        "test": test_name,
+                        "status": "PASS",
+                        "expected": expected,
+                    }
+                )
             else:
-                error_msg = result["stderr"][:200] if result["stderr"] else "Unknown error"
+                error_msg = (
+                    result["stderr"][:200] if result["stderr"] else "Unknown error"
+                )
                 print_test_result(test_name, False, error_msg)
                 summary["failed"] += 1
-                results.append({
-                    "test": test_name,
-                    "status": "FAIL",
-                    "error": error_msg,
-                    "expected": expected,
-                })
+                results.append(
+                    {
+                        "test": test_name,
+                        "status": "FAIL",
+                        "error": error_msg,
+                        "expected": expected,
+                    }
+                )
 
         except subprocess.TimeoutExpired:
             print_test_result(test_name, False, "Test timed out (5 minutes)")
             summary["failed"] += 1
-            results.append({
-                "test": test_name,
-                "status": "FAIL",
-                "error": "Timeout",
-                "expected": expected,
-            })
+            results.append(
+                {
+                    "test": test_name,
+                    "status": "FAIL",
+                    "error": "Timeout",
+                    "expected": expected,
+                }
+            )
         except Exception as e:
             print_test_result(test_name, False, str(e))
             summary["failed"] += 1
-            results.append({
-                "test": test_name,
-                "status": "FAIL",
-                "error": str(e),
-                "expected": expected,
-            })
+            results.append(
+                {
+                    "test": test_name,
+                    "status": "FAIL",
+                    "error": str(e),
+                    "expected": expected,
+                }
+            )
 
         print()
 
@@ -213,12 +226,21 @@ def main():
         exit_code = 1
 
     # Save results to JSON
-    results_file = Path(__file__).parent.parent / "logs" / f"e2e-results-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+    results_file = (
+        Path(__file__).parent.parent
+        / "logs"
+        / f"e2e-results-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+    )
     results_file.parent.mkdir(exist_ok=True)
-    results_file.write_text(json.dumps({
-        "summary": summary,
-        "results": results,
-    }, indent=2))
+    results_file.write_text(
+        json.dumps(
+            {
+                "summary": summary,
+                "results": results,
+            },
+            indent=2,
+        )
+    )
     print(f"\n📄 Results saved to: {results_file}")
 
     sys.exit(exit_code)

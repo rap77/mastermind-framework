@@ -9,7 +9,6 @@ This test suite verifies that:
 
 import pytest
 from click.testing import CliRunner
-from pathlib import Path
 
 # Import CLI commands
 from mastermind_cli.commands.brain import brain_status
@@ -26,7 +25,7 @@ class TestV130CLICommands:
         runner = CliRunner()
 
         # Test with a known brain ID (01-product-strategy)
-        result = runner.invoke(brain_status, ['01-product-strategy'])
+        result = runner.invoke(brain_status, ["01-product-strategy"])
 
         # Command should execute (exit_code 0 or 1 is OK, 2 is CLI error)
         # Exit code 1 is acceptable if brain directory doesn't exist in test env
@@ -34,14 +33,18 @@ class TestV130CLICommands:
 
         # Output should contain brain-related info or error message
         output_lower = result.output.lower()
-        assert "brain" in output_lower or "error" in output_lower or "01-product-strategy" in output_lower
+        assert (
+            "brain" in output_lower
+            or "error" in output_lower
+            or "01-product-strategy" in output_lower
+        )
 
     def test_source_list_command_exists(self):
         """Verify mm source list command exists and runs."""
         runner = CliRunner()
 
         # Test source list command
-        result = runner.invoke(source, ['list'])
+        result = runner.invoke(source, ["list"])
 
         # Command should execute
         assert result.exit_code in [0, 1], f"source list failed: {result.output}"
@@ -50,7 +53,7 @@ class TestV130CLICommands:
         """Verify mm orchestrate command exists (check --help)."""
         runner = CliRunner()
 
-        result = runner.invoke(orchestrate_run, ['--help'])
+        result = runner.invoke(orchestrate_run, ["--help"])
 
         # Should show help
         assert result.exit_code == 0, f"orchestrate --help failed: {result.output}"
@@ -58,33 +61,36 @@ class TestV130CLICommands:
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("brain_id", [
-    "brain-software-01-product-strategy",
-    "brain-software-02-ux-research",
-    "brain-software-03-ui-design",
-    "brain-software-04-frontend",
-    "brain-software-05-backend",
-    "brain-software-06-qa-devops",
-    "brain-software-07-growth-data",
-    "brain-software-08-master-interviewer",
-    # Marketing brains (M1-M16)
-    "brain-marketing-m01-strategy",
-    "brain-marketing-m02-brand",
-    "brain-marketing-m03-content",
-    "brain-marketing-m04-social-organic",
-    "brain-marketing-m05-social-paid",
-    "brain-marketing-m06-search-ppc",
-    "brain-marketing-m07-seo-technical",
-    "brain-marketing-m08-seo-content",
-    "brain-marketing-m09-email",
-    "brain-marketing-m10-retention",
-    "brain-marketing-m11-analytics",
-    "brain-marketing-m12-cro",
-    "brain-marketing-m13-ops",
-    "brain-marketing-m14-influencer",
-    "brain-marketing-m15-community",
-    "brain-marketing-m16-growth-partner",
-])
+@pytest.mark.parametrize(
+    "brain_id",
+    [
+        "brain-software-01-product-strategy",
+        "brain-software-02-ux-research",
+        "brain-software-03-ui-design",
+        "brain-software-04-frontend",
+        "brain-software-05-backend",
+        "brain-software-06-qa-devops",
+        "brain-software-07-growth-data",
+        "brain-software-08-master-interviewer",
+        # Marketing brains (M1-M16)
+        "brain-marketing-m01-strategy",
+        "brain-marketing-m02-brand",
+        "brain-marketing-m03-content",
+        "brain-marketing-m04-social-organic",
+        "brain-marketing-m05-social-paid",
+        "brain-marketing-m06-search-ppc",
+        "brain-marketing-m07-seo-technical",
+        "brain-marketing-m08-seo-content",
+        "brain-marketing-m09-email",
+        "brain-marketing-m10-retention",
+        "brain-marketing-m11-analytics",
+        "brain-marketing-m12-cro",
+        "brain-marketing-m13-ops",
+        "brain-marketing-m14-influencer",
+        "brain-marketing-m15-community",
+        "brain-marketing-m16-growth-partner",
+    ],
+)
 def test_brain_executes_without_errors(brain_id):
     """Verify each brain can execute without errors (simple smoke test).
 
@@ -96,10 +102,9 @@ def test_brain_executes_without_errors(brain_id):
     # Execute brain with minimal brief
     # Note: We don't set MM_API_KEY in tests, so this will fail auth
     # But we're testing that the brain loads and validates, not full execution
-    result = runner.invoke(orchestrate_run, [
-        '--brains', brain_id,
-        'test brief for backward compatibility'
-    ])
+    result = runner.invoke(
+        orchestrate_run, ["--brains", brain_id, "test brief for backward compatibility"]
+    )
 
     # Should not crash with unexpected errors
     # Exit code 1 is expected (API key not set)

@@ -36,8 +36,9 @@ cli.add_command(install)
 @cli.command()
 def info() -> None:
     """Show framework information."""
-    console.print(Panel.fit(
-        """
+    console.print(
+        Panel.fit(
+            """
 [bold cyan]MasterMind Framework[/bold cyan]
 
 [bold]Version:[/bold] 1.0.0
@@ -53,9 +54,10 @@ def info() -> None:
 
   https://github.com/rap77/mastermind-framework
         """,
-        title="MasterMind Framework",
-        border_style="cyan"
-    ))
+            title="MasterMind Framework",
+            border_style="cyan",
+        )
+    )
 
 
 if __name__ == "__main__":

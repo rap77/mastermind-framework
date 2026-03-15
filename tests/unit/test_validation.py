@@ -5,8 +5,6 @@ Runtime validation helper tests.
 import pytest
 import click
 from mastermind_cli.utils.validation import TypeAdapterParam, validate_brain_output
-from mastermind_cli.types import CoordinatorRequest
-from pydantic import ValidationError
 
 
 class TestTypeAdapterParam:
@@ -65,7 +63,7 @@ class TestTypeAdapterParam:
         valid_data = {
             "brain_id": "test-brain",
             "content": "Test output",
-            "version": "v1.0.0"
+            "version": "v1.0.0",
         }
 
         result = validate_brain_output(valid_data, StandardSchema)

@@ -34,18 +34,18 @@ def populated_logger(temp_log_dir):
                 "document": {
                     "qa": [
                         {"question": "Q1", "answer": "A1", "confidence": "high"},
-                        {"question": "Q2", "answer": "A2", "confidence": "medium"}
+                        {"question": "Q2", "answer": "A2", "confidence": "medium"},
                     ],
                     "categories": ["functional", "technical"],
-                    "gaps_detected": []
-                }
+                    "gaps_detected": [],
+                },
             },
             "outcome": {
                 "useful_questions": ["q001", "q002"],
                 "user_satisfaction": "high",
                 "duration_minutes": 15,
-                "final_output_quality": "approved"
-            }
+                "final_output_quality": "approved",
+            },
         },
         {
             "session_id": "test-002",
@@ -53,20 +53,18 @@ def populated_logger(temp_log_dir):
             "interview_doc": {
                 "metadata": {"context_type": "feature_spec"},
                 "document": {
-                    "qa": [
-                        {"question": "Q3", "answer": "A3", "confidence": "medium"}
-                    ],
+                    "qa": [{"question": "Q3", "answer": "A3", "confidence": "medium"}],
                     "categories": ["ux"],
-                    "gaps_detected": []
-                }
+                    "gaps_detected": [],
+                },
             },
             "outcome": {
                 "useful_questions": ["q003"],
                 "user_satisfaction": "medium",
                 "duration_minutes": 10,
-                "final_output_quality": "approved"
-            }
-        }
+                "final_output_quality": "approved",
+            },
+        },
     ]
 
     for interview in sample_interviews:
@@ -88,8 +86,7 @@ def test_find_similar_interviews_with_threshold(populated_logger):
     """Test similarity threshold filtering."""
     # High threshold should return fewer results
     matches = populated_logger.find_similar_interviews(
-        "app delivery",
-        min_similarity=0.5
+        "app delivery", min_similarity=0.5
     )
 
     assert len(matches) >= 0, "High threshold returns fewer or no results"
@@ -142,24 +139,31 @@ def test_calculate_metrics_enhanced(temp_log_dir):
         "metadata": {},
         "document": {
             "qa": [
-                {"question": "Q1", "answer": "Long detailed answer with many words here", "confidence": "high", "category": "functional"},
-                {"question": "Q2", "answer": "Short", "confidence": "medium", "category": "ux"}
+                {
+                    "question": "Q1",
+                    "answer": "Long detailed answer with many words here",
+                    "confidence": "high",
+                    "category": "functional",
+                },
+                {
+                    "question": "Q2",
+                    "answer": "Short",
+                    "confidence": "medium",
+                    "category": "ux",
+                },
             ],
             "categories": ["functional", "ux"],
-            "gaps_detected": []
-        }
+            "gaps_detected": [],
+        },
     }
 
-    outcome = {
-        "useful_questions": ["q001"],
-        "user_satisfaction": "high"
-    }
+    outcome = {"useful_questions": ["q001"], "user_satisfaction": "high"}
 
     log_path = logger.log_interview(
         session_id="metrics-test",
         brief_original="test brief",
         interview_doc=interview_doc,
-        outcome=outcome
+        outcome=outcome,
     )
 
     # Verify enhanced metrics in log file
@@ -190,9 +194,9 @@ def test_retention_policy_hot_to_warm(temp_log_dir):
         brief_original="test brief",
         interview_doc={
             "metadata": {},
-            "document": {"qa": [], "categories": [], "gaps_detected": []}
+            "document": {"qa": [], "categories": [], "gaps_detected": []},
         },
-        outcome={}
+        outcome={},
     )
 
     # Apply retention policy with future threshold (should move everything)
@@ -250,8 +254,6 @@ def test_get_learning_stats_no_history(temp_log_dir):
 
 def test_jaccard_similarity_calculation():
     """Test Jaccard similarity calculation in find_similar_interviews."""
-    logger = InterviewLogger(enabled=False)
-
     # Test with identical keywords
     keywords_a = ["app", "delivery", "food"]
     keywords_b = ["app", "delivery", "food"]

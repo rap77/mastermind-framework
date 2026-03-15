@@ -77,7 +77,9 @@ class DependencyResolver:
                 dependency_depth[brain_id] = 0
             else:
                 # Find maximum depth of dependencies
-                max_dep_depth = max(dependency_depth.get(dep, 0) for dep in dependencies)
+                max_dep_depth = max(
+                    dependency_depth.get(dep, 0) for dep in dependencies
+                )
                 dependency_depth[brain_id] = max_dep_depth + 1
 
             # Assign to wave (0-indexed)
@@ -95,10 +97,7 @@ class DependencyResolver:
         for wave_num in sorted(waves.keys()):
             brain_ids = sorted(waves[wave_num])
             sorted_waves.append(
-                ExecutionLevel(
-                    wave_number=wave_num,
-                    brain_ids=brain_ids
-                )
+                ExecutionLevel(wave_number=wave_num, brain_ids=brain_ids)
             )
 
         # Calculate max parallelism (largest wave size)
@@ -107,5 +106,5 @@ class DependencyResolver:
         return ExecutionGraph(
             levels=sorted_waves,
             total_brains=len(flow.nodes),
-            max_parallelism=max_parallelism
+            max_parallelism=max_parallelism,
         )

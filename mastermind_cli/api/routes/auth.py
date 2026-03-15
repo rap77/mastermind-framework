@@ -10,6 +10,7 @@ Requirements: UI-02, UI-03, UI-07
 
 import uuid
 from datetime import datetime, timedelta
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -74,7 +75,7 @@ async def get_current_user(
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return user_id
+        return cast(str, user_id)
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -95,7 +96,7 @@ async def get_current_user_from_api_key(
         row = await cursor.fetchone()
         if row is None:
             raise HTTPException(status_code=401, detail="Invalid API key")
-        return row[0]
+        return cast(str, row[0])
 
 
 async def get_current_user_any(
@@ -108,7 +109,7 @@ async def get_current_user_any(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") == "access":
-            return payload.get("sub")
+            return cast(str, payload.get("sub"))
     except JWTError:
         pass
 
@@ -127,7 +128,7 @@ async def get_current_user_any(
                     [datetime.utcnow(), hash_token(token)],
                 )
                 await db.conn.commit()
-                return row[0]
+                return cast(str, row[0])
 
     raise HTTPException(status_code=401, detail="Invalid authentication")
 
@@ -136,7 +137,7 @@ async def get_current_user_any(
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest):
+async def login(request: LoginRequest) -> TokenResponse:
     """Authenticate user and return JWT tokens.
 
     Validates credentials, creates session with refresh_token_hash,
@@ -151,9 +152,7 @@ async def login(request: LoginRequest):
         user = await cursor.fetchone()
 
         if user is None or not verify_password(request.password, user[1]):
-            raise HTTPException(
-                status_code=401, detail="Invalid username or password"
-            )
+            raise HTTPException(status_code=401, detail="Invalid username or password")
 
         user_id = user[0]
 
@@ -183,7 +182,7 @@ async def login(request: LoginRequest):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(request: RefreshRequest):
+async def refresh(request: RefreshRequest) -> TokenResponse:
     """Exchange refresh token for new tokens WITH ROTATION.
 
     CRITICAL: Old refresh_token is deleted from database (revoked).
@@ -191,9 +190,7 @@ async def refresh(request: RefreshRequest):
     Replay attacks fail because old token hash no longer exists.
     """
     try:
-        payload = jwt.decode(
-            request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -209,7 +206,9 @@ async def refresh(request: RefreshRequest):
         session = await cursor.fetchone()
 
         if session is None:
-            raise HTTPException(status_code=401, detail="Invalid or revoked refresh token")
+            raise HTTPException(
+                status_code=401, detail="Invalid or revoked refresh token"
+            )
 
         session_id, rotation_count = session
 
@@ -247,7 +246,7 @@ async def refresh(request: RefreshRequest):
 async def create_api_key(
     request: APIKeyCreate,
     user_id: str = Depends(get_current_user_any),
-):
+) -> APIKeyResponse:
     """Create API key for CLI access (UI-07 requirement).
 
     Key is returned only ONCE (on creation).
@@ -261,7 +260,13 @@ async def create_api_key(
         await db.conn.execute(
             """INSERT INTO api_keys (id, user_id, key_hash, name, created_at)
                VALUES (?, ?, ?, ?, ?)""",
-            [api_key_id, user_id, hash_token(plaintext_key), request.name, datetime.utcnow()],
+            [
+                api_key_id,
+                user_id,
+                hash_token(plaintext_key),
+                request.name,
+                datetime.utcnow(),
+            ],
         )
         await db.conn.commit()
 
@@ -276,7 +281,7 @@ async def create_api_key(
 @router.get("/api-keys")
 async def list_api_keys(
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, list[dict[str, object]]]:
     """List user's API keys."""
     async with DatabaseConnection(":memory:") as db:
         cursor = await db.conn.execute(
@@ -299,7 +304,7 @@ async def list_api_keys(
 async def revoke_api_key(
     api_key_id: str,
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, str]:
     """Revoke API key."""
     async with DatabaseConnection(":memory:") as db:
         await db.conn.execute(
@@ -314,7 +319,7 @@ async def revoke_api_key(
 @router.post("/logout")
 async def logout(
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, str]:
     """Revoke refresh token (logout)."""
     # Note: In production, accept refresh_token in request body to revoke specific session
     # For now, revoke all sessions for user

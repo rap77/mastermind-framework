@@ -15,10 +15,12 @@ Design Principles:
 
 from __future__ import annotations
 
+import contextlib
 import json
+import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, AsyncIterator
 
 from pydantic import BaseModel, Field
 
@@ -29,58 +31,49 @@ from mastermind_cli.types.interfaces import Brief, BrainOutput
 # MODELS
 # =============================================================================
 
+
 class BrainExecutionLog(BaseModel):
     """
     Log entry for a single brain execution.
 
     Stored in SQLite as JSON (upgrade path to PostgreSQL + JSONB).
     """
+
     execution_id: str = Field(..., description="Unique execution ID")
     brain_id: str = Field(..., description="Brain that was executed")
     brief: str = Field(..., description="User's brief (problem statement)")
-    input_context: dict = Field(
-        default_factory=dict,
-        description="Additional input context"
+    input_context: dict[str, Any] = Field(
+        default_factory=dict, description="Additional input context"
     )
-    output: dict = Field(
-        default_factory=dict,
-        description="Brain output as JSON"
+    output: dict[str, Any] = Field(
+        default_factory=dict, description="Brain output as JSON"
     )
-    status: str = Field(
-        ...,
-        description="Execution status: success, error, timeout"
-    )
-    error_message: str | None = Field(
-        None,
-        description="Error message if status=error"
-    )
-    duration_ms: int = Field(
-        ...,
-        description="Execution duration in milliseconds"
-    )
-    timestamp: str = Field(
-        ...,
-        description="ISO timestamp of execution"
-    )
-    metadata: dict = Field(
-        default_factory=dict,
-        description="Additional metadata (user, session, etc.)"
+    status: str = Field(..., description="Execution status: success, error, timeout")
+    error_message: str | None = Field(None, description="Error message if status=error")
+    duration_ms: int = Field(..., description="Execution duration in milliseconds")
+    timestamp: str = Field(..., description="ISO timestamp of execution")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata (user, session, etc.)"
     )
 
 
 class ExecutionQuery(BaseModel):
     """Query parameters for filtering execution logs."""
+
     brain_id: str | None = None
     status: str | None = None
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
-    sort_by: str = Field(default="timestamp", pattern="^(timestamp|duration_ms|brain_id)$")
+    sort_by: str = Field(
+        default="timestamp", pattern="^(timestamp|duration_ms|brain_id)$"
+    )
     sort_order: str = Field(default="DESC", pattern="^(ASC|DESC)$")
 
 
 # =============================================================================
 # LOGGER
 # =============================================================================
+
 
 class ExecutionLogger:
     """
@@ -90,7 +83,7 @@ class ExecutionLogger:
     Can be disabled for performance-critical paths.
     """
 
-    def __init__(self, db_path: str = ":memory:", enabled: bool = True):
+    def __init__(self, db_path: str = ":memory:", enabled: bool = True) -> None:
         """
         Initialize execution logger.
 
@@ -100,24 +93,27 @@ class ExecutionLogger:
         """
         self.db_path = db_path
         self.enabled = enabled
-        self._conn = None
+        self._conn: Any = None
 
-    async def _get_connection(self):
+    async def _get_connection(self) -> Any:
         """Get or create database connection."""
         if self._conn is None:
             import aiosqlite
+
             self._conn = await aiosqlite.connect(self.db_path)
             await self._enable_wal_mode()
             await self._create_schema()
         return self._conn
 
-    async def _enable_wal_mode(self):
+    async def _enable_wal_mode(self) -> None:
         """Enable WAL mode for better concurrency."""
+        assert self._conn is not None
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.commit()
 
-    async def _create_schema(self):
+    async def _create_schema(self) -> None:
         """Create brain_executions table and indexes."""
+        assert self._conn is not None
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS brain_executions (
                 id TEXT PRIMARY KEY,
@@ -162,7 +158,7 @@ class ExecutionLogger:
         status: str,
         error_message: str | None = None,
         duration_ms: int = 0,
-        metadata: dict | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """
         Log a brain execution.
@@ -189,11 +185,13 @@ class ExecutionLogger:
         timestamp = datetime.now(timezone.utc).isoformat()
 
         # Serialize to JSON
-        input_context_json = json.dumps({
-            "context": brief.context,
-            "constraints": brief.constraints,
-            "target_audience": brief.target_audience,
-        })
+        input_context_json = json.dumps(
+            {
+                "context": brief.context,
+                "constraints": brief.constraints,
+                "target_audience": brief.target_audience,
+            }
+        )
         output_json = json.dumps(output.model_dump() if output else {})
         metadata_json = json.dumps(metadata or {})
 
@@ -213,17 +211,14 @@ class ExecutionLogger:
                 error_message,
                 duration_ms,
                 timestamp,
-                metadata_json
-            )
+                metadata_json,
+            ),
         )
         await conn.commit()
 
         return log_id
 
-    async def query_executions(
-        self,
-        query: ExecutionQuery
-    ) -> list[BrainExecutionLog]:
+    async def query_executions(self, query: ExecutionQuery) -> list[BrainExecutionLog]:
         """
         Query execution logs.
 
@@ -255,7 +250,7 @@ class ExecutionLogger:
 
         # Pagination
         sql += " LIMIT ? OFFSET ?"
-        params.extend([query.limit, query.offset])
+        params.extend([str(query.limit), str(query.offset)])
 
         cursor = await conn.execute(sql, params)
         rows = await cursor.fetchall()
@@ -265,18 +260,20 @@ class ExecutionLogger:
         #             output, status, error_message, duration_ms, timestamp, metadata
         logs = []
         for row in rows:
-            logs.append(BrainExecutionLog(
-                execution_id=row[1],
-                brain_id=row[2],
-                brief=row[3],
-                input_context=json.loads(row[4]) if row[4] else {},
-                output=json.loads(row[5]) if row[5] else {},
-                status=row[6],
-                error_message=row[7],
-                duration_ms=row[8],
-                timestamp=row[9],
-                metadata=json.loads(row[10]) if row[10] else {},
-            ))
+            logs.append(
+                BrainExecutionLog(
+                    execution_id=row[1],
+                    brain_id=row[2],
+                    brief=row[3],
+                    input_context=json.loads(row[4]) if row[4] else {},
+                    output=json.loads(row[5]) if row[5] else {},
+                    status=row[6],
+                    error_message=row[7],
+                    duration_ms=row[8],
+                    timestamp=row[9],
+                    metadata=json.loads(row[10]) if row[10] else {},
+                )
+            )
 
         return logs
 
@@ -296,8 +293,7 @@ class ExecutionLogger:
         conn = await self._get_connection()
 
         cursor = await conn.execute(
-            "SELECT * FROM brain_executions WHERE execution_id = ?",
-            (execution_id,)
+            "SELECT * FROM brain_executions WHERE execution_id = ?", (execution_id,)
         )
         row = await cursor.fetchone()
 
@@ -329,9 +325,7 @@ class ExecutionLogger:
         conn = await self._get_connection()
 
         # Total executions
-        cursor = await conn.execute(
-            "SELECT COUNT(*) FROM brain_executions"
-        )
+        cursor = await conn.execute("SELECT COUNT(*) FROM brain_executions")
         total = (await cursor.fetchone())[0]
 
         # Success rate
@@ -351,10 +345,12 @@ class ExecutionLogger:
             "total_executions": total,
             "success_count": success_count,
             "success_rate": success_rate,
-            "avg_duration_ms": avg_duration[0] if avg_duration and avg_duration[0] else 0,
+            "avg_duration_ms": avg_duration[0]
+            if avg_duration and avg_duration[0]
+            else 0,
         }
 
-    async def close(self):
+    async def close(self) -> None:
         """Close database connection."""
         if self._conn:
             await self._conn.close()
@@ -365,9 +361,6 @@ class ExecutionLogger:
 # CONTEXT MANAGER FOR TIMING
 # =============================================================================
 
-import contextlib
-import time
-
 
 @contextlib.asynccontextmanager
 async def log_brain_execution(
@@ -375,8 +368,8 @@ async def log_brain_execution(
     execution_id: str,
     brain_id: str,
     brief: Brief,
-    metadata: dict | None = None
-):
+    metadata: dict[str, Any] | None = None,
+) -> AsyncIterator[Any]:
     """
     Context manager for timing and logging brain execution.
 
@@ -398,7 +391,18 @@ async def log_brain_execution(
     error_message: str | None = None
 
     class Timer:
-        def __init__(self, logger, execution_id, brain_id, brief, metadata, start):
+        output: BrainOutput | None
+        error_message: str | None
+
+        def __init__(
+            self,
+            logger: Any,
+            execution_id: str,
+            brain_id: str,
+            brief: Any,
+            metadata: dict[str, Any] | None,
+            start: float,
+        ) -> None:
             self.logger = logger
             self.execution_id = execution_id
             self.brain_id = brain_id
@@ -408,18 +412,18 @@ async def log_brain_execution(
             self.output = None
             self.error_message = None
 
-        def complete(self, result: BrainOutput):
+        def complete(self, result: BrainOutput) -> None:
             """Mark execution as successful with output."""
             self.output = result
 
-        def fail(self, error: str):
+        def fail(self, error: str) -> None:
             """Mark execution as failed with error message."""
             self.error_message = error
 
-        async def __aenter__(self):
+        async def __aenter__(self) -> Any:
             return self
 
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
+        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
             duration_ms = int((time.time() - self.start) * 1000)
 
             if exc_type is not None:
@@ -442,7 +446,7 @@ async def log_brain_execution(
                 status=status,
                 error_message=error_msg,
                 duration_ms=duration_ms,
-                metadata=self.metadata
+                metadata=self.metadata,
             )
 
     timer = Timer(logger, execution_id, brain_id, brief, metadata, start_time)
@@ -467,5 +471,5 @@ async def log_brain_execution(
             status=status,
             error_message=error_message,
             duration_ms=duration_ms,
-            metadata=metadata
+            metadata=metadata,
         )

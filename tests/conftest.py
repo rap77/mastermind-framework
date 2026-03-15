@@ -7,9 +7,9 @@ This module provides fixtures for testing parallel execution components and Phas
 import pytest
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List, AsyncGenerator, Generator
+from typing import Dict, Any, List
 
-from mastermind_cli.types.parallel import FlowConfig, ProviderConfig
+from mastermind_cli.types.parallel import ProviderConfig
 from mastermind_cli.state.database import DatabaseConnection
 
 
@@ -48,7 +48,7 @@ def mock_flow_yaml() -> Dict[str, Any]:
             "brain-03": ["brain-01"],  # Dep on Wave 0 (Wave 1)
             "brain-04": ["brain-01", "brain-02"],  # Dep on Wave 0 (Wave 1)
             "brain-05": ["brain-03", "brain-04"],  # Dep on Wave 1 (Wave 2)
-        }
+        },
     }
 
 
@@ -57,10 +57,7 @@ def cyclic_flow_yaml() -> Dict[str, Any]:
     """Invalid flow configuration with a cycle (A→B→A)."""
     return {
         "flow_id": "cyclic-flow",
-        "nodes": {
-            "brain-A": ["brain-B"],
-            "brain-B": ["brain-A"]
-        }
+        "nodes": {"brain-A": ["brain-B"], "brain-B": ["brain-A"]},
     }
 
 
@@ -73,8 +70,8 @@ def linear_flow_yaml() -> Dict[str, Any]:
             "brain-A": [],
             "brain-B": ["brain-A"],
             "brain-C": ["brain-B"],
-            "brain-D": ["brain-C"]
-        }
+            "brain-D": ["brain-C"],
+        },
     }
 
 
@@ -87,18 +84,15 @@ def diamond_flow_yaml() -> Dict[str, Any]:
             "brain-A": [],
             "brain-B": ["brain-A"],
             "brain-C": ["brain-A"],
-            "brain-D": ["brain-B", "brain-C"]
-        }
+            "brain-D": ["brain-B", "brain-C"],
+        },
     }
 
 
 @pytest.fixture
 def empty_flow_yaml() -> Dict[str, Any]:
     """Empty flow with no brains."""
-    return {
-        "flow_id": "empty-flow",
-        "nodes": {}
-    }
+    return {"flow_id": "empty-flow", "nodes": {}}
 
 
 @pytest.fixture
@@ -117,10 +111,7 @@ def provider_configs() -> List[ProviderConfig]:
 def notebooklm_provider() -> ProviderConfig:
     """Get NotebookLM provider configuration."""
     return ProviderConfig(
-        name="notebooklm",
-        max_concurrent_calls=2,
-        retry_attempts=3,
-        backoff_base=1.0
+        name="notebooklm", max_concurrent_calls=2, retry_attempts=3, backoff_base=1.0
     )
 
 
@@ -128,14 +119,12 @@ def notebooklm_provider() -> ProviderConfig:
 def claude_provider() -> ProviderConfig:
     """Get Claude provider configuration."""
     return ProviderConfig(
-        name="claude",
-        max_concurrent_calls=10,
-        retry_attempts=3,
-        backoff_base=1.0
+        name="claude", max_concurrent_calls=10, retry_attempts=3, backoff_base=1.0
     )
 
 
 # ===== Phase 3 Fixtures (FastAPI, Auth, WebSocket) =====
+
 
 @pytest.fixture
 def mock_auth_headers() -> Dict[str, str]:

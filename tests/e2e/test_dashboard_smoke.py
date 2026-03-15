@@ -6,7 +6,6 @@ Tests will be implemented after Plan 02 Task 4.
 Requirements: UI-04, UI-05, UI-10
 """
 
-import pytest
 from playwright.sync_api import Page, expect
 
 
@@ -24,7 +23,9 @@ def test_dashboard_smoke(page: Page):
     expect(page.locator("h1")).to_contain_text("MasterMind Framework")
 
     # Check CSS loaded (dark background)
-    background_color = page.locator("body").evaluate("el => getComputedStyle(el).backgroundColor")
+    background_color = page.locator("body").evaluate(
+        "el => getComputedStyle(el).backgroundColor"
+    )
     assert background_color in ["rgb(15, 23, 42)", "#0F172A"]
 
 

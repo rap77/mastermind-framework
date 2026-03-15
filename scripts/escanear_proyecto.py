@@ -10,11 +10,11 @@ Uso:
     python escanear_proyecto.py /path/to/proyecto --mcp   # Con NotebookLM real
     python escanear_proyecto.py . --depth 2               # Escanea este proyecto
 """
+
 import glob
 import json
 import logging
 import os
-import re
 import sys
 import argparse
 from pathlib import Path
@@ -33,31 +33,56 @@ class ProjectScanner:
     # Archivos clave a buscar
     KEY_FILES = [
         # Documentación de producto
-        "README.md", "CONTRIBUTING.md", "docs/README.md",
-        "PRD.md", "PRODUCT.md", "SPEC.md", "REQUIREMENTS.md",
-        "docs/PRD.md", "docs/SPEC.md", "docs/design/*.md",
-
+        "README.md",
+        "CONTRIBUTING.md",
+        "docs/README.md",
+        "PRD.md",
+        "PRODUCT.md",
+        "SPEC.md",
+        "REQUIREMENTS.md",
+        "docs/PRD.md",
+        "docs/SPEC.md",
+        "docs/design/*.md",
         # Documentación técnica
-        "ARCHITECTURE.md", "DESIGN.md", "TECHNICAL.md",
-        "docs/ARCHITECTURE.md", "docs/DESIGN.md",
-        "docs/API.md", "API.md",
-
+        "ARCHITECTURE.md",
+        "DESIGN.md",
+        "TECHNICAL.md",
+        "docs/ARCHITECTURE.md",
+        "docs/DESIGN.md",
+        "docs/API.md",
+        "API.md",
         # Roadmap y planes
-        "ROADMAP.md", "TIMELINE.md", "docs/ROADMAP.md",
+        "ROADMAP.md",
+        "TIMELINE.md",
+        "docs/ROADMAP.md",
         "CHANGELOG.md",
-
         # Configuración (da pistas sobre el stack)
-        "package.json", "Cargo.toml", "pyproject.toml",
-        "requirements.txt", "go.mod", "Gemfile",
+        "package.json",
+        "Cargo.toml",
+        "pyproject.toml",
+        "requirements.txt",
+        "go.mod",
+        "Gemfile",
     ]
 
     # Directorios clave a explorar
     KEY_DIRS = [
-        "docs", "doc", "documentation",
-        "spec", "specs", "design",
-        "src", "app", "lib", "server",
-        "frontend", "backend", "api",
-        ".github", "tests", "__tests__"
+        "docs",
+        "doc",
+        "documentation",
+        "spec",
+        "specs",
+        "design",
+        "src",
+        "app",
+        "lib",
+        "server",
+        "frontend",
+        "backend",
+        "api",
+        ".github",
+        "tests",
+        "__tests__",
     ]
 
     # Patrones a buscar en el código
@@ -89,7 +114,7 @@ class ProjectScanner:
             ("azure", "Azure"),
             ("vercel", "Vercel"),
             ("heroku", "Heroku"),
-        ]
+        ],
     }
 
     def __init__(self, project_path: str, max_depth: int = 3) -> None:
@@ -113,7 +138,7 @@ class ProjectScanner:
             raise ValueError(f"Project path does not exist: {self.project_path}")
 
         logger.info(f"\n{'='*70}")
-        logger.info(f"🔍 ESCANEANDO PROYECTO")
+        logger.info("🔍 ESCANEANDO PROYECTO")
         logger.info(f"{'='*70}")
         logger.info(f"📁 Path: {self.project_path}")
         logger.info(f"📊 Max depth: {self.max_depth}")
@@ -159,8 +184,10 @@ class ProjectScanner:
                         # Simple parsing for project name
                         with open(filepath) as f:
                             for line in f:
-                                if 'name' in line.lower() and '=' in line:
-                                    self.findings["name"] = line.split('=')[1].strip().strip('"')
+                                if "name" in line.lower() and "=" in line:
+                                    self.findings["name"] = (
+                                        line.split("=")[1].strip().strip('"')
+                                    )
                                     break
                 except (json.JSONDecodeError, KeyError, OSError, ValueError):
                     pass
@@ -174,8 +201,7 @@ class ProjectScanner:
     def _find_key_files(self) -> None:
         """Busca archivos de documentación clave."""
 
-
-        logger.info(f"\n📄 Buscando documentación...")
+        logger.info("\n📄 Buscando documentación...")
 
         for pattern in self.KEY_FILES:
             matches = glob.glob(str(self.project_path / pattern), recursive=True)
@@ -188,17 +214,24 @@ class ProjectScanner:
 
     def _read_key_files(self) -> None:
         """Lee el contenido de archivos importantes."""
-        logger.info(f"\n📖 Leyendo archivos clave...")
+        logger.info("\n📖 Leyendo archivos clave...")
 
         # Prioridad: README, PRD, SPEC, ARCHITECTURE
-        priority_files = ["README.md", "PRD.md", "SPEC.md", "ARCHITECTURE.md",
-                         "docs/README.md", "docs/PRD.md", "docs/SPEC.md"]
+        priority_files = [
+            "README.md",
+            "PRD.md",
+            "SPEC.md",
+            "ARCHITECTURE.md",
+            "docs/README.md",
+            "docs/PRD.md",
+            "docs/SPEC.md",
+        ]
 
         for priority in priority_files:
             filepath = self.project_path / priority
             if filepath.exists():
                 try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
+                    with open(filepath, "r", encoding="utf-8") as f:
                         content = f.read()
                         self.findings["key_files_content"][priority] = content
                         logger.info(f"   ✓ {priority} ({len(content)} chars)")
@@ -210,14 +243,23 @@ class ProjectScanner:
     def _analyze_code_structure(self) -> None:
         """Analiza la estructura del código para inferir features."""
 
-
-        logger.info(f"\n🔬 Analizando estructura de código...")
+        logger.info("\n🔬 Analizando estructura de código...")
 
         # Buscar archivos de código principales
         code_patterns = {
-            "frontend": ["src/**/*.tsx", "src/**/*.jsx", "app/**/*.tsx", "components/**/*.tsx"],
+            "frontend": [
+                "src/**/*.tsx",
+                "src/**/*.jsx",
+                "app/**/*.tsx",
+                "components/**/*.tsx",
+            ],
             "backend": ["src/**/*.py", "src/**/*.js", "app/**/*.py", "lib/**/*.rb"],
-            "api": ["api/**/*.py", "api/**/*.js", "routes/**/*.py", "controllers/**/*.py"],
+            "api": [
+                "api/**/*.py",
+                "api/**/*.js",
+                "routes/**/*.py",
+                "controllers/**/*.py",
+            ],
         }
 
         for category, patterns in code_patterns.items():
@@ -232,8 +274,7 @@ class ProjectScanner:
     def _extract_tech_stack(self) -> None:
         """Extrae el stack técnico de archivos de configuración."""
 
-
-        logger.info(f"\n🛠️  Detecting tech stack...")
+        logger.info("\n🛠️  Detecting tech stack...")
 
         stack = set()
 
@@ -257,8 +298,12 @@ class ProjectScanner:
                 with open(self.project_path / "requirements.txt") as f:
                     for line in f:
                         line_lower = line.lower()
-                        for pattern, friendly in [("django", "Django"), ("flask", "Flask"),
-                                                  ("fastapi", "FastAPI"), ("celery", "Celery")]:
+                        for pattern, friendly in [
+                            ("django", "Django"),
+                            ("flask", "Flask"),
+                            ("fastapi", "FastAPI"),
+                            ("celery", "Celery"),
+                        ]:
                             if pattern in line_lower:
                                 stack.add(friendly)
             except OSError:
@@ -271,7 +316,7 @@ class ProjectScanner:
 
     def _generate_brief(self) -> dict:
         """Genera un brief estructurado basado en los findings."""
-        logger.info(f"\n📝 Generando brief...")
+        logger.info("\n📝 Generando brief...")
 
         # Extraer información de los archivos leídos
         description = ""
@@ -281,24 +326,24 @@ class ProjectScanner:
         for filename, content in self.findings["key_files_content"].items():
             # Extraer descripción de README
             if "README" in filename:
-                lines = content.split('\n')
+                lines = content.split("\n")
                 for i, line in enumerate(lines[1:50]):  # Primeras 50 líneas
                     line = line.strip()
-                    if line and not line.startswith('#') and len(line) > 20:
+                    if line and not line.startswith("#") and len(line) > 20:
                         description = line
                         break
 
             # Buscar features listadas
             if "## Features" in content or "### Features" in content:
                 in_features = False
-                for line in content.split('\n'):
+                for line in content.split("\n"):
                     if "Features" in line and ("##" in line or "###" in line):
                         in_features = True
                         continue
                     if in_features:
-                        if line.strip().startswith('- '):
+                        if line.strip().startswith("- "):
                             features.append(line.strip()[2:])
-                        elif line.strip().startswith('##'):
+                        elif line.strip().startswith("##"):
                             break
 
             # Buscar mención de usuarios/target
@@ -370,16 +415,14 @@ def evaluate_scanned_project(brief_text: str, use_mcp: bool = False) -> dict:
     from mastermind_cli.orchestrator import Coordinator, OutputFormatter
 
     logger.info(f"\n{'='*70}")
-    logger.info(f"🧠 EVALUANDO CON MENTE MAESTRA")
+    logger.info("🧠 EVALUANDO CON MENTE MAESTRA")
     logger.info(f"{'='*70}")
 
     formatter = OutputFormatter()
     coordinator = Coordinator(formatter=formatter, use_mcp=use_mcp)
 
     result = coordinator.orchestrate(
-        brief=brief_text.strip(),
-        flow='full_product',
-        max_iterations=2
+        brief=brief_text.strip(), flow="full_product", max_iterations=2
     )
 
     return result
@@ -389,28 +432,15 @@ def main() -> dict:
     """Entry point for the MasterMind project scanner."""
     parser = argparse.ArgumentParser(
         description="Escanea un proyecto y lo evalúa con MasterMind Framework",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("project_path", type=str, help="Path al proyecto a escanear")
+    parser.add_argument("--mcp", action="store_true", help="Usar MCP (NotebookLM real)")
+    parser.add_argument(
+        "--depth", type=int, default=3, help="Profundidad de escaneo (default: 3)"
     )
     parser.add_argument(
-        'project_path',
-        type=str,
-        help='Path al proyecto a escanear'
-    )
-    parser.add_argument(
-        '--mcp',
-        action='store_true',
-        help='Usar MCP (NotebookLM real)'
-    )
-    parser.add_argument(
-        '--depth',
-        type=int,
-        default=3,
-        help='Profundidad de escaneo (default: 3)'
-    )
-    parser.add_argument(
-        '--output', '-o',
-        type=str,
-        help='Guardar brief generado en archivo'
+        "--output", "-o", type=str, help="Guardar brief generado en archivo"
     )
 
     args = parser.parse_args()
@@ -424,30 +454,30 @@ def main() -> dict:
 
     # Guardar si se solicita
     if args.output:
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             f.write(brief_text)
         logger.info(f"\n💾 Brief guardado en: {args.output}")
 
     # Mostrar brief generado
     logger.info(f"\n{'='*70}")
-    logger.info(f"📋 BRIEF GENERADO")
+    logger.info("📋 BRIEF GENERADO")
     logger.info(f"{'='*70}")
     logger.info(brief_text)
 
     # Evaluar con MasterMind
-    logger.info(f"\n⏳ Evaluando con MasterMind Framework...")
+    logger.info("\n⏳ Evaluando con MasterMind Framework...")
     result = evaluate_scanned_project(brief_text, use_mcp=args.mcp)
 
     # Mostrar resultado
     logger.info(f"\n{'='*70}")
-    logger.info(f"📊 RESULTADO DE LA EVALUACIÓN")
+    logger.info("📊 RESULTADO DE LA EVALUACIÓN")
     logger.info(f"{'='*70}")
     logger.info(f"Status: {result.get('status')}")
     logger.info(f"Veredicto: {result.get('veredict')}")
 
-    if result.get('evaluations'):
-        logger.info(f"\nEvaluaciones por cerebro:")
-        for i, eval_result in enumerate(result['evaluations'][:3], 1):
+    if result.get("evaluations"):
+        logger.info("\nEvaluaciones por cerebro:")
+        for i, eval_result in enumerate(result["evaluations"][:3], 1):
             logger.info(f"  Cerebro #{i}: {eval_result.get('score', 'N/A')}")
 
     return result

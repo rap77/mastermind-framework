@@ -69,10 +69,10 @@ class LegacyBrainAdapter(Generic[T]):
 
     def __init__(
         self,
-        brain_executor: Callable[[str, Any], dict],
+        brain_executor: Callable[..., dict[str, Any]],
         output_model: type[T],
         brain_id: int = 1,
-    ):
+    ) -> None:
         """
         Initialize legacy brain adapter.
 
@@ -163,17 +163,17 @@ class LegacyBrainAdapter(Generic[T]):
         if hasattr(input, "brief"):
             brief_obj = input.brief
             if hasattr(brief_obj, "problem_statement"):
-                return brief_obj.problem_statement
+                return str(brief_obj.problem_statement)
             return str(brief_obj)
 
         # Check if input has problem_statement directly
         if hasattr(input, "problem_statement"):
-            return input.problem_statement
+            return str(input.problem_statement)
 
         # Fallback: convert to string
         return str(input)
 
-    def _normalize_output(self, result_dict: dict) -> dict:
+    def _normalize_output(self, result_dict: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize legacy brain output to match output_model schema.
 
@@ -199,7 +199,7 @@ class LegacyBrainAdapter(Generic[T]):
         # Default: return as-is
         return result_dict
 
-    def _normalize_brain_1_output(self, result_dict: dict) -> dict:
+    def _normalize_brain_1_output(self, result_dict: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize Brain #1 (Product Strategy) output.
 
@@ -245,8 +245,7 @@ class LegacyBrainAdapter(Generic[T]):
             if isinstance(metrics, list):
                 if metrics:  # Non-empty list
                     normalized["success_metrics"] = [
-                        m["metric"] if isinstance(m, dict) else str(m)
-                        for m in metrics
+                        m["metric"] if isinstance(m, dict) else str(m) for m in metrics
                     ]
                 # else: empty list - let default fill it later
             # else: not a list - let default fill it later
@@ -265,7 +264,7 @@ class LegacyBrainAdapter(Generic[T]):
 
         return normalized
 
-    def _normalize_brain_7_output(self, result_dict: dict) -> dict:
+    def _normalize_brain_7_output(self, result_dict: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize Brain #7 (Growth/Data Evaluator) output.
 
@@ -306,20 +305,19 @@ class LegacyBrainAdapter(Generic[T]):
             normalized["verdict"] = "CONDITIONAL"
 
         # score (convert percentage to 0-10 float)
+        score_value: float = 5.0  # Initialize with default
         if "score" in result_dict:
             score = result_dict["score"]
             if isinstance(score, dict):
                 percentage = score.get("percentage", 50)
-                normalized["score"] = float(percentage) / 10.0  # Convert to 0-10
+                score_value = float(percentage) / 10.0  # Convert to 0-10
             elif isinstance(score, (int, float)):
                 if score > 10:  # Assume percentage
-                    normalized["score"] = float(score) / 10.0
+                    score_value = float(score) / 10.0
                 else:
-                    normalized["score"] = float(score)
-            else:
-                normalized["score"] = 5.0
-        else:
-            normalized["score"] = 5.0
+                    score_value = float(score)
+            # else: keep default 5.0
+        normalized["score"] = str(score_value)
 
         # feedback (from evaluation or reasoning)
         if "evaluation" in result_dict:
@@ -332,17 +330,20 @@ class LegacyBrainAdapter(Generic[T]):
             normalized["feedback"] = "No feedback provided"
 
         # approval_conditions (optional, from evaluation if available)
+        approval_conditions_list: list[str] = []
         if "approval_conditions" in result_dict:
-            normalized["approval_conditions"] = result_dict["approval_conditions"]
-        else:
-            normalized["approval_conditions"] = []
+            approval_conditions_list = list(result_dict["approval_conditions"])
+        normalized["approval_conditions"] = (
+            ", ".join(approval_conditions_list) if approval_conditions_list else "None"
+        )
 
         return normalized
 
 
 # ===== CONVENIENCE FUNCTIONS =====
 
-def wrap_legacy_brain_1():
+
+def wrap_legacy_brain_1() -> LegacyBrainAdapter[Any]:
     """
     Wrap legacy Brain #1 (Product Strategy) for v2.0.
 
@@ -365,7 +366,7 @@ def wrap_legacy_brain_1():
     )
 
 
-def wrap_legacy_brain_7():
+def wrap_legacy_brain_7() -> LegacyBrainAdapter[Any]:
     """
     Wrap legacy Brain #7 (Growth/Data Evaluator) for v2.0.
 
@@ -382,7 +383,7 @@ def wrap_legacy_brain_7():
     return LegacyBrainAdapter(
         brain_executor=lambda brief, orchestrator: executor._execute_brain_7(
             task={"output_to_evaluate": {"brief": brief}, "previous_brain_id": 1},
-            use_mcp=False
+            use_mcp=False,
         ),
         output_model=GrowthDataEvaluation,
         brain_id=7,

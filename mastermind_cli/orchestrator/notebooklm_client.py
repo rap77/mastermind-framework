@@ -4,7 +4,7 @@ NotebookLM MCP Client - Wrapper for NotebookLM MCP operations.
 This module provides a Python interface to NotebookLM MCP tools.
 """
 
-from typing import Dict, Optional, List
+from typing import Any, Optional, List
 
 
 class NotebookLMClient:
@@ -29,10 +29,10 @@ class NotebookLMClient:
         4: "Frontend Development",
         5: "Backend Development",
         6: "QA & DevOps",
-        7: "Growth & Data (Evaluator)"
+        7: "Growth & Data (Evaluator)",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize NotebookLM client."""
         # Check if we're running in Claude Code with MCP available
         self.mcp_available = self._check_mcp_available()
@@ -56,8 +56,8 @@ class NotebookLMClient:
         brain_id: int,
         query: str,
         source_ids: Optional[List[str]] = None,
-        timeout: float = 180.0
-    ) -> Dict:
+        timeout: float = 180.0,
+    ) -> dict[str, Any]:
         """
         Query a brain's notebook.
 
@@ -79,10 +79,10 @@ class NotebookLMClient:
 
         if not notebook_id:
             return {
-                'status': 'error',
-                'error': f'Brain #{brain_id} does not have an active notebook',
-                'brain_id': brain_id,
-                'brain_name': self.BRAIN_NAMES.get(brain_id, f'Brain {brain_id}')
+                "status": "error",
+                "error": f"Brain #{brain_id} does not have an active notebook",
+                "brain_id": brain_id,
+                "brain_name": self.BRAIN_NAMES.get(brain_id, f"Brain {brain_id}"),
             }
 
         # Try to use MCP tool (will be available in Claude Code)
@@ -90,23 +90,23 @@ class NotebookLMClient:
             # This will be called via the MCP tool in the actual execution
             # For now, return a structure that indicates what we need
             return {
-                'status': 'mcp_required',
-                'notebook_id': notebook_id,
-                'brain_id': brain_id,
-                'brain_name': self.BRAIN_NAMES[brain_id],
-                'query': query,
-                'source_ids': source_ids,
-                'message': 'MCP tool call required - use notebook_query tool'
+                "status": "mcp_required",
+                "notebook_id": notebook_id,
+                "brain_id": brain_id,
+                "brain_name": self.BRAIN_NAMES[brain_id],
+                "query": query,
+                "source_ids": source_ids,
+                "message": "MCP tool call required - use notebook_query tool",
             }
         except Exception as e:
             return {
-                'status': 'error',
-                'error': str(e),
-                'brain_id': brain_id,
-                'brain_name': self.BRAIN_NAMES.get(brain_id)
+                "status": "error",
+                "error": str(e),
+                "brain_id": brain_id,
+                "brain_name": self.BRAIN_NAMES.get(brain_id),
             }
 
-    def parse_yaml_response(self, response_text: str) -> Dict:
+    def parse_yaml_response(self, response_text: str) -> dict[str, Any]:
         """
         Parse YAML from a NotebookLM response.
 
@@ -120,14 +120,14 @@ class NotebookLMClient:
         import re
 
         # Try to extract YAML block from markdown response
-        yaml_pattern = r'```yaml\s*\n(.*?)\n```'
+        yaml_pattern = r"```yaml\s*\n(.*?)\n```"
         match = re.search(yaml_pattern, response_text, re.DOTALL)
 
         if match:
             yaml_content = match.group(1)
         else:
             # Try without language specifier
-            yaml_pattern = r'```\s*\n(.*?)\n```'
+            yaml_pattern = r"```\s*\n(.*?)\n```"
             match = re.search(yaml_pattern, response_text, re.DOTALL)
             if match:
                 yaml_content = match.group(1)
@@ -136,21 +136,22 @@ class NotebookLMClient:
                 yaml_content = response_text
 
         try:
-            return yaml.safe_load(yaml_content)
+            parsed: dict[str, Any] = yaml.safe_load(yaml_content)
+            return parsed
         except Exception as e:
             return {
-                'error': f'Failed to parse YAML: {str(e)}',
-                'raw_response': response_text
+                "error": f"Failed to parse YAML: {str(e)}",
+                "raw_response": response_text,
             }
 
-    def get_available_brains(self) -> List[Dict]:
+    def get_available_brains(self) -> List[dict[str, Any]]:
         """Get list of available brains with their notebook IDs."""
         return [
             {
-                'brain_id': brain_id,
-                'brain_name': self.BRAIN_NAMES[brain_id],
-                'notebook_id': notebook_id,
-                'status': 'active'
+                "brain_id": brain_id,
+                "brain_name": self.BRAIN_NAMES[brain_id],
+                "notebook_id": notebook_id,
+                "status": "active",
             }
             for brain_id, notebook_id in self.BRAIN_NOTEBOOKS.items()
         ]

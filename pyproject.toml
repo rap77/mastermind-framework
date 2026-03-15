@@ -20,6 +20,7 @@ dependencies = [
     "aiofiles>=24.0.0",
     "websockets>=14.0",
     "aiosqlite>=0.22.1",
+    "types-python-jose>=3.5.0.20250531",
 ]
 
 [project.scripts]

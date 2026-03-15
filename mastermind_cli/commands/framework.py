@@ -24,13 +24,13 @@ def get_project_root() -> Path:
 
 
 @click.group()
-def framework():
+def framework() -> None:
     """Framework-level operations."""
     pass
 
 
 @framework.command("status")
-def framework_status():
+def framework_status() -> None:
     """Show global framework status."""
     project_root = get_project_root()
     software_dev_path = project_root / "docs" / "software-development"
@@ -66,27 +66,31 @@ def framework_status():
             except Exception:
                 pass
 
-        brains_data.append({
-            "name": brain_name,
-            "sources": len(sources),
-            "complete": complete_count,
-            "loaded": loaded_count,
-        })
+        brains_data.append(
+            {
+                "name": brain_name,
+                "sources": len(sources),
+                "complete": complete_count,
+                "loaded": loaded_count,
+            }
+        )
 
         total_sources += len(sources)
         total_complete += complete_count
 
     # Display dashboard
-    console.print(Panel.fit(
-        f"[bold]MasterMind Framework[/bold]\n\n"
-        f"Version: 0.1.0\n"
-        f"Total Brains: {len(brains_data)}\n"
-        f"Total Sources: {total_sources}\n"
-        f"Complete: [green]{total_complete}[/green] ({total_complete * 100 // total_sources if total_sources > 0 else 0}%)\n"
-        f"Niche: Software Development",
-        title="Framework Status",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]MasterMind Framework[/bold]\n\n"
+            f"Version: 0.1.0\n"
+            f"Total Brains: {len(brains_data)}\n"
+            f"Total Sources: {total_sources}\n"
+            f"Complete: [green]{total_complete}[/green] ({total_complete * 100 // total_sources if total_sources > 0 else 0}%)\n"
+            f"Niche: Software Development",
+            title="Framework Status",
+            border_style="blue",
+        )
+    )
 
     # Brains table
     table = Table(show_header=True, header_style="bold magenta")
@@ -96,13 +100,15 @@ def framework_status():
     table.add_column("Progress")
 
     for brain in brains_data:
-        sources = brain["sources"]
-        complete = brain["complete"]
-        progress = f"[green]{complete}[/green]/{sources}" if sources > 0 else "—"
+        source_count = int(str(brain["sources"]))
+        complete = int(str(brain["complete"]))
+        progress = (
+            f"[green]{complete}[/green]/{source_count}" if source_count > 0 else "—"
+        )
 
         table.add_row(
-            brain["name"],
-            str(sources),
+            str(brain["name"]),
+            str(source_count),
             str(complete),
             progress,
         )
@@ -114,7 +120,7 @@ def framework_status():
 @framework.command("release")
 @click.option("--version", required=True, help="Version number (e.g., 0.2.0)")
 @click.option("--message", default="", help="Release message")
-def framework_release(version: str, message: str):
+def framework_release(version: str, message: str) -> None:
     """Create release with git tag and changelog."""
     try:
         from ..utils.git import get_repo
@@ -122,16 +128,20 @@ def framework_release(version: str, message: str):
         repo = get_repo()
 
         # Create annotated tag
-        tag_message = f"Release {version}\n\n{message}" if message else f"Release {version}"
+        tag_message = (
+            f"Release {version}\n\n{message}" if message else f"Release {version}"
+        )
         repo.create_tag(version, message=tag_message)
 
-        console.print(Panel.fit(
-            f"[green]✓[/green] Release [bold]{version}[/bold] created\n\n"
-            f"Tag: {version}\n"
-            f"Message: {tag_message}",
-            title="Release Created",
-            border_style="green"
-        ))
+        console.print(
+            Panel.fit(
+                f"[green]✓[/green] Release [bold]{version}[/bold] created\n\n"
+                f"Tag: {version}\n"
+                f"Message: {tag_message}",
+                title="Release Created",
+                border_style="green",
+            )
+        )
 
     except Exception as e:
         console.print(f"[red]Error creating release: {e}[/red]")

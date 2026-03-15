@@ -3,7 +3,7 @@
 from pathlib import Path
 import yaml
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 import logging
 
 from .models import EvaluationEntry
@@ -52,7 +52,13 @@ class YamlStorage:
         # Save to file
         filepath = self.current_path / f"{eval_id}.yaml"
         with open(filepath, "w", encoding="utf-8") as f:
-            yaml.dump(entry.to_dict(), f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            yaml.dump(
+                entry.to_dict(),
+                f,
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
 
         logger.info(f"Saved evaluation {eval_id} to {filepath}")
 
@@ -187,7 +193,7 @@ class YamlStorage:
         """Get all YAML files in storage."""
         return list(self.base_path.glob("**/*.yaml"))
 
-    def _update_index(self, entry: EvaluationEntry):
+    def _update_index(self, entry: EvaluationEntry) -> None:
         """Update index file for fast lookups."""
         index_file = self.current_path / "index.yaml"
 
@@ -208,7 +214,9 @@ class YamlStorage:
             "verdict": entry.verdict.value,
             "score": entry.score.total,
             "tags": entry.tags,
-            "brief": entry.brief[:100] + "..." if len(entry.brief) > 100 else entry.brief,
+            "brief": entry.brief[:100] + "..."
+            if len(entry.brief) > 100
+            else entry.brief,
         }
 
         # Save index
@@ -217,7 +225,7 @@ class YamlStorage:
 
         logger.debug(f"Updated index with {entry.evaluation_id}")
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get storage statistics.
 
@@ -226,8 +234,8 @@ class YamlStorage:
         """
         all_evals = self.find_recent(limit=10000)  # Get all
 
-        verdict_counts = {}
-        project_counts = {}
+        verdict_counts: dict[str, int] = {}
+        project_counts: dict[str, int] = {}
 
         for eval in all_evals:
             # Count verdicts
@@ -241,6 +249,8 @@ class YamlStorage:
         return {
             "total_evaluations": len(all_evals),
             "verdict_breakdown": verdict_counts,
-            "top_projects": dict(sorted(project_counts.items(), key=lambda x: x[1], reverse=True)[:10]),
+            "top_projects": dict(
+                sorted(project_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            ),
             "storage_path": str(self.base_path),
         }

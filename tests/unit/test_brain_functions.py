@@ -22,6 +22,7 @@ from mastermind_cli.types.interfaces import (
 # MOCK MCP CLIENT
 # =============================================================================
 
+
 class MockMCPClient:
     """Mock MCP client for testing."""
 
@@ -33,15 +34,13 @@ class MockMCPClient:
     def query_notebooklm(self, notebook_id: str, query: str) -> str:
         """Mock query that returns predefined response."""
         self.queries.append((notebook_id, query))
-        return self.responses.get(
-            notebook_id,
-            f"Mock response for {notebook_id}"
-        )
+        return self.responses.get(notebook_id, f"Mock response for {notebook_id}")
 
 
 # =============================================================================
 # TEST FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def sample_brief():
@@ -50,7 +49,7 @@ def sample_brief():
         problem_statement="Build a CRM for small businesses",
         context="Need to manage customer relationships",
         constraints=["Low budget", "Quick launch"],
-        target_audience="Small business owners"
+        target_audience="Small business owners",
     )
 
 
@@ -60,15 +59,16 @@ def brain_input(sample_brief):
     return BrainInput(
         brief=sample_brief,
         additional_context={"industry": "SaaS"},
-        execution_metadata={"user_id": "test-user"}
+        execution_metadata={"user_id": "test-user"},
     )
 
 
 @pytest.fixture
 def mock_mcp():
     """Mock MCP client with sample responses."""
-    return MockMCPClient({
-        "f276ccb3-0bce-4069-8b55-eae8693dbe75": """
+    return MockMCPClient(
+        {
+            "f276ccb3-0bce-4069-8b55-eae8693dbe75": """
         Product Strategy Analysis:
 
         1. Positioning: A simple, affordable CRM designed specifically
@@ -93,12 +93,14 @@ def mock_mcp():
            - Limited budget for development
            - Need for quick time-to-market
         """
-    })
+        }
+    )
 
 
 # =============================================================================
 # BRAIN #1: PRODUCT STRATEGY TESTS
 # =============================================================================
+
 
 def test_brain_01_is_pure_function(brain_input, mock_mcp):
     """Test that brain_01 is a pure function (no side effects)."""
@@ -146,6 +148,7 @@ def test_brain_01_queries_notebooklm(brain_input, mock_mcp):
 # BRAIN #2: UX RESEARCH TESTS
 # =============================================================================
 
+
 def test_brain_02_is_pure_function(brain_input, mock_mcp):
     """Test that brain_02 is a pure function."""
     from mastermind_cli.orchestrator.brain_functions import brain_02_ux_research
@@ -172,6 +175,7 @@ def test_brain_02_returns_valid_model(brain_input, mock_mcp):
 # BRAIN #7: GROWTH & DATA TESTS
 # =============================================================================
 
+
 def test_brain_07_evaluates_previous_outputs(brain_input, mock_mcp):
     """Test that brain_07 evaluates previous brain outputs."""
     from mastermind_cli.orchestrator.brain_functions import brain_07_growth_data
@@ -181,7 +185,7 @@ def test_brain_07_evaluates_previous_outputs(brain_input, mock_mcp):
             positioning="Test positioning",
             target_audience="Test audience",
             key_features=["Feature 1"],
-            success_metrics=["Metric 1"]
+            success_metrics=["Metric 1"],
         )
     }
 
@@ -208,14 +212,14 @@ def test_brain_07_requires_previous_outputs(brain_input, mock_mcp):
 # BRAIN #8: MASTER INTERVIEWER TESTS
 # =============================================================================
 
+
 def test_brain_08_detects_ambiguity():
     """Test that brain_08 detects ambiguous briefs."""
     from mastermind_cli.orchestrator.brain_functions import brain_08_master_interviewer
 
     # Ambiguous brief
     ambiguous_brief = Brief(
-        problem_statement="Maybe something for a thing?",
-        context=""
+        problem_statement="Maybe something for a thing?", context=""
     )
     ambiguous_input = BrainInput(brief=ambiguous_brief)
 
@@ -234,7 +238,7 @@ def test_brain_08_clears_unambiguous_brief():
     # Clear brief
     clear_brief = Brief(
         problem_statement="Build a CRM for small businesses with contact management and sales pipeline features targeting owners of 5-50 employee companies",
-        context="Need to manage customer relationships"
+        context="Need to manage customer relationships",
     )
     clear_input = BrainInput(brief=clear_brief)
 
@@ -250,9 +254,10 @@ def test_brain_08_clears_unambiguous_brief():
 # BRAIN REGISTRY TESTS
 # =============================================================================
 
+
 def test_brain_registry_contains_functions():
     """Test that brain registry maps IDs to functions."""
-    from mastermind_cli.orchestrator.brain_functions import BRAIN_FUNCTIONS, get_brain_function
+    from mastermind_cli.orchestrator.brain_functions import BRAIN_FUNCTIONS
 
     # Verify registry has expected brains
     assert "brain-01-product-strategy" in BRAIN_FUNCTIONS
@@ -275,6 +280,7 @@ def test_get_brain_function():
 # =============================================================================
 # TYPE SAFETY TESTS
 # =============================================================================
+
 
 def test_brain_outputs_validate_pydantic_models(brain_input, mock_mcp):
     """Test that all brain outputs are valid Pydantic models."""

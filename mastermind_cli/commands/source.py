@@ -39,7 +39,7 @@ def get_next_source_number(sources_dir: Path) -> int:
 
 
 @click.group()
-def source():
+def source() -> None:
     """Manage source files for brains."""
     pass
 
@@ -49,12 +49,20 @@ def source():
 @click.option("--brain", required=True, help='Brain ID (e.g., "01-product-strategy")')
 @click.option("--title", required=True, help="Source title")
 @click.option("--author", required=True, help="Author name")
-@click.option("--type", type=click.Choice(["book", "video", "article", "course", "documentation"]), default="book")
+@click.option(
+    "--type",
+    type=click.Choice(["book", "video", "article", "course", "documentation"]),
+    default="book",
+)
 @click.option("--year", type=int, required=True)
-def source_new(source_id: str, brain: str, title: str, author: str, type: str, year: int):
+def source_new(
+    source_id: str, brain: str, title: str, author: str, type: str, year: int
+) -> None:
     """Create new source from template."""
     project_root = get_project_root()
-    sources_dir = project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    sources_dir = (
+        project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    )
 
     if not sources_dir.exists():
         console.print(f"[red]Error: Brain directory not found: {sources_dir}[/red]")
@@ -67,7 +75,9 @@ def source_new(source_id: str, brain: str, title: str, author: str, type: str, y
     # Check if source_id already exists
     existing_file = sources_dir / f"{source_id}.md"
     if existing_file.exists():
-        console.print(f"[red]Error: Source {source_id} already exists at {existing_file}[/red]")
+        console.print(
+            f"[red]Error: Source {source_id} already exists at {existing_file}[/red]"
+        )
         raise click.Abort()
 
     # Create source from template
@@ -163,21 +173,23 @@ TODO: Agregar resumen ejecutivo de 2-3 oraciones.
 
     existing_file.write_text(template, encoding="utf-8")
 
-    console.print(Panel.fit(
-        f"[green]✓[/green] Source created: [bold]{source_id}[/bold]\n\n"
-        f"Location: {existing_file}\n\n"
-        f"[dim]Next steps:[/dim]\n"
-        f"  1. Edit the file to add distilled knowledge\n"
-        f"  2. Run: [cyan]mastermind source validate --brain {brain}[/cyan]",
-        title="Source Created",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[green]✓[/green] Source created: [bold]{source_id}[/bold]\n\n"
+            f"Location: {existing_file}\n\n"
+            f"[dim]Next steps:[/dim]\n"
+            f"  1. Edit the file to add distilled knowledge\n"
+            f"  2. Run: [cyan]mastermind source validate --brain {brain}[/cyan]",
+            title="Source Created",
+            border_style="green",
+        )
+    )
 
 
 @source.command("update")
 @click.argument("source_id")
 @click.option("--change", required=True, help="Description of changes")
-def source_update(source_id: str, change: str):
+def source_update(source_id: str, change: str) -> None:
     """Update source with version bump and git commit."""
     project_root = get_project_root()
     search_paths = [
@@ -211,6 +223,7 @@ def source_update(source_id: str, change: str):
 
     # Increment patch version
     from semver import VersionInfo
+
     version = VersionInfo.parse(current_version)
     new_version = str(version.bump_patch())
 
@@ -222,11 +235,13 @@ def source_update(source_id: str, change: str):
 
     # Add changelog entry
     changelog = metadata.get("changelog", [])
-    changelog.append({
-        "version": new_version,
-        "date": datetime.now().strftime("%Y-%m-%d"),
-        "changes": [change],
-    })
+    changelog.append(
+        {
+            "version": new_version,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "changes": [change],
+        }
+    )
     updates["changelog"] = changelog
 
     # Write updated metadata
@@ -236,22 +251,26 @@ def source_update(source_id: str, change: str):
     commit_msg = f"update(source): {source_id}: {change}"
     try:
         commit_sha = git_commit(source_file, commit_msg)
-        console.print(Panel.fit(
-            f"[green]✓[/green] Source updated: [bold]{source_id}[/bold]\n\n"
-            f"Version: {current_version} → [green]{new_version}[/green]\n"
-            f"Commit: {commit_sha[:7]}\n"
-            f"Change: {change}",
-            title="Source Updated",
-            border_style="green"
-        ))
+        console.print(
+            Panel.fit(
+                f"[green]✓[/green] Source updated: [bold]{source_id}[/bold]\n\n"
+                f"Version: {current_version} → [green]{new_version}[/green]\n"
+                f"Commit: {commit_sha[:7]}\n"
+                f"Change: {change}",
+                title="Source Updated",
+                border_style="green",
+            )
+        )
     except Exception as e:
         console.print(f"[yellow]Warning: Could not create git commit: {e}[/yellow]")
-        console.print(f"[green]✓[/green] Source updated: [bold]{source_id}[/bold] (v{new_version})")
+        console.print(
+            f"[green]✓[/green] Source updated: [bold]{source_id}[/bold] (v{new_version})"
+        )
 
 
 @source.command("validate")
 @click.option("--brain", required=True, help='Brain ID (e.g., "01-product-strategy")')
-def source_validate(brain: str):
+def source_validate(brain: str) -> None:
     """Validate all sources in a brain."""
     project_root = get_project_root()
     brain_path = project_root / "docs" / "software-development" / f"{brain}-brain"
@@ -288,7 +307,7 @@ def source_validate(brain: str):
 
 
 @source.command("list")
-def source_list():
+def source_list() -> None:
     """List all sources with metadata."""
     project_root = get_project_root()
     sources_dir = project_root / "docs" / "software-development"
@@ -307,24 +326,30 @@ def source_list():
             if metadata:
                 table.add_row(
                     metadata.get("source_id", "—"),
-                    metadata.get("title", "—")[:40] + "..." if len(metadata.get("title", "")) > 40 else metadata.get("title", "—"),
+                    metadata.get("title", "—")[:40] + "..."
+                    if len(metadata.get("title", "")) > 40
+                    else metadata.get("title", "—"),
                     metadata.get("author", "—"),
                     metadata.get("type", "—"),
                     str(metadata.get("year", "—")),
                     source_file.parent.parent.name.replace("-brain", ""),
                 )
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not read {source_file}: {e}[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not read {source_file}: {e}[/yellow]"
+            )
 
     console.print(table)
 
 
 @source.command("status")
 @click.option("--brain", required=True, help='Brain ID (e.g., "01-product-strategy")')
-def source_status(brain: str):
+def source_status(brain: str) -> None:
     """Show status of sources in a brain."""
     project_root = get_project_root()
-    sources_dir = project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    sources_dir = (
+        project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    )
 
     if not sources_dir.exists():
         console.print(f"[red]Error: Sources directory not found: {sources_dir}[/red]")
@@ -332,12 +357,13 @@ def source_status(brain: str):
 
     sources = list(sources_dir.glob("FUENTE-*.md"))
 
-    console.print(Panel.fit(
-        f"[bold]{brain}[/bold]\n\n"
-        f"Total sources: {len(sources)}",
-        title=f"Brain Status: {brain}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]{brain}[/bold]\n\n" f"Total sources: {len(sources)}",
+            title=f"Brain Status: {brain}",
+            border_style="blue",
+        )
+    )
 
     table = Table()
     table.add_column("Source ID")
@@ -350,7 +376,13 @@ def source_status(brain: str):
             metadata, _ = read_yaml_frontmatter(str(source_file))
             if metadata:
                 quality = metadata.get("distillation_quality", "pending")
-                quality_color = "green" if quality == "complete" else "yellow" if quality == "partial" else "red"
+                quality_color = (
+                    "green"
+                    if quality == "complete"
+                    else "yellow"
+                    if quality == "partial"
+                    else "red"
+                )
                 loaded = "✓" if metadata.get("loaded_in_notebook") else "✗"
 
                 table.add_row(
@@ -368,10 +400,12 @@ def source_status(brain: str):
 @source.command("export")
 @click.option("--brain", required=True, help='Brain ID (e.g., "01-product-strategy")')
 @click.option("--output", default="dist/notebooklm", help="Output directory")
-def source_export(brain: str, output: str):
+def source_export(brain: str, output: str) -> None:
     """Export sources for NotebookLM (without YAML front matter)."""
     project_root = get_project_root()
-    sources_dir = project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    sources_dir = (
+        project_root / "docs" / "software-development" / f"{brain}-brain" / "sources"
+    )
     output_dir = project_root / output / brain
 
     if not sources_dir.exists():
@@ -391,11 +425,15 @@ def source_export(brain: str, output: str):
             output_file.write_text(content, encoding="utf-8")
             exported += 1
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not export {source_file}: {e}[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not export {source_file}: {e}[/yellow]"
+            )
 
-    console.print(Panel.fit(
-        f"[green]✓[/green] Exported [bold]{exported}[/bold] sources\n\n"
-        f"Output: {output_dir}",
-        title="Export Complete",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[green]✓[/green] Exported [bold]{exported}[/bold] sources\n\n"
+            f"Output: {output_dir}",
+            title="Export Complete",
+            border_style="green",
+        )
+    )

@@ -8,14 +8,14 @@ with existing code that uses BRAIN_CONFIGS directly.
 
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, List, Optional
 
 # Config directory paths
 CONFIG_DIR = Path(__file__).parent / "config"
 BRAINS_CONFIG_PATH = CONFIG_DIR / "brains.yaml"
 
 
-def load_brain_configs() -> Dict[int, Dict]:
+def load_brain_configs() -> dict[int, dict[str, Any]]:
     """
     Load brain configurations from YAML file.
 
@@ -46,7 +46,7 @@ def load_brain_configs() -> Dict[int, Dict]:
 BRAIN_CONFIGS = load_brain_configs()
 
 
-def get_brain(brain_id: int) -> Optional[Dict]:
+def get_brain(brain_id: int) -> Optional[dict[str, Any]]:
     """Get a specific brain configuration."""
     return BRAIN_CONFIGS.get(brain_id)
 
@@ -72,7 +72,7 @@ class BrainRegistry:
     Provides list_brains() method for DependencyResolver integration.
     """
 
-    def __init__(self, brains: Dict[int, Dict] | None = None):
+    def __init__(self, brains: dict[int, dict[str, Any]] | None = None):
         """Initialize registry with brain configs.
 
         Args:
@@ -108,7 +108,7 @@ class BrainRegistry:
 
 # Public notebook identifiers (legacy - for external reference)
 # Safe to version control - these are configuration, not credentials.
-BRAIN_REGISTRY: dict = {
+BRAIN_REGISTRY: dict[str, dict[str, Any]] = {
     "#1": {
         "name": "Product Strategy",
         "notebook_id": "f276ccb3-0bce-4069-8b55-eae8693dbe75",

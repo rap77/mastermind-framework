@@ -24,9 +24,7 @@ class MCPWrapper:
 
     @staticmethod
     def create_notebook_query_spec(
-        notebook_id: str,
-        query: str,
-        source_ids: Optional[List[str]] = None
+        notebook_id: str, query: str, source_ids: Optional[List[str]] = None
     ) -> Dict:
         """Create a specification for a NotebookLM query.
 
@@ -41,12 +39,12 @@ class MCPWrapper:
             Dictionary with query specification
         """
         return {
-            'tool': 'mcp__notebooklm-mcp__notebook_query',
-            'parameters': {
-                'notebook_id': notebook_id,
-                'query': query,
-                'source_ids': source_ids
-            }
+            "tool": "mcp__notebooklm-mcp__notebook_query",
+            "parameters": {
+                "notebook_id": notebook_id,
+                "query": query,
+                "source_ids": source_ids,
+            },
         }
 
     @staticmethod
@@ -64,8 +62,8 @@ class MCPWrapper:
 
         # Try to extract YAML from markdown code block
         yaml_patterns = [
-            r'```yaml\s*\n(.*?)\n```',  # With yaml tag
-            r'```\s*\n(.*?)\n```',       # Without tag
+            r"```yaml\s*\n(.*?)\n```",  # With yaml tag
+            r"```\s*\n(.*?)\n```",  # Without tag
         ]
 
         for pattern in yaml_patterns:
@@ -75,33 +73,29 @@ class MCPWrapper:
                 try:
                     parsed = yaml.safe_load(yaml_content)
                     return {
-                        'status': 'success',
-                        'parsed': True,
-                        'content': parsed,
-                        'raw': response
+                        "status": "success",
+                        "parsed": True,
+                        "content": parsed,
+                        "raw": response,
                     }
                 except yaml.YAMLError as e:
                     return {
-                        'status': 'parse_error',
-                        'error': str(e),
-                        'yaml_content': yaml_content,
-                        'raw': response
+                        "status": "parse_error",
+                        "error": str(e),
+                        "yaml_content": yaml_content,
+                        "raw": response,
                     }
 
         # No YAML found, return as-is
         return {
-            'status': 'success',
-            'parsed': False,
-            'content': response,
-            'raw': response
+            "status": "success",
+            "parsed": False,
+            "content": response,
+            "raw": response,
         }
 
     @staticmethod
-    def format_evaluation_query(
-        output: Dict,
-        matrix_id: str,
-        brain_id: int
-    ) -> str:
+    def format_evaluation_query(output: Dict, matrix_id: str, brain_id: int) -> str:
         """Format a query for Brain #7 (Evaluator).
 
         Args:
@@ -150,10 +144,7 @@ class DirectMCPInvoker:
 
     @classmethod
     def query_brain(
-        cls,
-        brain_id: int,
-        query: str,
-        source_ids: Optional[List[str]] = None
+        cls, brain_id: int, query: str, source_ids: Optional[List[str]] = None
     ) -> Dict:
         """Query a brain's notebook.
 
@@ -172,16 +163,16 @@ class DirectMCPInvoker:
 
         if not notebook_id:
             return {
-                'status': 'error',
-                'error': f'Brain #{brain_id} does not have a notebook ID'
+                "status": "error",
+                "error": f"Brain #{brain_id} does not have a notebook ID",
             }
 
         return {
-            'status': 'spec_ready',
-            'tool': 'notebook_query',
-            'notebook_id': notebook_id,
-            'query': query,
-            'source_ids': source_ids
+            "status": "spec_ready",
+            "tool": "notebook_query",
+            "notebook_id": notebook_id,
+            "query": query,
+            "source_ids": source_ids,
         }
 
     @classmethod
@@ -316,10 +307,6 @@ def get_brain_notebook_id(brain_id: int) -> Optional[str]:
 def list_active_brains() -> List[Dict]:
     """List all brains with active notebooks."""
     return [
-        {
-            'brain_id': bid,
-            'notebook_id': nid,
-            'status': 'active'
-        }
+        {"brain_id": bid, "notebook_id": nid, "status": "active"}
         for bid, nid in DirectMCPInvoker.NOTEBOOK_IDS.items()
     ]

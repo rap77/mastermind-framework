@@ -8,7 +8,7 @@ retry logic with exponential backoff, and Circuit Breaker.
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from mastermind_cli.types.parallel import FlowConfig, TaskState, ProviderConfig
+from mastermind_cli.types.parallel import FlowConfig, ProviderConfig
 from mastermind_cli.orchestrator.task_executor import ParallelExecutor
 
 
@@ -19,11 +19,11 @@ def mock_mcp_client():
     from mastermind_cli.types import MCPResponse
 
     client = MagicMock()
-    client.call_mcp = MagicMock(return_value=MCPResponse(
-        brain_id="brain-01",
-        response="test result",
-        success=True
-    ))
+    client.call_mcp = MagicMock(
+        return_value=MCPResponse(
+            brain_id="brain-01", response="test result", success=True
+        )
+    )
     return client
 
 
@@ -31,21 +31,15 @@ def mock_mcp_client():
 def mock_task_repo():
     """Mock TaskRepository for testing."""
     repo = AsyncMock()
-    repo.create = AsyncMock(return_value=MagicMock(
-        id="test-001",
-        brain_id="brain-01",
-        status="pending"
-    ))
-    repo.update_status = AsyncMock(return_value=MagicMock(
-        id="test-001",
-        brain_id="brain-01",
-        status="running"
-    ))
-    repo.update_result = AsyncMock(return_value=MagicMock(
-        id="test-001",
-        brain_id="brain-01",
-        status="completed"
-    ))
+    repo.create = AsyncMock(
+        return_value=MagicMock(id="test-001", brain_id="brain-01", status="pending")
+    )
+    repo.update_status = AsyncMock(
+        return_value=MagicMock(id="test-001", brain_id="brain-01", status="running")
+    )
+    repo.update_result = AsyncMock(
+        return_value=MagicMock(id="test-001", brain_id="brain-01", status="completed")
+    )
     return repo
 
 
@@ -57,14 +51,11 @@ def provider_configs():
             name="notebooklm",
             max_concurrent_calls=2,
             retry_attempts=3,
-            backoff_base=1.0
+            backoff_base=1.0,
         ),
         ProviderConfig(
-            name="claude",
-            max_concurrent_calls=10,
-            retry_attempts=3,
-            backoff_base=1.0
-        )
+            name="claude", max_concurrent_calls=10, retry_attempts=3, backoff_base=1.0
+        ),
     ]
 
 
@@ -74,16 +65,11 @@ async def test_parallel_execution(mock_task_repo, mock_mcp_client, provider_conf
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
         mcp_client=mock_mcp_client,
-        provider_configs=provider_configs
+        provider_configs=provider_configs,
     )
 
     flow = FlowConfig(
-        flow_id="test-flow",
-        nodes={
-            "brain-01": [],
-            "brain-02": [],
-            "brain-03": []
-        }
+        flow_id="test-flow", nodes={"brain-01": [], "brain-02": [], "brain-03": []}
     )
 
     results = await executor.execute_brains_parallel(flow, "test brief")
@@ -105,23 +91,18 @@ async def test_retry_with_backoff(mock_task_repo, mock_mcp_client, provider_conf
             Exception("Network error"),
             Exception("Timeout"),
             MCPResponse(
-                brain_id="brain-01",
-                response="success after retries",
-                success=True
-            )
+                brain_id="brain-01", response="success after retries", success=True
+            ),
         ]
     )
 
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
         mcp_client=mock_mcp_client,
-        provider_configs=provider_configs
+        provider_configs=provider_configs,
     )
 
-    flow = FlowConfig(
-        flow_id="test-flow",
-        nodes={"brain-01": []}
-    )
+    flow = FlowConfig(flow_id="test-flow", nodes={"brain-01": []})
 
     results = await executor.execute_brains_parallel(flow, "test brief")
 
@@ -134,20 +115,15 @@ async def test_retry_with_backoff(mock_task_repo, mock_mcp_client, provider_conf
 async def test_circuit_breaker_opens(mock_task_repo, mock_mcp_client, provider_configs):
     """Test Circuit Breaker opens after 3 consecutive failures."""
     # Configure mock to always fail
-    mock_mcp_client.call_mcp = MagicMock(
-        side_effect=Exception("Permanent failure")
-    )
+    mock_mcp_client.call_mcp = MagicMock(side_effect=Exception("Permanent failure"))
 
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
         mcp_client=mock_mcp_client,
-        provider_configs=provider_configs
+        provider_configs=provider_configs,
     )
 
-    flow = FlowConfig(
-        flow_id="test-flow",
-        nodes={"brain-01": []}
-    )
+    flow = FlowConfig(flow_id="test-flow", nodes={"brain-01": []})
 
     # Execute 4 times (should open circuit breaker after 3rd)
     for i in range(4):
@@ -166,7 +142,6 @@ async def test_no_threading_used():
     """Verify no threading modules are imported."""
     import mastermind_cli.orchestrator.task_executor as executor_module
     import inspect
-    import sys
 
     # Get all source code
     source = inspect.getsource(executor_module)
@@ -185,7 +160,7 @@ async def test_semaphore_throttling(mock_task_repo, mock_mcp_client, provider_co
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
         mcp_client=mock_mcp_client,
-        provider_configs=provider_configs
+        provider_configs=provider_configs,
     )
 
     # Verify semaphores are created
@@ -198,7 +173,9 @@ async def test_semaphore_throttling(mock_task_repo, mock_mcp_client, provider_co
 
 
 @pytest.mark.asyncio
-async def test_exponential_backoff_with_jitter(mock_task_repo, mock_mcp_client, provider_configs):
+async def test_exponential_backoff_with_jitter(
+    mock_task_repo, mock_mcp_client, provider_configs
+):
     """Test exponential backoff with jitter is applied."""
     call_times = []
 
@@ -211,7 +188,7 @@ async def test_exponential_backoff_with_jitter(mock_task_repo, mock_mcp_client, 
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
         mcp_client=mock_mcp_client,
-        provider_configs=provider_configs
+        provider_configs=provider_configs,
     )
 
     flow = FlowConfig(flow_id="test-flow", nodes={"brain-01": []})

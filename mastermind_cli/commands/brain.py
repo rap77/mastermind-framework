@@ -24,14 +24,14 @@ def get_project_root() -> Path:
 
 
 @click.group()
-def brain():
+def brain() -> None:
     """Manage brain configuration."""
     pass
 
 
 @brain.command("status")
 @click.argument("brain_id")
-def brain_status(brain_id: str):
+def brain_status(brain_id: str) -> None:
     """Show complete brain status."""
     project_root = get_project_root()
     brain_path = project_root / "docs" / "software-development" / f"{brain_id}-brain"
@@ -74,15 +74,17 @@ def brain_status(brain_id: str):
             pass
 
     # Display status
-    console.print(Panel.fit(
-        f"[bold]{brain_id}[/bold]\n\n"
-        f"Sources: {len(sources)}\n"
-        f"Experts: {len(experts)}\n"
-        f"Skills Covered: {len(all_skills)}\n"
-        f"Loaded in Notebook: {loaded_count}/{len(sources)}",
-        title=f"Brain Status: {brain_id}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]{brain_id}[/bold]\n\n"
+            f"Sources: {len(sources)}\n"
+            f"Experts: {len(experts)}\n"
+            f"Skills Covered: {len(all_skills)}\n"
+            f"Loaded in Notebook: {loaded_count}/{len(sources)}",
+            title=f"Brain Status: {brain_id}",
+            border_style="blue",
+        )
+    )
 
     # Sources table
     table = Table(show_header=True, header_style="bold magenta")
@@ -113,7 +115,7 @@ def brain_status(brain_id: str):
 
 @brain.command("validate")
 @click.argument("brain_id")
-def brain_validate(brain_id: str):
+def brain_validate(brain_id: str) -> None:
     """Validate brain for gaps and completeness."""
     project_root = get_project_root()
     brain_path = project_root / "docs" / "software-development" / f"{brain_id}-brain"
@@ -135,14 +137,16 @@ def brain_validate(brain_id: str):
     total_warnings = sum(len(r.warnings) for r in results.values())
     valid_count = sum(1 for r in results.values() if r.is_valid)
 
-    console.print(Panel.fit(
-        f"Total Sources: {len(results)}\n"
-        f"Valid: [green]{valid_count}[/green]\n"
-        f"Errors: [red]{total_errors}[/red]\n"
-        f"Warnings: [yellow]{total_warnings}[/yellow]",
-        title=f"Validation: {brain_id}",
-        border_style="green" if total_errors == 0 else "red"
-    ))
+    console.print(
+        Panel.fit(
+            f"Total Sources: {len(results)}\n"
+            f"Valid: [green]{valid_count}[/green]\n"
+            f"Errors: [red]{total_errors}[/red]\n"
+            f"Warnings: [yellow]{total_warnings}[/yellow]",
+            title=f"Validation: {brain_id}",
+            border_style="green" if total_errors == 0 else "red",
+        )
+    )
 
     if total_errors > 0:
         console.print("\n[red]Sources with errors:[/red]")
@@ -154,7 +158,7 @@ def brain_validate(brain_id: str):
 @brain.command("package")
 @click.argument("brain_id")
 @click.option("--output", default="dist/packages", help="Output directory")
-def brain_package(brain_id: str, output: str):
+def brain_package(brain_id: str, output: str) -> None:
     """Package brain for distribution."""
     project_root = get_project_root()
     brain_path = project_root / "docs" / "software-development" / f"{brain_id}-brain"
@@ -170,19 +174,21 @@ def brain_package(brain_id: str, output: str):
     sources_dir = brain_path / "sources"
     sources = list(sources_dir.glob("FUENTE-*.md")) if sources_dir.exists() else []
 
-    console.print(Panel.fit(
-        f"[bold]{brain_id}[/bold]\n\n"
-        f"Sources: {len(sources)}\n"
-        f"Output: {output_dir}\n\n"
-        f"[dim](Full packaging coming in future PRP)[/dim]",
-        title="Brain Package",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]{brain_id}[/bold]\n\n"
+            f"Sources: {len(sources)}\n"
+            f"Output: {output_dir}\n\n"
+            f"[dim](Full packaging coming in future PRP)[/dim]",
+            title="Brain Package",
+            border_style="blue",
+        )
+    )
 
 
 @brain.command("compile-radar")
 @click.argument("brain_id", default="07")
-def brain_compile_radar(brain_id: str):
+def brain_compile_radar(brain_id: str) -> None:
     """Compile evaluation criteria and anti-patterns from all brains into Brain #7 sources.
 
     This command generates FUENTE-709 (checklist) and FUENTE-710 (anti-patterns)
@@ -190,8 +196,12 @@ def brain_compile_radar(brain_id: str):
     and anti-patrones.md files from brains 1-6.
     """
     if brain_id != "07":
-        console.print("[yellow]compile-radar only applies to brain 07 (Critical Evaluator)[/yellow]")
-        console.print("\n[dim]The evaluator needs consolidated criteria from all other brains.[/dim]")
+        console.print(
+            "[yellow]compile-radar only applies to brain 07 (Critical Evaluator)[/yellow]"
+        )
+        console.print(
+            "\n[dim]The evaluator needs consolidated criteria from all other brains.[/dim]"
+        )
         raise click.Abort()
 
     project_root = get_project_root()
@@ -235,7 +245,9 @@ def brain_compile_radar(brain_id: str):
                 criteria_sections.append(f"## From {brain_num}\n\n{content}\n")
                 console.print(f"  [green]✓[/green] Found in {brain_name}")
             else:
-                console.print(f"  [dim]⊘[/dim] No evaluation-criteria.md in {brain_name}")
+                console.print(
+                    f"  [dim]⊘[/dim] No evaluation-criteria.md in {brain_name}"
+                )
 
     # Generate FUENTE-709
     fuente_709 = """---
@@ -275,9 +287,15 @@ correctamente sus frameworks y principios.
     if criteria_sections:
         fuente_709 += "\n".join(criteria_sections)
     else:
-        fuente_709 += "\n\n*No se encontraron criterios de evaluación en los cerebros 1-6.*\n"
-        fuente_709 += "\n**Nota:** A medida que se implementen los cerebros 2-6, agreguen\n"
-        fuente_709 += "archivos `evaluation-criteria.md` en sus directorios correspondientes.\n"
+        fuente_709 += (
+            "\n\n*No se encontraron criterios de evaluación en los cerebros 1-6.*\n"
+        )
+        fuente_709 += (
+            "\n**Nota:** A medida que se implementen los cerebros 2-6, agreguen\n"
+        )
+        fuente_709 += (
+            "archivos `evaluation-criteria.md` en sus directorios correspondientes.\n"
+        )
 
     (output_dir / "FUENTE-709-checklist-evaluacion-por-cerebro.md").write_text(
         fuente_709, encoding="utf-8"
@@ -347,8 +365,12 @@ falla en los outputs.
         fuente_710 += "\n".join(anti_pattern_sections)
     else:
         fuente_710 += "\n\n*No se encontraron anti-patrones en los cerebros 1-6.*\n"
-        fuente_710 += "\n**Nota:** A medida que se implementen los cerebros 2-6, agreguen\n"
-        fuente_710 += "archivos `anti-patrones.md` en sus directorios correspondientes.\n"
+        fuente_710 += (
+            "\n**Nota:** A medida que se implementen los cerebros 2-6, agreguen\n"
+        )
+        fuente_710 += (
+            "archivos `anti-patrones.md` en sus directorios correspondientes.\n"
+        )
 
     (output_dir / "FUENTE-710-antipatrones-consolidados.md").write_text(
         fuente_710, encoding="utf-8"
@@ -359,12 +381,14 @@ falla en los outputs.
     # SUMMARY
     # ============================================================================
     console.print("\n")
-    console.print(Panel.fit(
-        f"[bold green]✓ Radar compiled for brain 07[/bold green]\n\n"
-        f"Brains scanned: {len(set(brains_found))}\n"
-        f"Fuentes generated: 2\n"
-        f"Output directory: {output_dir.relative_to(project_root)}\n\n"
-        f"[dim]Run 'mm source status --brain 07' to verify.[/dim]",
-        title="Compile-Radar Complete",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold green]✓ Radar compiled for brain 07[/bold green]\n\n"
+            f"Brains scanned: {len(set(brains_found))}\n"
+            f"Fuentes generated: 2\n"
+            f"Output directory: {output_dir.relative_to(project_root)}\n\n"
+            f"[dim]Run 'mm source status --brain 07' to verify.[/dim]",
+            title="Compile-Radar Complete",
+            border_style="green",
+        )
+    )

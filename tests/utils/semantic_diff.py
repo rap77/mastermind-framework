@@ -12,8 +12,9 @@ import json
 def _check_sentence_transformers() -> bool:
     """Check if sentence-transformers is installed."""
     try:
-        import sentence_transformers
-        import scipy
+        import sentence_transformers  # noqa: F401
+        import scipy  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -35,8 +36,9 @@ def _get_model():
 
     if _model is None:
         from sentence_transformers import SentenceTransformer
+
         # all-MiniLM-L6-v2: 384 dimensions, fast, good quality
-        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
     return _model
 
 
@@ -60,6 +62,7 @@ def semantic_similarity(golden: str, actual: str) -> float:
 
     # Calculate cosine similarity (1 - cosine distance)
     from scipy.spatial.distance import cosine
+
     similarity = 1 - cosine(emb1, emb2)
 
     return float(similarity)
@@ -68,7 +71,7 @@ def semantic_similarity(golden: str, actual: str) -> float:
 def compare_outputs(
     golden: Union[str, Dict, List],
     actual: Union[str, Dict, List],
-    threshold: float = 0.90
+    threshold: float = 0.90,
 ) -> Dict[str, any]:
     """Compare outputs and return similarity score + pass/fail.
 
@@ -81,8 +84,16 @@ def compare_outputs(
         Dict with score, passed, and details.
     """
     # Convert to string for comparison
-    golden_str = json.dumps(golden, sort_keys=True) if isinstance(golden, (dict, list)) else str(golden)
-    actual_str = json.dumps(actual, sort_keys=True) if isinstance(actual, (dict, list)) else str(actual)
+    golden_str = (
+        json.dumps(golden, sort_keys=True)
+        if isinstance(golden, (dict, list))
+        else str(golden)
+    )
+    actual_str = (
+        json.dumps(actual, sort_keys=True)
+        if isinstance(actual, (dict, list))
+        else str(actual)
+    )
 
     # Calculate similarity
     score = semantic_similarity(golden_str, actual_str)
@@ -91,7 +102,9 @@ def compare_outputs(
         "score": score,
         "passed": score >= threshold,
         "threshold": threshold,
-        "diff": "Semantic difference detected" if score < threshold else "Outputs match"
+        "diff": "Semantic difference detected"
+        if score < threshold
+        else "Outputs match",
     }
 
 
@@ -102,7 +115,7 @@ BRAIN_THRESHOLDS = {
     "brand": 0.85,  # Highly subjective
     "ux_research": 0.90,
     "growth": 0.90,
-    "default": 0.90
+    "default": 0.90,
 }
 
 

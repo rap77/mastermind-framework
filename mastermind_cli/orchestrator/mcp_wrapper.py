@@ -29,13 +29,27 @@ class TypeSafeMCPWrapper:
         """
         self.mcp_client = mcp_client
 
+    def query_notebooklm(self, notebook_id: str, query: str) -> str:
+        """Query NotebookLM via MCP (implements MCPClient protocol).
+
+        Args:
+            notebook_id: Notebook ID to query
+            query: Query string
+
+        Returns:
+            Response string
+        """
+        # Delegate to call_mcp for type-safe execution
+        response = self.call_mcp(brain_id=notebook_id, query=query)
+        return response.response
+
     @validate_call
     def call_mcp(
         self,
         brain_id: str,
         query: Annotated[str, Field(min_length=1)],
         context: dict[str, Any] | None = None,
-        timeout: Annotated[int, Field(ge=5, le=300)] = 30
+        timeout: Annotated[int, Field(ge=5, le=300)] = 30,
     ) -> MCPResponse:
         """Call MCP with type-safe request/response.
 
@@ -50,18 +64,13 @@ class TypeSafeMCPWrapper:
         """
         # Create MCPRequest (validates via Pydantic)
         request = MCPRequest(
-            brain_id=brain_id,
-            query=query,
-            context=context,
-            timeout=timeout
+            brain_id=brain_id, query=query, context=context, timeout=timeout
         )
 
         # Call actual MCP integration
         try:
             raw_response = self.mcp_client.query_brain(
-                brain_id=request.brain_id,
-                query=request.query,
-                timeout=request.timeout
+                brain_id=request.brain_id, query=request.query, timeout=request.timeout
             )
 
             # Return MCPResponse (extra='allow' preserves unknown fields)
@@ -71,19 +80,27 @@ class TypeSafeMCPWrapper:
                 success=raw_response.get("success", True),
                 error=raw_response.get("error"),
                 timestamp=raw_response.get("timestamp"),
-                **{k: v for k, v in raw_response.items()
-                   if k not in ["brain_id", "response", "success", "error", "timestamp"]}
+                **{
+                    k: v
+                    for k, v in raw_response.items()
+                    if k
+                    not in ["brain_id", "response", "success", "error", "timestamp"]
+                },
             )
 
         except Exception as e:
             # Graceful error handling per CONTEXT.md
+            from datetime import datetime, timezone
+
             return MCPResponse(
                 brain_id=request.brain_id,
                 response="",
                 success=False,
-                error=f"MCP call failed: {str(e)}"
+                error=f"MCP call failed: {str(e)}",
+                timestamp=datetime.now(timezone.utc).isoformat(),
             )
 
+    @staticmethod
     def format_validation_error(error: ValidationError) -> str:
         """Format ValidationError with context.
 
@@ -93,7 +110,7 @@ class TypeSafeMCPWrapper:
         formatted = []
 
         for err in errors:
-            loc = " -> ".join(str(l) for l in err["loc"])
+            loc = " -> ".join(str(err_loc) for err_loc in err["loc"])
             formatted.append(f"  - {loc}: {err['msg']}")
             if "ctx" in err:
                 formatted.append(f"    Context: {err['ctx']}")
@@ -120,9 +137,7 @@ class LegacyMCPWrapper:
 
     @staticmethod
     def create_notebook_query_spec(
-        notebook_id: str,
-        query: str,
-        source_ids: list[str] | None = None
+        notebook_id: str, query: str, source_ids: list[str] | None = None
     ) -> dict[str, Any]:
         """Create a specification for a NotebookLM query.
 
@@ -137,12 +152,12 @@ class LegacyMCPWrapper:
             Dictionary with query specification
         """
         return {
-            'tool': 'mcp__notebooklm-mcp__notebook_query',
-            'parameters': {
-                'notebook_id': notebook_id,
-                'query': query,
-                'source_ids': source_ids
-            }
+            "tool": "mcp__notebooklm-mcp__notebook_query",
+            "parameters": {
+                "notebook_id": notebook_id,
+                "query": query,
+                "source_ids": source_ids,
+            },
         }
 
     @staticmethod
@@ -160,8 +175,8 @@ class LegacyMCPWrapper:
 
         # Try to extract YAML from markdown code block
         yaml_patterns = [
-            r'```yaml\s*\n(.*?)\n```',  # With yaml tag
-            r'```\s*\n(.*?)\n```',       # Without tag
+            r"```yaml\s*\n(.*?)\n```",  # With yaml tag
+            r"```\s*\n(.*?)\n```",  # Without tag
         ]
 
         for pattern in yaml_patterns:
@@ -171,32 +186,30 @@ class LegacyMCPWrapper:
                 try:
                     parsed = yaml.safe_load(yaml_content)
                     return {
-                        'status': 'success',
-                        'parsed': True,
-                        'content': parsed,
-                        'raw': response
+                        "status": "success",
+                        "parsed": True,
+                        "content": parsed,
+                        "raw": response,
                     }
                 except yaml.YAMLError as e:
                     return {
-                        'status': 'parse_error',
-                        'error': str(e),
-                        'yaml_content': yaml_content,
-                        'raw': response
+                        "status": "parse_error",
+                        "error": str(e),
+                        "yaml_content": yaml_content,
+                        "raw": response,
                     }
 
         # No YAML found, return as-is
         return {
-            'status': 'success',
-            'parsed': False,
-            'content': response,
-            'raw': response
+            "status": "success",
+            "parsed": False,
+            "content": response,
+            "raw": response,
         }
 
     @staticmethod
     def format_evaluation_query(
-        output: dict[str, Any],
-        matrix_id: str,
-        brain_id: int
+        output: dict[str, Any], matrix_id: str, brain_id: int
     ) -> str:
         """Format a query for Brain #7 (Evaluator).
 
@@ -246,10 +259,7 @@ class DirectMCPInvoker:
 
     @classmethod
     def query_brain(
-        cls,
-        brain_id: int,
-        query: str,
-        source_ids: list[str] | None = None
+        cls, brain_id: int, query: str, source_ids: list[str] | None = None
     ) -> dict[str, Any]:
         """Query a brain's notebook.
 
@@ -268,16 +278,16 @@ class DirectMCPInvoker:
 
         if not notebook_id:
             return {
-                'status': 'error',
-                'error': f'Brain #{brain_id} does not have a notebook ID'
+                "status": "error",
+                "error": f"Brain #{brain_id} does not have a notebook ID",
             }
 
         return {
-            'status': 'spec_ready',
-            'tool': 'notebook_query',
-            'notebook_id': notebook_id,
-            'query': query,
-            'source_ids': source_ids
+            "status": "spec_ready",
+            "tool": "notebook_query",
+            "notebook_id": notebook_id,
+            "query": query,
+            "source_ids": source_ids,
         }
 
     @classmethod
@@ -412,10 +422,6 @@ def get_brain_notebook_id(brain_id: int) -> str | None:
 def list_active_brains() -> list[dict[str, Any]]:
     """List all brains with active notebooks."""
     return [
-        {
-            'brain_id': bid,
-            'notebook_id': nid,
-            'status': 'active'
-        }
+        {"brain_id": bid, "notebook_id": nid, "status": "active"}
         for bid, nid in DirectMCPInvoker.NOTEBOOK_IDS.items()
     ]

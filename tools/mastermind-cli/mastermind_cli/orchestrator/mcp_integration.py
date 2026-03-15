@@ -37,7 +37,7 @@ class MCPIntegration:
     def _check_claude_code(self) -> bool:
         """Check if running in Claude Code environment."""
         # Check if Claude Code environment variables are present
-        return os.getenv('CLAUDE_CODE_SESSION') is not None
+        return os.getenv("CLAUDE_CODE_SESSION") is not None
 
     def is_available(self) -> bool:
         """Check if MCP integration is available."""
@@ -48,7 +48,7 @@ class MCPIntegration:
         brain_id: int,
         query: str,
         source_ids: Optional[List[str]] = None,
-        timeout: int = 120
+        timeout: int = 120,
     ) -> Dict:
         """Query a brain's notebook via MCP.
 
@@ -65,38 +65,30 @@ class MCPIntegration:
 
         if not notebook_id:
             return {
-                'status': 'error',
-                'error': f'Brain #{brain_id} does not have a notebook ID'
+                "status": "error",
+                "error": f"Brain #{brain_id} does not have a notebook ID",
             }
 
         if not self.is_available():
             return {
-                'status': 'unavailable',
-                'error': 'MCP not available in this environment',
-                'note': 'Use --use-mcp flag when running from Claude Code'
+                "status": "unavailable",
+                "error": "MCP not available in this environment",
+                "note": "Use --use-mcp flag when running from Claude Code",
             }
 
         # Build MCP query spec
         query_spec = {
-            'notebook_id': notebook_id,
-            'query': query,
-            'source_ids': source_ids
+            "notebook_id": notebook_id,
+            "query": query,
+            "source_ids": source_ids,
         }
 
         # Execute via subprocess using nlm (NotebookLM CLI)
         try:
-            result = self._execute_nl_mcp('notebook_query', query_spec, timeout)
-            return {
-                'status': 'success',
-                'content': result,
-                'raw': result
-            }
+            result = self._execute_nl_mcp("notebook_query", query_spec, timeout)
+            return {"status": "success", "content": result, "raw": result}
         except Exception as e:
-            return {
-                'status': 'error',
-                'error': str(e),
-                'query_spec': query_spec
-            }
+            return {"status": "error", "error": str(e), "query_spec": query_spec}
 
     def _execute_nl_mcp(self, action: str, params: Dict, timeout: int) -> str:
         """Execute NotebookLM MCP command via nlm CLI.
@@ -112,23 +104,18 @@ class MCPIntegration:
             Response string from NotebookLM
         """
         # Build nlm command
-        cmd = ['nlm', 'query']
+        cmd = ["nlm", "query"]
 
         # Add notebook ID
-        notebook_id = params.get('notebook_id')
-        cmd.extend(['--notebook', notebook_id])
+        notebook_id = params.get("notebook_id")
+        cmd.extend(["--notebook", notebook_id])
 
         # Add query
-        query = params.get('query', '')
-        cmd.extend(['--query', query])
+        query = params.get("query", "")
+        cmd.extend(["--query", query])
 
         # Execute
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
         if result.returncode != 0:
             raise RuntimeError(f"nlm command failed: {result.stderr}")
@@ -271,8 +258,8 @@ redirect_instructions:
 
         # Try to extract YAML from markdown code block
         yaml_patterns = [
-            r'```yaml\s*\n(.*?)\n```',  # With yaml tag
-            r'```\s*\n(.*?)\n```',       # Without tag
+            r"```yaml\s*\n(.*?)\n```",  # With yaml tag
+            r"```\s*\n(.*?)\n```",  # Without tag
         ]
 
         for pattern in yaml_patterns:
@@ -282,33 +269,30 @@ redirect_instructions:
                 try:
                     parsed = yaml.safe_load(yaml_content)
                     return {
-                        'status': 'success',
-                        'parsed': True,
-                        'content': parsed,
-                        'raw': response
+                        "status": "success",
+                        "parsed": True,
+                        "content": parsed,
+                        "raw": response,
                     }
                 except yaml.YAMLError as e:
                     return {
-                        'status': 'parse_error',
-                        'error': str(e),
-                        'yaml_content': yaml_content,
-                        'raw': response
+                        "status": "parse_error",
+                        "error": str(e),
+                        "yaml_content": yaml_content,
+                        "raw": response,
                     }
 
         # No YAML found, return as-is
         return {
-            'status': 'success',
-            'parsed': False,
-            'content': response,
-            'raw': response
+            "status": "success",
+            "parsed": False,
+            "content": response,
+            "raw": response,
         }
 
     def get_brain_status(self) -> Dict:
         """Get status of all brain notebooks."""
         return {
-            brain_id: {
-                'notebook_id': notebook_id,
-                'status': 'active'
-            }
+            brain_id: {"notebook_id": notebook_id, "status": "active"}
             for brain_id, notebook_id in self.NOTEBOOK_IDS.items()
         }

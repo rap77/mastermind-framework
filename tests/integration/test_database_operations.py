@@ -62,7 +62,7 @@ async def test_task_record_model():
         brain_id="brain-01",
         status="pending",
         created_at=now,
-        updated_at=now
+        updated_at=now,
     )
 
     assert task.id == "test-001"
@@ -131,7 +131,7 @@ async def test_task_status_performance():
         repo = TaskRepository(db)
 
         # Create a task
-        task = await repo.create(task_id="task-perf-001", brain_id="brain-01")
+        _ = await repo.create(task_id="task-perf-001", brain_id="brain-01")
 
         # Measure query performance
         start = time.perf_counter()

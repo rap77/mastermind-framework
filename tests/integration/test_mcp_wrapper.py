@@ -20,7 +20,7 @@ class MockMCPClient:
             "response": f"Mock response for {brain_id}: {query}",
             "success": True,
             "timestamp": "2026-03-13T15:00:00Z",
-            **self.extra_fields
+            **self.extra_fields,
         }
 
 
@@ -29,10 +29,7 @@ def test_mcp_wrapper_validation():
     wrapper = MCPWrapper(mcp_client=MockMCPClient())
 
     # Valid request
-    response = wrapper.call_mcp(
-        brain_id="test-brain",
-        query="Test query"
-    )
+    response = wrapper.call_mcp(brain_id="test-brain", query="Test query")
     assert isinstance(response, MCPResponse)
     assert response.success is True
     assert response.response == "Mock response for test-brain: Test query"
@@ -44,10 +41,7 @@ def test_mcp_wrapper_preserves_extra_fields():
     custom_fields = {"custom_field": "custom_value", "metadata": {"key": "value"}}
     wrapper = MCPWrapper(mcp_client=MockMCPClient(extra_fields=custom_fields))
 
-    response = wrapper.call_mcp(
-        brain_id="test-brain",
-        query="Test query"
-    )
+    response = wrapper.call_mcp(brain_id="test-brain", query="Test query")
 
     assert response.custom_field == "custom_value"  # Extra field preserved
     assert response.metadata == {"key": "value"}
@@ -57,10 +51,7 @@ def test_mcp_wrapper_error_handling():
     """Test that MCP wrapper handles errors gracefully."""
     wrapper = MCPWrapper(mcp_client=MockMCPClient(raises_error=True))
 
-    response = wrapper.call_mcp(
-        brain_id="test-brain",
-        query="Test query"
-    )
+    response = wrapper.call_mcp(brain_id="test-brain", query="Test query")
 
     assert response.success is False
     assert response.error is not None
@@ -75,7 +66,7 @@ def test_mcp_wrapper_query_validation():
     with pytest.raises(ValidationError) as exc_info:
         wrapper.call_mcp(
             brain_id="test-brain",
-            query=""  # Invalid: min_length=1
+            query="",  # Invalid: min_length=1
         )
 
     errors = exc_info.value.errors()
@@ -91,7 +82,7 @@ def test_mcp_wrapper_timeout_validation():
         wrapper.call_mcp(
             brain_id="test-brain",
             query="Test query",
-            timeout=3  # Invalid: ge=5
+            timeout=3,  # Invalid: ge=5
         )
 
     errors = exc_info.value.errors()
@@ -102,7 +93,7 @@ def test_mcp_wrapper_timeout_validation():
         wrapper.call_mcp(
             brain_id="test-brain",
             query="Test query",
-            timeout=500  # Invalid: le=300
+            timeout=500,  # Invalid: le=300
         )
 
     errors = exc_info.value.errors()
@@ -112,11 +103,7 @@ def test_mcp_wrapper_timeout_validation():
 def test_mcp_request_model():
     """Test that MCPRequest model validates correctly."""
     # Valid request
-    request = MCPRequest(
-        brain_id="test-brain",
-        query="Test query",
-        timeout=30
-    )
+    request = MCPRequest(brain_id="test-brain", query="Test query", timeout=30)
     assert request.brain_id == "test-brain"
     assert request.query == "Test query"
     assert request.timeout == 30
@@ -125,7 +112,7 @@ def test_mcp_request_model():
     with pytest.raises(ValidationError) as exc_info:
         MCPRequest(
             brain_id="test-brain",
-            query=""  # Invalid: min_length=1
+            query="",  # Invalid: min_length=1
         )
 
     errors = exc_info.value.errors()
@@ -140,7 +127,7 @@ def test_mcp_response_extra_allow():
         response="Test response",
         success=True,
         custom_field="custom_value",
-        metadata={"key": "value"}
+        metadata={"key": "value"},
     )
 
     assert response.custom_field == "custom_value"

@@ -5,7 +5,7 @@ Integrates with PRP-009 Evaluation Logger patterns.
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, List, Optional
 import yaml
 import json
 
@@ -32,7 +32,11 @@ class InterviewLogger:
         self.log_dir = log_dir or Path("logs/interviews")
 
     def log_interview(
-        self, session_id: str, brief_original: str, interview_doc: Dict, outcome: Dict
+        self,
+        session_id: str,
+        brief_original: str,
+        interview_doc: dict[str, Any],
+        outcome: dict[str, Any],
     ) -> Optional[str]:
         """
         Log an interview session.
@@ -103,7 +107,7 @@ class InterviewLogger:
 
     def find_similar_interviews(
         self, brief: str, limit: int = 5, min_similarity: float = 0.1
-    ) -> List[Dict]:
+    ) -> List[dict[str, Any]]:
         """
         Find similar past interviews for learning.
 
@@ -189,16 +193,16 @@ class InterviewLogger:
 
         return "general"
 
-    def _detect_industry(self, interview_doc: Dict) -> str:
+    def _detect_industry(self, interview_doc: dict[str, Any]) -> str:
         """Detect industry from interview document."""
-        metadata = interview_doc.get("metadata", {})
-        return metadata.get("industry", "general")
+        metadata: dict[str, Any] = interview_doc.get("metadata", {})
+        return str(metadata.get("industry", "general"))
 
-    def _count_questions(self, interview_doc: Dict) -> int:
+    def _count_questions(self, interview_doc: dict[str, Any]) -> int:
         """Count total questions in interview."""
         return len(interview_doc.get("document", {}).get("qa", []))
 
-    def _count_followups(self, interview_doc: Dict) -> int:
+    def _count_followups(self, interview_doc: dict[str, Any]) -> int:
         """Count questions that had follow-ups."""
         qa = interview_doc.get("document", {}).get("qa", [])
         return sum(1 for q in qa if q.get("follow_up_questions"))
@@ -321,7 +325,9 @@ class InterviewLogger:
 
         return keywords
 
-    def _calculate_metrics(self, interview_doc: Dict, outcome: Dict) -> Dict:
+    def _calculate_metrics(
+        self, interview_doc: dict[str, Any], outcome: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Calculate learning metrics from interview.
 
@@ -358,7 +364,9 @@ class InterviewLogger:
         follow_ups_with_questions = [q for q in qa if q.get("follow_up_questions")]
         follow_up_count = self._count_followups(interview_doc)
         follow_up_effectiveness = (
-            len(follow_ups_with_questions) / follow_up_count if follow_up_count > 0 else 0
+            len(follow_ups_with_questions) / follow_up_count
+            if follow_up_count > 0
+            else 0
         )
 
         # 4. Gap detection rate
@@ -404,7 +412,7 @@ class InterviewLogger:
             return len(index.get("interviews", [])) + 1
         return 1
 
-    def _save_json(self, interview_id: str, doc: Dict) -> str:
+    def _save_json(self, interview_id: str, doc: dict[str, Any]) -> str:
         """Save JSON document and return path."""
         json_dir = self.log_dir / "json" / datetime.now().strftime("%Y-%m")
         json_dir.mkdir(parents=True, exist_ok=True)
@@ -415,7 +423,7 @@ class InterviewLogger:
 
         return str(json_path)
 
-    def _generate_summary(self, interview_doc: Dict) -> str:
+    def _generate_summary(self, interview_doc: dict[str, Any]) -> str:
         """Generate human-readable summary for log."""
         qa = interview_doc.get("document", {}).get("qa", [])
         gaps = interview_doc.get("document", {}).get("gaps_detected", [])
@@ -435,7 +443,7 @@ class InterviewLogger:
 
         return "\n".join(summary_lines)
 
-    def get_learning_stats(self, days: int = 30) -> Dict:
+    def get_learning_stats(self, days: int = 30) -> dict[str, Any]:
         """
         Get learning statistics for recent interviews.
 
@@ -443,7 +451,7 @@ class InterviewLogger:
             days: Number of days to look back (default: 30)
 
         Returns:
-            Dictionary with learning statistics
+            dict[str, Any]ionary with learning statistics
         """
         from datetime import timedelta
 
@@ -485,7 +493,7 @@ class InterviewLogger:
         )
 
         # Context type distribution
-        context_types = {}
+        context_types: dict[str, int] = {}
         for entry in recent:
             ctx = entry.get("context_type", "unknown")
             context_types[ctx] = context_types.get(ctx, 0) + 1
@@ -495,7 +503,9 @@ class InterviewLogger:
             entry.get("learning_metrics", {}).get("user_satisfaction_score", 3)
             for entry in recent
         ]
-        avg_satisfaction = sum(satisfactions) / len(satisfactions) if satisfactions else 3
+        avg_satisfaction = (
+            sum(satisfactions) / len(satisfactions) if satisfactions else 3
+        )
 
         return {
             "period_days": days,
@@ -511,11 +521,12 @@ class InterviewLogger:
             ),
         }
 
-    def _count_questions_from_entry(self, entry: Dict) -> int:
+    def _count_questions_from_entry(self, entry: dict[str, Any]) -> int:
         """Helper to count questions from index entry."""
-        return entry.get("interview", {}).get("questions_asked", 0)
+        questions_asked = entry.get("interview", {}).get("questions_asked", 0)
+        return int(questions_asked) if questions_asked is not None else 0
 
-    def _update_index(self, log_entry: Dict):
+    def _update_index(self, log_entry: dict[str, Any]) -> None:
         """Update interview index for quick lookup."""
         index_path = self.log_dir / "hot" / "index.yaml"
 
@@ -545,7 +556,9 @@ class InterviewLogger:
 
     # ========== Retention Policy Methods ==========
 
-    def apply_retention_policy(self, hot_days: int = 30, warm_days: int = 90) -> Dict:
+    def apply_retention_policy(
+        self, hot_days: int = 30, warm_days: int = 90
+    ) -> dict[str, Any]:
         """
         Move old interviews to warm/cold storage.
 

@@ -18,14 +18,18 @@ import asyncio
 import time
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
 
 from mastermind_cli.types.interfaces import Brief, ProductStrategy
 from mastermind_cli.orchestrator.stateless_coordinator import (
     StatelessCoordinator,
     CoordinatorConfig,
 )
-from mastermind_cli.auth.api_keys import validate_api_key, generate_api_key, hash_api_key
+from mastermind_cli.auth.api_keys import (
+    validate_api_key,
+    generate_api_key,
+    hash_api_key,
+)
 from mastermind_cli.compatibility.legacy_wrapper import LegacyBrainAdapter
 from mastermind_cli.state.logger import ExecutionLogger
 
@@ -34,13 +38,14 @@ from mastermind_cli.state.logger import ExecutionLogger
 # FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def sample_brief():
     """Create sample Brief for testing."""
     return Brief(
         problem_statement="Build a CRM system for small businesses",
         context="Targeting companies with 10-50 employees",
-        constraints=["Web-based", "Budget under $10k/month"]
+        constraints=["Web-based", "Budget under $10k/month"],
     )
 
 
@@ -55,15 +60,13 @@ def mock_mcp_client():
 @pytest.fixture
 def coordinator_config(mock_mcp_client):
     """Create CoordinatorConfig for testing."""
-    return CoordinatorConfig(
-        mcp_client=mock_mcp_client,
-        enable_logging=False
-    )
+    return CoordinatorConfig(mcp_client=mock_mcp_client, enable_logging=False)
 
 
 # =============================================================================
 # MULTI-USER SAFETY TESTS
 # =============================================================================
+
 
 class TestMultiUserSafety:
     """
@@ -74,7 +77,9 @@ class TestMultiUserSafety:
     """
 
     @pytest.mark.asyncio
-    async def test_concurrent_executions_no_crosstalk(self, coordinator_config, sample_brief):
+    async def test_concurrent_executions_no_crosstalk(
+        self, coordinator_config, sample_brief
+    ):
         """
         Test 5 concurrent requests with different briefs.
 
@@ -97,8 +102,7 @@ class TestMultiUserSafety:
 
             # Execute
             results = await coordinator.execute_flow(
-                brief,
-                ["brain-01-product-strategy"]
+                brief, ["brain-01-product-strategy"]
             )
 
             # Store result
@@ -109,8 +113,7 @@ class TestMultiUserSafety:
 
         # Launch 5 concurrent requests with DIFFERENT briefs
         tasks = [
-            execute_request(f"exec-{i}", f"Build CRM variant {i}")
-            for i in range(5)
+            execute_request(f"exec-{i}", f"Build CRM variant {i}") for i in range(5)
         ]
 
         # Wait for all to complete
@@ -127,7 +130,9 @@ class TestMultiUserSafety:
             assert exec_id.split("-")[1] in result.brief or "variant" in result.brief
 
     @pytest.mark.asyncio
-    async def test_parallel_sequential_consistency(self, coordinator_config, sample_brief):
+    async def test_parallel_sequential_consistency(
+        self, coordinator_config, sample_brief
+    ):
         """
         Test that parallel executions produce same results as sequential.
 
@@ -137,15 +142,13 @@ class TestMultiUserSafety:
         # Sequential execution
         coordinator_seq = StatelessCoordinator(coordinator_config)
         results_seq = await coordinator_seq.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
+            sample_brief, ["brain-01-product-strategy"]
         )
 
         # Parallel execution
         coordinator_par = StatelessCoordinator(coordinator_config)
         results_par = await coordinator_par.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
+            sample_brief, ["brain-01-product-strategy"]
         )
 
         # Results should be equivalent
@@ -156,6 +159,7 @@ class TestMultiUserSafety:
 # =============================================================================
 # MCP SEQUENTIAL EXECUTION TESTS
 # =============================================================================
+
 
 class TestMCPSequentialExecution:
     """
@@ -175,7 +179,6 @@ class TestMCPSequentialExecution:
         """
         # Track execution order
         execution_order = []
-        call_count = {"before": 0, "after": 0}
 
         # Create mock MCP client that tracks calls
         mock_client = Mock()
@@ -188,10 +191,7 @@ class TestMCPSequentialExecution:
         mock_client.query_notebooklm = mock_query
 
         # Update config with tracking mock
-        config = CoordinatorConfig(
-            mcp_client=mock_client,
-            enable_logging=False
-        )
+        config = CoordinatorConfig(mcp_client=mock_client, enable_logging=False)
 
         # Execute flow with multiple brains
         # (They have no dependencies, so should be in same wave)
@@ -199,16 +199,15 @@ class TestMCPSequentialExecution:
 
         # Note: Current implementation may not have full wave resolution
         # This test verifies the pattern is in place
-        results = await coordinator.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
-        )
+        await coordinator.execute_flow(sample_brief, ["brain-01-product-strategy"])
 
         # Verify at least some calls were made
         assert len(execution_order) > 0
 
     @pytest.mark.asyncio
-    async def test_no_rate_limit_errors_under_load(self, coordinator_config, sample_brief):
+    async def test_no_rate_limit_errors_under_load(
+        self, coordinator_config, sample_brief
+    ):
         """
         Test that rapid sequential executions don't cause rate limits.
 
@@ -227,10 +226,7 @@ class TestMCPSequentialExecution:
 
         mock_client.query_notebooklm = mock_query
 
-        config = CoordinatorConfig(
-            mcp_client=mock_client,
-            enable_logging=False
-        )
+        config = CoordinatorConfig(mcp_client=mock_client, enable_logging=False)
 
         # Execute 10 requests rapidly
         coordinator = StatelessCoordinator(config)
@@ -238,8 +234,7 @@ class TestMCPSequentialExecution:
 
         for i in range(10):
             result = await coordinator.execute_flow(
-                sample_brief,
-                ["brain-01-product-strategy"]
+                sample_brief, ["brain-01-product-strategy"]
             )
             results.append(result)
 
@@ -251,6 +246,7 @@ class TestMCPSequentialExecution:
 # =============================================================================
 # LEGACY BRAIN COMPATIBILITY TESTS
 # =============================================================================
+
 
 class TestLegacyBrainCompatibility:
     """
@@ -267,6 +263,7 @@ class TestLegacyBrainCompatibility:
         Legacy brains expect global orchestrator state.
         Wrapper must create LOCAL orchestrator per call.
         """
+
         # Mock legacy brain class (stateful, expects global orchestrator)
         class MockLegacyBrain:
             def __init__(self):
@@ -285,14 +282,12 @@ class TestLegacyBrainCompatibility:
                     "key_features": ["Feature 1", "Feature 2"],
                     "success_metrics": ["Metric 1"],
                     "risks": [],
-                    "generated_at": datetime.now(timezone.utc).isoformat()
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
                 }
 
         # Create wrapper
-        legacy_brain = MockLegacyBrain()
         adapter = LegacyBrainAdapter(
-            legacy_brain_class=MockLegacyBrain,
-            output_model=ProductStrategy
+            brain_executor=MockLegacyBrain(), output_model=ProductStrategy
         )
 
         # Call as pure function
@@ -300,6 +295,7 @@ class TestLegacyBrainCompatibility:
         mock_mcp.query_notebooklm = Mock(return_value="Mock response")
 
         from mastermind_cli.types.interfaces import BrainInput
+
         brain_input = BrainInput(brief=sample_brief)
 
         result = adapter(brain_input, mcp_client=mock_mcp)
@@ -311,8 +307,7 @@ class TestLegacyBrainCompatibility:
         # Verify no global state pollution
         # (Each call creates new instance)
         adapter2 = LegacyBrainAdapter(
-            legacy_brain_class=MockLegacyBrain,
-            output_model=ProductStrategy
+            legacy_brain_class=MockLegacyBrain, output_model=ProductStrategy
         )
         result2 = adapter2(brain_input, mcp_client=mock_mcp)
 
@@ -323,6 +318,7 @@ class TestLegacyBrainCompatibility:
 # =============================================================================
 # AUTH VALIDATION TESTS
 # =============================================================================
+
 
 class TestAuthValidation:
     """
@@ -402,6 +398,7 @@ class TestAuthValidation:
 # PERFORMANCE BENCHMARK TESTS
 # =============================================================================
 
+
 class TestPerformanceBenchmarks:
     """
     Test performance benchmarks.
@@ -419,10 +416,7 @@ class TestPerformanceBenchmarks:
         coordinator = StatelessCoordinator(coordinator_config)
 
         start = time.time()
-        results = await coordinator.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
-        )
+        await coordinator.execute_flow(sample_brief, ["brain-01-product-strategy"])
         duration = time.time() - start
 
         # Assert performance target
@@ -431,17 +425,19 @@ class TestPerformanceBenchmarks:
         assert duration < 5.0, f"Execution took {duration:.2f}s, target < 5s"
 
     @pytest.mark.asyncio
-    async def test_concurrent_execution_performance(self, coordinator_config, sample_brief):
+    async def test_concurrent_execution_performance(
+        self, coordinator_config, sample_brief
+    ):
         """
         Benchmark concurrent execution performance.
 
         Target: 5 concurrent requests complete in < 10 seconds total.
         """
+
         async def execute_single():
             coordinator = StatelessCoordinator(coordinator_config)
             return await coordinator.execute_flow(
-                sample_brief,
-                ["brain-01-product-strategy"]
+                sample_brief, ["brain-01-product-strategy"]
             )
 
         start = time.time()
@@ -467,7 +463,6 @@ class TestPerformanceBenchmarks:
         Target: 100 consecutive executions don't grow memory unbounded.
         """
         import gc
-        import sys
 
         # Get initial memory size
         gc.collect()
@@ -476,10 +471,7 @@ class TestPerformanceBenchmarks:
         # Execute 100 times
         for i in range(100):
             coordinator = StatelessCoordinator(coordinator_config)
-            await coordinator.execute_flow(
-                sample_brief,
-                ["brain-01-product-strategy"]
-            )
+            await coordinator.execute_flow(sample_brief, ["brain-01-product-strategy"])
             # Coordinator goes out of scope here
 
         # Check final memory
@@ -495,6 +487,7 @@ class TestPerformanceBenchmarks:
 # END-TO-END FLOW TESTS
 # =============================================================================
 
+
 class TestEndToEndFlows:
     """
     Test complete end-to-end workflows.
@@ -503,7 +496,9 @@ class TestEndToEndFlows:
     """
 
     @pytest.mark.asyncio
-    async def test_full_flow_with_logging(self, coordinator_config, sample_brief, tmp_path):
+    async def test_full_flow_with_logging(
+        self, coordinator_config, sample_brief, tmp_path
+    ):
         """
         Test full flow: brief → coordinator → brain → log → query.
         """
@@ -514,8 +509,7 @@ class TestEndToEndFlows:
         # Execute flow
         coordinator = StatelessCoordinator(coordinator_config)
         results = await coordinator.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
+            sample_brief, ["brain-01-product-strategy"]
         )
 
         # Log execution
@@ -525,7 +519,7 @@ class TestEndToEndFlows:
             brief=sample_brief,
             output=results.get("brain-01-product-strategy"),
             status="success",
-            duration_ms=500
+            duration_ms=500,
         )
 
         # Query back
@@ -562,14 +556,10 @@ class TestEndToEndFlows:
 
         # First call should fail
         with pytest.raises(RuntimeError, match="MCP connection failed"):
-            await coordinator.execute_flow(
-                sample_brief,
-                ["brain-01-product-strategy"]
-            )
+            await coordinator.execute_flow(sample_brief, ["brain-01-product-strategy"])
 
         # Second call should succeed
         results = await coordinator.execute_flow(
-            sample_brief,
-            ["brain-01-product-strategy"]
+            sample_brief, ["brain-01-product-strategy"]
         )
         assert "brain-01-product-strategy" in results

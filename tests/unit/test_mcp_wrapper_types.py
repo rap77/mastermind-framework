@@ -15,9 +15,7 @@ class TestMCPRequestModel:
     def test_valid_request_creation(self):
         """Test creating a valid MCPRequest."""
         request = MCPRequest(
-            brain_id="brain-1",
-            query="What is the product strategy?",
-            timeout=30
+            brain_id="brain-1", query="What is the product strategy?", timeout=30
         )
         assert request.brain_id == "brain-1"
         assert request.query == "What is the product strategy?"
@@ -30,7 +28,7 @@ class TestMCPRequestModel:
             brain_id="brain-7",
             query="Evaluate this output",
             context={"output": "test output"},
-            timeout=60
+            timeout=60,
         )
         assert request.context == {"output": "test output"}
 
@@ -40,7 +38,10 @@ class TestMCPRequestModel:
             MCPRequest(brain_id="brain-1", query="")
 
         errors = exc_info.value.errors()
-        assert any(error["loc"] == ("query",) and "at least 1" in error["msg"] for error in errors)
+        assert any(
+            error["loc"] == ("query",) and "at least 1" in error["msg"]
+            for error in errors
+        )
 
     def test_request_validation_timeout_too_low(self):
         """Test that timeout < 5 fails validation."""
@@ -48,7 +49,11 @@ class TestMCPRequestModel:
             MCPRequest(brain_id="brain-1", query="test", timeout=4)
 
         errors = exc_info.value.errors()
-        assert any(error["loc"] == ("timeout",) and "greater than or equal to 5" in error["msg"] for error in errors)
+        assert any(
+            error["loc"] == ("timeout",)
+            and "greater than or equal to 5" in error["msg"]
+            for error in errors
+        )
 
     def test_request_validation_timeout_too_high(self):
         """Test that timeout > 300 fails validation."""
@@ -56,7 +61,10 @@ class TestMCPRequestModel:
             MCPRequest(brain_id="brain-1", query="test", timeout=301)
 
         errors = exc_info.value.errors()
-        assert any(error["loc"] == ("timeout",) and "less than or equal to 300" in error["msg"] for error in errors)
+        assert any(
+            error["loc"] == ("timeout",) and "less than or equal to 300" in error["msg"]
+            for error in errors
+        )
 
 
 class TestMCPResponseModel:
@@ -65,9 +73,7 @@ class TestMCPResponseModel:
     def test_successful_response(self):
         """Test creating a successful MCPResponse."""
         response = MCPResponse(
-            brain_id="brain-1",
-            response="Product strategy generated",
-            success=True
+            brain_id="brain-1", response="Product strategy generated", success=True
         )
         assert response.brain_id == "brain-1"
         assert response.response == "Product strategy generated"
@@ -78,10 +84,7 @@ class TestMCPResponseModel:
     def test_failed_response(self):
         """Test creating a failed MCPResponse."""
         response = MCPResponse(
-            brain_id="brain-1",
-            response="",
-            success=False,
-            error="Connection timeout"
+            brain_id="brain-1", response="", success=False, error="Connection timeout"
         )
         assert response.success is False
         assert response.error == "Connection timeout"
@@ -94,7 +97,7 @@ class TestMCPResponseModel:
             success=True,
             timestamp="2026-03-13T14:00:00Z",
             extra_field="This should be allowed",
-            another_field=123
+            another_field=123,
         )
         assert response.extra_field == "This should be allowed"
         assert response.another_field == 123
@@ -102,9 +105,7 @@ class TestMCPResponseModel:
     def test_response_model_dump(self):
         """Test that response can be serialized."""
         response = MCPResponse(
-            brain_id="brain-1",
-            response="Test response",
-            success=True
+            brain_id="brain-1", response="Test response", success=True
         )
         data = response.model_dump()
         assert data["brain_id"] == "brain-1"
@@ -121,8 +122,7 @@ class TestMCPWrapperTypeSafety:
 
         # This should work with typed model
         spec = MCPWrapper.create_notebook_query_spec(
-            notebook_id="test-notebook",
-            query="Test query"
+            notebook_id="test-notebook", query="Test query"
         )
         assert isinstance(spec, dict)
         assert spec["tool"] == "mcp__notebooklm-mcp__notebook_query"

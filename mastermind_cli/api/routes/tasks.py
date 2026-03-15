@@ -25,6 +25,7 @@ router = APIRouter()
 
 class CreateTaskRequest(BaseModel):
     """Request to create new orchestration task."""
+
     brief: str = Field(..., min_length=1, max_length=10000)
     flow: Optional[str] = None
     max_iterations: int = Field(default=3, ge=1, le=10)
@@ -33,6 +34,7 @@ class CreateTaskRequest(BaseModel):
 
 class TaskResponse(BaseModel):
     """Task creation response."""
+
     task_id: str
     status: str
     created_at: datetime
@@ -40,7 +42,8 @@ class TaskResponse(BaseModel):
 
 class TaskListResponse(BaseModel):
     """Task list response."""
-    tasks: list
+
+    tasks: list[dict[str, object]]
     total: int
     limit: int
     offset: int
@@ -53,7 +56,7 @@ class TaskListResponse(BaseModel):
 async def create_task(
     request: CreateTaskRequest,
     user_id: str = Depends(get_current_user_any),
-):
+) -> TaskResponse:
     """Create new orchestration task.
 
     Validates brief length, calls Coordinator.orchestrate() with parallel=True,
@@ -68,7 +71,13 @@ async def create_task(
         await db.conn.execute(
             """INSERT INTO executions (id, flow_config, brief, created_at, status)
                VALUES (?, ?, ?, ?, ?)""",
-            [task_id, request.flow or "{}", request.brief, datetime.utcnow(), "pending"],
+            [
+                task_id,
+                request.flow or "{}",
+                request.brief,
+                datetime.utcnow(),
+                "pending",
+            ],
         )
         await db.conn.commit()
 
@@ -88,7 +97,7 @@ async def list_tasks(
     limit: int = 50,
     offset: int = 0,
     user_id: str = Depends(get_current_user_any),
-):
+) -> TaskListResponse:
     """List user's tasks with pagination.
 
     Session isolation: WHERE user_id = current_user.id (UI-08 requirement).
@@ -103,10 +112,14 @@ async def list_tasks(
         rows = await cursor.fetchall()
 
         count_cursor = await db.conn.execute("SELECT COUNT(*) FROM executions")
-        total = (await count_cursor.fetchone())[0]
+        count_row = await count_cursor.fetchone()
+        total = count_row[0] if count_row else 0
 
     return TaskListResponse(
-        tasks=[{"id": row[0], "brief": row[1], "created_at": row[2], "status": row[3]} for row in rows],
+        tasks=[
+            {"id": row[0], "brief": row[1], "created_at": row[2], "status": row[3]}
+            for row in rows
+        ],
         total=total,
         limit=limit,
         offset=offset,
@@ -117,7 +130,7 @@ async def list_tasks(
 async def get_task(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, object]:
     """Get task state.
 
     Returns 404 if not found or doesn't belong to user.
@@ -144,7 +157,7 @@ async def get_task(
 async def get_task_state(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, object]:
     """Get current task state (optimized for <100ms queries - PERF-02)."""
     # Same as get_task for now (will add brain_states in Task 2)
     return await get_task(task_id, user_id)
@@ -154,7 +167,7 @@ async def get_task_state(
 async def cancel_task(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
-):
+) -> dict[str, str]:
     """Cancel running task.
 
     Requires ownership. Logged to audit (automatic via middleware).
@@ -174,14 +187,19 @@ async def cancel_task(
 
 class GraphNode(BaseModel):
     """Node in the execution graph."""
+
     id: str = Field(..., description="Brain ID")
     label: str = Field(..., description="Display label")
     level: int = Field(..., ge=0, description="Execution level (wave number)")
-    state: str = Field(..., description="Current state (pending, running, completed, failed, cancelled)")
+    state: str = Field(
+        ...,
+        description="Current state (pending, running, completed, failed, cancelled)",
+    )
 
 
 class GraphEdge(BaseModel):
     """Edge in the execution graph."""
+
     from_node: str = Field(..., alias="from", description="Source brain ID")
     to: str = Field(..., description="Target brain ID")
 
@@ -191,6 +209,7 @@ class GraphEdge(BaseModel):
 
 class TaskGraphResponse(BaseModel):
     """Task graph response with nodes and edges."""
+
     nodes: List[GraphNode] = Field(default_factory=list, description="Graph nodes")
     edges: List[GraphEdge] = Field(default_factory=list, description="Graph edges")
     max_level: int = Field(..., ge=0, description="Maximum execution level")
@@ -204,7 +223,7 @@ class TaskGraphResponse(BaseModel):
 async def get_task_graph(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
-):
+) -> TaskGraphResponse:
     """Get task execution graph for visualization.
 
     Returns node/edge structure for D3.js rendering.
@@ -227,7 +246,11 @@ async def get_task_graph(
     # Parse flow_config
     try:
         if flow_config_json:
-            flow_config = json.loads(flow_config_json) if isinstance(flow_config_json, str) else flow_config_json
+            flow_config = (
+                json.loads(flow_config_json)
+                if isinstance(flow_config_json, str)
+                else flow_config_json
+            )
         else:
             flow_config = {}
     except json.JSONDecodeError:
@@ -235,12 +258,7 @@ async def get_task_graph(
 
     # Handle empty flow_config
     if not flow_config or not flow_config.get("nodes"):
-        return TaskGraphResponse(
-            nodes=[],
-            edges=[],
-            max_level=0,
-            max_parallelism=0
-        )
+        return TaskGraphResponse(nodes=[], edges=[], max_level=0, max_parallelism=0)
 
     # Build nodes from flow_config
     nodes_raw = flow_config.get("nodes", {})
@@ -261,7 +279,7 @@ async def get_task_graph(
             id=node_id,
             label=node_id.replace("brain-", "Brain #").replace("_", " ").title(),
             level=level,
-            state=task_status  # All nodes share task status until brain_states are implemented
+            state=task_status,  # All nodes share task status until brain_states are implemented
         )
         for node_id, level in sorted(node_levels.items(), key=lambda x: x[1])
     ]
@@ -270,18 +288,19 @@ async def get_task_graph(
     edges = []
     for target_node, dependencies in edges_raw.items():
         for source_node in dependencies:
-            edges.append(GraphEdge(from_node=source_node, to=target_node))
+            edges.append(GraphEdge(**{"from": source_node, "to": target_node}))
 
     # Calculate metrics
     max_level = max(node_levels.values(), default=0)
-    max_parallelism = max(
-        sum(1 for level in node_levels.values() if level == lvl)
-        for lvl in range(max_level + 1)
-    ) if nodes else 0
+    max_parallelism = (
+        max(
+            sum(1 for level in node_levels.values() if level == lvl)
+            for lvl in range(max_level + 1)
+        )
+        if nodes
+        else 0
+    )
 
     return TaskGraphResponse(
-        nodes=nodes,
-        edges=edges,
-        max_level=max_level,
-        max_parallelism=max_parallelism
+        nodes=nodes, edges=edges, max_level=max_level, max_parallelism=max_parallelism
     )

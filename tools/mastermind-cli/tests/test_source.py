@@ -2,14 +2,13 @@
 
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
 
 def test_yaml_parsing():
     """Test YAML front matter parsing."""
-    from mastermind_cli.utils.yaml import read_yaml_frontmatter, write_yaml_frontmatter
+    from mastermind_cli.utils.yaml import read_yaml_frontmatter
 
     # Create test file
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".md") as f:

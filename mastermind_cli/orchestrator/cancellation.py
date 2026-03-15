@@ -6,7 +6,7 @@ allowing in-flight tasks to save checkpoints before hard kill.
 """
 
 import asyncio
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .task_executor import ParallelExecutor
@@ -28,7 +28,7 @@ class CancellationManager:
         >>> print(results["graceful"], results["force_killed"])
     """
 
-    def __init__(self, grace_period: float = 5.0):
+    def __init__(self, grace_period: float = 5.0) -> None:
         """Initialize cancellation manager.
 
         Args:
@@ -36,9 +36,9 @@ class CancellationManager:
         """
         self.grace_period = grace_period
         self.cancel_event = asyncio.Event()
-        self._tasks: set[asyncio.Task] = set()
+        self._tasks: set[asyncio.Task[Any]] = set()
 
-    async def cancel(self, executor: 'ParallelExecutor') -> Dict[str, int]:
+    async def cancel(self, executor: "ParallelExecutor") -> dict[str, int]:
         """Cancel all running tasks with grace period.
 
         This method orchestrates graceful cancellation:
@@ -69,7 +69,9 @@ class CancellationManager:
         # Step 3: Force kill remaining tasks
         results = {"graceful": 0, "force_killed": 0}
 
-        for task in list(self._tasks):  # Use list() to avoid modification during iteration
+        for task in list(
+            self._tasks
+        ):  # Use list() to avoid modification during iteration
             if not task.done():
                 task.cancel()
                 # Wait for the task to actually be cancelled
@@ -83,7 +85,7 @@ class CancellationManager:
 
         return results
 
-    def register_task(self, task: asyncio.Task):
+    def register_task(self, task: asyncio.Task[Any]) -> None:
         """Track task for graceful cancellation.
 
         Tasks should be registered when created and unregistered when complete.
@@ -93,7 +95,7 @@ class CancellationManager:
         """
         self._tasks.add(task)
 
-    def unregister_task(self, task: asyncio.Task):
+    def unregister_task(self, task: asyncio.Task[Any]) -> None:
         """Remove task from tracking.
 
         Call this when a task completes successfully or is cancelled.
@@ -111,7 +113,7 @@ class CancellationManager:
         """
         return self.cancel_event.is_set()
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset cancellation state (for testing or re-execution).
 
         Clears cancel_event and removes all task references.

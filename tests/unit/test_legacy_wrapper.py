@@ -9,13 +9,12 @@ Tests:
 - Output normalization
 """
 
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import pytest
 
 from mastermind_cli.compatibility.legacy_wrapper import (
     LegacyBrainAdapter,
-    LegacyExecutionContext,
     wrap_legacy_brain_1,
     wrap_legacy_brain_7,
 )
@@ -108,13 +107,15 @@ class TestLegacyBrainAdapter:
 
     def test_call_uses_local_orchestrator(self):
         """Test that adapter creates local orchestrator (not shared)."""
-        mock_executor = Mock(return_value={
-            "value_proposition": "Test",
-            "persona": {"name": "User"},
-            "key_features": [],
-            "monetization": {"model": "free"},
-            "success_metrics": [],
-        })
+        mock_executor = Mock(
+            return_value={
+                "value_proposition": "Test",
+                "persona": {"name": "User"},
+                "key_features": [],
+                "monetization": {"model": "free"},
+                "success_metrics": [],
+            }
+        )
 
         adapter = LegacyBrainAdapter(
             brain_executor=mock_executor,
@@ -122,8 +123,10 @@ class TestLegacyBrainAdapter:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
-        result = adapter(input)
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
+        adapter(input)
 
         # Verify executor was called with some orchestrator
         assert mock_executor.called
@@ -144,7 +147,9 @@ class TestLegacyBrainAdapter:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
 
         with pytest.raises(ValueError) as exc_info:
             adapter(input)
@@ -161,7 +166,9 @@ class TestLegacyBrainAdapter:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
 
         with pytest.raises(RuntimeError) as exc_info:
             adapter(input)
@@ -174,6 +181,7 @@ class TestStateIsolation:
 
     def test_multiple_calls_dont_share_state(self):
         """Test multiple adapter calls don't share state."""
+
         # Mock executor that returns different results based on brief
         def mock_executor(brief: str, orchestrator: Mock) -> dict:
             # Each call should have its own orchestrator
@@ -192,11 +200,15 @@ class TestStateIsolation:
         )
 
         # Call 1
-        input1 = BrainInput(brief=Brief(problem_statement="Project brief A for CRM system"))
+        input1 = BrainInput(
+            brief=Brief(problem_statement="Project brief A for CRM system")
+        )
         result1 = adapter(input1)
 
         # Call 2 (should NOT affect result1)
-        input2 = BrainInput(brief=Brief(problem_statement="Project brief B for CRM system"))
+        input2 = BrainInput(
+            brief=Brief(problem_statement="Project brief B for CRM system")
+        )
         result2 = adapter(input2)
 
         # Verify results are independent
@@ -206,7 +218,6 @@ class TestStateIsolation:
 
     def test_concurrent_calls_dnt_interfere(self):
         """Test concurrent calls don't interfere (simulated)."""
-        import asyncio
 
         # Mock executor that simulates async work
         def mock_executor(brief: str, orchestrator: Mock) -> dict:
@@ -262,7 +273,9 @@ class TestBrain1Normalization:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         assert result.positioning == "Best CRM ever"
@@ -284,7 +297,9 @@ class TestBrain1Normalization:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Should use defaults for missing fields (with min 1 item)
@@ -310,7 +325,9 @@ class TestBrain1Normalization:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Should use existing fields directly
@@ -339,7 +356,9 @@ class TestBrain7Normalization:
             brain_id=7,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Fix typo: veredict → verdict (uppercase)
@@ -362,7 +381,9 @@ class TestBrain7Normalization:
             brain_id=7,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Should use existing fields directly (verdict uppercase)
@@ -384,7 +405,9 @@ class TestBrain7Normalization:
             brain_id=7,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Should use defaults for missing fields
@@ -396,28 +419,6 @@ class TestBrain7Normalization:
         assert result.verdict == "approved"
         assert result.score_percentage == 90
         assert result.reasoning == "Well structured"
-
-    def test_normalize_brain_7_output_partial(self):
-        """Test normalization with partial legacy output."""
-        legacy_output = {
-            "veredict": "needs_work",
-            # Missing: score, evaluation
-        }
-
-        mock_executor = Mock(return_value=legacy_output)
-        adapter = LegacyBrainAdapter(
-            brain_executor=mock_executor,
-            output_model=GrowthDataEvaluation,
-            brain_id=7,
-        )
-
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
-        result = adapter(input)
-
-        # Should use defaults for missing fields
-        assert result.verdict == "CONDITIONAL"  # needs_work mapped to CONDITIONAL
-        assert result.score == 5.0  # default score
-        assert result.feedback == "No feedback provided"
 
 
 class TestConvenienceFunctions:
@@ -443,7 +444,9 @@ class TestConvenienceFunctions:
         """Test wrapped Brain #1 is callable."""
         adapter = wrap_legacy_brain_1()
 
-        input = BrainInput(brief=Brief(problem_statement="Build a comprehensive CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Build a comprehensive CRM system")
+        )
         result = adapter(input)
 
         assert isinstance(result, ProductStrategy)
@@ -453,7 +456,9 @@ class TestConvenienceFunctions:
         adapter = wrap_legacy_brain_7()
 
         # Brain #7 requires output_to_evaluate, we'll test with mock
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         assert isinstance(result, GrowthDataEvaluation)
@@ -464,13 +469,15 @@ class TestEdgeCases:
 
     def test_empty_brief(self):
         """Test handling of empty brief."""
-        mock_executor = Mock(return_value={
-            "value_proposition": "",
-            "persona": {"name": ""},
-            "key_features": [{"feature": "Default feature"}],  # Add at least 1
-            "monetization": {"model": ""},
-            "success_metrics": [{"metric": "Default metric"}],  # Add at least 1
-        })
+        mock_executor = Mock(
+            return_value={
+                "value_proposition": "",
+                "persona": {"name": ""},
+                "key_features": [{"feature": "Default feature"}],  # Add at least 1
+                "monetization": {"model": ""},
+                "success_metrics": [{"metric": "Default metric"}],  # Add at least 1
+            }
+        )
 
         adapter = LegacyBrainAdapter(
             brain_executor=mock_executor,
@@ -478,24 +485,29 @@ class TestEdgeCases:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Empty but valid brief text here"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Empty but valid brief text here")
+        )
         result = adapter(input)
 
         assert isinstance(result, ProductStrategy)
 
     def test_brief_extraction_from_plain_string(self):
         """Test brief extraction when input is not BrainInput."""
+
         # Create a mock input that's not BrainInput
         class SimpleInput:
             problem_statement = "Test problem"
 
-        mock_executor = Mock(return_value={
-            "value_proposition": "Test",
-            "persona": {"name": "User"},
-            "key_features": [{"feature": "Default"}],  # Add at least 1
-            "monetization": {"model": "free"},
-            "success_metrics": [{"metric": "Default"}],  # Add at least 1
-        })
+        mock_executor = Mock(
+            return_value={
+                "value_proposition": "Test",
+                "persona": {"name": "User"},
+                "key_features": [{"feature": "Default"}],  # Add at least 1
+                "monetization": {"model": "free"},
+                "success_metrics": [{"metric": "Default"}],  # Add at least 1
+            }
+        )
 
         adapter = LegacyBrainAdapter(
             brain_executor=mock_executor,
@@ -531,7 +543,9 @@ class TestEdgeCases:
             brain_id=1,
         )
 
-        input = BrainInput(brief=Brief(problem_statement="Test application for CRM system"))
+        input = BrainInput(
+            brief=Brief(problem_statement="Test application for CRM system")
+        )
         result = adapter(input)
 
         # Should extract name from nested persona

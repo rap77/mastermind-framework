@@ -6,7 +6,7 @@ from mastermind_cli.types.protocol import (
     BrainMessage,
     BrainEnvelope,
     BrainOutputType,
-    SmartReference
+    SmartReference,
 )
 from mastermind_cli.types.interfaces import BrainInput, Brief
 
@@ -21,10 +21,10 @@ def test_brain_message_validation():
             "summary": "Product strategy defined",
             "detail": "Full product strategy output here...",
             "assumptions": ["Market is growing", "Users need simplicity"],
-            "dependencies": []
+            "dependencies": [],
         },
         task_id="task-123",
-        version="2.0.0"
+        version="2.0.0",
     )
 
     assert message.from_brain == "brain-01-product-strategy"
@@ -43,7 +43,7 @@ def test_brain_message_missing_required_field():
             # Missing to_brain
             type=BrainOutputType.OUTPUT,
             content={"summary": "test"},
-            task_id="task-1"
+            task_id="task-1",
         )
 
 
@@ -54,16 +54,13 @@ def test_brain_envelope_wraps_message():
         to_brain="brain-03",
         type=BrainOutputType.OUTPUT,
         content={"summary": "test"},
-        task_id="task-1"
+        task_id="task-1",
     )
 
     envelope = BrainEnvelope(
         message=message,
         correlation_id="corr-123",
-        transport_metadata={
-            "created_at": "2026-03-14T16:44:44Z",
-            "latency_ms": 150
-        }
+        transport_metadata={"created_at": "2026-03-14T16:44:44Z", "latency_ms": 150},
     )
 
     assert envelope.message == message
@@ -86,7 +83,7 @@ def test_message_serialization_deserialization():
         to_brain="brain-03",
         type=BrainOutputType.OUTPUT,
         content={"summary": "test", "detail": "full detail"},
-        task_id="task-1"
+        task_id="task-1",
     )
 
     # Serialize to dict
@@ -105,7 +102,7 @@ def test_envelope_factory_from_brain_input():
     brain_input = BrainInput(
         brief=Brief(problem_statement="Build a CRM system"),
         additional_context={"market": "SMB"},
-        execution_metadata={"timestamp": "2026-03-14T16:44:44Z"}
+        execution_metadata={"timestamp": "2026-03-14T16:44:44Z"},
     )
 
     envelope = BrainEnvelope.create(
@@ -114,7 +111,7 @@ def test_envelope_factory_from_brain_input():
         payload=brain_input,
         correlation_id="corr-123",
         task_id="task-1",
-        message_type=BrainOutputType.OUTPUT
+        message_type=BrainOutputType.OUTPUT,
     )
 
     assert envelope.message.from_brain == "brain-01"
@@ -131,7 +128,7 @@ def test_envelope_factory_from_brain_output():
         positioning="The best CRM for small businesses",
         target_audience="Small business owners",
         key_features=["Contact management", "Sales pipeline"],
-        success_metrics=["User adoption rate", "Revenue growth"]
+        success_metrics=["User adoption rate", "Revenue growth"],
     )
 
     envelope = BrainEnvelope.create(
@@ -140,22 +137,21 @@ def test_envelope_factory_from_brain_output():
         payload=brain_output,
         correlation_id="corr-123",
         task_id="task-1",
-        message_type=BrainOutputType.OUTPUT
+        message_type=BrainOutputType.OUTPUT,
     )
 
     assert envelope.message.from_brain == "brain-01"
     assert "best CRM" in envelope.message.content["summary"]
-    assert envelope.message.content["metadata"]["positioning"] == brain_output.positioning
+    assert (
+        envelope.message.content["metadata"]["positioning"] == brain_output.positioning
+    )
 
 
 def test_smart_reference_stub():
     """Test SmartReference stub exists for v3.0 (lazy-loading)."""
     # SmartReference is a stub for future v3.0 implementation
     # For now, just test it can be instantiated
-    ref = SmartReference(
-        parent_brain_id="brain-01",
-        correlation_id="corr-123"
-    )
+    ref = SmartReference(parent_brain_id="brain-01", correlation_id="corr-123")
 
     assert ref.parent_brain_id == "brain-01"
     assert ref.correlation_id == "corr-123"

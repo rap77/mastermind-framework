@@ -1,7 +1,13 @@
 """Validation functions for source files."""
 
+import click as click_import
 from dataclasses import dataclass, field
-from typing import List, Dict
+from pydantic import (
+    TypeAdapter as PydanticTypeAdapter,
+    ValidationError as PydanticValidationError,
+)
+from typing import Any, List, Dict
+from typing import Any as TypingAny
 from pathlib import Path
 
 
@@ -83,7 +89,9 @@ def validate_source_file(filepath: str) -> ValidationResult:
         # Validate required YAML fields
         for field in REQUIRED_YAML_FIELDS:
             if field not in metadata:
-                result.add_error(f"yaml.{field}", f"Required field '{field}' is missing")
+                result.add_error(
+                    f"yaml.{field}", f"Required field '{field}' is missing"
+                )
 
         # Validate source_id format
         source_id = metadata.get("source_id", "")
@@ -135,7 +143,7 @@ def validate_brain_sources(brain_path: str) -> Dict[str, ValidationResult]:
     Returns:
         Dictionary mapping filename to ValidationResult
     """
-    results = {}
+    results: dict[str, Any] = {}
     sources_dir = Path(brain_path) / "sources"
 
     if not sources_dir.exists():
@@ -178,21 +186,18 @@ def find_sources_by_id(source_id: str, search_paths: List[str]) -> List[str]:
 # Runtime Validation Helpers (Pydantic v2)
 # ============================================================================
 
-import click as click_import
-from pydantic import TypeAdapter as PydanticTypeAdapter, ValidationError as PydanticValidationError
-from typing import Any as TypingAny
-
 
 class TypeAdapterParam(click_import.ParamType):
     """Click parameter type with TypeAdapter validation.
 
     Implements Pydantic-to-Click Bridge from CONTEXT.md.
     """
+
     name = "typed"
 
     def __init__(self, model: TypingAny):
         self.adapter = PydanticTypeAdapter(model)
-        self.model_name = model.__name__ if hasattr(model, '__name__') else str(model)
+        self.model_name = model.__name__ if hasattr(model, "__name__") else str(model)
 
     def convert(self, value: str, param: TypingAny, ctx: TypingAny) -> TypingAny:
         import json
@@ -204,16 +209,16 @@ class TypeAdapterParam(click_import.ParamType):
         except json.JSONDecodeError as e:
             self.fail(f"Invalid JSON: {e}", param, ctx)
         except PydanticValidationError as e:
-            error_msg = e.errors()[0]['msg']
+            error_msg = e.errors()[0]["msg"]
             self.fail(f"Invalid {self.model_name}: {error_msg}", param, ctx)
 
 
-def validate_brain_output(data: dict, schema: type) -> TypingAny:
+def validate_brain_output(data: dict[str, Any], schema: type) -> Any:
     """Validate brain output using TypeAdapter.
 
     Runtime validation at boundaries per CONTEXT.md.
     """
-    adapter = PydanticTypeAdapter(schema)
+    adapter: Any = PydanticTypeAdapter(schema)
     try:
         return adapter.validate_python(data)
     except PydanticValidationError as e:
@@ -228,30 +233,25 @@ def format_validation_error_compact(error: PydanticValidationError) -> str:
     """
     errors = []
     for err in error.errors():
-        loc = ".".join(str(l) for l in err["loc"])
+        loc = ".".join(str(err_loc) for err_loc in err["loc"])
         errors.append(f"{loc}: {err['msg']}")
     return "; ".join(errors)
 
 
 def format_validation_error(
-    error: PydanticValidationError,
-    context: str | None = None
+    error: PydanticValidationError, context: str | None = None
 ) -> str:
     """Format ValidationError with contextual diagnostics.
 
     Implements "Contextual Diagnostics" from CONTEXT.md.
     """
-    from rich.console import Console
-
-    console = Console()
-
     lines = []
     if context:
         lines.append(f"Error in {context}:")
 
     for err in error.errors():
         # Field location
-        loc = " -> ".join(str(l) for l in err["loc"])
+        loc = " -> ".join(str(err_loc) for err_loc in err["loc"])
         lines.append(f"\n✗ {loc}")
 
         # Error message

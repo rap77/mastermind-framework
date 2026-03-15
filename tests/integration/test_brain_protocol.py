@@ -1,11 +1,13 @@
 """Brain-to-brain protocol integration tests."""
 
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-from mastermind_cli.orchestrator.stateless_coordinator import StatelessCoordinator, CoordinatorConfig
-from mastermind_cli.types.protocol import BrainEnvelope, BrainOutputType
+from mastermind_cli.orchestrator.stateless_coordinator import (
+    StatelessCoordinator,
+    CoordinatorConfig,
+)
+from mastermind_cli.types.protocol import BrainEnvelope
 from mastermind_cli.types.parallel import FlowConfig
 from mastermind_cli.types.interfaces import Brief, ProductStrategy
 
@@ -18,11 +20,14 @@ async def test_execute_flow_creates_envelopes():
         positioning="Best CRM for small businesses",
         target_audience="Small business owners",
         key_features=["Contact management", "Sales pipeline"],
-        success_metrics=["User adoption", "Revenue growth"]
+        success_metrics=["User adoption", "Revenue growth"],
     )
 
     # Mock the brain function (synchronous)
-    with patch('mastermind_cli.orchestrator.brain_functions.get_brain_function') as mock_get_func:
+    with patch(
+        "mastermind_cli.orchestrator.brain_functions.get_brain_function"
+    ) as mock_get_func:
+
         def mock_brain_func(brain_input, mcp_client=None):
             return mock_output
 
@@ -41,10 +46,13 @@ async def test_execute_flow_creates_envelopes():
 
         # Verify results
         assert "brain-01-product-strategy" in results
-        assert results["brain-01-product-strategy"].positioning == "Best CRM for small businesses"
+        assert (
+            results["brain-01-product-strategy"].positioning
+            == "Best CRM for small businesses"
+        )
 
         # Verify message log was created
-        assert hasattr(coordinator, 'message_log')
+        assert hasattr(coordinator, "message_log")
         assert len(coordinator.message_log) == 1
 
         # Verify envelope structure
@@ -62,20 +70,23 @@ async def test_parent_outputs_passed_to_dependents():
         positioning="Best CRM for small businesses",
         target_audience="Small business owners",
         key_features=["Contact management"],
-        success_metrics=["User adoption"]
+        success_metrics=["User adoption"],
     )
 
     mock_output_2 = ProductStrategy(
         positioning="UX research complete",
         target_audience="Small business owners",
         key_features=["User interviews"],
-        success_metrics=["Usability score"]
+        success_metrics=["Usability score"],
     )
 
     call_count = {"count": 0}
 
     # Mock the brain function (synchronous)
-    with patch('mastermind_cli.orchestrator.brain_functions.get_brain_function') as mock_get_func:
+    with patch(
+        "mastermind_cli.orchestrator.brain_functions.get_brain_function"
+    ) as mock_get_func:
+
         def mock_brain_func(brain_input, mcp_client=None):
             call_count["count"] += 1
             if call_count["count"] == 1:
@@ -97,8 +108,8 @@ async def test_parent_outputs_passed_to_dependents():
             flow_id="test-flow",
             nodes={
                 "brain-01-product-strategy": [],
-                "brain-02-ux-research": ["brain-01-product-strategy"]
-            }
+                "brain-02-ux-research": ["brain-01-product-strategy"],
+            },
         )
 
         results = await coordinator.execute_flow(brief, brain_ids)
@@ -124,26 +135,29 @@ async def test_dag_execution_order_respected():
             positioning="Strategy",
             target_audience="Users",
             key_features=["F1"],
-            success_metrics=["M1"]
+            success_metrics=["M1"],
         ),
         "brain-02-ux-research": ProductStrategy(
             positioning="UX Research",
             target_audience="Users",
             key_features=["F2"],
-            success_metrics=["M2"]
+            success_metrics=["M2"],
         ),
         "brain-07-growth-data": ProductStrategy(
             positioning="Growth",
             target_audience="Users",
             key_features=["F3"],
-            success_metrics=["M3"]
-        )
+            success_metrics=["M3"],
+        ),
     }
 
     execution_order = []
 
     # Mock the brain function (synchronous)
-    with patch('mastermind_cli.orchestrator.brain_functions.get_brain_function') as mock_get_func:
+    with patch(
+        "mastermind_cli.orchestrator.brain_functions.get_brain_function"
+    ) as mock_get_func:
+
         def mock_brain_func(brain_input, mcp_client=None):
             # Extract brain_id from context
             brain_id = brain_input.execution_metadata.get("brain_id", "unknown")
@@ -157,8 +171,14 @@ async def test_dag_execution_order_respected():
         coordinator = StatelessCoordinator(config)
 
         # Create flow with dependencies: 1 -> 2 -> 7
-        brief = Brief(problem_statement="Test brief for DAG execution order verification")
-        brain_ids = ["brain-01-product-strategy", "brain-02-ux-research", "brain-07-growth-data"]
+        brief = Brief(
+            problem_statement="Test brief for DAG execution order verification"
+        )
+        brain_ids = [
+            "brain-01-product-strategy",
+            "brain-02-ux-research",
+            "brain-07-growth-data",
+        ]
 
         # Mock dependency resolution
         coordinator.flow_config = FlowConfig(
@@ -166,11 +186,11 @@ async def test_dag_execution_order_respected():
             nodes={
                 "brain-01-product-strategy": [],
                 "brain-02-ux-research": ["brain-01-product-strategy"],
-                "brain-07-growth-data": ["brain-02-ux-research"]
-            }
+                "brain-07-growth-data": ["brain-02-ux-research"],
+            },
         )
 
-        results = await coordinator.execute_flow(brief, brain_ids)
+        await coordinator.execute_flow(brief, brain_ids)
 
         # Verify execution order via message log timestamps
         assert len(coordinator.message_log) == 3
@@ -179,8 +199,12 @@ async def test_dag_execution_order_respected():
         executed_order = [env.message.from_brain for env in coordinator.message_log]
 
         # Verify topological order: brain-01 before brain-02 before brain-07
-        assert executed_order.index("brain-01-product-strategy") < executed_order.index("brain-02-ux-research")
-        assert executed_order.index("brain-02-ux-research") < executed_order.index("brain-07-growth-data")
+        assert executed_order.index("brain-01-product-strategy") < executed_order.index(
+            "brain-02-ux-research"
+        )
+        assert executed_order.index("brain-02-ux-research") < executed_order.index(
+            "brain-07-growth-data"
+        )
 
 
 @pytest.mark.asyncio
@@ -190,15 +214,19 @@ async def test_independent_brains_execute_parallel():
         positioning="Output",
         target_audience="Users",
         key_features=["F1"],
-        success_metrics=["M1"]
+        success_metrics=["M1"],
     )
 
     execution_times = []
 
     # Mock the brain function (synchronous with delay)
-    with patch('mastermind_cli.orchestrator.brain_functions.get_brain_function') as mock_get_func:
+    with patch(
+        "mastermind_cli.orchestrator.brain_functions.get_brain_function"
+    ) as mock_get_func:
+
         def mock_brain_func(brain_input, mcp_client=None):
             import time
+
             start = time.perf_counter()
             time.sleep(0.1)  # Simulate 100ms delay (blocking is OK for test)
             end = time.perf_counter()
@@ -218,13 +246,11 @@ async def test_independent_brains_execute_parallel():
         # Mock flow config with no dependencies
         coordinator.flow_config = FlowConfig(
             flow_id="test-parallel",
-            nodes={
-                "brain-01-product-strategy": [],
-                "brain-02-ux-research": []
-            }
+            nodes={"brain-01-product-strategy": [], "brain-02-ux-research": []},
         )
 
         import time
+
         start = time.perf_counter()
         results = await coordinator.execute_flow(brief, brain_ids)
         elapsed = time.perf_counter() - start
@@ -246,11 +272,14 @@ async def test_correlation_id_links_all_messages():
         positioning="Output",
         target_audience="Users",
         key_features=["F1"],
-        success_metrics=["M1"]
+        success_metrics=["M1"],
     )
 
     # Mock the brain function (synchronous)
-    with patch('mastermind_cli.orchestrator.brain_functions.get_brain_function') as mock_get_func:
+    with patch(
+        "mastermind_cli.orchestrator.brain_functions.get_brain_function"
+    ) as mock_get_func:
+
         def mock_brain_func(brain_input, mcp_client=None):
             return mock_output
 
@@ -260,16 +289,20 @@ async def test_correlation_id_links_all_messages():
         config = CoordinatorConfig(mcp_client=mock_mcp, enable_logging=False)
         coordinator = StatelessCoordinator(config)
 
-        brief = Brief(problem_statement="Test correlation ID consistency across messages")
+        brief = Brief(
+            problem_statement="Test correlation ID consistency across messages"
+        )
         brain_ids = ["brain-01-product-strategy", "brain-02-ux-research"]
 
-        results = await coordinator.execute_flow(brief, brain_ids)
+        await coordinator.execute_flow(brief, brain_ids)
 
         # Extract all correlation_ids from message log
         correlation_ids = [env.correlation_id for env in coordinator.message_log]
 
         # All should be identical
-        assert len(set(correlation_ids)) == 1, "All messages should have same correlation_id"
+        assert (
+            len(set(correlation_ids)) == 1
+        ), "All messages should have same correlation_id"
 
         # Verify correlation_id is not empty
         assert correlation_ids[0] is not None

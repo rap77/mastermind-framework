@@ -13,18 +13,18 @@ OUTPUT_DIR = Path("dist/notebooklm/01-product-strategy")
 def remove_yaml_frontmatter(content: str) -> str:
     """Remove YAML front matter from markdown content."""
     # Match YAML delimiters (---) at the start
-    pattern = r'^---\n.*?\n---\n\n?'
-    result = re.sub(pattern, '', content, flags=re.DOTALL)
+    pattern = r"^---\n.*?\n---\n\n?"
+    result = re.sub(pattern, "", content, flags=re.DOTALL)
     return result
 
 
 def export_source(source_path: Path) -> None:
     """Export a single source file without YAML front matter."""
-    content = source_path.read_text(encoding='utf-8')
+    content = source_path.read_text(encoding="utf-8")
     clean_content = remove_yaml_frontmatter(content)
 
     output_path = OUTPUT_DIR / source_path.name
-    output_path.write_text(clean_content, encoding='utf-8')
+    output_path.write_text(clean_content, encoding="utf-8")
     print(f"✓ Exported: {source_path.name}")
 
 

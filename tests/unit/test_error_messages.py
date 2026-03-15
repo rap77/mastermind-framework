@@ -1,9 +1,12 @@
 """Unit tests for error message formatting."""
 
 import pytest
-from pydantic import ValidationError, Field
+from pydantic import ValidationError
 from mastermind_cli.types import CoordinatorRequest
-from mastermind_cli.utils.validation import format_validation_error, format_validation_error_compact
+from mastermind_cli.utils.validation import (
+    format_validation_error,
+    format_validation_error_compact,
+)
 
 
 def test_error_message_context():
@@ -11,7 +14,7 @@ def test_error_message_context():
     with pytest.raises(ValidationError) as exc_info:
         CoordinatorRequest(
             brief="",  # Invalid: min_length=1
-            max_iterations=15  # Invalid: le=10
+            max_iterations=15,  # Invalid: le=10
         )
 
     formatted = format_validation_error(exc_info.value)
@@ -28,7 +31,7 @@ def test_error_message_compact():
     with pytest.raises(ValidationError) as exc_info:
         CoordinatorRequest(
             brief="",  # Invalid: min_length=1
-            max_iterations=15  # Invalid: le=10
+            max_iterations=15,  # Invalid: le=10
         )
 
     compact = format_validation_error_compact(exc_info.value)
@@ -54,7 +57,7 @@ def test_error_message_shows_constraints():
     with pytest.raises(ValidationError) as exc_info:
         CoordinatorRequest(
             brief="Test",
-            max_iterations=15  # Invalid: le=10
+            max_iterations=15,  # Invalid: le=10
         )
 
     formatted = format_validation_error(exc_info.value)
@@ -67,7 +70,7 @@ def test_error_message_multiple_errors():
     with pytest.raises(ValidationError) as exc_info:
         CoordinatorRequest(
             brief="",  # Error 1
-            max_iterations=15  # Error 2
+            max_iterations=15,  # Error 2
         )
 
     formatted = format_validation_error(exc_info.value)

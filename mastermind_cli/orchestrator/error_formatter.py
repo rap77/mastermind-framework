@@ -35,10 +35,7 @@ class BrainErrorFormatter:
 
     @classmethod
     def format_error(
-        cls,
-        brain_id: str,
-        error: Exception,
-        include_traceback: bool = False
+        cls, brain_id: str, error: Exception, include_traceback: bool = False
     ) -> str:
         """Format error for user display.
 
@@ -68,25 +65,25 @@ class BrainErrorFormatter:
                 break
 
         # Build formatted message
-        lines = [
-            f"❌ Brain '{brain_id}' failed: {error_type}",
-            f"   {error_msg}"
-        ]
+        lines = [f"❌ Brain '{brain_id}' failed: {error_type}", f"   {error_msg}"]
 
         if hint:
             lines.append(f"   💡 Hint: {hint}")
 
         if include_traceback:
             import traceback
-            lines.append("\n" + "".join(traceback.format_exception(type(error), error, error.__traceback__)))
+
+            lines.append(
+                "\n"
+                + "".join(
+                    traceback.format_exception(type(error), error, error.__traceback__)
+                )
+            )
 
         return "\n".join(lines)
 
     @classmethod
-    def format_parallel_summary(
-        cls,
-        results: Dict[str, Dict[str, Any]]
-    ) -> str:
+    def format_parallel_summary(cls, results: Dict[str, Dict[str, Any]]) -> str:
         """Format summary of parallel execution results.
 
         This method creates a concise summary showing:

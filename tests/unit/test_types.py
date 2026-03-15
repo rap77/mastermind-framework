@@ -3,8 +3,8 @@ Type definition tests for MasterMind Framework v2.0.
 
 Tests Pydantic v2 models for all orchestration data structures.
 """
+
 import pytest
-from typing import get_type_hints
 
 
 class TestModuleImports:
@@ -17,24 +17,27 @@ class TestModuleImports:
 
         # Expected exports from each submodule
         expected_exports = {
-            'coordinator': ['CoordinatorRequest', 'CoordinatorResponse'],
-            'mcp': ['MCPRequest', 'MCPResponse'],
-            'brains': ['StandardSchema', 'normalize_brain_output'],
-            'config': ['BrainConfig', 'ConfigFile'],
-            'common': ['FlowType', 'EvaluationVerdict']
+            "coordinator": ["CoordinatorRequest", "CoordinatorResponse"],
+            "mcp": ["MCPRequest", "MCPResponse"],
+            "brains": ["StandardSchema", "normalize_brain_output"],
+            "config": ["BrainConfig", "ConfigFile"],
+            "common": ["FlowType", "EvaluationVerdict"],
         }
 
         # Check that submodule imports exist
         for submodule, exports in expected_exports.items():
             for export in exports:
                 # This will fail if the export doesn't exist
-                assert hasattr(types_module, export), f"Missing export: {export} from {submodule}"
+                assert hasattr(
+                    types_module, export
+                ), f"Missing export: {export} from {submodule}"
 
     def test_module_is_importable_without_errors(self):
         """Test that module is importable without errors."""
         # This test will FAIL if there are import errors
         try:
-            import mastermind_cli.types
+            import mastermind_cli.types  # noqa: F401
+
             assert True
         except ImportError as e:
             pytest.fail(f"Failed to import mastermind_cli.types: {e}")
@@ -65,7 +68,7 @@ class TestCoordinatorModels:
             dry_run=True,
             output_file="/tmp/output.md",
             max_iterations=5,
-            use_mcp=True
+            use_mcp=True,
         )
         assert request.flow == "discovery"
         assert request.dry_run is True
@@ -99,7 +102,7 @@ class TestCoordinatorModels:
             plan={"task": "build CRM"},
             results={"brain_1": "output"},
             output="Formatted output",
-            iterations=2
+            iterations=2,
         )
         assert response.status == "success"
         assert response.plan is not None
@@ -111,13 +114,14 @@ class TestCoordinatorModels:
     def test_coordinator_models_use_pydantic_v2_field_with_descriptions(self):
         """Test that models use Pydantic v2 Field with descriptions."""
         from mastermind_cli.types import CoordinatorRequest
-        from pydantic import Field
 
         # Check that fields have descriptions
-        request = CoordinatorRequest(brief="Test")
-        field_info = CoordinatorRequest.model_fields['brief']
+        field_info = CoordinatorRequest.model_fields["brief"]
         assert field_info.description is not None
-        assert "brief" in field_info.description.lower() or "text" in field_info.description.lower()
+        assert (
+            "brief" in field_info.description.lower()
+            or "text" in field_info.description.lower()
+        )
 
 
 class TestMCPModels:
@@ -140,7 +144,7 @@ class TestMCPModels:
             brain_id="brain-1",
             query="Test query",
             context={"project": "CRM", "user": "alice"},
-            timeout=60
+            timeout=60,
         )
         assert request.context is not None
         assert request.context["project"] == "CRM"
@@ -172,13 +176,13 @@ class TestMCPModels:
             response="Strategy output",
             success=True,
             unknown_field="preserved",  # This should be preserved
-            another_unknown=42
+            another_unknown=42,
         )
 
         # Extra fields should be preserved
-        assert hasattr(response, 'unknown_field')
+        assert hasattr(response, "unknown_field")
         assert response.unknown_field == "preserved"
-        assert hasattr(response, 'another_unknown')
+        assert hasattr(response, "another_unknown")
         assert response.another_unknown == 42
 
     def test_mcp_response_preserves_unknown_fields_from_notebooklm(self):
@@ -191,7 +195,7 @@ class TestMCPModels:
             "response": "Output",
             "success": True,
             "new_field_v2": "new value",  # Field added in NotebookLM v2
-            "metadata": {"source": "notebooklm", "version": "2.0"}
+            "metadata": {"source": "notebooklm", "version": "2.0"},
         }
 
         response = MCPResponse(**raw_data)
@@ -209,9 +213,7 @@ class TestBrainNormalization:
         from mastermind_cli.types import StandardSchema
 
         schema = StandardSchema(
-            brain_id="brain-1",
-            content="Strategy output",
-            version="v2.0.0"
+            brain_id="brain-1", content="Strategy output", version="v2.0.0"
         )
         assert schema.brain_id == "brain-1"
         assert schema.content == "Strategy output"
@@ -224,7 +226,7 @@ class TestBrainNormalization:
         schema = StandardSchema(
             brain_id="brain-1",
             content="Output",
-            raw_fallback="Original unparseable text"
+            raw_fallback="Original unparseable text",
         )
         assert schema.raw_fallback == "Original unparseable text"
 
@@ -274,21 +276,17 @@ class TestDiscriminatedUnions:
 
     def test_brain_config_validates_based_on_type_field_discriminator(self):
         """Test that BrainConfig validates based on type field discriminator."""
-        from mastermind_cli.types import BrainConfig, VectorSearchBrain, GenerativeBrain
+        from mastermind_cli.types import VectorSearchBrain, GenerativeBrain
 
         # Vector search brain
         vector_config = VectorSearchBrain(
-            type="vector-search",
-            top_k=10,
-            embedding_model="text-embedding-ada-002"
+            type="vector-search", top_k=10, embedding_model="text-embedding-ada-002"
         )
         assert isinstance(vector_config, VectorSearchBrain)
 
         # Generative brain
         generative_config = GenerativeBrain(
-            type="generative",
-            temperature=0.7,
-            max_tokens=1000
+            type="generative", temperature=0.7, max_tokens=1000
         )
         assert isinstance(generative_config, GenerativeBrain)
 
@@ -313,7 +311,9 @@ class TestDiscriminatedUnions:
         assert config.embedding_model == "text-embedding-ada-002"  # Default
 
         # Can override default
-        config2 = VectorSearchBrain(type="vector-search", top_k=10, embedding_model="custom-model")
+        config2 = VectorSearchBrain(
+            type="vector-search", top_k=10, embedding_model="custom-model"
+        )
         assert config2.embedding_model == "custom-model"
 
     def test_generative_brain_requires_temperature_and_max_tokens(self):
@@ -339,23 +339,18 @@ class TestDiscriminatedUnions:
     def test_discriminated_union_selects_correct_model_based_on_type_field(self):
         """Test that discriminated union selects correct model based on type field."""
         from mastermind_cli.types import VectorSearchBrain, GenerativeBrain
-        from pydantic import ValidationError
 
         # Valid vector-search config
-        config1 = VectorSearchBrain.model_validate({
-            "type": "vector-search",
-            "top_k": 5,
-            "embedding_model": "model-1"
-        })
+        config1 = VectorSearchBrain.model_validate(
+            {"type": "vector-search", "top_k": 5, "embedding_model": "model-1"}
+        )
         assert config1.type == "vector-search"
         assert config1.top_k == 5
 
         # Valid generative config
-        config2 = GenerativeBrain.model_validate({
-            "type": "generative",
-            "temperature": 0.8,
-            "max_tokens": 500
-        })
+        config2 = GenerativeBrain.model_validate(
+            {"type": "generative", "temperature": 0.8, "max_tokens": 500}
+        )
         assert config2.type == "generative"
         assert config2.temperature == 0.8
 
@@ -365,10 +360,12 @@ class TestDiscriminatedUnions:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError) as exc_info:
-            VectorSearchBrain.model_validate({
-                "type": "unknown-type",  # Invalid literal
-                "top_k": 5
-            })
+            VectorSearchBrain.model_validate(
+                {
+                    "type": "unknown-type",  # Invalid literal
+                    "top_k": 5,
+                }
+            )
 
         # Error should mention the invalid literal value
         error_str = str(exc_info.value)

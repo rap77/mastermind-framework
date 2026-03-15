@@ -23,24 +23,40 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
 from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
 from mastermind_cli.auth.api_keys import validate_api_key
 from mastermind_cli.brain_registry import BrainRegistry
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 
 @click.group()
-def orchestrate():
+def orchestrate() -> None:
     """Orchestrate brains to process user briefs."""
     pass
 
 
 @orchestrate.command()
-@click.argument('brief', required=False)
-@click.option('--file', '-f', type=click.Path(exists=True), help='Read brief from file')
-@click.option('--brains', '-b', help='Comma-separated list of brain IDs (e.g., brain-01-product-strategy,brain-02-ux-research)')
-@click.option('--dry-run', is_flag=True, help='Generate plan without executing')
-@click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls (requires nlm CLI)')
-@click.option('--output', '-o', type=click.Path(), help='Save output to file')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def run(brief, file, brains, dry_run, use_mcp, output, verbose):
+@click.argument("brief", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read brief from file")
+@click.option(
+    "--brains",
+    "-b",
+    help="Comma-separated list of brain IDs (e.g., brain-01-product-strategy,brain-02-ux-research)",
+)
+@click.option("--dry-run", is_flag=True, help="Generate plan without executing")
+@click.option(
+    "--use-mcp",
+    is_flag=True,
+    help="Use MCP for real NotebookLM calls (requires nlm CLI)",
+)
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+def run(
+    brief: str | None,
+    file: str | None,
+    brains: str | None,
+    dry_run: bool,
+    use_mcp: bool,
+    output: str | None,
+    verbose: bool,
+) -> None:
     """Orchestrate brains to process user brief (Pure Function Architecture v2.0).
 
     \b
@@ -92,15 +108,18 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
     # 2. GET BRIEF TEXT
     # ========================================================================
     if file:
-        with open(file, 'r') as f:
+        with open(file, "r") as f:
             brief_text = f.read().strip()
     elif brief:
         brief_text = brief
     else:
-        brief_text = click.get_text_stream('stdin').read().strip()
+        brief_text = click.get_text_stream("stdin").read().strip()
 
     if not brief_text:
-        click.echo("❌ Error: No brief provided. Use --file, provide argument, or pipe via stdin.", err=True)
+        click.echo(
+            "❌ Error: No brief provided. Use --file, provide argument, or pipe via stdin.",
+            err=True,
+        )
         click.echo("\nExamples:")
         click.echo("  mm orchestrate run 'your brief here'")
         click.echo("  mm orchestrate run --file brief.md")
@@ -111,17 +130,21 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
     # 3. CREATE BRIEF MODEL (Pydantic validation)
     # ========================================================================
     try:
-        brief_model = Brief(problem_statement=brief_text)
+        brief_model = Brief(
+            problem_statement=brief_text, context="", target_audience=None
+        )
     except ValidationError as e:
         click.echo(f"❌ Validation Error: {e}", err=True)
-        click.echo("\nHint: Brief must have at least 3 words and 10 characters", err=True)
+        click.echo(
+            "\nHint: Brief must have at least 3 words and 10 characters", err=True
+        )
         raise click.Abort()
 
     # ========================================================================
     # 4. DETERMINE WHICH BRAINS TO EXECUTE
     # ========================================================================
     if brains:
-        brain_ids = [b.strip() for b in brains.split(',')]
+        brain_ids = [b.strip() for b in brains.split(",")]
     else:
         # Auto-detect based on brief content (simple heuristic for now)
         # In production, Brain #8 (Master Interviewer) would determine this
@@ -133,17 +156,22 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
     # 5. CREATE STATELESS COORDINATOR (per-request instance)
     # ========================================================================
     # Change to project root directory
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    )
     os.chdir(project_root)
 
     # Create MCP client (MCPIntegration implements the MCPClient protocol)
-    mcp_client = MCPIntegration(use_mcp=use_mcp)
+    mcp_integration = MCPIntegration(use_mcp=use_mcp)
+
+    # Wrap in TypeSafeMCPWrapper for protocol compliance
+    from ..orchestrator.mcp_wrapper import TypeSafeMCPWrapper
+
+    mcp_client = TypeSafeMCPWrapper(mcp_integration)
 
     # Create coordinator config
     config = CoordinatorConfig(
-        mcp_client=mcp_client,
-        enable_logging=verbose,
-        brain_registry=BrainRegistry()
+        mcp_client=mcp_client, enable_logging=verbose, brain_registry=BrainRegistry()
     )
 
     # Create NEW coordinator instance for this request (stateless)
@@ -182,11 +210,14 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
         click.echo("✅ Execution Complete")
         click.echo("=" * 60)
 
-        for brain_id, output in results.items():
+        for brain_id, brain_output in results.items():
             click.echo(f"\n🧠 {brain_id}")
             click.echo("-" * 60)
             # Pretty print the output
-            output_dict = output.model_dump()
+            if not isinstance(brain_output, BaseModel):
+                click.echo(f"  {brain_output}")
+                continue
+            output_dict = brain_output.model_dump()
             for key, value in output_dict.items():
                 if key == "generated_at":
                     continue  # Skip timestamp
@@ -206,21 +237,22 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
 
             # Convert results to dict
             results_dict = {
-                brain_id: output.model_dump()
-                for brain_id, output in results.items()
+                brain_id: brain_output.model_dump()
+                for brain_id, brain_output in results.items()
             }
 
             output_path = Path(output)
-            if output_path.suffix == '.json':
-                with open(output_path, 'w') as f:
+            if output_path.suffix == ".json":
+                with open(output_path, "w") as f:
                     json.dump(results_dict, f, indent=2, default=str)
-            elif output_path.suffix in ['.yaml', '.yml']:
+            elif output_path.suffix in [".yaml", ".yml"]:
                 import yaml
-                with open(output_path, 'w') as f:
+
+                with open(output_path, "w") as f:
                     yaml.dump(results_dict, f, default_flow_style=False)
             else:
                 # Default to JSON
-                with open(output_path, 'w') as f:
+                with open(output_path, "w") as f:
                     json.dump(results_dict, f, indent=2, default=str)
 
             click.echo(f"\n✅ Output saved to: {output}")
@@ -232,43 +264,56 @@ def run(brief, file, brains, dry_run, use_mcp, output, verbose):
         click.echo(f"❌ Error: {e}", err=True)
         if verbose:
             import traceback
+
             click.echo("\n" + traceback.format_exc(), err=True)
         sys.exit(1)
     except Exception as e:
         click.echo(f"❌ Orchestration failed: {str(e)}", err=True)
         if verbose:
             import traceback
+
             click.echo("\n" + traceback.format_exc(), err=True)
         sys.exit(1)
 
 
 # Alias for shorter command
 @orchestrate.command()
-@click.argument('brief', required=False)
-@click.option('--file', '-f', type=click.Path(exists=True), help='Read brief from file')
-@click.option('--brains', '-b', help='Comma-separated list of brain IDs')
-@click.option('--dry-run', is_flag=True, help='Generate plan without executing')
-@click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls')
-@click.option('--output', '-o', type=click.Path(), help='Save output to file')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def go(brief, file, brains, dry_run, use_mcp, output, verbose):
+@click.argument("brief", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read brief from file")
+@click.option("--brains", "-b", help="Comma-separated list of brain IDs")
+@click.option("--dry-run", is_flag=True, help="Generate plan without executing")
+@click.option("--use-mcp", is_flag=True, help="Use MCP for real NotebookLM calls")
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+def go(
+    brief: str | None,
+    file: str | None,
+    brains: str | None,
+    dry_run: bool,
+    use_mcp: bool,
+    output: str | None,
+    verbose: bool,
+) -> None:
     """Quick command to orchestrate (alias for 'run')."""
     # Forward all arguments to the run command
-    args = [
-        brief if brief else (),
-        '--file' if file else (),
-        file if file else (),
-        '--brains' if brains else (),
-        brains if brains else (),
-        '--dry-run' if dry_run else (),
-        '--use-mcp' if use_mcp else (),
-        '--output' if output else (),
-        output if output else (),
-        '--verbose' if verbose else (),
+    args_list: list[str | None] = [
+        brief or None,
+        "--file" if file else None,
+        file or None,
+        "--brains" if brains else None,
+        brains or None,
+        "--dry-run" if dry_run else None,
+        "--use-mcp" if use_mcp else None,
+        "--output" if output else None,
+        output or None,
+        "--verbose" if verbose else None,
     ]
-    # Flatten arguments and filter out empty tuples
-    args = [arg for arg in args if arg not in ((), None, False)]
+    # Flatten arguments and filter out None values
+    filtered_args: list[str] = [arg for arg in args_list if arg is not None]
     # Remove flags that don't need values
-    args = [arg for arg in args if arg not in ('--file', '--brains', '--output')]
+    filtered_args = [
+        arg for arg in filtered_args if arg not in ("--file", "--brains", "--output")
+    ]
     # Invoke with context
-    run.invoke(args, standalone_mode=False)
+    ctx = run.make_context("run", filtered_args)
+    run.invoke(ctx)

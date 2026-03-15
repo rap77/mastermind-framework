@@ -5,7 +5,6 @@ Tests will be implemented after Plan 02 Task 2.
 Requirements: UI-02, UI-03
 """
 
-import pytest
 from playwright.sync_api import Page, expect
 
 

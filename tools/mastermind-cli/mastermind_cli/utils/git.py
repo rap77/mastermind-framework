@@ -3,7 +3,6 @@
 import os
 from typing import Optional
 from git import Repo, InvalidGitRepositoryError
-from pathlib import Path
 
 
 def get_repo(path: str = ".") -> Repo:
@@ -25,9 +24,7 @@ def get_repo(path: str = ".") -> Repo:
         raise ValueError(f"Not a git repository: {path}")
 
 
-def git_commit(
-    filepath: str, message: str, repo: Optional[Repo] = None
-) -> str:
+def git_commit(filepath: str, message: str, repo: Optional[Repo] = None) -> str:
     """
     Create git commit for file change.
 

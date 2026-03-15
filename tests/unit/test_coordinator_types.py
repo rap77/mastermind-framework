@@ -16,7 +16,9 @@ class TestCoordinatorTypeHints:
         """Test Coordinator.__init__ has type hints."""
         # Create coordinator with various parameters
         formatter = OutputFormatter()
-        coordinator1 = Coordinator(formatter=formatter, use_mcp=False, enable_logging=True)
+        coordinator1 = Coordinator(
+            formatter=formatter, use_mcp=False, enable_logging=True
+        )
         coordinator2 = Coordinator(use_mcp=True)
         coordinator3 = Coordinator()
 
@@ -35,7 +37,7 @@ class TestCoordinatorTypeHints:
             dry_run=True,
             output_file=None,
             max_iterations=3,
-            use_mcp=False
+            use_mcp=False,
         )
 
         assert isinstance(result, dict)
@@ -46,8 +48,7 @@ class TestCoordinatorTypeHints:
         coordinator = Coordinator()
 
         result = coordinator.orchestrate(
-            brief="Test brief for type checking",
-            dry_run=True
+            brief="Test brief for type checking", dry_run=True
         )
 
         # Result should be a dict with expected keys
@@ -65,11 +66,14 @@ class TestCoordinatorTypeHints:
         error = coordinator._error_report("Test error")
         assert isinstance(error, dict)
 
-    @pytest.mark.parametrize("brief,expected_flow", [
-        ("I want a mobile app", "full_product"),
-        ("Validate this idea", "validation_only"),
-        ("Create a SaaS platform", "full_product"),
-    ])
+    @pytest.mark.parametrize(
+        "brief,expected_flow",
+        [
+            ("I want a mobile app", "full_product"),
+            ("Validate this idea", "validation_only"),
+            ("Create a SaaS platform", "full_product"),
+        ],
+    )
     def test_detect_flow_return_type(self, brief: str, expected_flow: str):
         """Test _detect_flow returns str."""
         coordinator = Coordinator()

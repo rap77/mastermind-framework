@@ -19,13 +19,30 @@ def orchestrate():
 
 
 @orchestrate.command()
-@click.argument('brief', required=False)
-@click.option('--file', '-f', type=click.Path(exists=True), help='Read brief from file')
-@click.option('--flow', type=click.Choice(['full_product', 'validation_only', 'design_sprint', 'build_feature', 'optimization', 'technical_review']), help='Force specific flow')
-@click.option('--dry-run', is_flag=True, help='Generate plan without executing')
-@click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls (requires Claude Code environment)')
-@click.option('--output', '-o', type=click.Path(), help='Save output to file')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
+@click.argument("brief", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read brief from file")
+@click.option(
+    "--flow",
+    type=click.Choice(
+        [
+            "full_product",
+            "validation_only",
+            "design_sprint",
+            "build_feature",
+            "optimization",
+            "technical_review",
+        ]
+    ),
+    help="Force specific flow",
+)
+@click.option("--dry-run", is_flag=True, help="Generate plan without executing")
+@click.option(
+    "--use-mcp",
+    is_flag=True,
+    help="Use MCP for real NotebookLM calls (requires Claude Code environment)",
+)
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 def run(brief, file, flow, dry_run, use_mcp, output, verbose):
     """Orchestrate brains to process user brief.
 
@@ -61,16 +78,19 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
     """
     # Get brief from file or argument
     if file:
-        with open(file, 'r') as f:
+        with open(file, "r") as f:
             brief_text = f.read().strip()
     elif brief:
         brief_text = brief
     else:
         # Read from stdin
-        brief_text = click.get_text_stream('stdin').read().strip()
+        brief_text = click.get_text_stream("stdin").read().strip()
 
     if not brief_text:
-        click.echo("Error: No brief provided. Use --file, provide argument, or pipe via stdin.", err=True)
+        click.echo(
+            "Error: No brief provided. Use --file, provide argument, or pipe via stdin.",
+            err=True,
+        )
         click.echo("\nExamples:")
         click.echo("  mm orchestrate run 'your brief here'")
         click.echo("  mm orchestrate run --file brief.md")
@@ -78,7 +98,9 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         raise click.Abort()
 
     # Change to project root directory
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    )
     os.chdir(project_root)
 
     # Show MCP status
@@ -106,21 +128,23 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
             flow=flow,
             dry_run=dry_run,
             output_file=output,
-            use_mcp=use_mcp
+            use_mcp=use_mcp,
         )
 
         # Handle result
-        if result.get('status') == 'error':
-            click.echo(formatter.format_error(result['error']), err=True)
+        if result.get("status") == "error":
+            click.echo(formatter.format_error(result["error"]), err=True)
             sys.exit(1)
 
-        elif result.get('status') == 'dry_run_complete':
+        elif result.get("status") == "dry_run_complete":
             # Print execution plan
-            click.echo(result['output'])
+            click.echo(result["output"])
             click.echo("")
-            click.echo("ℹ️  Dry run complete. Use without --dry-run to execute.", err=True)
+            click.echo(
+                "ℹ️  Dry run complete. Use without --dry-run to execute.", err=True
+            )
 
-        elif result.get('status') == 'completed':
+        elif result.get("status") == "completed":
             # Results already printed during execution
             if output:
                 click.echo(f"\n✅ Output saved to: {output}")
@@ -129,6 +153,7 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
         click.echo(formatter.format_error(f"Orchestration failed: {str(e)}"), err=True)
         if verbose:
             import traceback
+
             click.echo("\n" + traceback.format_exc(), err=True)
         sys.exit(1)
 
@@ -136,37 +161,60 @@ def run(brief, file, flow, dry_run, use_mcp, output, verbose):
 # Alias for shorter command
 # Alias for shorter command
 @orchestrate.command()
-@click.argument('brief', required=False)
-@click.option('--file', '-f', type=click.Path(exists=True), help='Read brief from file')
-@click.option('--flow', type=click.Choice(['full_product', 'validation_only', 'design_sprint', 'build_feature', 'optimization', 'technical_review']), help='Force specific flow')
-@click.option('--dry-run', is_flag=True, help='Generate plan without executing')
-@click.option('--use-mcp', is_flag=True, help='Use MCP for real NotebookLM calls (requires Claude Code environment)')
-@click.option('--output', '-o', type=click.Path(), help='Save output to file')
-@click.option('--verbose', '-v', is_flag=True, help='Verbose output')
+@click.argument("brief", required=False)
+@click.option("--file", "-f", type=click.Path(exists=True), help="Read brief from file")
+@click.option(
+    "--flow",
+    type=click.Choice(
+        [
+            "full_product",
+            "validation_only",
+            "design_sprint",
+            "build_feature",
+            "optimization",
+            "technical_review",
+        ]
+    ),
+    help="Force specific flow",
+)
+@click.option("--dry-run", is_flag=True, help="Generate plan without executing")
+@click.option(
+    "--use-mcp",
+    is_flag=True,
+    help="Use MCP for real NotebookLM calls (requires Claude Code environment)",
+)
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 def go(brief, file, flow, dry_run, use_mcp, output, verbose):
     """Quick command to orchestrate (same as 'run')."""
     # Call the run command with the same arguments
-    ctx = click.Context(run)
-    run.invoke(brief, file=file, flow=flow, dry_run=dry_run, use_mcp=use_mcp, output=output, verbose=verbose)
+    run.invoke(
+        brief,
+        file=file,
+        flow=flow,
+        dry_run=dry_run,
+        use_mcp=use_mcp,
+        output=output,
+        verbose=verbose,
+    )
 
 
 @orchestrate.command()
-@click.argument('plan_file', type=click.Path(exists=True))
-@click.option('--output', '-o', type=click.Path(), help='Save output to file')
+@click.argument("plan_file", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
 def continue_plan(plan_file, output):
     """Continue execution from a saved plan."""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    )
     os.chdir(project_root)
 
     coordinator = Coordinator()
 
     try:
-        result = coordinator.continue_plan(
-            plan_id="continued",
-            plan_file=plan_file
-        )
+        result = coordinator.continue_plan(plan_id="continued", plan_file=plan_file)
 
-        if result.get('status') == 'error':
+        if result.get("status") == "error":
             click.echo(f"❌ Error: {result['error']}", err=True)
             sys.exit(1)
 

@@ -23,6 +23,7 @@ from mastermind_cli.types.interfaces import BrainInput, BrainOutput
 # MESSAGE TYPE ENUM
 # =============================================================================
 
+
 class BrainOutputType(str, Enum):
     """Message types from ROADMAP YAML specification.
 
@@ -43,6 +44,7 @@ class BrainOutputType(str, Enum):
 # INTERNAL MESSAGE CONTENT
 # =============================================================================
 
+
 class BrainMessage(BaseModel):
     """Internal message content (YAML-based from ROADMAP).
 
@@ -62,8 +64,7 @@ class BrainMessage(BaseModel):
     to_brain: str = Field(..., description="Destination brain ID")
     type: BrainOutputType = Field(..., description="Message type")
     content: Dict[str, Any] = Field(
-        ...,
-        description="Message payload (summary, detail, assumptions, dependencies)"
+        ..., description="Message payload (summary, detail, assumptions, dependencies)"
     )
     task_id: str = Field(..., description="Unique task identifier")
     version: str = Field(default="2.0.0", description="Protocol version")
@@ -72,6 +73,7 @@ class BrainMessage(BaseModel):
 # =============================================================================
 # TRANSPORT ENVELOPE
 # =============================================================================
+
 
 class BrainEnvelope(BaseModel):
     """Transport envelope with metadata (Hybrid pattern).
@@ -90,7 +92,7 @@ class BrainEnvelope(BaseModel):
     correlation_id: str = Field(..., description="Links related messages in flow")
     transport_metadata: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Transport metadata (latency, retries, timestamps)"
+        description="Transport metadata (latency, retries, timestamps)",
     )
 
     @classmethod
@@ -101,7 +103,7 @@ class BrainEnvelope(BaseModel):
         payload: Union[BrainInput, BrainOutput],
         correlation_id: str,
         task_id: str,
-        message_type: BrainOutputType = BrainOutputType.OUTPUT
+        message_type: BrainOutputType = BrainOutputType.OUTPUT,
     ) -> "BrainEnvelope":
         """Factory to create envelope from brain payload.
 
@@ -133,7 +135,7 @@ class BrainEnvelope(BaseModel):
             content = {
                 "summary": f"Input from {from_brain}",
                 "detail": payload.brief.problem_statement,
-                "context": payload.additional_context
+                "context": payload.additional_context,
             }
         elif isinstance(payload, BrainOutput):
             # Extract first 200 chars for summary
@@ -142,7 +144,7 @@ class BrainEnvelope(BaseModel):
             content = {
                 "summary": content_preview,
                 "detail": payload.model_dump_json(),
-                "metadata": payload.model_dump()
+                "metadata": payload.model_dump(),
             }
         else:
             # Fallback for unknown types
@@ -153,19 +155,20 @@ class BrainEnvelope(BaseModel):
             to_brain=to_brain,
             type=message_type,
             content=content,
-            task_id=task_id
+            task_id=task_id,
         )
 
         return cls(
             message=message,
             correlation_id=correlation_id,
-            transport_metadata={"created_at": datetime.now(timezone.utc).isoformat()}
+            transport_metadata={"created_at": datetime.now(timezone.utc).isoformat()},
         )
 
 
 # =============================================================================
 # SMART REFERENCE (v3.0 STUB)
 # =============================================================================
+
 
 class SmartReference(BaseModel):
     """Lazy-loading reference to parent brain output.
@@ -183,12 +186,10 @@ class SmartReference(BaseModel):
     parent_brain_id: str = Field(..., description="Parent brain ID")
     correlation_id: str = Field(..., description="Flow correlation ID")
     cached_output: Optional[BrainOutput] = Field(
-        default=None,
-        exclude=True,
-        description="Cached output (not serialized)"
+        default=None, exclude=True, description="Cached output (not serialized)"
     )
 
-    async def get_parent_output(self, mcp_client) -> BrainOutput:
+    async def get_parent_output(self, mcp_client: Any) -> BrainOutput:
         """Resolve parent output on-demand (prevents unnecessary API calls).
 
         NOTE: This is a stub implementation for v3.0.

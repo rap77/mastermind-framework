@@ -5,7 +5,7 @@ This module defines the ExperienceRecord schema for storing brain executions
 with PII redaction, JSONB storage, and lineage tracking for v3.0 ML readiness.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import Optional, Any
 import hashlib
@@ -39,20 +39,35 @@ class ExperienceRecord(BaseModel):
     id: str = Field(..., description="Unique record identifier (UUID4)")
     brain_id: str = Field(..., description="Brain being executed")
     input_hash: str = Field(..., description="SHA256 of input_json for deduplication")
-    output_json: dict[str, Any] = Field(..., description="Complete output from brain (redacted)")
+    output_json: dict[str, Any] = Field(
+        ..., description="Complete output from brain (redacted)"
+    )
     timestamp: str = Field(..., description="ISO 8601 timestamp (UTC)")
-    duration_ms: int = Field(..., ge=0, description="Execution duration in milliseconds")
-    status: str = Field(..., pattern="^(success|failure|timeout)$", description="Execution status")
+    duration_ms: int = Field(
+        ..., ge=0, description="Execution duration in milliseconds"
+    )
+    status: str = Field(
+        ..., pattern="^(success|failure|timeout)$", description="Execution status"
+    )
 
     # Lineage fields
-    parent_brain_id: Optional[str] = Field(None, description="Parent brain that triggered this execution")
-    trace_context_id: Optional[str] = Field(None, description="Trace context for distributed tracing")
+    parent_brain_id: Optional[str] = Field(
+        None, description="Parent brain that triggered this execution"
+    )
+    trace_context_id: Optional[str] = Field(
+        None, description="Trace context for distributed tracing"
+    )
 
     # v3.0 placeholder (NULL for now, pgvector in future)
-    embedding_stub: Optional[bytes] = Field(None, description="Placeholder for v3.0 pgvector embeddings")
+    embedding_stub: Optional[bytes] = Field(
+        None, description="Placeholder for v3.0 pgvector embeddings"
+    )
 
     # Extensible metadata for brain-specific metrics
-    custom_metadata: dict[str, Any] = Field(default_factory=dict, description="Extensible metadata for brain-specific metrics")
+    custom_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Extensible metadata for brain-specific metrics",
+    )
 
     @classmethod
     def create_hash(cls, input_json: dict[str, Any]) -> str:
@@ -80,7 +95,8 @@ class ExperienceRecord(BaseModel):
         status: str,
         parent_brain_id: Optional[str] = None,
         trace_context_id: Optional[str] = None,
-        custom_metadata: dict[str, Any] = {}
+        custom_metadata: dict[str, Any] | None = None,
+        embedding_stub: Optional[bytes] = None,
     ) -> "ExperienceRecord":
         """Factory method with auto-generated fields.
 
@@ -97,6 +113,9 @@ class ExperienceRecord(BaseModel):
         Returns:
             ExperienceRecord instance with auto-generated id, input_hash, timestamp
         """
+        if custom_metadata is None:
+            custom_metadata = {}
+
         return cls(
             id=str(uuid.uuid4()),
             brain_id=brain_id,
@@ -107,5 +126,6 @@ class ExperienceRecord(BaseModel):
             status=status,
             parent_brain_id=parent_brain_id,
             trace_context_id=trace_context_id,
-            custom_metadata=custom_metadata
+            custom_metadata=custom_metadata,
+            embedding_stub=embedding_stub,
         )

@@ -2,14 +2,12 @@
 Unit tests for brain_registry.py
 """
 
-import pytest
 import yaml
-from pathlib import Path
 from mastermind_cli.brain_registry import (
     load_brain_configs,
     get_brain,
     list_active_brains,
-    get_brain_count
+    get_brain_count,
 )
 
 

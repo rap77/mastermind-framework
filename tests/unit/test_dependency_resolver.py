@@ -40,7 +40,7 @@ class TestProviderConfig:
             name="custom-provider",
             max_concurrent_calls=5,
             retry_attempts=5,
-            backoff_base=2.0
+            backoff_base=2.0,
         )
 
         assert config.name == "custom-provider"
@@ -98,11 +98,7 @@ class TestFlowConfig:
         """Test FlowConfig accepts valid simple DAG."""
         flow = FlowConfig(
             flow_id="test-flow",
-            nodes={
-                "brain-01": [],
-                "brain-02": ["brain-01"],
-                "brain-03": ["brain-02"]
-            }
+            nodes={"brain-01": [], "brain-02": ["brain-01"], "brain-03": ["brain-02"]},
         )
 
         assert flow.flow_id == "test-flow"
@@ -117,8 +113,8 @@ class TestFlowConfig:
                 "brain-02": [],
                 "brain-03": ["brain-01"],
                 "brain-04": ["brain-02"],
-                "brain-05": ["brain-03", "brain-04"]
-            }
+                "brain-05": ["brain-03", "brain-04"],
+            },
         )
 
         assert flow.flow_id == "parallel-flow"
@@ -136,10 +132,7 @@ class TestFlowConfig:
         with pytest.raises(ValidationError) as exc_info:
             FlowConfig(
                 flow_id="cyclic-flow",
-                nodes={
-                    "brain-A": ["brain-B"],
-                    "brain-B": ["brain-A"]
-                }
+                nodes={"brain-A": ["brain-B"], "brain-B": ["brain-A"]},
             )
 
         error_msg = str(exc_info.value)
@@ -148,12 +141,7 @@ class TestFlowConfig:
     def test_flow_config_validation_self_cycle(self):
         """Test FlowConfig rejects self-cycle (A→A)."""
         with pytest.raises(ValidationError) as exc_info:
-            FlowConfig(
-                flow_id="self-cycle-flow",
-                nodes={
-                    "brain-A": ["brain-A"]
-                }
-            )
+            FlowConfig(flow_id="self-cycle-flow", nodes={"brain-A": ["brain-A"]})
 
         error_msg = str(exc_info.value)
         assert "cycle" in error_msg.lower() or "cyclic" in error_msg.lower()
@@ -166,8 +154,8 @@ class TestFlowConfig:
                 nodes={
                     "brain-A": ["brain-B"],
                     "brain-B": ["brain-C"],
-                    "brain-C": ["brain-A"]
-                }
+                    "brain-C": ["brain-A"],
+                },
             )
 
         error_msg = str(exc_info.value)
@@ -180,7 +168,7 @@ class TestFlowConfig:
                 flow_id="missing-dep-flow",
                 nodes={
                     "brain-A": ["brain-B"]  # brain-B doesn't exist
-                }
+                },
             )
 
         error_msg = str(exc_info.value)
@@ -190,11 +178,7 @@ class TestFlowConfig:
         """Test get_execution_order returns valid topological sort."""
         flow = FlowConfig(
             flow_id="simple-order",
-            nodes={
-                "brain-01": [],
-                "brain-02": ["brain-01"],
-                "brain-03": ["brain-02"]
-            }
+            nodes={"brain-01": [], "brain-02": ["brain-01"], "brain-03": ["brain-02"]},
         )
 
         order = flow.get_execution_order()
@@ -211,8 +195,8 @@ class TestFlowConfig:
                 "brain-01": [],
                 "brain-02": [],
                 "brain-03": ["brain-01", "brain-02"],
-                "brain-04": ["brain-03"]
-            }
+                "brain-04": ["brain-03"],
+            },
         )
 
         order = flow.get_execution_order()
@@ -227,11 +211,7 @@ class TestFlowConfig:
     def test_flow_config_get_execution_order_caching(self):
         """Test get_execution_order caches result."""
         flow = FlowConfig(
-            flow_id="cache-test",
-            nodes={
-                "brain-01": [],
-                "brain-02": ["brain-01"]
-            }
+            flow_id="cache-test", nodes={"brain-01": [], "brain-02": ["brain-01"]}
         )
 
         order1 = flow.get_execution_order()
@@ -242,19 +222,14 @@ class TestFlowConfig:
 
     def test_flow_config_description_default(self):
         """Test FlowConfig description defaults to empty string."""
-        flow = FlowConfig(
-            flow_id="test-flow",
-            nodes={}
-        )
+        flow = FlowConfig(flow_id="test-flow", nodes={})
 
         assert flow.description == ""
 
     def test_flow_config_description_custom(self):
         """Test FlowConfig accepts custom description."""
         flow = FlowConfig(
-            flow_id="test-flow",
-            nodes={},
-            description="A test flow for validation"
+            flow_id="test-flow", nodes={}, description="A test flow for validation"
         )
 
         assert flow.description == "A test flow for validation"
@@ -271,8 +246,8 @@ class TestFlowConfigEdgeCases:
                 "brain-A": [],
                 "brain-B": ["brain-A"],
                 "brain-C": ["brain-A"],
-                "brain-D": ["brain-B", "brain-C"]
-            }
+                "brain-D": ["brain-B", "brain-C"],
+            },
         )
 
         order = flow.get_execution_order()
@@ -291,8 +266,8 @@ class TestFlowConfigEdgeCases:
                 "chain1-B": ["chain1-A"],
                 "chain2-A": [],
                 "chain2-B": ["chain2-A"],
-                "chain2-C": ["chain2-B"]
-            }
+                "chain2-C": ["chain2-B"],
+            },
         )
 
         order = flow.get_execution_order()
@@ -313,7 +288,11 @@ class TestDependencyResolver:
         """Create mock brain registry with available brains."""
         registry = mocker.Mock()
         registry.list_brains.return_value = [
-            "brain-01", "brain-02", "brain-03", "brain-04", "brain-05"
+            "brain-01",
+            "brain-02",
+            "brain-03",
+            "brain-04",
+            "brain-05",
         ]
         return registry
 
@@ -324,11 +303,7 @@ class TestDependencyResolver:
 
         flow = FlowConfig(
             flow_id="linear-flow",
-            nodes={
-                "brain-01": [],
-                "brain-02": ["brain-01"],
-                "brain-03": ["brain-02"]
-            }
+            nodes={"brain-01": [], "brain-02": ["brain-01"], "brain-03": ["brain-02"]},
         )
 
         resolver = DependencyResolver(mock_brain_registry)
@@ -353,8 +328,8 @@ class TestDependencyResolver:
                 "brain-02": [],
                 "brain-03": ["brain-01"],
                 "brain-04": ["brain-02"],
-                "brain-05": ["brain-03", "brain-04"]
-            }
+                "brain-05": ["brain-03", "brain-04"],
+            },
         )
 
         resolver = DependencyResolver(mock_brain_registry)
@@ -387,8 +362,8 @@ class TestDependencyResolver:
                 "brain-01": [],
                 "brain-02": ["brain-01"],
                 "brain-03": ["brain-01"],
-                "brain-04": ["brain-02", "brain-03"]
-            }
+                "brain-04": ["brain-02", "brain-03"],
+            },
         )
 
         resolver = DependencyResolver(mock_brain_registry)
@@ -418,8 +393,8 @@ class TestDependencyResolver:
             flow_id="invalid-brain-flow",
             nodes={
                 "brain-01": [],
-                "brain-99": ["brain-01"]  # brain-99 doesn't exist
-            }
+                "brain-99": ["brain-01"],  # brain-99 doesn't exist
+            },
         )
 
         resolver = DependencyResolver(mock_brain_registry)
@@ -456,8 +431,8 @@ class TestDependencyResolver:
                 "brain-02": [],
                 "brain-03": [],
                 "brain-04": ["brain-01", "brain-02", "brain-03"],
-                "brain-05": ["brain-04"]
-            }
+                "brain-05": ["brain-04"],
+            },
         )
 
         resolver = DependencyResolver(mock_brain_registry)
@@ -478,10 +453,10 @@ class TestExecutionGraph:
         graph = ExecutionGraph(
             levels=[
                 ExecutionLevel(wave_number=0, brain_ids=["brain-01", "brain-02"]),
-                ExecutionLevel(wave_number=1, brain_ids=["brain-03"])
+                ExecutionLevel(wave_number=1, brain_ids=["brain-03"]),
             ],
             total_brains=3,
-            max_parallelism=2
+            max_parallelism=2,
         )
 
         assert len(graph.levels) == 2

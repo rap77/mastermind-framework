@@ -11,10 +11,7 @@ class MockCoordinator:
 
     @validate_call
     def _process_brain_evaluation(
-        self,
-        brain_id: str,
-        score: float,
-        issues: list[str] = []
+        self, brain_id: str, score: float, issues: list[str] = []
     ) -> dict:
         """Process brain evaluation with runtime type validation.
 
@@ -24,25 +21,17 @@ class MockCoordinator:
         - brain_id must be str
         - score must be float
         """
-        return {
-            "brain_id": brain_id,
-            "score": score,
-            "issues": issues
-        }
+        return {"brain_id": brain_id, "score": score, "issues": issues}
 
     @validate_call
     def process_brain_evaluation(
         self,
         brain_id: str,
         score: Annotated[float, Field(ge=0.0, le=1.0)],
-        issues: list[str] = []
+        issues: list[str] = [],
     ) -> dict:
         """Process with constraints."""
-        return {
-            "brain_id": brain_id,
-            "score": score,
-            "issues": issues
-        }
+        return {"brain_id": brain_id, "score": score, "issues": issues}
 
 
 def test_validate_call_decorator_valid():
@@ -51,9 +40,7 @@ def test_validate_call_decorator_valid():
 
     # Valid arguments
     result = coordinator._process_brain_evaluation(
-        brain_id="brain-1",
-        score=0.8,
-        issues=["missing_metric"]
+        brain_id="brain-1", score=0.8, issues=["missing_metric"]
     )
 
     assert result["brain_id"] == "brain-1"
@@ -83,7 +70,7 @@ def test_validate_call_decorator_invalid_arguments():
     with pytest.raises(ValidationError) as exc_info:
         coordinator._process_brain_evaluation(
             brain_id="brain-1",
-            score="alto"  # Cannot coerce to float
+            score="alto",  # Cannot coerce to float
         )
 
     errors = exc_info.value.errors()
@@ -96,28 +83,19 @@ def test_validate_call_with_constraints():
     coordinator = MockCoordinator()
 
     # Valid: score within constraints
-    result = coordinator.process_brain_evaluation(
-        brain_id="brain-1",
-        score=0.8
-    )
+    result = coordinator.process_brain_evaluation(brain_id="brain-1", score=0.8)
     assert result["score"] == 0.8
 
     # Invalid: score > 1.0
     with pytest.raises(ValidationError) as exc_info:
-        coordinator.process_brain_evaluation(
-            brain_id="brain-1",
-            score=1.5
-        )
+        coordinator.process_brain_evaluation(brain_id="brain-1", score=1.5)
 
     errors = exc_info.value.errors()
     assert any(err.get("ctx", {}).get("le") == 1.0 for err in errors)
 
     # Invalid: score < 0.0
     with pytest.raises(ValidationError) as exc_info:
-        coordinator.process_brain_evaluation(
-            brain_id="brain-1",
-            score=-0.1
-        )
+        coordinator.process_brain_evaluation(brain_id="brain-1", score=-0.1)
 
     errors = exc_info.value.errors()
     assert any(err.get("ctx", {}).get("ge") == 0.0 for err in errors)
@@ -130,7 +108,7 @@ def test_validate_call_default_values():
     # Omit optional parameter with default
     result = coordinator._process_brain_evaluation(
         brain_id="brain-1",
-        score=0.8
+        score=0.8,
         # issues defaults to []
     )
 

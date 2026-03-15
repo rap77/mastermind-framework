@@ -4,7 +4,7 @@ Brain Executor - Executes brain tasks via NotebookLM MCP.
 
 import os
 import sys
-from typing import Dict
+from typing import Any, Optional
 
 # Add project root to path for imports
 project_root = os.path.dirname(
@@ -21,7 +21,9 @@ from .evaluator import Evaluator  # noqa: E402
 class BrainExecutor:
     """Executes brain tasks via NotebookLM MCP."""
 
-    def __init__(self, mcp_client=None, skills_dir: str = None):
+    def __init__(
+        self, mcp_client: Optional[Any] = None, skills_dir: Optional[str] = None
+    ) -> None:
         """Initialize brain executor.
 
         Args:
@@ -35,7 +37,9 @@ class BrainExecutor:
         # Load brains from YAML (supports N brains, not just 7)
         self.BRAIN_CONFIGS = load_brain_configs()
 
-    def execute(self, brain_id: int, task: Dict, use_mcp: bool = True) -> Dict:
+    def execute(
+        self, brain_id: int, task: dict[str, Any], use_mcp: bool = True
+    ) -> dict[str, Any]:
         """
         Execute a brain task.
 
@@ -69,7 +73,9 @@ class BrainExecutor:
         else:
             return self._execute_generic_brain(brain_id, task, use_mcp=use_mcp)
 
-    def _execute_brain_1(self, task: Dict, use_mcp: bool = True) -> Dict:
+    def _execute_brain_1(
+        self, task: dict[str, Any], use_mcp: bool = True
+    ) -> dict[str, Any]:
         """Execute Product Strategy brain via NotebookLM."""
         brief = task["inputs"].get("brief", "")
 
@@ -154,7 +160,9 @@ evidence:
             # Mock response for testing without MCP
             return self._mock_brain_1_response(brief, query)
 
-    def _execute_brain_7(self, task: Dict, use_mcp: bool = True) -> Dict:
+    def _execute_brain_7(
+        self, task: dict[str, Any], use_mcp: bool = True
+    ) -> dict[str, Any]:
         """Execute Growth & Data (Evaluator) brain."""
         # Get the output to evaluate
         output_to_evaluate = task.get("output_to_evaluate", {})
@@ -186,7 +194,9 @@ evidence:
             "message": f"Brain #7 evaluation complete: {evaluation['veredict']} ({evaluation['score']['percentage']}%)",
         }
 
-    def _execute_brain_8(self, task: Dict, use_mcp: bool = True) -> Dict:
+    def _execute_brain_8(
+        self, task: dict[str, Any], use_mcp: bool = True
+    ) -> dict[str, Any]:
         """Execute Master Interviewer brain."""
         context = task.get("context", {})
         brief = task.get("inputs", {}).get("brief", "")
@@ -225,8 +235,8 @@ Provide your analysis in the following JSON format:
         return self._mock_brain_8_response(brief, query)
 
     def _execute_generic_brain(
-        self, brain_id: int, task: Dict, use_mcp: bool = True
-    ) -> Dict:
+        self, brain_id: int, task: dict[str, Any], use_mcp: bool = True
+    ) -> dict[str, Any]:
         """Execute a generic brain (2-6)."""
         brain_config = self.BRAIN_CONFIGS[brain_id]
         brief = task["inputs"].get("brief", "")
@@ -259,7 +269,9 @@ Please provide your analysis and recommendations.
         else:
             return self._mock_generic_response(brain_id, brief)
 
-    def _format_brain_response(self, brain_id: int, response: str, brief: str) -> Dict:
+    def _format_brain_response(
+        self, brain_id: int, response: str, brief: str
+    ) -> dict[str, Any]:
         """Format a brain response into standard output format."""
         brain_config = self.BRAIN_CONFIGS[brain_id]
 
@@ -285,7 +297,9 @@ Please provide your analysis and recommendations.
             "message": f"Brain #{brain_id} execution complete (parsed)",
         }
 
-    def _mock_brain_1_response(self, brief: str, query: str, error: str = None) -> Dict:
+    def _mock_brain_1_response(
+        self, brief: str, query: str, error: Optional[str] = None
+    ) -> dict[str, Any]:
         """Generate a mock response for Brain #1 (for testing without MCP)."""
         return {
             "brain_id": 1,
@@ -300,7 +314,9 @@ Please provide your analysis and recommendations.
             "message": "Brain #1 mock response (MCP not available in this environment)",
         }
 
-    def _mock_brain_8_response(self, brief: str, query: str, error: str = None) -> Dict:
+    def _mock_brain_8_response(
+        self, brief: str, query: str, error: Optional[str] = None
+    ) -> dict[str, Any]:
         """Mock response for Brain #8 (for testing without MCP)."""
         return {
             "brain_id": 8,
@@ -316,8 +332,8 @@ Please provide your analysis and recommendations.
         }
 
     def _mock_generic_response(
-        self, brain_id: int, brief: str, error: str = None
-    ) -> Dict:
+        self, brain_id: int, brief: str, error: Optional[str] = None
+    ) -> dict[str, Any]:
         """Generate a mock response for brains 2-6."""
         brain_config = self.BRAIN_CONFIGS[brain_id]
         return {
@@ -332,7 +348,7 @@ Please provide your analysis and recommendations.
             "message": f"Brain #{brain_id} mock response (MCP not available)",
         }
 
-    def _pending_brain(self, brain_id: int, task: Dict) -> Dict:
+    def _pending_brain(self, brain_id: int, task: dict[str, Any]) -> dict[str, Any]:
         """Return response for pending brain."""
         brain_name = self.BRAIN_CONFIGS.get(brain_id, {}).get(
             "name", f"Brain {brain_id}"
@@ -346,7 +362,9 @@ Please provide your analysis and recommendations.
             "message": f"Brain #{brain_id} is coming soon! Track progress in GitHub issues.",
         }
 
-    def _unimplemented_brain(self, brain_id: int, task: Dict) -> Dict:
+    def _unimplemented_brain(
+        self, brain_id: int, task: dict[str, Any]
+    ) -> dict[str, Any]:
         """Return response for unimplemented brain."""
         brain_names = {
             2: "UX Research",
@@ -370,9 +388,9 @@ Please provide your analysis and recommendations.
     def is_brain_available(self, brain_id: int) -> bool:
         """Check if a brain is available for execution."""
         config = self.BRAIN_CONFIGS.get(brain_id)
-        return config and config.get("status") == "active"
+        return bool(config and config.get("status") == "active")
 
-    def get_available_brains(self) -> list:
+    def get_available_brains(self) -> list[int]:
         """Get list of available brain IDs."""
         return [
             brain_id

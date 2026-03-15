@@ -5,7 +5,7 @@ This module provides TaskRepository for async database operations
 using aiosqlite with checkpoint-based state transitions.
 """
 
-from typing import Optional, List
+from typing import Any, Optional, List
 from datetime import datetime, timezone
 import json
 
@@ -49,16 +49,16 @@ class TaskRepository:
         await self.db.conn.execute(
             """INSERT INTO tasks (id, brain_id, status, created_at, updated_at)
                VALUES (?, ?, 'pending', ?, ?)""",
-            (task_id, brain_id, now, now)
+            (task_id, brain_id, now, now),
         )
         await self.db.conn.commit()
-        return await self.get(task_id)
+        result = await self.get(task_id)
+        if result is None:
+            raise RuntimeError(f"Failed to create task: {task_id}")
+        return result
 
     async def update_status(
-        self,
-        task_id: str,
-        status: str,
-        error: Optional[str] = None
+        self, task_id: str, status: str, error: Optional[str] = None
     ) -> TaskRecord:
         """Update task status atomically (checkpoint-based).
 
@@ -78,17 +78,20 @@ class TaskRepository:
             await self.db.conn.execute(
                 """UPDATE tasks SET status = ?, error = ?, updated_at = ?
                    WHERE id = ?""",
-                (status, error, now, task_id)
+                (status, error, now, task_id),
             )
         else:
             await self.db.conn.execute(
                 """UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?""",
-                (status, now, task_id)
+                (status, now, task_id),
             )
         await self.db.conn.commit()
-        return await self.get(task_id)
+        task = await self.get(task_id)
+        if task is None:
+            raise RuntimeError(f"Task {task_id} not found after update")
+        return task
 
-    async def update_result(self, task_id: str, result: dict) -> TaskRecord:
+    async def update_result(self, task_id: str, result: dict[str, Any]) -> TaskRecord:
         """Update task result and mark as completed.
 
         Args:
@@ -103,10 +106,13 @@ class TaskRepository:
         await self.db.conn.execute(
             """UPDATE tasks SET status = 'completed', result = ?, updated_at = ?
                WHERE id = ?""",
-            (result_json, now, task_id)
+            (result_json, now, task_id),
         )
         await self.db.conn.commit()
-        return await self.get(task_id)
+        task = await self.get(task_id)
+        if task is None:
+            raise RuntimeError(f"Task {task_id} not found after result update")
+        return task
 
     async def get(self, task_id: str) -> Optional[TaskRecord]:
         """Retrieve task by ID.
@@ -123,9 +129,14 @@ class TaskRepository:
         row = await cursor.fetchone()
         if row:
             return TaskRecord(
-                id=row[0], brain_id=row[1], status=row[2],
-                progress=row[3], result=row[4], error=row[5],
-                created_at=row[6], updated_at=row[7]
+                id=row[0],
+                brain_id=row[1],
+                status=row[2],
+                progress=row[3],
+                result=row[4],
+                error=row[5],
+                created_at=row[6],
+                updated_at=row[7],
             )
         return None
 
@@ -144,9 +155,14 @@ class TaskRepository:
         rows = await cursor.fetchall()
         return [
             TaskRecord(
-                id=row[0], brain_id=row[1], status=row[2],
-                progress=row[3], result=row[4], error=row[5],
-                created_at=row[6], updated_at=row[7]
+                id=row[0],
+                brain_id=row[1],
+                status=row[2],
+                progress=row[3],
+                result=row[4],
+                error=row[5],
+                created_at=row[6],
+                updated_at=row[7],
             )
             for row in rows
         ]
@@ -169,11 +185,11 @@ class TaskRepository:
             Logs warning if query exceeds 100ms.
         """
         import time
+
         start = time.perf_counter()
 
         cursor = await self.db.conn.execute(
-            "SELECT * FROM tasks WHERE id = ?",
-            (task_id,)
+            "SELECT * FROM tasks WHERE id = ?", (task_id,)
         )
         row = await cursor.fetchone()
 
@@ -181,9 +197,14 @@ class TaskRepository:
 
         if row:
             task = TaskRecord(
-                id=row[0], brain_id=row[1], status=row[2],
-                progress=row[3], result=row[4], error=row[5],
-                created_at=row[6], updated_at=row[7]
+                id=row[0],
+                brain_id=row[1],
+                status=row[2],
+                progress=row[3],
+                result=row[4],
+                error=row[5],
+                created_at=row[6],
+                updated_at=row[7],
             )
             # Log performance (warn if >100ms)
             if elapsed_ms > 100:
@@ -208,9 +229,14 @@ class TaskRepository:
 
         return [
             TaskRecord(
-                id=row[0], brain_id=row[1], status=row[2],
-                progress=row[3], result=row[4], error=row[5],
-                created_at=row[6], updated_at=row[7]
+                id=row[0],
+                brain_id=row[1],
+                status=row[2],
+                progress=row[3],
+                result=row[4],
+                error=row[5],
+                created_at=row[6],
+                updated_at=row[7],
             )
             for row in rows
         ]

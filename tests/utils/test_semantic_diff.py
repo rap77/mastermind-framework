@@ -8,13 +8,12 @@ from tests.utils.semantic_diff import (
     compare_outputs,
     get_brain_threshold,
     BRAIN_THRESHOLDS,
-    _check_sentence_transformers
+    _check_sentence_transformers,
 )
 
 
 @pytest.mark.skipif(
-    not _check_sentence_transformers(),
-    reason="sentence-transformers not installed"
+    not _check_sentence_transformers(), reason="sentence-transformers not installed"
 )
 class TestSemanticSimilarity:
     """Test semantic similarity scoring."""
@@ -27,17 +26,13 @@ class TestSemanticSimilarity:
     def test_semantically_similar_strings_return_score_gt_0_85(self):
         """Semantically similar strings should return score > 0.85."""
         score = semantic_similarity(
-            "The product strategy is complete",
-            "Product strategy has been completed"
+            "The product strategy is complete", "Product strategy has been completed"
         )
         assert score > 0.85
 
     def test_different_strings_return_score_lt_0_5(self):
         """Completely different strings should return score < 0.5."""
-        score = semantic_similarity(
-            "I love programming",
-            "The weather is sunny today"
-        )
+        score = semantic_similarity("I love programming", "The weather is sunny today")
         assert score < 0.5
 
     def test_score_between_0_and_1(self):
@@ -47,8 +42,7 @@ class TestSemanticSimilarity:
 
 
 @pytest.mark.skipif(
-    not _check_sentence_transformers(),
-    reason="sentence-transformers not installed"
+    not _check_sentence_transformers(), reason="sentence-transformers not installed"
 )
 class TestCompareOutputs:
     """Test output comparison with threshold checking."""
@@ -78,11 +72,7 @@ class TestCompareOutputs:
 
     def test_compare_outputs_fails_below_threshold(self):
         """compare_outputs() should fail when score < threshold."""
-        result = compare_outputs(
-            "programming is fun",
-            "today is sunny",
-            threshold=0.95
-        )
+        result = compare_outputs("programming is fun", "today is sunny", threshold=0.95)
         assert result["passed"] is False
         assert result["score"] < 0.95
         assert "Semantic difference detected" in result["diff"]
@@ -114,4 +104,6 @@ class TestBrainThresholds:
     def test_all_thresholds_defined(self):
         """All thresholds should be between 0.0 and 1.0."""
         for brain_type, threshold in BRAIN_THRESHOLDS.items():
-            assert 0.0 <= threshold <= 1.0, f"{brain_type} threshold {threshold} out of range"
+            assert (
+                0.0 <= threshold <= 1.0
+            ), f"{brain_type} threshold {threshold} out of range"

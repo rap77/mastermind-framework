@@ -37,22 +37,16 @@ class ProviderConfig(BaseModel):
 
     name: str = Field(..., description="Provider identifier")
     max_concurrent_calls: int = Field(
-        default=10,
-        ge=1,
-        le=100,
-        description="Maximum concurrent API calls"
+        default=10, ge=1, le=100, description="Maximum concurrent API calls"
     )
     retry_attempts: int = Field(
-        default=3,
-        ge=0,
-        le=10,
-        description="Number of retry attempts on failure"
+        default=3, ge=0, le=10, description="Number of retry attempts on failure"
     )
     backoff_base: float = Field(
         default=1.0,
         ge=0.1,
         le=60.0,
-        description="Base for exponential backoff in seconds"
+        description="Base for exponential backoff in seconds",
     )
 
 
@@ -83,8 +77,7 @@ class FlowConfig(BaseModel):
 
     flow_id: str = Field(..., description="Unique flow identifier")
     nodes: Dict[str, List[str]] = Field(
-        default_factory=dict,
-        description="Brain ID to dependency list mapping"
+        default_factory=dict, description="Brain ID to dependency list mapping"
     )
     description: str = Field(default="", description="Flow description")
 
@@ -121,7 +114,9 @@ class FlowConfig(BaseModel):
                 in_degree[node] += 1
 
         # Kahn's algorithm: start with nodes that have zero in-degree
-        queue: deque[str] = deque([node for node, degree in in_degree.items() if degree == 0])
+        queue: deque[str] = deque(
+            [node for node, degree in in_degree.items() if degree == 0]
+        )
         processed: List[str] = []
 
         while queue:
@@ -169,7 +164,9 @@ class FlowConfig(BaseModel):
                 in_degree[node] += 1
 
         # Kahn's algorithm
-        queue: deque[str] = deque([node for node, degree in in_degree.items() if degree == 0])
+        queue: deque[str] = deque(
+            [node for node, degree in in_degree.items() if degree == 0]
+        )
         result: List[str] = []
 
         while queue:
@@ -198,8 +195,7 @@ class ExecutionLevel(BaseModel):
 
     wave_number: int = Field(..., ge=0, description="Wave number (0-indexed)")
     brain_ids: List[str] = Field(
-        default_factory=list,
-        description="Brain IDs that can execute in this wave"
+        default_factory=list, description="Brain IDs that can execute in this wave"
     )
 
 
@@ -216,8 +212,7 @@ class ExecutionGraph(BaseModel):
     """
 
     levels: List[ExecutionLevel] = Field(
-        default_factory=list,
-        description="Execution waves in order"
+        default_factory=list, description="Execution waves in order"
     )
     total_brains: int = Field(..., ge=0, description="Total brains in flow")
     max_parallelism: int = Field(..., ge=0, description="Maximum concurrent brains")

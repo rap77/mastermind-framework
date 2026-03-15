@@ -1,8 +1,11 @@
 """PII redaction tests."""
 
-import pytest
 from pydantic import SecretStr
-from mastermind_cli.experience.redaction import redact_pii, redact_dict, redact_for_storage
+from mastermind_cli.experience.redaction import (
+    redact_pii,
+    redact_dict,
+    redact_for_storage,
+)
 
 
 def test_redact_api_keys():
@@ -18,14 +21,22 @@ def test_redact_api_keys():
 
 def test_redact_emails():
     """Test 2: Emails redacted (user@example.com → [REDACTED_EMAIL])."""
-    assert redact_pii("Contact me at user@example.com") == "Contact me at [REDACTED_EMAIL]"
-    assert redact_pii("Emails: admin@test.co and user@test.co.uk") == "Emails: [REDACTED_EMAIL] and [REDACTED_EMAIL]"
+    assert (
+        redact_pii("Contact me at user@example.com") == "Contact me at [REDACTED_EMAIL]"
+    )
+    assert (
+        redact_pii("Emails: admin@test.co and user@test.co.uk")
+        == "Emails: [REDACTED_EMAIL] and [REDACTED_EMAIL]"
+    )
 
 
 def test_redact_ssn():
     """Test 3: SSN/DNI redacted (123-45-6789 → [REDACTED_SSN])."""
     assert redact_pii("SSN: 123-45-6789") == "SSN: [REDACTED_SSN]"
-    assert redact_pii("DNI: 987-65-4321 and 555-44-3333") == "DNI: [REDACTED_SSN] and [REDACTED_SSN]"
+    assert (
+        redact_pii("DNI: 987-65-4321 and 555-44-3333")
+        == "DNI: [REDACTED_SSN] and [REDACTED_SSN]"
+    )
 
 
 def test_redact_nested_dicts():
@@ -36,11 +47,9 @@ def test_redact_nested_dicts():
         "profile": {
             "email": "jane@test.org",
             "ssn": "111-22-3333",
-            "nested": {
-                "token": "mmsk_token45678"
-            }
+            "nested": {"token": "mmsk_token45678"},
         },
-        "safe": "normal text"
+        "safe": "normal text",
     }
     redacted = redact_dict(data)
     assert redacted["user"] == "[REDACTED_EMAIL]"
@@ -56,7 +65,7 @@ def test_redact_list_of_dicts():
     data = {
         "users": [
             {"email": "user1@example.com", "name": "User 1"},
-            {"email": "user2@example.com", "name": "User 2"}
+            {"email": "user2@example.com", "name": "User 2"},
         ]
     }
     redacted = redact_dict(data)
@@ -67,18 +76,16 @@ def test_redact_list_of_dicts():
 
 def test_redact_pydantic_secret_str():
     """Test 6: Pydantic SecretStr fields auto-redacted via model_dump(exclude_defaults=True)."""
+
     class TestModel:
         def __init__(self):
             self.password = SecretStr("sk-secret123456")
             self.email = "test@example.com"
 
-        def model_dump(self, exclude_defaults=True, mode='json'):
+        def model_dump(self, exclude_defaults=True, mode="json"):
             # SecretStr.get_secret_value() exposes the secret
             # In real Pydantic models, exclude_defaults would handle this
-            return {
-                "password": self.password.get_secret_value(),
-                "email": self.email
-            }
+            return {"password": self.password.get_secret_value(), "email": self.email}
 
     obj = TestModel()
     result = redact_for_storage(obj)
@@ -114,7 +121,7 @@ def test_redact_preserves_non_pii():
         "message": "Hello world",
         "count": 42,
         "active": True,
-        "items": ["a", "b", "c"]
+        "items": ["a", "b", "c"],
     }
     redacted = redact_dict(data)
     assert redacted["message"] == "Hello world"

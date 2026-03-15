@@ -6,9 +6,6 @@ Tests will be implemented after Plan 01 Task 1.
 Requirements: UI-02, UI-03, UI-07
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
 
 def test_login_success():
     """Test POST /api/auth/login with valid credentials returns 200.

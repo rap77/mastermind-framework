@@ -21,8 +21,7 @@ from mastermind_cli.state.database import DatabaseConnection
 async def test_config_persistence():
     """Test saving and loading execution configurations."""
     flow = FlowConfig(
-        flow_id="persist-test",
-        nodes={"brain-01": [], "brain-02": ["brain-01"]}
+        flow_id="persist-test", nodes={"brain-01": [], "brain-02": ["brain-01"]}
     )
 
     async with DatabaseConnection(":memory:") as db:
@@ -45,7 +44,7 @@ async def test_config_persistence():
         executor = ParallelExecutor(
             task_repo,
             mcp_client,
-            [ProviderConfig(name="test", max_concurrent_calls=10)]
+            [ProviderConfig(name="test", max_concurrent_calls=10)],
         )
 
         # Save config
@@ -81,9 +80,7 @@ async def test_config_persistence_not_found():
 
         task_repo = TaskRepository(db)
         executor = ParallelExecutor(
-            task_repo,
-            None,
-            [ProviderConfig(name="test", max_concurrent_calls=10)]
+            task_repo, None, [ProviderConfig(name="test", max_concurrent_calls=10)]
         )
 
         # Load non-existent config
@@ -109,7 +106,7 @@ async def test_speedup_factor():
             "brain-03": [],  # Independent
             "brain-04": [],  # Independent
             "brain-05": [],  # Independent
-        }
+        },
     )
 
     # Mock MCP client with 100ms delay
@@ -136,7 +133,7 @@ async def test_speedup_factor():
         executor = ParallelExecutor(
             task_repo,
             mcp_client,
-            [ProviderConfig(name="notebooklm", max_concurrent_calls=10)]
+            [ProviderConfig(name="notebooklm", max_concurrent_calls=10)],
         )
 
         start_parallel = time.perf_counter()
@@ -154,7 +151,9 @@ async def test_speedup_factor():
         assert len(results) == 5
         assert all(r.get("status") == "completed" for r in results.values())
 
-        print(f"✅ Speedup: {speedup:.2f}x (sequential: {sequential_time:.2f}s, parallel: {parallel_time:.2f}s)")
+        print(
+            f"✅ Speedup: {speedup:.2f}x (sequential: {sequential_time:.2f}s, parallel: {parallel_time:.2f}s)"
+        )
 
 
 @pytest.mark.asyncio
@@ -169,7 +168,7 @@ async def test_concurrent_execution():
             "brain-01": [],
             "brain-02": [],
             "brain-03": [],
-        }
+        },
     )
 
     class MockMCPClient:
@@ -187,7 +186,7 @@ async def test_concurrent_execution():
         executor = ParallelExecutor(
             task_repo,
             mcp_client,
-            [ProviderConfig(name="notebooklm", max_concurrent_calls=10)]
+            [ProviderConfig(name="notebooklm", max_concurrent_calls=10)],
         )
 
         start = time.perf_counter()
@@ -195,7 +194,9 @@ async def test_concurrent_execution():
         elapsed = time.perf_counter() - start
 
         # 3 brains * 0.05s = 0.15s sequential, but ~0.05s parallel
-        assert elapsed < 0.10, f"Execution took {elapsed:.2f}s, expected <0.10s for concurrent"
+        assert (
+            elapsed < 0.10
+        ), f"Execution took {elapsed:.2f}s, expected <0.10s for concurrent"
         assert len(results) == 3
         assert all(r.get("status") == "completed" for r in results.values())
 
@@ -219,35 +220,37 @@ async def test_coordinator_parallel_flow():
 
     # Create a simple plan with tasks
     coordinator.current_plan = {
-        'plan_id': 'test-parallel-001',
-        'brief': {'original': 'test brief for parallel execution'},
-        'flow_type': 'full_product',
-        'tasks': [
-            {'task_id': 'task-1', 'brain_id': 1},
-            {'task_id': 'task-2', 'brain_id': 2},
-        ]
+        "plan_id": "test-parallel-001",
+        "brief": {"original": "test brief for parallel execution"},
+        "flow_type": "full_product",
+        "tasks": [
+            {"task_id": "task-1", "brain_id": 1},
+            {"task_id": "task-2", "brain_id": 2},
+        ],
     }
 
     # Mock the brain executor to return results
     coordinator.brain_executor.execute = MagicMock(
-        return_value={'status': 'completed', 'output': {'result': 'mock result'}}
+        return_value={"status": "completed", "output": {"result": "mock result"}}
     )
 
     # Execute in parallel mode
     result = await coordinator._execute_parallel(max_iterations=3)
 
     # Verify result structure
-    assert 'status' in result
+    assert "status" in result
 
     # Should complete successfully or have error (mock mode limitations)
-    assert result['status'] in ['success', 'error']
-    if result['status'] == 'success':
-        assert 'results' in result
-        assert 'waves' in result
-        assert result['waves'] >= 1
+    assert result["status"] in ["success", "error"]
+    if result["status"] == "success":
+        assert "results" in result
+        assert "waves" in result
+        assert result["waves"] >= 1
         print(f"✅ Parallel execution completed with {result['waves']} wave(s)")
     else:
         # Error case - should have error message and plan
-        assert 'error' in result
-        assert 'plan' in result
-        print(f"ℹ️  Parallel execution returned error (expected in mock mode): {result['error']}")
+        assert "error" in result
+        assert "plan" in result
+        print(
+            f"ℹ️  Parallel execution returned error (expected in mock mode): {result['error']}"
+        )

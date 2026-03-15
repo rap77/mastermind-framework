@@ -6,9 +6,6 @@ Tests will be implemented after Plan 01 Task 2.
 Requirements: UI-06
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
 
 def test_create_task():
     """Test POST /api/tasks creates task and returns task_id.

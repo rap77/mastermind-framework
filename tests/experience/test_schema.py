@@ -1,7 +1,6 @@
 """ExperienceRecord schema tests."""
 
 import pytest
-import asyncio
 from mastermind_cli.experience.models import ExperienceRecord
 from mastermind_cli.state.database import DatabaseConnection
 from datetime import datetime, timezone
@@ -44,9 +43,17 @@ async def test_experience_table_created():
     column_names = [col[1] for col in columns]
 
     expected_columns = [
-        "id", "brain_id", "input_hash", "output_json", "timestamp",
-        "duration_ms", "status", "embedding_stub", "parent_brain_id",
-        "trace_context_id", "custom_metadata"
+        "id",
+        "brain_id",
+        "input_hash",
+        "output_json",
+        "timestamp",
+        "duration_ms",
+        "status",
+        "embedding_stub",
+        "parent_brain_id",
+        "trace_context_id",
+        "custom_metadata",
     ]
     for col in expected_columns:
         assert col in column_names
@@ -128,21 +135,30 @@ async def test_experience_jsonb_operations():
 
     # Insert test data with JSONB
     import json
+
     test_id = "test-123"
     metadata = {"model": "gpt-4", "tokens": 1000}
     await db.conn.execute(
         """INSERT INTO experience_records
            (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (test_id, "brain-01", "hash123", '{"result": "ok"}',
-         datetime.now(timezone.utc).isoformat(), 100, "success", json.dumps(metadata))
+        (
+            test_id,
+            "brain-01",
+            "hash123",
+            '{"result": "ok"}',
+            datetime.now(timezone.utc).isoformat(),
+            100,
+            "success",
+            json.dumps(metadata),
+        ),
     )
     await db.conn.commit()
 
     # Query using json_extract
     cursor = await db.conn.execute(
         """SELECT json_extract(custom_metadata, '$.model') FROM experience_records WHERE id = ?""",
-        (test_id,)
+        (test_id,),
     )
     result = await cursor.fetchone()
     assert result is not None
@@ -176,19 +192,27 @@ async def test_experience_embedding_stub_null():
 
     # Insert record with NULL embedding_stub
     import json
+
     await db.conn.execute(
         """INSERT INTO experience_records
            (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, embedding_stub, custom_metadata)
            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)""",
-        ("test-456", "brain-02", "hash456", '{"result": "ok"}',
-         datetime.now(timezone.utc).isoformat(), 200, "success", json.dumps({}))
+        (
+            "test-456",
+            "brain-02",
+            "hash456",
+            '{"result": "ok"}',
+            datetime.now(timezone.utc).isoformat(),
+            200,
+            "success",
+            json.dumps({}),
+        ),
     )
     await db.conn.commit()
 
     # Verify embedding_stub is NULL
     cursor = await db.conn.execute(
-        "SELECT embedding_stub FROM experience_records WHERE id = ?",
-        ("test-456",)
+        "SELECT embedding_stub FROM experience_records WHERE id = ?", ("test-456",)
     )
     result = await cursor.fetchone()
     assert result is not None
@@ -207,7 +231,7 @@ async def test_experience_record_creation():
         output_json={"result": "success"},
         timestamp=datetime.now(timezone.utc).isoformat(),
         duration_ms=100,
-        status="success"
+        status="success",
     )
     assert record.id == "test-id-123"
     assert record.brain_id == "brain-01-product-strategy"
@@ -230,7 +254,7 @@ async def test_experience_record_optional_fields():
         status="success",
         parent_brain_id="brain-01-product-strategy",
         trace_context_id="trace-123",
-        embedding_stub=None
+        embedding_stub=None,
     )
     assert record.parent_brain_id == "brain-01-product-strategy"
     assert record.trace_context_id == "trace-123"
@@ -252,8 +276,8 @@ async def test_experience_record_custom_metadata():
             "model_version": "gpt-4",
             "tokens_used": 1500,
             "confidence": 0.95,
-            "tags": ["ui", "design", "modern"]
-        }
+            "tags": ["ui", "design", "modern"],
+        },
     )
     assert record.custom_metadata["model_version"] == "gpt-4"
     assert record.custom_metadata["tokens_used"] == 1500
@@ -264,7 +288,6 @@ async def test_experience_record_custom_metadata():
 @pytest.mark.asyncio
 async def test_experience_record_input_hash_deterministic():
     """Test 8: input_hash is SHA256 of input_json (deterministic)."""
-    import json
     input_json = {"query": "test", "context": "data"}
     hash1 = ExperienceRecord.create_hash(input_json)
     hash2 = ExperienceRecord.create_hash(input_json)
@@ -282,7 +305,7 @@ async def test_experience_record_timestamp_iso8601():
         input_json={"test": "data"},
         output_json={"result": "ok"},
         duration_ms=50,
-        status="success"
+        status="success",
     )
     # Should be valid ISO 8601
     assert "T" in record.timestamp
@@ -302,7 +325,7 @@ async def test_experience_record_factory_method():
         status="success",
         parent_brain_id="brain-04-frontend",
         trace_context_id="trace-abc",
-        custom_metadata={"version": "1.0"}
+        custom_metadata={"version": "1.0"},
     )
     assert record.id is not None
     assert len(record.id) > 0
@@ -328,7 +351,7 @@ async def test_experience_record_duration_validation():
             output_json={},
             timestamp=datetime.now(timezone.utc).isoformat(),
             duration_ms=-1,  # Invalid: negative
-            status="success"
+            status="success",
         )
 
 
@@ -344,7 +367,7 @@ async def test_experience_record_status_validation():
             output_json={},
             timestamp=datetime.now(timezone.utc).isoformat(),
             duration_ms=100,
-            status=status
+            status=status,
         )
         assert record.status == status
 
@@ -357,5 +380,5 @@ async def test_experience_record_status_validation():
             output_json={},
             timestamp=datetime.now(timezone.utc).isoformat(),
             duration_ms=100,
-            status="invalid"  # Invalid status
+            status="invalid",  # Invalid status
         )

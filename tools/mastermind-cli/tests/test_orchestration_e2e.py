@@ -11,7 +11,7 @@ import sys
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
-from mastermind_cli.orchestrator import Coordinator, OutputFormatter
+from mastermind_cli.orchestrator import Coordinator, OutputFormatter  # noqa: E402
 
 
 def test_validation_flow_good_brief():
@@ -41,9 +41,7 @@ def test_validation_flow_good_brief():
     coordinator = Coordinator(formatter=formatter)
 
     result = coordinator.orchestrate(
-        brief=brief.strip(),
-        flow='validation_only',
-        max_iterations=2
+        brief=brief.strip(), flow="validation_only", max_iterations=2
     )
 
     print("\n" + "=" * 70)
@@ -53,9 +51,9 @@ def test_validation_flow_good_brief():
     print(f"Veredict: {result.get('veredict')}")
     print(f"Iterations: {result.get('iterations', 1)}")
 
-    assert result['status'] in ['completed', 'escalated']
-    assert 'veredict' in result
-    assert 'evaluations' in result
+    assert result["status"] in ["completed", "escalated"]
+    assert "veredict" in result
+    assert "evaluations" in result
 
     print("\n✅ Test passed!")
 
@@ -82,9 +80,7 @@ def test_validation_flow_weak_brief():
     coordinator = Coordinator(formatter=formatter)
 
     result = coordinator.orchestrate(
-        brief=brief.strip(),
-        flow='validation_only',
-        max_iterations=2
+        brief=brief.strip(), flow="validation_only", max_iterations=2
     )
 
     print("\n" + "=" * 70)
@@ -94,8 +90,8 @@ def test_validation_flow_weak_brief():
     print(f"Veredict: {result.get('veredict')}")
 
     # Should be REJECT for such a weak brief
-    assert result['status'] in ['completed', 'escalated']
-    assert result.get('veredict') in ['REJECT', 'CONDITIONAL', 'ESCALATE']
+    assert result["status"] in ["completed", "escalated"]
+    assert result.get("veredict") in ["REJECT", "CONDITIONAL", "ESCALATE"]
 
     print("\n✅ Test passed!")
 
@@ -112,18 +108,16 @@ def test_dry_run():
     coordinator = Coordinator(formatter=formatter)
 
     result = coordinator.orchestrate(
-        brief=brief.strip(),
-        flow='validation_only',
-        dry_run=True
+        brief=brief.strip(), flow="validation_only", dry_run=True
     )
 
     print("\n" + "=" * 70)
     print("PLAN:")
     print("=" * 70)
-    print(result.get('output', 'No output'))
+    print(result.get("output", "No output"))
 
-    assert result['status'] == 'dry_run_complete'
-    assert 'plan' in result
+    assert result["status"] == "dry_run_complete"
+    assert "plan" in result
 
     print("\n✅ Test passed!")
 
@@ -150,9 +144,7 @@ def test_iteration_loop():
     coordinator = Coordinator(formatter=formatter)
 
     result = coordinator.orchestrate(
-        brief=brief.strip(),
-        flow='validation_only',
-        max_iterations=2
+        brief=brief.strip(), flow="validation_only", max_iterations=2
     )
 
     print("\n" + "=" * 70)
@@ -163,7 +155,7 @@ def test_iteration_loop():
     print(f"Iterations: {result.get('iterations', 1)}")
 
     # Should have attempted at least 1 iteration
-    assert result.get('iterations', 1) >= 1
+    assert result.get("iterations", 1) >= 1
 
     print("\n✅ Test passed!")
 
@@ -194,6 +186,7 @@ def run_all_tests():
         except Exception as e:
             print(f"\n❌ ERROR: {e}")
             import traceback
+
             traceback.print_exc()
             failed += 1
 
@@ -204,6 +197,6 @@ def run_all_tests():
     return failed == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)

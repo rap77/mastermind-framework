@@ -6,7 +6,6 @@ import pytest
 import yaml
 from pathlib import Path
 import tempfile
-from datetime import datetime
 from mastermind_cli.memory.interview_logger import InterviewLogger
 
 
@@ -24,19 +23,17 @@ def test_log_interview_creates_file(temp_log_dir):
     sample_doc = {
         "metadata": {"context_type": "feature_spec"},
         "document": {
-            "qa": [
-                {"question": "Q1", "answer": "A1", "confidence": "high"}
-            ],
+            "qa": [{"question": "Q1", "answer": "A1", "confidence": "high"}],
             "categories": [{"id": "ux"}],
-            "gaps_detected": []
-        }
+            "gaps_detected": [],
+        },
     }
 
     log_path = logger.log_interview(
         session_id="test-001",
         brief_original="test brief",
         interview_doc=sample_doc,
-        outcome={"user_satisfaction": "high"}
+        outcome={"user_satisfaction": "high"},
     )
 
     assert log_path is not None
@@ -57,10 +54,7 @@ def test_log_interview_disabled(temp_log_dir):
     logger = InterviewLogger(enabled=False, log_dir=temp_log_dir)
 
     log_path = logger.log_interview(
-        session_id="test-002",
-        brief_original="test brief",
-        interview_doc={},
-        outcome={}
+        session_id="test-002", brief_original="test brief", interview_doc={}, outcome={}
     )
 
     assert log_path is None
@@ -76,15 +70,15 @@ def test_find_similar_interviews(temp_log_dir):
         "document": {
             "qa": [{"question": "delivery app", "answer": "...", "confidence": "high"}],
             "categories": [],
-            "gaps_detected": []
-        }
+            "gaps_detected": [],
+        },
     }
 
     logger.log_interview(
         session_id="ref-001",
         brief_original="app moderna delivery comida",
         interview_doc=sample_doc,
-        outcome={"useful_questions": ["q001"]}
+        outcome={"useful_questions": ["q001"]},
     )
 
     # Find similar
@@ -104,23 +98,23 @@ def test_calculate_metrics(temp_log_dir):
             "qa": [
                 {"question": "Q1", "answer": "A1", "confidence": "high"},
                 {"question": "Q2", "answer": "A2", "confidence": "medium"},
-                {"question": "Q3", "answer": "A3", "confidence": "low"}
+                {"question": "Q3", "answer": "A3", "confidence": "low"},
             ],
             "categories": [],
-            "gaps_detected": []
-        }
+            "gaps_detected": [],
+        },
     }
 
     outcome = {
         "useful_questions": ["q001", "q002"],  # 2 out of 3
-        "user_satisfaction": "high"
+        "user_satisfaction": "high",
     }
 
     log_path = logger.log_interview(
         session_id="metrics-test",
         brief_original="test",
         interview_doc=sample_doc,
-        outcome=outcome
+        outcome=outcome,
     )
 
     # Verify metrics were calculated
@@ -138,7 +132,10 @@ def test_context_type_detection():
     logger = InterviewLogger(enabled=False)
 
     assert logger._detect_context_type("necesito feature de login") == "feature_spec"
-    assert logger._detect_context_type("arquitectura de microservicios") == "technical_design"
+    assert (
+        logger._detect_context_type("arquitectura de microservicios")
+        == "technical_design"
+    )
     assert logger._detect_context_type("onboarding de cliente") == "client_onboarding"
     assert logger._detect_context_type("texto general") == "general"
 

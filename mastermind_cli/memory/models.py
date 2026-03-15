@@ -11,6 +11,7 @@ from typing import Any
 
 class EvaluationVerdict(str, Enum):
     """Verdict of evaluation."""
+
     APPROVE = "APPROVE"
     CONDITIONAL = "CONDITIONAL"
     REJECT = "REJECT"
@@ -19,6 +20,7 @@ class EvaluationVerdict(str, Enum):
 
 class EvaluationScore(BaseModel):
     """Score of evaluation."""
+
     total: int
     max: int
     percentage: float
@@ -29,6 +31,7 @@ class EvaluationScore(BaseModel):
 
 class Issue(BaseModel):
     """Problem detected during evaluation."""
+
     type: str = Field(..., description="Type of issue (e.g., 'cold-start', 'omtm')")
     severity: str = Field(..., description="Severity level: high, medium, low")
     description: str = Field(..., description="Description of the issue")
@@ -39,15 +42,26 @@ class EvaluationEntry(BaseModel):
     """Complete evaluation entry."""
 
     evaluation_id: str | None = Field(None, description="Unique evaluation ID")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="When evaluation was created")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When evaluation was created",
+    )
     project: str = Field(..., description="Project name or identifier")
     brief: str = Field(..., description="Original user brief")
-    flow_type: str = Field(..., description="Flow type (validation_only, full_product, etc.)")
-    brains_involved: list[int] = Field(default_factory=list, description="List of brain IDs involved")
+    flow_type: str = Field(
+        ..., description="Flow type (validation_only, full_product, etc.)"
+    )
+    brains_involved: list[int] = Field(
+        default_factory=list, description="List of brain IDs involved"
+    )
     score: EvaluationScore = Field(..., description="Evaluation score")
     verdict: EvaluationVerdict = Field(..., description="Final verdict")
-    issues_found: list[Issue] = Field(default_factory=list, description="List of issues detected")
-    strengths_found: list[str] = Field(default_factory=list, description="List of strengths identified")
+    issues_found: list[Issue] = Field(
+        default_factory=list, description="List of issues detected"
+    )
+    strengths_found: list[str] = Field(
+        default_factory=list, description="List of strengths identified"
+    )
     full_output: str = Field(..., description="Complete evaluation output text")
     tags: list[str] = Field(default_factory=list, description="Tags for categorization")
 
@@ -94,8 +108,10 @@ class EvaluationEntry(BaseModel):
             score = EvaluationScore(**score_data)
 
         issues_data = data.get("issues_found", [])
-        issues = [Issue.model_validate(issue) if isinstance(issue, dict) else Issue(**issue)
-                  for issue in issues_data]
+        issues = [
+            Issue.model_validate(issue) if isinstance(issue, dict) else Issue(**issue)
+            for issue in issues_data
+        ]
 
         return cls(
             evaluation_id=data.get("evaluation_id"),

@@ -6,9 +6,6 @@ Tests will be implemented after Plan 01 Task 1.
 Requirements: UI-01
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
 
 def test_app_creates():
     """Test FastAPI application can be instantiated.

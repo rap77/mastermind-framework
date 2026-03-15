@@ -8,6 +8,7 @@ Uso:
     python evaluar_proyecto.py --file brief.md    # Brief desde archivo
     python evaluar_proyecto.py --mcp              # Usa NotebookLM real (requiere nlm CLI)
 """
+
 import logging
 import sys
 import os
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 MASTERMIND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, f"{MASTERMIND_ROOT}/tools/mastermind-cli")
 
-from mastermind_cli.orchestrator import Coordinator, OutputFormatter
+from mastermind_cli.orchestrator import Coordinator, OutputFormatter  # noqa: E402
 
 
 # Brief de ejemplo
@@ -105,7 +106,9 @@ def print_header(text: str) -> None:
     logger.info("=" * 70)
 
 
-def evaluar_brief(brief: str, use_mcp: bool = False, flow: str = "validation_only") -> dict:
+def evaluar_brief(
+    brief: str, use_mcp: bool = False, flow: str = "validation_only"
+) -> dict:
     """Evalúa un brief usando el MasterMind Framework.
 
     Args:
@@ -119,22 +122,20 @@ def evaluar_brief(brief: str, use_mcp: bool = False, flow: str = "validation_onl
 
     print_header("🧠 MENTE MAESTRA - Evaluación de Proyecto")
 
-    logger.info(f"\n📝 BRIEF:")
+    logger.info("\n📝 BRIEF:")
     logger.info("-" * 70)
     logger.info(brief[:500] + "..." if len(brief) > 500 else brief)
     logger.info("-" * 70)
 
     logger.info(f"\n🔄 Flow: {flow}")
-    logger.info(f"🔌 MCP: {'enabled (NotebookLM real)' if use_mcp else 'disabled (modo simulación)'}")
+    logger.info(
+        f"🔌 MCP: {'enabled (NotebookLM real)' if use_mcp else 'disabled (modo simulación)'}"
+    )
 
     formatter = OutputFormatter()
     coordinator = Coordinator(formatter=formatter, use_mcp=use_mcp)
 
-    result = coordinator.orchestrate(
-        brief=brief.strip(),
-        flow=flow,
-        max_iterations=3
-    )
+    result = coordinator.orchestrate(brief=brief.strip(), flow=flow, max_iterations=3)
 
     print_header("📊 RESULTADO")
 
@@ -142,27 +143,33 @@ def evaluar_brief(brief: str, use_mcp: bool = False, flow: str = "validation_onl
     logger.info(f"Veredicto Final: {result.get('veredict')}")
     logger.info(f"Iteraciones: {result.get('iterations', 1)}")
 
-    if result.get('plan'):
-        logger.info(f"\n📋 Plan de Ejecución:")
-        logger.info(result['plan'])
+    if result.get("plan"):
+        logger.info("\n📋 Plan de Ejecución:")
+        logger.info(result["plan"])
 
-    if result.get('evaluations'):
-        logger.info(f"\n🧠 Evaluaciones por Cerebro:")
-        for i, eval_result in enumerate(result['evaluations'], 1):
-            brain_name = eval_result.get('brain_id', 'Unknown')
-            score = eval_result.get('score', 'N/A')
+    if result.get("evaluations"):
+        logger.info("\n🧠 Evaluaciones por Cerebro:")
+        for i, eval_result in enumerate(result["evaluations"], 1):
+            brain_name = eval_result.get("brain_id", "Unknown")
+            score = eval_result.get("score", "N/A")
             logger.info(f"\n  [{i}] {brain_name}")
             logger.info(f"      Score: {score}")
 
-    if result.get('veredict') == 'REJECT':
+    if result.get("veredict") == "REJECT":
         logger.info("\n❌ El brief fue RECHAZADO.")
-        logger.info("   Revisa: evidencia insuficiente, métricas poco realistas, o problema poco claro.")
-    elif result.get('veredict') == 'CONDITIONAL':
+        logger.info(
+            "   Revisa: evidencia insuficiente, métricas poco realistas, o problema poco claro."
+        )
+    elif result.get("veredict") == "CONDITIONAL":
         logger.info("\n⚠️  Elbrief fue ACEPTADO CONDICIONALMENTE.")
-        logger.info("   Necesita: más evidencia, métricas más ambiciosas, o clarificar la propuesta.")
-    elif result.get('veredict') == 'APPROVE':
+        logger.info(
+            "   Necesita: más evidencia, métricas más ambiciosas, o clarificar la propuesta."
+        )
+    elif result.get("veredict") == "APPROVE":
         logger.info("\n✅ El brief fue APROBADO.")
-        logger.info("   Buen trabajo: problema claro, evidencia sólida, métricas realistas.")
+        logger.info(
+            "   Buen trabajo: problema claro, evidencia sólida, métricas realistas."
+        )
 
     return result
 
@@ -172,34 +179,30 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Evalúa proyectos usando el MasterMind Framework",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=BRIEF_TEMPLATE
+        epilog=BRIEF_TEMPLATE,
     )
     parser.add_argument(
-        '--brief', '-b',
+        "--brief", "-b", type=str, help="Brief del proyecto (texto inline)"
+    )
+    parser.add_argument(
+        "--file", "-f", type=str, help="Archivo con el brief (.md o .txt)"
+    )
+    parser.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Usar MCP (NotebookLM real) en lugar de simulación",
+    )
+    parser.add_argument(
+        "--flow",
         type=str,
-        help='Brief del proyecto (texto inline)'
+        choices=["validation_only", "full_product", "optimization", "technical_review"],
+        default="validation_only",
+        help="Tipo de flujo (default: validation_only)",
     )
     parser.add_argument(
-        '--file', '-f',
-        type=str,
-        help='Archivo con el brief (.md o .txt)'
-    )
-    parser.add_argument(
-        '--mcp',
-        action='store_true',
-        help='Usar MCP (NotebookLM real) en lugar de simulación'
-    )
-    parser.add_argument(
-        '--flow',
-        type=str,
-        choices=['validation_only', 'full_product', 'optimization', 'technical_review'],
-        default='validation_only',
-        help='Tipo de flujo (default: validation_only)'
-    )
-    parser.add_argument(
-        '--example',
-        action='store_true',
-        help='Usar el brief de ejemplo (freelancers app)'
+        "--example",
+        action="store_true",
+        help="Usar el brief de ejemplo (freelancers app)",
     )
 
     args = parser.parse_args()
@@ -208,7 +211,7 @@ def main() -> None:
     if args.example:
         brief = EJEMPLO_BRIEF
     elif args.file:
-        with open(args.file, 'r') as f:
+        with open(args.file, "r") as f:
             brief = f.read()
     elif args.brief:
         brief = args.brief
@@ -218,16 +221,12 @@ def main() -> None:
         brief = EJEMPLO_BRIEF
 
     # Evaluar
-    result = evaluar_brief(
-        brief=brief,
-        use_mcp=args.mcp,
-        flow=args.flow
-    )
+    result = evaluar_brief(brief=brief, use_mcp=args.mcp, flow=args.flow)
 
     # Exit code basado en veredicto
-    if result.get('veredict') == 'APPROVE':
+    if result.get("veredict") == "APPROVE":
         sys.exit(0)
-    elif result.get('veredict') == 'CONDITIONAL':
+    elif result.get("veredict") == "CONDITIONAL":
         sys.exit(1)
     else:  # REJECT
         sys.exit(2)

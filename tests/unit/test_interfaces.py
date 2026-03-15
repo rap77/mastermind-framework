@@ -31,7 +31,7 @@ class TestBrief:
             problem_statement="Build a CRM for small businesses",
             context="Need to manage contacts and sales pipeline",
             constraints=["Must work offline", "Mobile first"],
-            target_audience="Small business owners"
+            target_audience="Small business owners",
         )
         assert brief.problem_statement == "Build a CRM for small businesses"
         assert len(brief.constraints) == 2
@@ -47,14 +47,18 @@ class TestBrief:
         with pytest.raises(ValidationError) as exc:
             Brief(problem_statement="Short")
         # Pydantic validates min_length before custom validator
-        assert "string_too_short" in str(exc.value) or "at least 10 characters" in str(exc.value)
+        assert "string_too_short" in str(exc.value) or "at least 10 characters" in str(
+            exc.value
+        )
 
     def test_problem_statement_whitespace_only(self):
         """Problem statement with only whitespace should fail."""
         with pytest.raises(ValidationError) as exc:
             Brief(problem_statement="   ")
         # Pydantic validates min_length before custom validator
-        assert "string_too_short" in str(exc.value) or "at least 10 characters" in str(exc.value)
+        assert "string_too_short" in str(exc.value) or "at least 10 characters" in str(
+            exc.value
+        )
 
     def test_problem_statement_gets_stripped(self):
         """Problem statement should be stripped of leading/trailing whitespace."""
@@ -64,7 +68,9 @@ class TestBrief:
     def test_problem_statement_less_than_3_words(self):
         """Problem statement with < 3 words should fail."""
         with pytest.raises(ValidationError) as exc:
-            Brief(problem_statement="Enterprise application")  # Only 2 words, but > 10 chars
+            Brief(
+                problem_statement="Enterprise application"
+            )  # Only 2 words, but > 10 chars
         # Custom validator fires after min_length passes
         assert "at least 3 words" in str(exc.value)
 
@@ -78,7 +84,7 @@ class TestBrainInput:
         brain_input = BrainInput(
             brief=brief,
             additional_context={"previous_brain": "strategy"},
-            execution_metadata={"user_id": "123"}
+            execution_metadata={"user_id": "123"},
         )
         assert brain_input.brief.problem_statement == "Build a CRM"
         assert brain_input.additional_context["previous_brain"] == "strategy"
@@ -100,8 +106,12 @@ class TestProductStrategy:
         strategy = ProductStrategy(
             positioning="The easiest CRM for small businesses",
             target_audience="Small business owners with 1-50 employees",
-            key_features=["Contact management", "Pipeline tracking", "Email integration"],
-            success_metrics=["User adoption rate", "Retention rate", "NPS score"]
+            key_features=[
+                "Contact management",
+                "Pipeline tracking",
+                "Email integration",
+            ],
+            success_metrics=["User adoption rate", "Retention rate", "NPS score"],
         )
         assert strategy.brain_id == "brain-01-product-strategy"
         assert len(strategy.key_features) == 3
@@ -114,7 +124,7 @@ class TestProductStrategy:
                 positioning="Test",
                 target_audience="Test",
                 key_features=[],  # Empty list
-                success_metrics=["Test"]
+                success_metrics=["Test"],
             )
         assert "too_short" in str(exc.value) or "at least 1" in str(exc.value)
 
@@ -125,7 +135,7 @@ class TestProductStrategy:
             target_audience="Test",
             key_features=["Feature 1"],
             success_metrics=["Metric 1"],
-            risks=["Competition", "Technical complexity"]
+            risks=["Competition", "Technical complexity"],
         )
         assert len(strategy.risks) == 2
 
@@ -138,11 +148,14 @@ class TestUXResearch:
         research = UXResearch(
             user_journeys=[
                 {"stage": "Awareness", "actions": ["Search online", "Ask friends"]},
-                {"stage": "Consideration", "actions": ["Compare options", "Read reviews"]}
+                {
+                    "stage": "Consideration",
+                    "actions": ["Compare options", "Read reviews"],
+                },
             ],
             pain_points=["Hard to track leads", "No mobile app"],
             opportunities=["AI-powered suggestions", "Mobile-first design"],
-            research_methodology="Competitive analysis + user interviews"
+            research_methodology="Competitive analysis + user interviews",
         )
         assert research.brain_id == "brain-02-ux-research"
         assert len(research.user_journeys) == 2
@@ -155,7 +168,7 @@ class TestUXResearch:
                 user_journeys=[],
                 pain_points=["Test"],
                 opportunities=["Test"],
-                research_methodology="Test"
+                research_methodology="Test",
             )
 
 
@@ -166,9 +179,12 @@ class TestFrontendDesign:
         """FrontendDesign with valid data should pass."""
         frontend = FrontendDesign(
             framework="React with TypeScript",
-            component_hierarchy={"pages": ["Dashboard", "Contacts"], "shared": ["Button", "Input"]},
+            component_hierarchy={
+                "pages": ["Dashboard", "Contacts"],
+                "shared": ["Button", "Input"],
+            },
             state_management="Zustand",
-            styling_approach="Tailwind CSS"
+            styling_approach="Tailwind CSS",
         )
         assert frontend.brain_id == "brain-04-frontend"
         assert frontend.framework == "React with TypeScript"
@@ -181,7 +197,7 @@ class TestFrontendDesign:
             component_hierarchy={},
             state_management="Redux",
             styling_approach="CSS Modules",
-            build_tools=["Vite", "ESLint", "Prettier"]
+            build_tools=["Vite", "ESLint", "Prettier"],
         )
         assert len(frontend.build_tools) == 3
 
@@ -192,9 +208,7 @@ class TestGrowthDataEvaluation:
     def test_valid_evaluation_approve(self):
         """Evaluation with APPROVE verdict should pass."""
         evaluation = GrowthDataEvaluation(
-            verdict="APPROVE",
-            score=8.5,
-            feedback="Strong strategy with clear metrics"
+            verdict="APPROVE", score=8.5, feedback="Strong strategy with clear metrics"
         )
         assert evaluation.brain_id == "brain-07-growth-data"
         assert evaluation.verdict == "APPROVE"
@@ -206,7 +220,7 @@ class TestGrowthDataEvaluation:
             verdict="CONDITIONAL",
             score=6.0,
             feedback="Good but needs more detail on tech stack",
-            approval_conditions=["Specify framework choice", "Add MVP scope"]
+            approval_conditions=["Specify framework choice", "Add MVP scope"],
         )
         assert evaluation.verdict == "CONDITIONAL"
         assert len(evaluation.approval_conditions) == 2
@@ -217,7 +231,7 @@ class TestGrowthDataEvaluation:
             verdict="REJECT",
             score=3.0,
             feedback="Too vague, no clear path forward",
-            rejection_reasons=["Missing success metrics", "No timeline defined"]
+            rejection_reasons=["Missing success metrics", "No timeline defined"],
         )
         assert evaluation.verdict == "REJECT"
         assert len(evaluation.rejection_reasons) == 2
@@ -228,14 +242,14 @@ class TestGrowthDataEvaluation:
             GrowthDataEvaluation(
                 verdict="APPROVE",
                 score=11.0,  # Too high
-                feedback="Test"
+                feedback="Test",
             )
 
         with pytest.raises(ValidationError):
             GrowthDataEvaluation(
                 verdict="APPROVE",
                 score=-1.0,  # Too low
-                feedback="Test"
+                feedback="Test",
             )
 
     def test_invalid_verdict(self):
@@ -244,7 +258,7 @@ class TestGrowthDataEvaluation:
             GrowthDataEvaluation(
                 verdict="INVALID",  # Not in Literal
                 score=5.0,
-                feedback="Test"
+                feedback="Test",
             )
 
 
@@ -257,9 +271,9 @@ class TestMasterInterviewerOutput:
             is_ambiguous=True,
             interview_plan=[
                 {"question": "What is the main problem?", "priority": "high"},
-                {"question": "Who is your target user?", "priority": "high"}
+                {"question": "Who is your target user?", "priority": "high"},
             ],
-            confidence_score=0.3
+            confidence_score=0.3,
         )
         assert output.is_ambiguous is True
         assert len(output.interview_plan) == 2
@@ -272,7 +286,7 @@ class TestMasterInterviewerOutput:
             is_ambiguous=False,
             interview_plan=[],
             clarified_brief=brief,
-            confidence_score=0.9
+            confidence_score=0.9,
         )
         assert output.is_ambiguous is False
         assert output.clarified_brief is not None
@@ -284,7 +298,7 @@ class TestMasterInterviewerOutput:
             MasterInterviewerOutput(
                 is_ambiguous=False,
                 interview_plan=[],
-                confidence_score=1.5  # Too high
+                confidence_score=1.5,  # Too high
             )
 
 
@@ -298,7 +312,7 @@ class TestTypeSafety:
                 positioning=123,  # Should be str
                 target_audience=["List", "not", "string"],  # Should be str
                 key_features="String, not list",  # Should be list
-                success_metrics=None  # Should be list
+                success_metrics=None,  # Should be list
             )
 
     def test_datetime_auto_generated(self):
@@ -307,7 +321,7 @@ class TestTypeSafety:
             positioning="Test",
             target_audience="Test",
             key_features=["Test"],
-            success_metrics=["Test"]
+            success_metrics=["Test"],
         )
         assert isinstance(strategy.generated_at, datetime)
         # Should be very recent (within last second)
@@ -324,7 +338,7 @@ class TestPureFunctionPrinciple:
             positioning="Test",
             target_audience="Test",
             key_features=["Test"],
-            success_metrics=["Test"]
+            success_metrics=["Test"],
         )
 
         # Should not raise
@@ -343,7 +357,7 @@ class TestPureFunctionPrinciple:
             positioning="Test",
             target_audience="Test",
             key_features=["Test"],
-            success_metrics=["Test"]
+            success_metrics=["Test"],
         )
 
         # Creating a new instance with updated data is easy

@@ -8,7 +8,7 @@ from mastermind_cli.memory import EvaluationLogger
 
 
 @click.group()
-def evaluation():
+def evaluation() -> None:
     """Manage and search stored evaluations."""
     pass
 
@@ -16,7 +16,7 @@ def evaluation():
 @evaluation.command()
 @click.option("--limit", default=10, help="Number of evaluations to show", type=int)
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
-def list(limit: int, verbose: bool):
+def list(limit: int, verbose: bool) -> None:
     """List recent evaluations."""
     logger = EvaluationLogger()
 
@@ -63,9 +63,11 @@ def list(limit: int, verbose: bool):
 
         # Show issues count
         if eval.issues_found:
-            severity_count = {}
+            severity_count: dict[str, int] = {}
             for issue in eval.issues_found:
-                severity_count[issue.severity] = severity_count.get(issue.severity, 0) + 1
+                severity_count[issue.severity] = (
+                    severity_count.get(issue.severity, 0) + 1
+                )
             if severity_count:
                 issues_str = ", ".join([f"{k}:{v}" for k, v in severity_count.items()])
                 click.echo(f"   ⚠️  Issues: {issues_str}")
@@ -75,7 +77,7 @@ def list(limit: int, verbose: bool):
 
 @evaluation.command()
 @click.argument("evaluation_id")
-def show(evaluation_id: str):
+def show(evaluation_id: str) -> None:
     """Show detailed evaluation."""
     logger = EvaluationLogger()
 
@@ -98,7 +100,9 @@ def show(evaluation_id: str):
     click.echo(f"📅 Date: {eval_entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC")
     click.echo(f"📁 Project: {eval_entry.project}")
     click.echo(f"🔄 Flow Type: {eval_entry.flow_type}")
-    click.echo(f"🧠 Brains Involved: {', '.join([f'#{b}' for b in eval_entry.brains_involved])}")
+    click.echo(
+        f"🧠 Brains Involved: {', '.join([f'#{b}' for b in eval_entry.brains_involved])}"
+    )
 
     # Verdict with color
     verdict_colors = {
@@ -151,7 +155,7 @@ def show(evaluation_id: str):
 @evaluation.command()
 @click.argument("project")
 @click.option("--limit", default=20, help="Max evaluations to show", type=int)
-def find(project: str, limit: int):
+def find(project: str, limit: int) -> None:
     """Find evaluations by project."""
     logger = EvaluationLogger()
 
@@ -192,7 +196,7 @@ def find(project: str, limit: int):
 @evaluation.command()
 @click.argument("query")
 @click.option("--limit", default=10, help="Max results to show", type=int)
-def search(query: str, limit: int):
+def search(query: str, limit: int) -> None:
     """Search evaluations by keyword."""
     logger = EvaluationLogger()
 
@@ -228,8 +232,13 @@ def search(query: str, limit: int):
 
 
 @evaluation.command()
-@click.option("--verdict", "-v", help="Filter by verdict", type=click.Choice(["APPROVE", "CONDITIONAL", "REJECT", "ESCALATE"]))
-def stats(verdict: str):
+@click.option(
+    "--verdict",
+    "-v",
+    help="Filter by verdict",
+    type=click.Choice(["APPROVE", "CONDITIONAL", "REJECT", "ESCALATE"]),
+)
+def stats(verdict: str) -> None:
     """Show evaluation statistics."""
     logger = EvaluationLogger()
 
@@ -275,7 +284,7 @@ def stats(verdict: str):
 @evaluation.command()
 @click.argument("evaluation_id")
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-def export(evaluation_id: str, output: str):
+def export(evaluation_id: str, output: str | None = None) -> None:
     """Export evaluation to YAML file."""
     logger = EvaluationLogger()
 

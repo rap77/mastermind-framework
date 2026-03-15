@@ -7,8 +7,6 @@ Requirements: PAR-08, PERF-03
 """
 
 import pytest
-import time
-from mastermind_cli.api.websocket import WebSocketManager
 
 
 @pytest.mark.asyncio

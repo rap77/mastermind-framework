@@ -5,7 +5,6 @@ MasterMind Framework - Brain Testing Script
 Tests Product Strategy (#1) and UX Research (#2) brains with sample briefs.
 """
 
-import json
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -33,8 +32,8 @@ Contexto:
         "constraints": [
             "Budget limitado (<$500/mes en APIs)",
             "Lanzamiento en 3 meses",
-            "Equipo: 1 fullstack dev + 1 designer"
-        ]
+            "Equipo: 1 fullstack dev + 1 designer",
+        ],
     },
     "ux_research": {
         "title": "Dashboard de Análisis para E-commerce",
@@ -53,10 +52,11 @@ Contexto: Usan el dashboard 1-2 veces por semana, principalmente desktop
         "goals": [
             "Que entiendan cómo va su negocio",
             "Que sepan qué acciones tomar",
-            "Que no se sientan abrumados"
-        ]
-    }
+            "Que no se sientan abrumados",
+        ],
+    },
 }
+
 
 def load_brain_prompt(brain_name: str) -> str:
     """Load brain system prompt from file."""
@@ -65,6 +65,7 @@ def load_brain_prompt(brain_name: str) -> str:
         raise FileNotFoundError(f"Brain not found: {brain_file}")
 
     return brain_file.read_text()
+
 
 def create_test_prompt(brain_name: str, brief: dict) -> str:
     """Create a test prompt combining brain system prompt and brief."""
@@ -75,17 +76,17 @@ def create_test_prompt(brain_name: str, brief: dict) -> str:
 {brief['description']}
 
 """
-    if 'constraints' in brief:
+    if "constraints" in brief:
         user_message += f"""### Constraints
 {chr(10).join(f'- {c}' for c in brief['constraints'])}
 
 """
-    if 'current_experience' in brief:
+    if "current_experience" in brief:
         user_message += f"""### Current Experience
 {brief['current_experience']}
 
 """
-    if 'goals' in brief:
+    if "goals" in brief:
         user_message += f"""### Goals
 {chr(10).join(f'- {g}' for g in brief['goals'])}
 
@@ -98,17 +99,20 @@ Include both the JSON structure and a human-readable explanation.
 
     return system_prompt, user_message
 
+
 def print_test_header(test_name: str):
     """Print test header."""
     print("\n" + "=" * 80)
     print(f"  TEST: {test_name}")
     print("=" * 80 + "\n")
 
+
 def print_section(title: str):
     """Print section header."""
     print(f"\n{'─' * 40}")
     print(f"  {title}")
     print(f"{'─' * 40}\n")
+
 
 def main():
     """Run brain tests."""
@@ -117,7 +121,11 @@ def main():
     print("🧠" * 20 + "\n")
 
     tests = [
-        ("product-strategy", "Brain #1: Product Strategy", SAMPLE_BRIEFS["product_strategy"]),
+        (
+            "product-strategy",
+            "Brain #1: Product Strategy",
+            SAMPLE_BRIEFS["product_strategy"],
+        ),
         ("ux-research", "Brain #2: UX Research", SAMPLE_BRIEFS["ux_research"]),
     ]
 
@@ -213,13 +221,14 @@ To test this brain with Claude:
     results_file.parent.mkdir(exist_ok=True)
 
     with open(results_file, "w") as f:
-        f.write(f"MasterMind Framework - Brain Test Results\n")
+        f.write("MasterMind Framework - Brain Test Results\n")
         f.write(f"Generated: {datetime.now().isoformat()}\n\n")
 
         for brain_name, status, note in results:
             f.write(f"{brain_name}: {status} - {note}\n")
 
     print(f"📝 Results saved to: {results_file}\n")
+
 
 if __name__ == "__main__":
     main()

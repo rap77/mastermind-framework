@@ -7,7 +7,7 @@ concurrently with retry logic, Circuit Breaker, and state persistence.
 
 import asyncio
 import random
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..types.parallel import FlowConfig, ProviderConfig, TaskState
 from ..state.repositories import TaskRepository
@@ -33,7 +33,7 @@ class ParallelExecutor:
         self,
         task_repo: TaskRepository,
         mcp_client: TypeSafeMCPWrapper,
-        provider_configs: List[ProviderConfig]
+        provider_configs: List[ProviderConfig],
     ):
         """Initialize executor with repository, MCP client, and provider configs.
 
@@ -45,8 +45,7 @@ class ParallelExecutor:
         self.task_repo = task_repo
         self.mcp_client = mcp_client
         self.semaphores = {
-            p.name: asyncio.Semaphore(p.max_concurrent_calls)
-            for p in provider_configs
+            p.name: asyncio.Semaphore(p.max_concurrent_calls) for p in provider_configs
         }
         self.cancel_event = asyncio.Event()
         # Circuit Breaker state: brain_id -> consecutive_failure_count
@@ -54,11 +53,7 @@ class ParallelExecutor:
         self.CIRCUIT_BREAKER_THRESHOLD = 3
 
     async def execute_brain(
-        self,
-        task_id: str,
-        brain_id: str,
-        query: str,
-        provider_name: str = "notebooklm"
+        self, task_id: str, brain_id: str, query: str, provider_name: str = "notebooklm"
     ) -> Dict[str, Any]:
         """Execute a single brain with semaphore limiting and retry logic.
 
@@ -83,12 +78,12 @@ class ParallelExecutor:
             await self.task_repo.update_status(
                 task_id,
                 TaskState.FAILED,
-                error=f"Circuit Breaker open for {brain_id} (too many failures)"
+                error=f"Circuit Breaker open for {brain_id} (too many failures)",
             )
             return {
                 "brain_id": brain_id,
                 "status": "failed",
-                "error": f"Circuit Breaker open for {brain_id}"
+                "error": f"Circuit Breaker open for {brain_id}",
             }
 
         async with semaphore:
@@ -109,7 +104,11 @@ class ParallelExecutor:
                     # Success: reset Circuit Breaker
                     self._circuit_breakers[brain_id] = 0
                     await self.task_repo.update_result(task_id, result)
-                    return {"brain_id": brain_id, "status": "completed", "result": result}
+                    return {
+                        "brain_id": brain_id,
+                        "status": "completed",
+                        "result": result,
+                    }
 
                 except asyncio.CancelledError:
                     await self.task_repo.update_status(task_id, TaskState.CANCELLED)
@@ -120,32 +119,42 @@ class ParallelExecutor:
 
                     if is_last_attempt:
                         # All retries exhausted: increment Circuit Breaker
-                        self._circuit_breakers[brain_id] = self._circuit_breakers.get(brain_id, 0) + 1
+                        self._circuit_breakers[brain_id] = (
+                            self._circuit_breakers.get(brain_id, 0) + 1
+                        )
 
                         # Format error using BrainErrorFormatter
                         from .error_formatter import BrainErrorFormatter
+
                         formatted_error = BrainErrorFormatter.format_error(brain_id, e)
 
                         await self.task_repo.update_status(
-                            task_id,
-                            TaskState.FAILED,
-                            error=formatted_error
+                            task_id, TaskState.FAILED, error=formatted_error
                         )
                         return {
                             "brain_id": brain_id,
                             "status": "failed",
-                            "error": formatted_error
+                            "error": formatted_error,
                         }
                     else:
                         # Exponential backoff with jitter
-                        delay = base_delay * (2 ** attempt)  # 1s, 2s, 4s
-                        jitter = delay * jitter_percent * (random.random() * 2 - 1)  # ±20%
+                        delay = base_delay * (2**attempt)  # 1s, 2s, 4s
+                        jitter = (
+                            delay * jitter_percent * (random.random() * 2 - 1)
+                        )  # ±20%
                         await asyncio.sleep(delay + jitter)
+
+            # Should never reach here, but mypy needs explicit return
+            return {
+                "brain_id": brain_id,
+                "status": "failed",
+                "error": "Unknown error in retry loop",
+            }
 
     async def _call_brain(self, brain_id: str, query: str) -> Dict[str, Any]:
         """Call brain via MCP wrapper.
 
-        This method handles both sync and async MCP clients.
+        This method uses TypeSafeMCPWrapper's call_mcp method.
 
         Args:
             brain_id: Brain identifier
@@ -154,25 +163,15 @@ class ParallelExecutor:
         Returns:
             Brain response as dictionary
         """
-        # Check if MCP client has async query_brain method
-        if hasattr(self.mcp_client, 'call_mcp'):
-            # Use TypeSafeMCPWrapper's sync method
-            response = self.mcp_client.call_mcp(brain_id, query)
-            if response.success:
-                return {"response": response.response}
-            else:
-                raise Exception(response.error or "MCP call failed")
-        elif asyncio.iscoroutinefunction(self.mcp_client.query_brain):
-            # Use async method
-            return await self.mcp_client.query_brain(brain_id, query)
+        # Use TypeSafeMCPWrapper's sync method
+        response = self.mcp_client.call_mcp(brain_id, query)
+        if response.success:
+            return {"response": response.response}
         else:
-            # Use sync method in thread pool
-            return await asyncio.to_thread(self.mcp_client.query_brain, brain_id, query)
+            raise Exception(response.error or "MCP call failed")
 
     async def execute_brains_parallel(
-        self,
-        flow: FlowConfig,
-        brief: str
+        self, flow: FlowConfig, brief: str
     ) -> Dict[str, Any]:
         """Execute multiple brains in parallel using TaskGroup.
 
@@ -199,9 +198,7 @@ class ParallelExecutor:
                     task_id = f"{brain_id}-{id(brief)}"
                     await self.task_repo.create(task_id, brain_id)
 
-                    task = tg.create_task(
-                        self.execute_brain(task_id, brain_id, brief)
-                    )
+                    task = tg.create_task(self.execute_brain(task_id, brain_id, brief))
                     tasks[brain_id] = task
 
                 for brain_id, task in tasks.items():
@@ -215,11 +212,11 @@ class ParallelExecutor:
 
         return results
 
-    def cancel(self):
+    def cancel(self) -> None:
         """Cancel all running tasks."""
         self.cancel_event.set()
 
-    def reset_circuit_breaker(self, brain_id: str):
+    def reset_circuit_breaker(self, brain_id: str) -> None:
         """Reset Circuit Breaker for a specific brain (manual recovery).
 
         Args:
@@ -228,12 +225,7 @@ class ParallelExecutor:
         if brain_id in self._circuit_breakers:
             del self._circuit_breakers[brain_id]
 
-    async def save_config(
-        self,
-        execution_id: str,
-        flow: FlowConfig,
-        brief: str
-    ) -> str:
+    async def save_config(self, execution_id: str, flow: FlowConfig, brief: str) -> str:
         """Save execution configuration for re-run.
 
         This method persists the FlowConfig and brief to the executions table,
@@ -255,12 +247,12 @@ class ParallelExecutor:
         await self.task_repo.db.conn.execute(
             """INSERT INTO executions (id, flow_config, brief, created_at, status)
                VALUES (?, ?, ?, ?, 'pending')""",
-            (execution_id, flow_json, brief, now)
+            (execution_id, flow_json, brief, now),
         )
         await self.task_repo.db.conn.commit()
         return execution_id
 
-    async def load_config(self, execution_id: str) -> Optional[dict]:
+    async def load_config(self, execution_id: str) -> Optional[dict[str, Any]]:
         """Load saved execution configuration.
 
         This method retrieves a previously saved execution configuration,
@@ -273,16 +265,13 @@ class ParallelExecutor:
             Dict with flow_config and brief, or None if not found
         """
         cursor = await self.task_repo.db.conn.execute(
-            "SELECT flow_config, brief FROM executions WHERE id = ?",
-            (execution_id,)
+            "SELECT flow_config, brief FROM executions WHERE id = ?", (execution_id,)
         )
         row = await cursor.fetchone()
 
         if row:
             from ..types.parallel import FlowConfig
+
             flow_config = FlowConfig.model_validate_json(row[0])
-            return {
-                "flow": flow_config,
-                "brief": row[1]
-            }
+            return {"flow": flow_config, "brief": row[1]}
         return None

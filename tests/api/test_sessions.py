@@ -7,8 +7,6 @@ Requirements: UI-08
 """
 
 import pytest
-import asyncio
-from fastapi.testclient import TestClient
 
 
 @pytest.mark.asyncio

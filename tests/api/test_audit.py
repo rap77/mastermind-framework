@@ -6,9 +6,6 @@ Tests will be implemented after Plan 01 Task 1.
 Requirements: UI-07
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
 
 def test_audit_log_created():
     """Test all POST/PUT/DELETE requests are logged to audit_log table.

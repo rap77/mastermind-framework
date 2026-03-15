@@ -6,7 +6,7 @@ and schema creation for task state persistence.
 """
 
 import aiosqlite
-from typing import Optional
+from typing import Optional, Any
 
 
 class DatabaseConnection:
@@ -32,18 +32,19 @@ class DatabaseConnection:
         self.db_path = db_path
         self._conn: Optional[aiosqlite.Connection] = None
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Establish database connection and enable WAL mode."""
         self._conn = await aiosqlite.connect(self.db_path)
         await self._enable_wal_mode()
         await self._create_indexes()
 
-    async def _enable_wal_mode(self):
+    async def _enable_wal_mode(self) -> None:
         """Enable WAL (Write-Ahead Logging) mode for better concurrency."""
+        assert self._conn is not None
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.commit()
 
-    async def _create_indexes(self):
+    async def _create_indexes(self) -> None:
         """Create indexes for common queries (called after schema creation)."""
         # Indexes will be created by create_task_schema()
         pass
@@ -59,7 +60,7 @@ class DatabaseConnection:
             raise RuntimeError("Database not connected. Call connect() first.")
         return self._conn
 
-    async def create_task_schema(self):
+    async def create_task_schema(self) -> None:
         """Create tasks and executions tables with indexes.
 
         Tasks Schema:
@@ -112,7 +113,7 @@ class DatabaseConnection:
         )
         await self.conn.commit()
 
-    async def create_auth_schema(self):
+    async def create_auth_schema(self) -> None:
         """Create authentication tables for JWT and API key management.
 
         Auth Schema (Phase 3 - UI-02, UI-03, UI-07):
@@ -192,7 +193,7 @@ class DatabaseConnection:
 
         await self.conn.commit()
 
-    async def create_experience_schema(self):
+    async def create_experience_schema(self) -> None:
         """Create experience_records table for full-fidelity execution logging.
 
         Experience Schema (Phase 4 - 04-01):
@@ -242,24 +243,26 @@ class DatabaseConnection:
 
         await self.conn.commit()
 
-    async def close(self):
+    async def close(self) -> None:
         """Close database connection."""
         if self._conn:
             await self._conn.close()
             self._conn = None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "DatabaseConnection":
         """Async context manager entry."""
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: object | None, exc_val: object | None, exc_tb: object | None
+    ) -> None:
         """Async context manager exit."""
         await self.close()
 
     # ===== API KEY METHODS =====
 
-    async def get_api_key(self, key_hash: str) -> dict | None:
+    async def get_api_key(self, key_hash: str) -> dict[str, Any] | None:
         """Get API key by hash.
 
         Args:
@@ -270,7 +273,7 @@ class DatabaseConnection:
         """
         cursor = await self.conn.execute(
             "SELECT id, user_id, key_hash, name, created_at, last_used FROM api_keys WHERE key_hash = ?",
-            (key_hash,)
+            (key_hash,),
         )
         row = await cursor.fetchone()
 
@@ -285,7 +288,7 @@ class DatabaseConnection:
             }
         return None
 
-    async def save_api_key(self, key_data: dict) -> bool:
+    async def save_api_key(self, key_data: dict[str, Any]) -> bool:
         """Save API key to database.
 
         Args:
@@ -301,9 +304,13 @@ class DatabaseConnection:
         await self.conn.execute(
             """INSERT INTO api_keys (id, user_id, key_hash, name, created_at)
                VALUES (?, ?, ?, ?, ?)""",
-            (key_id, key_data["owner"], key_data["key_hash"],
-             f"API Key for {key_data['owner']}",
-             datetime.now(timezone.utc).isoformat())
+            (
+                key_id,
+                key_data["owner"],
+                key_data["key_hash"],
+                f"API Key for {key_data['owner']}",
+                datetime.now(timezone.utc).isoformat(),
+            ),
         )
         await self.conn.commit()
         return True
@@ -318,13 +325,12 @@ class DatabaseConnection:
             True if revoked, False if not found
         """
         cursor = await self.conn.execute(
-            "DELETE FROM api_keys WHERE key_hash = ?",
-            (key_hash,)
+            "DELETE FROM api_keys WHERE key_hash = ?", (key_hash,)
         )
         await self.conn.commit()
         return cursor.rowcount > 0
 
-    async def list_api_keys(self, owner: str | None = None) -> list[dict]:
+    async def list_api_keys(self, owner: str | None = None) -> list[dict[str, Any]]:
         """List all API keys, optionally filtered by owner.
 
         Args:
@@ -337,7 +343,7 @@ class DatabaseConnection:
             cursor = await self.conn.execute(
                 """SELECT id, user_id, key_hash, name, created_at, last_used
                    FROM api_keys WHERE user_id = ?""",
-                (owner,)
+                (owner,),
             )
         else:
             cursor = await self.conn.execute(

@@ -4,7 +4,7 @@ Tests for CancellationManager with grace period and checkpoint support.
 
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from mastermind_cli.orchestrator.cancellation import CancellationManager
 
@@ -61,6 +61,7 @@ class TestCancellationManager:
     @pytest.mark.asyncio
     async def test_force_kill_after_grace_period(self, manager, mock_executor):
         """Test that tasks are force killed after grace period expires."""
+
         # Create a long-running task that won't complete
         async def long_running_task():
             """Simulate a brain that takes too long."""
@@ -97,6 +98,7 @@ class TestCancellationManager:
     @pytest.mark.asyncio
     async def test_register_and_unregister_tasks(self, manager):
         """Test task registration and unregistration."""
+
         async def dummy_task():
             await asyncio.sleep(0.1)
             return "done"
@@ -116,6 +118,7 @@ class TestCancellationManager:
     @pytest.mark.asyncio
     async def test_multiple_tasks_mixed_completion(self, manager, mock_executor):
         """Test cancellation with multiple tasks, some completing and some not."""
+
         # Create fast task (will complete)
         async def fast_task():
             await asyncio.sleep(0.3)
@@ -148,6 +151,7 @@ class TestCancellationManager:
         # Add a dummy task
         async def dummy():
             await asyncio.sleep(0.1)
+
         task = asyncio.create_task(dummy())
         manager.register_task(task)
 
@@ -178,4 +182,6 @@ class TestCancellationManager:
         elapsed = asyncio.get_event_loop().time() - start_time
 
         # Should wait approximately 0.5 seconds (±0.1 for tolerance)
-        assert 0.4 <= elapsed <= 0.6, f"Grace period should be ~0.5s, got {elapsed:.2f}s"
+        assert (
+            0.4 <= elapsed <= 0.6
+        ), f"Grace period should be ~0.5s, got {elapsed:.2f}s"

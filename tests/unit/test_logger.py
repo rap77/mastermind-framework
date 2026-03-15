@@ -11,7 +11,6 @@ Tests cover:
 
 import pytest
 import asyncio
-from pathlib import Path
 from datetime import datetime, timezone
 
 from mastermind_cli.state.logger import (
@@ -44,7 +43,7 @@ def sample_brief():
         problem_statement="Build a CRM for small businesses",
         context="Targeting companies with 10-50 employees",
         constraints=["Must be web-based", "Budget under $10k/month"],
-        target_audience="Small business owners"
+        target_audience="Small business owners",
     )
 
 
@@ -57,7 +56,7 @@ def sample_output():
         key_features=["Contact management", "Pipeline tracking", "Email integration"],
         success_metrics=["User adoption rate", "Revenue growth"],
         risks=["Competition from Salesforce", "Market saturation"],
-        generated_at=datetime.now(timezone.utc)
+        generated_at=datetime.now(timezone.utc),
     )
 
 
@@ -112,7 +111,7 @@ class TestLogExecution:
             output=sample_output,
             status="success",
             duration_ms=1500,
-            metadata={"user": "test-user"}
+            metadata={"user": "test-user"},
         )
 
         assert log_id != ""
@@ -128,7 +127,7 @@ class TestLogExecution:
             status="error",
             error_message="MCP connection timeout",
             duration_ms=5000,
-            metadata={"user": "test-user"}
+            metadata={"user": "test-user"},
         )
 
         assert log_id != ""
@@ -143,7 +142,7 @@ class TestLogExecution:
             brief=sample_brief,
             output=sample_output,
             status="success",
-            duration_ms=2000
+            duration_ms=2000,
         )
 
         retrieved = await logger.get_execution_by_id(exec_id)
@@ -163,7 +162,7 @@ class TestLogExecution:
             brief=sample_brief,
             output=sample_output,
             status="success",
-            duration_ms=1000
+            duration_ms=1000,
         )
 
         assert log_id == ""
@@ -182,7 +181,7 @@ class TestQueryExecutions:
                 brief=sample_brief,
                 output=sample_output,
                 status="success",
-                duration_ms=1000 + i * 500
+                duration_ms=1000 + i * 500,
             )
 
         query = ExecutionQuery()
@@ -200,7 +199,7 @@ class TestQueryExecutions:
             brief=sample_brief,
             output=sample_output,
             status="success",
-            duration_ms=1000
+            duration_ms=1000,
         )
         await logger.log_execution(
             execution_id="exec-2",
@@ -208,7 +207,7 @@ class TestQueryExecutions:
             brief=sample_brief,
             output=sample_output,
             status="success",
-            duration_ms=1000
+            duration_ms=1000,
         )
 
         query = ExecutionQuery(brain_id="brain-01-product-strategy")
@@ -226,7 +225,7 @@ class TestQueryExecutions:
             brief=sample_brief,
             output=sample_output,
             status="success",
-            duration_ms=1000
+            duration_ms=1000,
         )
         await logger.log_execution(
             execution_id="exec-error",
@@ -235,7 +234,7 @@ class TestQueryExecutions:
             output=None,
             status="error",
             error_message="Test error",
-            duration_ms=500
+            duration_ms=500,
         )
 
         query = ExecutionQuery(status="error")
@@ -254,7 +253,7 @@ class TestQueryExecutions:
                 brief=sample_brief,
                 output=sample_output,
                 status="success",
-                duration_ms=1000
+                duration_ms=1000,
             )
 
         # Get first page
@@ -283,7 +282,7 @@ class TestQueryExecutions:
                 brief=sample_brief,
                 output=sample_output,
                 status="success",
-                duration_ms=duration
+                duration_ms=duration,
             )
 
         # Sort ascending
@@ -314,7 +313,7 @@ class TestStatistics:
                 output=sample_output if i < 7 else None,
                 status="success" if i < 7 else "error",
                 error_message=None if i < 7 else "Test error",
-                duration_ms=1000 + i * 100
+                duration_ms=1000 + i * 100,
             )
 
         stats = await logger.get_statistics()
@@ -333,18 +332,18 @@ class TestStatistics:
 class TestContextManager:
     """Test log_brain_execution context manager."""
 
-    async def test_context_manager_success_timing(self, logger, sample_brief, sample_output):
+    async def test_context_manager_success_timing(
+        self, logger, sample_brief, sample_output
+    ):
         """Test context manager with successful execution."""
-        import time
 
         exec_id = "exec-context-success"
 
-        with pytest.raises(Exception):  # Context manager yields Timer, not async context
+        with pytest.raises(
+            Exception
+        ):  # Context manager yields Timer, not async context
             async with log_brain_execution(
-                logger,
-                exec_id,
-                "brain-01",
-                sample_brief
+                logger, exec_id, "brain-01", sample_brief
             ) as timer:
                 # Simulate work
                 await asyncio.sleep(0.1)
@@ -361,12 +360,7 @@ class TestContextManager:
         exec_id = "exec-context-error"
 
         try:
-            async with log_brain_execution(
-                logger,
-                exec_id,
-                "brain-01",
-                sample_brief
-            ) as timer:
+            async with log_brain_execution(logger, exec_id, "brain-01", sample_brief):
                 raise ValueError("Test error")
         except ValueError:
             pass
@@ -392,7 +386,7 @@ class TestModelValidation:
             status="success",
             duration_ms=1000,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            metadata={"user": "test"}
+            metadata={"user": "test"},
         )
         assert log.execution_id == "exec-123"
         assert log.brain_id == "brain-01"
@@ -416,7 +410,7 @@ class TestModelValidation:
             limit=50,
             offset=10,
             sort_by="duration_ms",
-            sort_order="ASC"
+            sort_order="ASC",
         )
         assert query.limit == 50
 

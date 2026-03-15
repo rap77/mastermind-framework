@@ -124,7 +124,16 @@ def test_dag_graph_colors_smoke(page: Page):
             has_state_class = False
             for i in range(min(count, 5)):  # Check first 5 nodes
                 node_class = nodes.nth(i).get_attribute("class") or ""
-                if any(state in node_class for state in ["pending", "running", "completed", "failed", "cancelled"]):
+                if any(
+                    state in node_class
+                    for state in [
+                        "pending",
+                        "running",
+                        "completed",
+                        "failed",
+                        "cancelled",
+                    ]
+                ):
                     has_state_class = True
                     break
 

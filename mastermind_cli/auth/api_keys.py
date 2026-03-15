@@ -29,6 +29,7 @@ _HASH_ALGORITHM: Final = "sha256"
 
 # ===== MODELS =====
 
+
 class APIKey(BaseModel):
     """
     API Key model for authentication.
@@ -45,7 +46,9 @@ class APIKey(BaseModel):
     key: str = Field(..., min_length=37, max_length=100)
     key_hash: str = Field(..., min_length=64, max_length=64)
     owner: str = Field(..., min_length=1, max_length=100)
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     is_active: bool = Field(default=True)
     scopes: list[str] = Field(default_factory=list)
 
@@ -94,6 +97,7 @@ class APIKeyResponse(BaseModel):
 
 # ===== KEY GENERATION =====
 
+
 def generate_api_key() -> str:
     """
     Generate a new API key.
@@ -119,6 +123,7 @@ def hash_api_key(key: str) -> str:
 
 
 # ===== VALIDATION =====
+
 
 def validate_api_key(api_key: str) -> APIKey | None:
     """
@@ -194,7 +199,7 @@ async def validate_api_key_async(api_key: str) -> APIKey | None:
     return None
 
 
-def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
+async def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
     """
     Validate an API key by its hash (for database queries).
 
@@ -208,7 +213,7 @@ def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
         from mastermind_cli.state.database import get_db
 
         db = get_db()
-        key_data = db.get_api_key(api_key_hash)
+        key_data = await db.get_api_key(api_key_hash)
 
         if key_data:
             return APIKey(**key_data)
@@ -220,7 +225,8 @@ def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
 
 # ===== KEY MANAGEMENT =====
 
-def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse]:
+
+async def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse]:
     """
     Create a new API key and store it in the database.
 
@@ -247,7 +253,7 @@ def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse]:
         from mastermind_cli.state.database import get_db
 
         db = get_db()
-        db.save_api_key(api_key.model_dump())
+        await db.save_api_key(api_key.model_dump())
     except Exception:
         # Database not available - still return the key
         pass
@@ -320,7 +326,9 @@ try:
     from fastapi import Header, HTTPException, status
 
     async def get_current_api_key(
-        x_api_key: str = Header(..., alias="X-API-Key", description="API key for authentication"),
+        x_api_key: str = Header(
+            ..., alias="X-API-Key", description="API key for authentication"
+        ),
     ) -> APIKey:
         """
         FastAPI dependency for API key validation.
@@ -351,7 +359,13 @@ try:
         return validated
 
     # Export for FastAPI use
-    __all__ = ["APIKey", "APIKeyCreate", "APIKeyResponse", "validate_api_key", "get_current_api_key"]
+    __all__ = [
+        "APIKey",
+        "APIKeyCreate",
+        "APIKeyResponse",
+        "validate_api_key",
+        "get_current_api_key",
+    ]
 
 except ImportError:
     # FastAPI not installed - skip dependency

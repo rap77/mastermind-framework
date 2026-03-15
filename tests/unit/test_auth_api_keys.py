@@ -18,7 +18,6 @@ import pytest
 from mastermind_cli.auth.api_keys import (
     APIKey,
     APIKeyCreate,
-    APIKeyResponse,
     generate_api_key,
     hash_api_key,
     validate_api_key,
@@ -167,18 +166,21 @@ class TestDatabaseValidation:
 
         # Mock database - return data that matches APIKey model
         mock_db = Mock()
-        mock_db.get_api_key = AsyncMock(return_value={
-            "key": test_key,  # Include the key for validation
-            "key_hash": test_hash,
-            "owner": "db-user",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "is_active": True,
-            "scopes": ["read", "write"],
-        })
+        mock_db.get_api_key = AsyncMock(
+            return_value={
+                "key": test_key,  # Include the key for validation
+                "key_hash": test_hash,
+                "owner": "db-user",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "is_active": True,
+                "scopes": ["read", "write"],
+            }
+        )
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
             # Use async version for database validation
             from mastermind_cli.auth.api_keys import validate_api_key_async
+
             result = await validate_api_key_async(test_key)
             assert result is not None
             assert result.key == test_key
@@ -196,6 +198,7 @@ class TestDatabaseValidation:
         with patch.dict(os.environ, {}, clear=True):
             with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
                 from mastermind_cli.auth.api_keys import validate_api_key_async
+
                 result = await validate_api_key_async(test_key)
                 assert result is None
 
@@ -295,7 +298,7 @@ class TestKeyManagement:
         mock_db.list_api_keys = AsyncMock(return_value=[])
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            result = await list_api_keys(owner="user1")
+            await list_api_keys(owner="user1")
             mock_db.list_api_keys.assert_called_once_with(owner="user1")
 
 
@@ -306,6 +309,7 @@ class TestFastAPIIntegration:
         """Test FastAPI dependency function is available."""
         try:
             from mastermind_cli.auth.api_keys import get_current_api_key
+
             assert get_current_api_key is not None
         except ImportError:
             pytest.skip("FastAPI not installed")
@@ -314,8 +318,8 @@ class TestFastAPIIntegration:
     async def test_get_current_api_key_valid(self):
         """Test FastAPI dependency with valid key."""
         try:
-            from fastapi import Header
-            from mastermind_cli.auth.api_keys import get_current_api_key
+            from fastapi import Header  # noqa: F401
+            from mastermind_cli.auth.api_keys import get_current_api_key  # noqa: F401
         except ImportError:
             pytest.skip("FastAPI not installed")
             return
@@ -325,13 +329,16 @@ class TestFastAPIIntegration:
         with patch.dict(os.environ, {"MM_API_KEY": test_key}):
             # Mock the Header dependency
             with patch("mastermind_cli.auth.api_keys.Header", return_value=test_key):
-                with patch("mastermind_cli.auth.api_keys.validate_api_key", return_value=APIKey(
-                    key=test_key,
-                    key_hash=hash_api_key(test_key),
-                    owner="test-user",
-                    is_active=True,
-                    scopes=["read"],
-                )):
+                with patch(
+                    "mastermind_cli.auth.api_keys.validate_api_key",
+                    return_value=APIKey(
+                        key=test_key,
+                        key_hash=hash_api_key(test_key),
+                        owner="test-user",
+                        is_active=True,
+                        scopes=["read"],
+                    ),
+                ):
                     # This would normally be called by FastAPI
                     result = validate_api_key(test_key)
                     assert result is not None
@@ -340,8 +347,8 @@ class TestFastAPIIntegration:
     async def test_get_current_api_key_invalid(self):
         """Test FastAPI dependency with invalid key raises 401."""
         try:
-            from fastapi import HTTPException
-            from mastermind_cli.auth.api_keys import get_current_api_key
+            from fastapi import HTTPException  # noqa: F401
+            from mastermind_cli.auth.api_keys import get_current_api_key  # noqa: F401
         except ImportError:
             pytest.skip("FastAPI not installed")
             return

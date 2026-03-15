@@ -11,6 +11,7 @@ Analiza profundamente un proyecto usando Serena MCP:
 
 Requiere: Serena MCP disponible en el entorno
 """
+
 import glob
 import json
 import logging
@@ -58,15 +59,17 @@ class DeepProjectScanner:
         commands = []
 
         # 1. List directory structure
-        commands.append({
-            "tool": "list_dir",
-            "params": {
-                "relative_path": ".",
-                "recursive": True,
-                "skip_ignored_files": True
-            },
-            "purpose": "Get project structure"
-        })
+        commands.append(
+            {
+                "tool": "list_dir",
+                "params": {
+                    "relative_path": ".",
+                    "recursive": True,
+                    "skip_ignored_files": True,
+                },
+                "purpose": "Get project structure",
+            }
+        )
 
         # 2. Find and read key documentation files
         doc_patterns = [
@@ -75,30 +78,33 @@ class DeepProjectScanner:
             "SPEC*.md",
             "ARCHITECTURE*.md",
             "DESIGN*.md",
-            "docs/*.md"
+            "docs/*.md",
         ]
 
         for pattern in doc_patterns:
-            commands.append({
-                "tool": "find_file",
-                "params": {
-                    "file_mask": pattern,
-                    "relative_path": "."
-                },
-                "purpose": f"Find {pattern}"
-            })
+            commands.append(
+                {
+                    "tool": "find_file",
+                    "params": {"file_mask": pattern, "relative_path": "."},
+                    "purpose": f"Find {pattern}",
+                }
+            )
 
         # 3. Get symbols overview for key code files
         code_dirs = ["src", "app", "lib", "frontend", "backend", "api"]
         for code_dir in code_dirs:
-            commands.append({
-                "tool": "get_symbols_overview",
-                "params": {
-                    "relative_path": f"{code_dir}/*.py" if self._is_python() else f"{code_dir}/*.ts",
-                    "depth": 1
-                },
-                "purpose": f"Analyze {code_dir} structure"
-            })
+            commands.append(
+                {
+                    "tool": "get_symbols_overview",
+                    "params": {
+                        "relative_path": f"{code_dir}/*.py"
+                        if self._is_python()
+                        else f"{code_dir}/*.ts",
+                        "depth": 1,
+                    },
+                    "purpose": f"Analyze {code_dir} structure",
+                }
+            )
 
         # 4. Search for specific patterns
         search_patterns = [
@@ -109,14 +115,16 @@ class DeepProjectScanner:
         ]
 
         for pattern, purpose in search_patterns:
-            commands.append({
-                "tool": "search_for_pattern",
-                "params": {
-                    "substring_pattern": pattern,
-                    "restrict_search_to_code_files": True
-                },
-                "purpose": purpose
-            })
+            commands.append(
+                {
+                    "tool": "search_for_pattern",
+                    "params": {
+                        "substring_pattern": pattern,
+                        "restrict_search_to_code_files": True,
+                    },
+                    "purpose": purpose,
+                }
+            )
 
         return json.dumps(commands, indent=2)
 
@@ -190,9 +198,8 @@ Be thorough. The better the brief, the better the evaluation.
         Este método es para usar cuando Serena MCP no está disponible directamente.
         """
 
-
         logger.info(f"\n{'='*70}")
-        logger.info(f"🔍 DEEP PROJECT SCANNER")
+        logger.info("🔍 DEEP PROJECT SCANNER")
         logger.info(f"{'='*70}")
         logger.info(f"📁 Path: {self.project_path}")
 
@@ -211,8 +218,8 @@ Be thorough. The better the brief, the better the evaluation.
         # 1. Buscar y leer README
         readme_path = self.project_path / "README.md"
         if readme_path.exists():
-            logger.info(f"\n📖 Leyendo README.md...")
-            with open(readme_path, 'r', encoding='utf-8') as f:
+            logger.info("\n📖 Leyendo README.md...")
+            with open(readme_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 brief["description"] = self._extract_description(content)
                 brief["features"] = self._extract_features(content)
@@ -222,7 +229,7 @@ Be thorough. The better the brief, the better the evaluation.
             doc_path = self.project_path / doc_file
             if doc_path.exists():
                 logger.info(f"📖 Leyendo {doc_file}...")
-                with open(doc_path, 'r', encoding='utf-8') as f:
+                with open(doc_path, "r", encoding="utf-8") as f:
                     content = f.read()
                     brief["docs_content"] = brief.get("docs_content", {})
                     brief["docs_content"][doc_file] = content
@@ -241,36 +248,38 @@ Be thorough. The better the brief, the better the evaluation.
 
     def _extract_description(self, readme_content: str) -> str:
         """Extrae la descripción del README."""
-        lines = readme_content.split('\n')
+        lines = readme_content.split("\n")
         descriptions = []
 
         for i, line in enumerate(lines):
             # Buscar primer párrafo después del título
-            if line.strip() and not line.startswith('#'):
+            if line.strip() and not line.startswith("#"):
                 # Capturar hasta las siguientes líneas vacías
                 j = i
-                while j < len(lines) and lines[j].strip() and not lines[j].startswith('#'):
+                while (
+                    j < len(lines) and lines[j].strip() and not lines[j].startswith("#")
+                ):
                     descriptions.append(lines[j].strip())
                     j += 1
                     if len(descriptions) > 3:  # Limitar a 3 líneas
                         break
                 break
 
-        return ' '.join(descriptions) if descriptions else "No description found"
+        return " ".join(descriptions) if descriptions else "No description found"
 
     def _extract_features(self, content: str) -> list:
         """Extrae features listadas en el contenido."""
         features = []
         in_features = False
 
-        for line in content.split('\n'):
-            if 'feature' in line.lower() and ('##' in line or '###' in line):
+        for line in content.split("\n"):
+            if "feature" in line.lower() and ("##" in line or "###" in line):
                 in_features = True
                 continue
             if in_features:
-                if line.strip().startswith('- ') or line.strip().startswith('* '):
+                if line.strip().startswith("- ") or line.strip().startswith("* "):
                     features.append(line.strip()[2:].strip())
-                elif line.strip().startswith('##'):
+                elif line.strip().startswith("##"):
                     break
 
         return features[:10]  # Top 10 features
@@ -297,14 +306,20 @@ Be thorough. The better the brief, the better the evaluation.
             try:
                 with open(self.project_path / "package.json") as f:
                     deps = json.load(f).get("dependencies", {})
-                    deps_str = ' '.join(deps.keys()).lower()
+                    deps_str = " ".join(deps.keys()).lower()
 
-                    if 'react' in deps_str: stack.append("React")
-                    if 'next' in deps_str: stack.append("Next.js")
-                    if 'vue' in deps_str: stack.append("Vue.js")
-                    if 'angular' in deps_str: stack.append("Angular")
-                    if 'express' in deps_str: stack.append("Express.js")
-                    if 'django' in deps_str: stack.append("Django")
+                    if "react" in deps_str:
+                        stack.append("React")
+                    if "next" in deps_str:
+                        stack.append("Next.js")
+                    if "vue" in deps_str:
+                        stack.append("Vue.js")
+                    if "angular" in deps_str:
+                        stack.append("Angular")
+                    if "express" in deps_str:
+                        stack.append("Express.js")
+                    if "django" in deps_str:
+                        stack.append("Django")
             except (json.JSONDecodeError, KeyError, OSError):
                 pass
 
@@ -312,7 +327,6 @@ Be thorough. The better the brief, the better the evaluation.
 
     def _analyze_code_structure(self) -> dict:
         """Analiza la estructura del código."""
-
 
         structure = {
             "frontend_dirs": 0,
@@ -346,7 +360,6 @@ Be thorough. The better the brief, the better the evaluation.
     def _find_apis(self) -> list:
         """Busca definiciones de API."""
 
-
         apis = []
 
         # Buscar archivos de routes/controllers
@@ -360,7 +373,6 @@ Be thorough. The better the brief, the better the evaluation.
     def _find_models(self) -> list:
         """Busca modelos de datos."""
 
-
         models = []
 
         for pattern in ["**/models/*.py", "**/models/*.ts", "**/entities/*.py"]:
@@ -372,9 +384,11 @@ Be thorough. The better the brief, the better the evaluation.
 
     def _is_python(self) -> bool:
         """Detecta si es un proyecto Python."""
-        return ((self.project_path / "pyproject.toml").exists() or
-                (self.project_path / "requirements.txt").exists() or
-                (self.project_path / "setup.py").exists())
+        return (
+            (self.project_path / "pyproject.toml").exists()
+            or (self.project_path / "requirements.txt").exists()
+            or (self.project_path / "setup.py").exists()
+        )
 
 
 def format_generated_brief(brief: dict) -> str:
@@ -445,12 +459,15 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description="Escaneo profundo de proyecto con análisis de código",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('project_path', help='Path al proyecto a escanear')
-    parser.add_argument('--output', '-o', help='Guardar brief en archivo')
-    parser.add_argument('--serena-prompt', action='store_true',
-                       help='Generar prompt para análisis con Serena MCP')
+    parser.add_argument("project_path", help="Path al proyecto a escanear")
+    parser.add_argument("--output", "-o", help="Guardar brief en archivo")
+    parser.add_argument(
+        "--serena-prompt",
+        action="store_true",
+        help="Generar prompt para análisis con Serena MCP",
+    )
 
     args = parser.parse_args()
 
@@ -470,7 +487,7 @@ def main() -> None:
 
     # Guardar si se solicita
     if args.output:
-        with open(args.output, 'w') as f:
+        with open(args.output, "w") as f:
             f.write(brief_text)
         logger.info(f"\n💾 Brief guardado en: {args.output}")
 
@@ -479,9 +496,9 @@ def main() -> None:
 
     # Instrucciones para evaluar
     logger.info(f"\n{'='*70}")
-    logger.info(f"📋 PRÓXIMO PASO: Evaluar este brief")
+    logger.info("📋 PRÓXIMO PASO: Evaluar este brief")
     logger.info(f"{'='*70}")
-    logger.info(f"""
+    logger.info("""
 Para evaluar este brief con MasterMind Framework:
 
 1. Completa los campos manuales (Problema, Usuario, Evidencia, Métricas)

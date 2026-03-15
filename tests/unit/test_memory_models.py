@@ -4,7 +4,6 @@ Tests for memory/models.py Pydantic v2 migration.
 TDD Approach: RED phase - write failing tests first.
 """
 
-import pytest
 from datetime import datetime
 from mastermind_cli.memory.models import (
     EvaluationVerdict,
@@ -50,7 +49,7 @@ class TestIssue:
             type="cold-start",
             severity="high",
             description="No data available",
-            recommendation="Conduct user interviews"
+            recommendation="Conduct user interviews",
         )
         assert issue.type == "cold-start"
         assert issue.severity == "high"
@@ -78,12 +77,12 @@ class TestEvaluationEntry:
                     type="cold-start",
                     severity="high",
                     description="No data",
-                    recommendation="Interview users"
+                    recommendation="Interview users",
                 )
             ],
             strengths_found=["Clear value proposition"],
             full_output="Full output text",
-            tags=["validation", "product-strategy"]
+            tags=["validation", "product-strategy"],
         )
 
         assert entry.evaluation_id == "eval-123"
@@ -115,12 +114,12 @@ class TestEvaluationEntry:
                     type="cold-start",
                     severity="high",
                     description="No data",
-                    recommendation="Interview users"
+                    recommendation="Interview users",
                 )
             ],
             strengths_found=["Clear value proposition"],
             full_output="Full output text",
-            tags=["validation"]
+            tags=["validation"],
         )
 
         result = entry.to_dict()
@@ -151,23 +150,19 @@ class TestEvaluationEntry:
             "brief": "Test brief",
             "flow_type": "validation_only",
             "brains_involved": [1, 7],
-            "score": {
-                "total": 100,
-                "max": 156,
-                "percentage": 64.1
-            },
+            "score": {"total": 100, "max": 156, "percentage": 64.1},
             "verdict": "CONDITIONAL",
             "issues_found": [
                 {
                     "type": "cold-start",
                     "severity": "high",
                     "description": "No data",
-                    "recommendation": "Interview users"
+                    "recommendation": "Interview users",
                 }
             ],
             "strengths_found": ["Clear value proposition"],
             "full_output": "Full output text",
-            "tags": ["validation"]
+            "tags": ["validation"],
         }
 
         entry = EvaluationEntry.from_dict(data)
@@ -203,12 +198,12 @@ class TestEvaluationEntry:
                     type="cold-start",
                     severity="high",
                     description="No data",
-                    recommendation="Interview users"
+                    recommendation="Interview users",
                 )
             ],
             strengths_found=["Clear value proposition"],
             full_output="Full output text",
-            tags=["validation"]
+            tags=["validation"],
         )
 
         # Serialize and deserialize
@@ -240,7 +235,7 @@ class TestEvaluationEntry:
             flow_type="validation_only",
             score=score,
             verdict=EvaluationVerdict.APPROVE,
-            full_output="Output"
+            full_output="Output",
         )
 
         assert entry.evaluation_id is None

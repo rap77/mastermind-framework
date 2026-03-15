@@ -9,7 +9,7 @@ Architecture Principle:
 we DON'T need shared state."
 """
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Any, Literal
 
 # Import interfaces from types module
 # Use absolute import to avoid conflict with stdlib 'types' module
@@ -27,15 +27,12 @@ from mastermind_cli.types.interfaces import (
 # MCP CLIENT PROTOCOL
 # =============================================================================
 
+
 @runtime_checkable
 class MCPClient(Protocol):
     """MCP client protocol for type hints."""
 
-    def query_notebooklm(
-        self,
-        notebook_id: str,
-        query: str
-    ) -> str:
+    def query_notebooklm(self, notebook_id: str, query: str) -> str:
         """Query NotebookLM via MCP."""
         ...
 
@@ -44,9 +41,9 @@ class MCPClient(Protocol):
 # BRAIN #1: PRODUCT STRATEGY
 # =============================================================================
 
+
 def brain_01_product_strategy(
-    brain_input: BrainInput,
-    mcp_client: MCPClient
+    brain_input: BrainInput, mcp_client: MCPClient
 ) -> ProductStrategy:
     """
     Pure function: Product Strategy brain.
@@ -83,10 +80,7 @@ Please provide:
 Provide a clear, concise response."""
 
     # Query NotebookLM via MCP
-    knowledge = mcp_client.query_notebooklm(
-        notebook_id=notebook_id,
-        query=query
-    )
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
 
     # Parse knowledge into structured output
     # In production, use LLM to extract structured data
@@ -96,7 +90,7 @@ Provide a clear, concise response."""
         target_audience=_extract_audience(knowledge, brief),
         key_features=_extract_features(knowledge, brief),
         success_metrics=_extract_metrics(knowledge, brief),
-        risks=_extract_risks(knowledge, brief)
+        risks=_extract_risks(knowledge, brief),
     )
 
 
@@ -116,39 +110,25 @@ def _extract_audience(knowledge: str, brief: Brief) -> str:
 def _extract_features(knowledge: str, brief: Brief) -> list[str]:
     """Extract key features from NotebookLM response."""
     # Simple parsing - in production use LLM
-    return [
-        "Core feature 1",
-        "Core feature 2",
-        "Core feature 3"
-    ]
+    return ["Core feature 1", "Core feature 2", "Core feature 3"]
 
 
 def _extract_metrics(knowledge: str, brief: Brief) -> list[str]:
     """Extract success metrics from NotebookLM response."""
-    return [
-        "User adoption rate",
-        "Feature completion rate",
-        "User satisfaction score"
-    ]
+    return ["User adoption rate", "Feature completion rate", "User satisfaction score"]
 
 
 def _extract_risks(knowledge: str, brief: Brief) -> list[str]:
     """Extract risks from NotebookLM response."""
-    return [
-        "Technical complexity",
-        "Market competition",
-        "Resource constraints"
-    ]
+    return ["Technical complexity", "Market competition", "Resource constraints"]
 
 
 # =============================================================================
 # BRAIN #2: UX RESEARCH
 # =============================================================================
 
-def brain_02_ux_research(
-    brain_input: BrainInput,
-    mcp_client: MCPClient
-) -> UXResearch:
+
+def brain_02_ux_research(brain_input: BrainInput, mcp_client: MCPClient) -> UXResearch:
     """
     Pure function: UX Research brain.
 
@@ -178,16 +158,13 @@ Please provide:
 Provide a clear, concise response."""
 
     # Query NotebookLM (result not used in mock implementation)
-    _ = mcp_client.query_notebooklm(
-        notebook_id=notebook_id,
-        query=query
-    )
+    _ = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
 
     return UXResearch(
         user_journeys=[{"step": "Journey step 1"}, {"step": "Journey step 2"}],
         pain_points=["Pain point 1", "Pain point 2"],
         opportunities=["Opportunity 1", "Opportunity 2"],
-        research_methodology="NotebookLM-based analysis"
+        research_methodology="NotebookLM-based analysis",
     )
 
 
@@ -195,10 +172,11 @@ Provide a clear, concise response."""
 # BRAIN #7: GROWTH & DATA (EVALUATOR)
 # =============================================================================
 
+
 def brain_07_growth_data(
     brain_input: BrainInput,
     mcp_client: MCPClient,
-    previous_outputs: dict | None = None
+    previous_outputs: dict[str, Any] | None = None,
 ) -> GrowthDataEvaluation:
     """
     Pure function: Growth & Data brain (Evaluator).
@@ -216,10 +194,12 @@ def brain_07_growth_data(
     notebook_id = "evaluator-notebook-id"  # TODO: Set actual notebook
 
     # Build evaluation context from previous outputs
-    context = "\n".join([
-        f"{brain_id}: {output}"
-        for brain_id, output in (previous_outputs or {}).items()
-    ])
+    context = "\n".join(
+        [
+            f"{brain_id}: {output}"
+            for brain_id, output in (previous_outputs or {}).items()
+        ]
+    )
 
     query = f"""Evaluate the following product strategy outputs:
 
@@ -236,21 +216,20 @@ Please provide:
 
 Provide a clear, concise evaluation."""
 
-    knowledge = mcp_client.query_notebooklm(
-        notebook_id=notebook_id,
-        query=query
-    )
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
 
     return GrowthDataEvaluation(
         verdict=_extract_verdict(knowledge),
         score=_extract_score(knowledge),
         feedback=knowledge[:1000],
         approval_conditions=[],
-        rejection_reasons=[]
+        rejection_reasons=[],
     )
 
 
-def _extract_verdict(knowledge: str) -> str:
+def _extract_verdict(
+    knowledge: str,
+) -> Literal["APPROVE", "CONDITIONAL", "REJECT", "ESCALATE"]:
     """Extract verdict from evaluation."""
     knowledge_upper = knowledge.upper()
     if "APPROVE" in knowledge_upper and "CONDITIONAL" not in knowledge_upper:
@@ -265,7 +244,8 @@ def _extract_score(knowledge: str) -> float:
     """Extract score from evaluation."""
     # Simple parsing - look for number in 0-10 range
     import re
-    scores = re.findall(r'\b([0-9]|10)\b', knowledge)
+
+    scores = re.findall(r"\b([0-9]|10)\b", knowledge)
     if scores:
         return float(scores[0])
     return 7.0  # Default score
@@ -275,9 +255,9 @@ def _extract_score(knowledge: str) -> float:
 # BRAIN #8: MASTER INTERVIEWER (DISCOVERY)
 # =============================================================================
 
+
 def brain_08_master_interviewer(
-    brain_input: BrainInput,
-    mcp_client: MCPClient
+    brain_input: BrainInput, mcp_client: MCPClient
 ) -> MasterInterviewerOutput:
     """
     Pure function: Master Interviewer brain (Discovery).
@@ -301,13 +281,15 @@ def brain_08_master_interviewer(
         marker in brief.problem_statement.lower()
         for marker in ["maybe", "possibly", "something", "thing", "stuff"]
     )
-    missing_problem = "?" in brief.problem_statement or "how do" in brief.problem_statement.lower()
+    missing_problem = (
+        "?" in brief.problem_statement or "how do" in brief.problem_statement.lower()
+    )
 
     is_ambiguous = (
-        word_count < 15 or
-        (brief.problem_statement.count("?") >= 2) or
-        has_ambiguity_markers or
-        missing_problem
+        word_count < 15
+        or (brief.problem_statement.count("?") >= 2)
+        or has_ambiguity_markers
+        or missing_problem
     )
 
     if not is_ambiguous:
@@ -315,7 +297,7 @@ def brain_08_master_interviewer(
             is_ambiguous=False,
             interview_plan=[],
             clarified_brief=brief,
-            confidence_score=0.9
+            confidence_score=0.9,
         )
 
     # Generate interview plan via NotebookLM
@@ -332,10 +314,7 @@ Generate questions to clarify:
 Provide questions in a clear, numbered format."""
 
     # Query NotebookLM (result not used in mock implementation)
-    _ = mcp_client.query_notebooklm(
-        notebook_id=notebook_id,
-        query=query
-    )
+    _ = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
 
     interview_plan = [
         {"question": f"Question {i+1}", "context": "Clarification needed"}
@@ -346,7 +325,7 @@ Provide questions in a clear, numbered format."""
         is_ambiguous=True,
         interview_plan=interview_plan,
         clarified_brief=None,
-        confidence_score=0.3
+        confidence_score=0.3,
     )
 
 
@@ -363,6 +342,6 @@ BRAIN_FUNCTIONS = {
 }
 
 
-def get_brain_function(brain_id: str):
+def get_brain_function(brain_id: str) -> Any:
     """Get pure function for brain ID."""
     return BRAIN_FUNCTIONS.get(brain_id)
