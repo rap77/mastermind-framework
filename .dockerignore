@@ -32,6 +32,7 @@ coverage.xml
 # Documentation
 docs/
 *.md
+!README.md
 LICENSE
 
 # Planning files
