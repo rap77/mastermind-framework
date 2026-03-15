@@ -80,6 +80,9 @@ class ProductStrategy(BaseModel):
     """
 
     brain_id: Literal["brain-01-product-strategy"] = "brain-01-product-strategy"
+    brief: Brief | None = Field(
+        None, description="Original user brief that generated this strategy"
+    )
     positioning: str = Field(..., description="Product positioning statement")
     target_audience: str = Field(..., description="Who is this for?")
     key_features: list[str] = Field(

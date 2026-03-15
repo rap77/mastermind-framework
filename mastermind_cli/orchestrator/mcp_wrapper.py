@@ -117,6 +117,63 @@ class TypeSafeMCPWrapper:
 
         return "Validation errors:\n" + "\n".join(formatted)
 
+    @staticmethod
+    def create_notebook_query_spec(
+        notebook_id: str, query: str, source_ids: list[str] | None = None
+    ) -> dict[str, Any]:
+        """Create a specification for a NotebookLM query.
+
+        This spec can be used to invoke the MCP tool:
+        """
+        return {
+            "tool": "mcp__notebooklm-mcp__notebook_query",
+            "parameters": {
+                "notebook_id": notebook_id,
+                "query": query,
+                "source_ids": source_ids,
+            },
+        }
+
+    @staticmethod
+    def parse_notebook_response(response: str) -> dict[str, Any]:
+        """Parse a NotebookLM query response."""
+        import yaml
+        import re
+
+        # Try to extract YAML from markdown code block
+        yaml_patterns = [
+            r"```yaml\s*\n(.*?)\n```",  # With yaml tag
+            r"```\s*\n(.*?)\n```",  # Without tag
+        ]
+
+        for pattern in yaml_patterns:
+            match = re.search(pattern, response, re.DOTALL)
+            if match:
+                yaml_content = match.group(1)
+                try:
+                    parsed = yaml.safe_load(yaml_content)
+                    return {
+                        "status": "success",
+                        "parsed": True,
+                        "content": parsed,
+                        "raw": response,
+                    }
+                except yaml.YAMLError as e:
+                    return {
+                        "status": "parse_error",
+                        "error": str(e),
+                        "yaml_content": yaml_content,
+                        "raw": response,
+                    }
+
+        # No YAML found, return as-is
+        return {
+            "status": "success",
+            "parsed": False,
+            "content": response,
+            "raw": response,
+        }
+
 
 # Alias for backward compatibility
 MCPWrapper = TypeSafeMCPWrapper

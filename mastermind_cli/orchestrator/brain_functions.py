@@ -86,6 +86,7 @@ Provide a clear, concise response."""
     # In production, use LLM to extract structured data
     # For now, use simple parsing or mock
     return ProductStrategy(
+        brief=brief,
         positioning=_extract_positioning(knowledge, brief),
         target_audience=_extract_audience(knowledge, brief),
         key_features=_extract_features(knowledge, brief),

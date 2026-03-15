@@ -28,6 +28,20 @@ from mastermind_cli.types.interfaces import Brief, BrainOutput
 
 
 # =============================================================================
+# CUSTOM JSON ENCODER
+# =============================================================================
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+
+# =============================================================================
 # MODELS
 # =============================================================================
 
@@ -184,16 +198,19 @@ class ExecutionLogger:
         log_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
 
-        # Serialize to JSON
+        # Serialize to JSON (with datetime encoder)
         input_context_json = json.dumps(
             {
                 "context": brief.context,
                 "constraints": brief.constraints,
                 "target_audience": brief.target_audience,
-            }
+            },
+            cls=DateTimeEncoder,
         )
-        output_json = json.dumps(output.model_dump() if output else {})
-        metadata_json = json.dumps(metadata or {})
+        output_json = json.dumps(
+            output.model_dump() if output else {}, cls=DateTimeEncoder
+        )
+        metadata_json = json.dumps(metadata or {}, cls=DateTimeEncoder)
 
         await conn.execute(
             """INSERT INTO brain_executions
