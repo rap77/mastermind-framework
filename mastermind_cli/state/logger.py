@@ -404,30 +404,13 @@ async def log_brain_execution(
         metadata: Optional metadata
     """
     start_time = time.time()
-    output: BrainOutput | None = None
-    error_message: str | None = None
 
     class Timer:
-        output: BrainOutput | None
-        error_message: str | None
+        """Timer object for tracking execution and marking completion/failure."""
 
-        def __init__(
-            self,
-            logger: Any,
-            execution_id: str,
-            brain_id: str,
-            brief: Any,
-            metadata: dict[str, Any] | None,
-            start: float,
-        ) -> None:
-            self.logger = logger
-            self.execution_id = execution_id
-            self.brain_id = brain_id
-            self.brief = brief
-            self.metadata = metadata
-            self.start = start
-            self.output = None
-            self.error_message = None
+        def __init__(self) -> None:
+            self.output: BrainOutput | None = None
+            self.explicit_error: str | None = None
 
         def complete(self, result: BrainOutput) -> None:
             """Mark execution as successful with output."""
@@ -435,56 +418,50 @@ async def log_brain_execution(
 
         def fail(self, error: str) -> None:
             """Mark execution as failed with error message."""
-            self.error_message = error
+            self.explicit_error = error
 
-        async def __aenter__(self) -> Any:
-            return self
+    timer = Timer()
+    caught_exception: BaseException | None = None
 
-        async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-            duration_ms = int((time.time() - self.start) * 1000)
-
-            if exc_type is not None:
-                # Exception occurred
-                status = "error"
-                error_msg = str(exc_val)
-            elif self.error_message:
-                # Explicit failure
-                status = "error"
-                error_msg = self.error_message
-            else:
-                status = "success"
-                error_msg = None
-
-            await self.logger.log_execution(
-                execution_id=self.execution_id,
-                brain_id=self.brain_id,
-                brief=self.brief,
-                output=self.output,
-                status=status,
-                error_message=error_msg,
-                duration_ms=duration_ms,
-                metadata=self.metadata,
-            )
-
-    timer = Timer(logger, execution_id, brain_id, brief, metadata, start_time)
     try:
         yield timer
+    except BaseException as e:
+        caught_exception = e
+        raise
     finally:
         duration_ms = int((time.time() - start_time) * 1000)
 
-        if error_message:
+        # Determine status and error message
+        status: str
+        error_message: str | None
+        final_output: BrainOutput | None
+
+        if caught_exception is not None:
+            # Exception occurred in the with block
             status = "error"
-        elif output is None:
+            error_message = str(caught_exception)
+            final_output = None
+        elif timer.explicit_error:
+            # Explicit failure via timer.fail()
+            status = "error"
+            error_message = timer.explicit_error
+            final_output = None
+        elif timer.output is not None:
+            # Success via timer.complete()
+            status = "success"
+            error_message = None
+            final_output = timer.output
+        else:
+            # No output produced - treat as error
             status = "error"
             error_message = "No output produced"
-        else:
-            status = "success"
+            final_output = None
 
         await logger.log_execution(
             execution_id=execution_id,
             brain_id=brain_id,
             brief=brief,
-            output=output,
+            output=final_output,
             status=status,
             error_message=error_message,
             duration_ms=duration_ms,

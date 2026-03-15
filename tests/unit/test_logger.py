@@ -339,15 +339,12 @@ class TestContextManager:
 
         exec_id = "exec-context-success"
 
-        with pytest.raises(
-            Exception
-        ):  # Context manager yields Timer, not async context
-            async with log_brain_execution(
-                logger, exec_id, "brain-01", sample_brief
-            ) as timer:
-                # Simulate work
-                await asyncio.sleep(0.1)
-                timer.complete(sample_output)
+        async with log_brain_execution(
+            logger, exec_id, "brain-01", sample_brief
+        ) as timer:
+            # Simulate work
+            await asyncio.sleep(0.1)
+            timer.complete(sample_output)
 
         # Verify logged
         logged = await logger.get_execution_by_id(exec_id)

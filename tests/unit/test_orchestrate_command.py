@@ -49,10 +49,8 @@ class TestAPIKeyValidation:
     def test_valid_api_key_proceeds(self, mock_validate):
         """Test that valid API key allows execution."""
         mock_validate.return_value = Mock(owner="test-user")
-        with patch(
-            "mastermind_cli.commands.orchestrate.StatelessCoordinator"
-        ) as mock_coord:
-            mock_coord.return_value.execute_flow = Mock(return_value={})
+        with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
+            mock_async.return_value = {}
             runner = CliRunner()
             with patch.dict(os.environ, {"MM_API_KEY": "valid-key"}):
                 # This should not fail on auth
@@ -71,10 +69,8 @@ class TestBriefParsing:
         runner = CliRunner()
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            with patch(
-                "mastermind_cli.commands.orchestrate.StatelessCoordinator"
-            ) as mock_coord:
-                mock_coord.return_value.execute_flow = Mock(return_value={})
+            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
+                mock_async.return_value = {}
                 result = runner.invoke(
                     orchestrate, ["run", "Build a CRM for small businesses"]
                 )
@@ -92,10 +88,8 @@ class TestBriefParsing:
         brief_file.write_text("Build a project management tool for software teams")
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            with patch(
-                "mastermind_cli.commands.orchestrate.StatelessCoordinator"
-            ) as mock_coord:
-                mock_coord.return_value.execute_flow = Mock(return_value={})
+            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
+                mock_async.return_value = {}
                 result = runner.invoke(orchestrate, ["run", "--file", str(brief_file)])
                 # Brief was read and parsed successfully
                 assert result.exit_code == 0 or "Error:" not in result.output
@@ -153,7 +147,12 @@ class TestCoordinatorCreation:
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
             runner.invoke(
                 orchestrate,
-                ["run", "--brains", "brain-01-product-strategy", "Test brief"],
+                [
+                    "run",
+                    "--brains",
+                    "brain-01-product-strategy",
+                    "This is a valid test brief for orchestration",
+                ],
             )
 
             # Verify coordinator was created
@@ -249,7 +248,7 @@ class TestOutputFormatting:
                     str(output_file),
                     "--brains",
                     "brain-01-product-strategy",
-                    "Test",
+                    "This is a valid test brief for output file",
                 ],
             )
 
@@ -279,7 +278,7 @@ class TestErrorHandling:
 
         runner = CliRunner()
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            result = runner.invoke(orchestrate, ["run", "Test"])
+            result = runner.invoke(orchestrate, ["run", "This is a valid test brief"])
             assert result.exit_code != 0
             assert "Error:" in result.output
 
@@ -296,9 +295,13 @@ class TestErrorHandling:
 
         runner = CliRunner()
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            result = runner.invoke(orchestrate, ["run", "Test"])
+            result = runner.invoke(
+                orchestrate,
+                ["run", "This is a valid test brief for testing exceptions"],
+            )
             assert result.exit_code != 0
-            assert "Orchestration failed" in result.output
+            # Error message changed in v2.0 - now shows actual error, not generic "Orchestration failed"
+            assert "Error" in result.output or "failed" in result.output.lower()
 
 
 class TestVerboseMode:
@@ -311,11 +314,13 @@ class TestVerboseMode:
         runner = CliRunner()
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            with patch(
-                "mastermind_cli.commands.orchestrate.StatelessCoordinator"
-            ) as mock_coord:
-                mock_coord.return_value.execute_flow = Mock(return_value={})
-                result = runner.invoke(orchestrate, ["run", "--verbose", "Test"])
+            # Mock asyncio.run to return empty results (simulating successful execution)
+            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
+                mock_async.return_value = {}
+                result = runner.invoke(
+                    orchestrate,
+                    ["run", "--verbose", "This is a valid test brief for verbose mode"],
+                )
                 # Check for verbose indicators
                 # (actual output depends on implementation)
                 assert result.exit_code == 0 or "Error:" not in result.output

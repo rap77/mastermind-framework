@@ -273,7 +273,11 @@ class LegacyBrainAdapter(Generic[T]):
         - score (percentage → 0-10 float)
         - evaluation → feedback
         """
-        normalized = {}
+        normalized: dict[str, Any] = {}
+        verdict_value: str
+        score_value: float = 5.0  # Default
+        feedback_value: str
+        approval_conditions_value: list[str]
 
         # verdict (fix typo: veredict → verdict, convert to uppercase)
         if "veredict" in result_dict:
@@ -289,7 +293,7 @@ class LegacyBrainAdapter(Generic[T]):
                 "PENDING": "CONDITIONAL",
                 "NEEDS_WORK": "CONDITIONAL",
             }
-            normalized["verdict"] = verdict_map.get(verdict_val, "CONDITIONAL")
+            verdict_value = verdict_map.get(verdict_val, "CONDITIONAL")
         elif "verdict" in result_dict:
             verdict_val = str(result_dict["verdict"]).upper()
             verdict_map = {
@@ -300,12 +304,11 @@ class LegacyBrainAdapter(Generic[T]):
                 "CONDITIONAL": "CONDITIONAL",
                 "ESCALATE": "ESCALATE",
             }
-            normalized["verdict"] = verdict_map.get(verdict_val, "CONDITIONAL")
+            verdict_value = verdict_map.get(verdict_val, "CONDITIONAL")
         else:
-            normalized["verdict"] = "CONDITIONAL"
+            verdict_value = "CONDITIONAL"
 
         # score (convert percentage to 0-10 float)
-        score_value: float = 5.0  # Initialize with default
         if "score" in result_dict:
             score = result_dict["score"]
             if isinstance(score, dict):
@@ -317,25 +320,44 @@ class LegacyBrainAdapter(Generic[T]):
                 else:
                     score_value = float(score)
             # else: keep default 5.0
-        normalized["score"] = str(score_value)
 
         # feedback (from evaluation or reasoning)
         if "evaluation" in result_dict:
-            normalized["feedback"] = str(result_dict["evaluation"])
+            evaluation = result_dict["evaluation"]
+            if isinstance(evaluation, dict):
+                # Extract summary from evaluation dict
+                summary = (
+                    evaluation.get("summary")
+                    or evaluation.get("message")
+                    or str(evaluation)
+                )
+                feedback_value = summary if isinstance(summary, str) else str(summary)
+            else:
+                feedback_value = str(evaluation)
         elif "reasoning" in result_dict:
-            normalized["feedback"] = result_dict["reasoning"]
+            feedback_value = result_dict["reasoning"]
         elif "message" in result_dict:
-            normalized["feedback"] = result_dict["message"]
+            feedback_value = result_dict["message"]
         else:
-            normalized["feedback"] = "No feedback provided"
+            feedback_value = "No feedback provided"
 
         # approval_conditions (optional, from evaluation if available)
-        approval_conditions_list: list[str] = []
         if "approval_conditions" in result_dict:
-            approval_conditions_list = list(result_dict["approval_conditions"])
-        normalized["approval_conditions"] = (
-            ", ".join(approval_conditions_list) if approval_conditions_list else "None"
-        )
+            ac = result_dict["approval_conditions"]
+            if isinstance(ac, list):
+                approval_conditions_value = [str(item) for item in ac]
+            elif isinstance(ac, str):
+                approval_conditions_value = [ac]
+            else:
+                approval_conditions_value = []
+        else:
+            approval_conditions_value = []
+
+        # Build normalized dict with correct types
+        normalized["verdict"] = verdict_value
+        normalized["score"] = score_value
+        normalized["feedback"] = feedback_value
+        normalized["approval_conditions"] = approval_conditions_value
 
         return normalized
 
