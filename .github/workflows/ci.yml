@@ -62,12 +62,13 @@ jobs:
           file: ./coverage.xml
           fail_ci_if_error: false
 
-  # Level 3: Semantic Integration (runs on main only - token cost control)
+  # Level 3: Semantic Integration (runs on PRs as warning + mandatory on master)
   level3-semantic:
     name: Level 3 - Semantic Integration
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    continue-on-error: true  # Don't block PRs, just warn
 
     steps:
       - name: Checkout code

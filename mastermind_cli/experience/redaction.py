@@ -33,7 +33,20 @@ PII_PATTERNS = [
         ),
         "[REDACTED_EMAIL]",
     ),
-    (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[REDACTED_SSN]"),
+    (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[REDACTED_SSN]"),  # SSN with dashes
+    (re.compile(r"\b\d{9}\b"), "[REDACTED_SSN]"),  # SSN without dashes
+    (
+        re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"),
+        "[REDACTED_IP]",
+    ),  # IP addresses
+    (
+        re.compile(r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+"),
+        "[REDACTED_TOKEN]",
+    ),  # JWT tokens (eyJ.ejw.signature)
+    (
+        re.compile(r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14})\b"),
+        "[REDACTED_CC]",
+    ),  # Credit cards (Visa/Mastercard)
 ]
 
 

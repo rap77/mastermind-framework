@@ -43,7 +43,7 @@ class APIKey(BaseModel):
         scopes: List of allowed scopes (e.g., ["read", "write"])
     """
 
-    key: str = Field(..., min_length=37, max_length=100)
+    key: str = Field(..., min_length=37, max_length=37)
     key_hash: str = Field(..., min_length=64, max_length=64)
     owner: str = Field(..., min_length=1, max_length=100)
     created_at: str = Field(
