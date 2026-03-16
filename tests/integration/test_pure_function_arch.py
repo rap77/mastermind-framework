@@ -126,8 +126,11 @@ class TestMultiUserSafety:
         for exec_id, results in results_by_id.items():
             assert "brain-01-product-strategy" in results
             result = results["brain-01-product-strategy"]
-            # Brief should be unique to this execution
-            assert exec_id.split("-")[1] in result.brief or "variant" in result.brief
+            # Brief should be unique to this execution (access problem_statement)
+            assert (
+                exec_id.split("-")[1] in result.brief.problem_statement
+                or "variant" in result.brief.problem_statement
+            )
 
     @pytest.mark.asyncio
     async def test_parallel_sequential_consistency(
@@ -287,7 +290,7 @@ class TestLegacyBrainCompatibility:
 
         # Create wrapper
         adapter = LegacyBrainAdapter(
-            brain_executor=MockLegacyBrain(), output_model=ProductStrategy
+            brain_executor=MockLegacyBrain().execute, output_model=ProductStrategy
         )
 
         # Call as pure function
@@ -307,7 +310,7 @@ class TestLegacyBrainCompatibility:
         # Verify no global state pollution
         # (Each call creates new instance)
         adapter2 = LegacyBrainAdapter(
-            legacy_brain_class=MockLegacyBrain, output_model=ProductStrategy
+            brain_executor=MockLegacyBrain().execute, output_model=ProductStrategy
         )
         result2 = adapter2(brain_input, mcp_client=mock_mcp)
 
@@ -375,7 +378,7 @@ class TestAuthValidation:
             from mastermind_cli.state.database import get_db
 
             key_data = APIKeyCreate(owner="web-user", scopes=["read", "write"])
-            full_key, response = create_api_key(key_data)
+            full_key, response = await create_api_key(key_data)
 
             # Verify key exists in database
             db = get_db(db_path)
@@ -542,7 +545,7 @@ class TestEndToEndFlows:
         # Create MCP client that fails on first call, succeeds on second
         call_count = {"count": 0}
 
-        async def failing_query(notebook_id: str, query: str):
+        def failing_query(notebook_id: str, query: str):
             call_count["count"] += 1
             if call_count["count"] == 1:
                 raise RuntimeError("MCP connection failed")
