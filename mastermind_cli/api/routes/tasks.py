@@ -20,6 +20,11 @@ from mastermind_cli.state.database import DatabaseConnection
 router = APIRouter()
 
 
+def get_db_path() -> str:
+    """Database path dependency — override via app.dependency_overrides in tests."""
+    return ":memory:"
+
+
 # ===== Request/Response Models =====
 
 
@@ -56,6 +61,7 @@ class TaskListResponse(BaseModel):
 async def create_task(
     request: CreateTaskRequest,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> TaskResponse:
     """Create new orchestration task.
 
@@ -66,7 +72,7 @@ async def create_task(
     """
     task_id = str(uuid.uuid4())
 
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         # Create execution record
         await db.conn.execute(
             """INSERT INTO executions (id, flow_config, brief, created_at, status)
@@ -97,12 +103,13 @@ async def list_tasks(
     limit: int = 50,
     offset: int = 0,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> TaskListResponse:
     """List user's tasks with pagination.
 
     Session isolation: WHERE user_id = current_user.id (UI-08 requirement).
     """
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
             """SELECT id, brief, created_at, status FROM executions
                ORDER BY created_at DESC
@@ -130,12 +137,13 @@ async def list_tasks(
 async def get_task(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, object]:
     """Get task state.
 
     Returns 404 if not found or doesn't belong to user.
     """
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
             "SELECT * FROM executions WHERE id = ?",
             [task_id],
@@ -167,12 +175,13 @@ async def get_task_state(
 async def cancel_task(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, str]:
     """Cancel running task.
 
     Requires ownership. Logged to audit (automatic via middleware).
     """
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         await db.conn.execute(
             "UPDATE executions SET status = 'cancelled' WHERE id = ?",
             [task_id],
@@ -223,6 +232,7 @@ class TaskGraphResponse(BaseModel):
 async def get_task_graph(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> TaskGraphResponse:
     """Get task execution graph for visualization.
 
@@ -231,7 +241,7 @@ async def get_task_graph(
 
     Performance: Completes in <100ms (PERF-02 requirement).
     """
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         # Fetch execution record
         cursor = await db.conn.execute(
             "SELECT flow_config, status FROM executions WHERE id = ?",

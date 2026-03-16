@@ -3,9 +3,15 @@
 Tests will be implemented after Plan 02 Task 2.
 
 Requirements: UI-02, UI-03
+
+Note: These tests require a running server at localhost:8000.
+Run manually with: uv run pytest tests/e2e/test_auth_smoke.py --no-cov
 """
 
+import pytest
 from playwright.sync_api import Page, expect
+
+pytestmark = pytest.mark.skip(reason="Requires running server at localhost:8000")
 
 
 def test_auth_smoke(page: Page):
