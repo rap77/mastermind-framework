@@ -163,6 +163,9 @@ class TestErrorFormatterWiredToExecutor:
             )
             executor = ParallelExecutor(task_repo, mcp_client, [provider_config])
 
+            # Create task in database first
+            await task_repo.create(task_id="test-001", brain_id="brain-01")
+
             # Execute brain (will fail)
             result = await executor.execute_brain(
                 task_id="test-001",
@@ -209,6 +212,9 @@ class TestErrorFormatterWiredToExecutor:
                 base_url="http://localhost:8000",
             )
             executor = ParallelExecutor(task_repo, mcp_client, [provider_config])
+
+            # Create task in database first
+            await task_repo.create(task_id="test-002", brain_id="brain-02")
 
             # Execute brain (will fail)
             result = await executor.execute_brain(

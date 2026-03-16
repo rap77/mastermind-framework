@@ -9,7 +9,6 @@ This module tests the ParallelExecutor with focus on:
 """
 
 import pytest
-import asyncio
 import time
 from mastermind_cli.types.parallel import FlowConfig, ProviderConfig
 from mastermind_cli.orchestrator.task_executor import ParallelExecutor
@@ -111,9 +110,17 @@ async def test_speedup_factor():
 
     # Mock MCP client with 100ms delay
     class MockMCPClient:
-        async def query_brain(self, brain_id: str, query: str):
-            await asyncio.sleep(0.1)  # 100ms simulated brain execution
-            return {"brain_id": brain_id, "result": f"Result from {brain_id}"}
+        def call_mcp(self, brain_id: str, query: str):
+            # Simulate I/O delay synchronously (blocks for 100ms)
+            time.sleep(0.1)
+            from mastermind_cli.types.mcp import MCPResponse
+
+            return MCPResponse(
+                brain_id=brain_id,
+                response=f"Result from {brain_id}",
+                success=True,
+                error=None,
+            )
 
     async with DatabaseConnection(":memory:") as db:
         await db.connect()
@@ -126,7 +133,7 @@ async def test_speedup_factor():
         # Execute brains one by one to simulate sequential execution
         start_sequential = time.perf_counter()
         for brain_id in flow.nodes.keys():
-            await mcp_client.query_brain(brain_id, "test brief")
+            mcp_client.call_mcp(brain_id, "test brief")
         sequential_time = time.perf_counter() - start_sequential
 
         # Test 2: Parallel execution
@@ -172,10 +179,14 @@ async def test_concurrent_execution():
     )
 
     class MockMCPClient:
-        async def query_brain(self, brain_id: str, query: str):
-            # Verify tasks overlap in time
-            await asyncio.sleep(0.05)
-            return {"brain_id": brain_id, "result": "OK"}
+        def call_mcp(self, brain_id: str, query: str):
+            # Verify tasks overlap in time (50ms delay)
+            time.sleep(0.05)
+            from mastermind_cli.types.mcp import MCPResponse
+
+            return MCPResponse(
+                brain_id=brain_id, response="OK", success=True, error=None
+            )
 
     async with DatabaseConnection(":memory:") as db:
         await db.connect()

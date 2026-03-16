@@ -183,9 +183,9 @@ class TestMCPSequentialExecution:
         # Create mock MCP client that tracks calls
         mock_client = Mock()
 
-        async def mock_query(notebook_id: str, query: str):
+        def mock_query(notebook_id: str, query: str):
             execution_order.append(f"call-{len(execution_order)}")
-            await asyncio.sleep(0.01)  # Simulate work
+            time.sleep(0.01)  # Simulate work (sync, like real code)
             return f"Response {len(execution_order)}"
 
         mock_client.query_notebooklm = mock_query
@@ -217,10 +217,10 @@ class TestMCPSequentialExecution:
         mock_client = Mock()
         call_count = {"count": 0}
 
-        async def mock_query(notebook_id: str, query: str):
+        def mock_query(notebook_id: str, query: str):
             call_count["count"] += 1
-            # Simulate realistic response time
-            await asyncio.sleep(0.05)
+            # Simulate realistic response time (sync, like real code)
+            time.sleep(0.05)
             # If rate limited, would raise exception here
             return f"Response {call_count['count']}"
 

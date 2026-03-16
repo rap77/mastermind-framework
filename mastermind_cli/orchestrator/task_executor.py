@@ -154,7 +154,8 @@ class ParallelExecutor:
     async def _call_brain(self, brain_id: str, query: str) -> Dict[str, Any]:
         """Call brain via MCP wrapper.
 
-        This method uses TypeSafeMCPWrapper's call_mcp method.
+        This method uses TypeSafeMCPWrapper's call_mcp method, executed in a thread
+        to avoid blocking the event loop during sync I/O operations.
 
         Args:
             brain_id: Brain identifier
@@ -163,8 +164,8 @@ class ParallelExecutor:
         Returns:
             Brain response as dictionary
         """
-        # Use TypeSafeMCPWrapper's sync method
-        response = self.mcp_client.call_mcp(brain_id, query)
+        # Run sync call_mcp in thread pool to avoid blocking event loop
+        response = await asyncio.to_thread(self.mcp_client.call_mcp, brain_id, query)
         if response.success:
             return {"response": response.response}
         else:
@@ -201,9 +202,9 @@ class ParallelExecutor:
                     task = tg.create_task(self.execute_brain(task_id, brain_id, brief))
                     tasks[brain_id] = task
 
-                for brain_id, task in tasks.items():
-                    result = await task
-                    results[brain_id] = result
+            # TaskGroup already awaited all tasks - get results directly
+            for brain_id, task in tasks.items():
+                results[brain_id] = task.result()
 
         except* Exception as eg:
             # Handle exception group (multiple failures)

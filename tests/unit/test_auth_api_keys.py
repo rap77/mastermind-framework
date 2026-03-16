@@ -207,6 +207,7 @@ class TestKeyManagement:
     """Test API key management operations."""
 
     @pytest.mark.asyncio
+    @pytest.mark.asyncio
     async def test_create_api_key(self):
         """Test creating a new API key."""
         create_data = APIKeyCreate(owner="test-user", scopes=["read"])
@@ -215,7 +216,7 @@ class TestKeyManagement:
         mock_db.save_api_key = AsyncMock(return_value=True)
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            full_key, response = create_api_key(create_data)
+            full_key, response = await create_api_key(create_data)
 
             # Check key format
             assert full_key.startswith(_KEY_PREFIX)
