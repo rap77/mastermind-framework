@@ -48,6 +48,11 @@ def orchestrate() -> None:
 )
 @click.option("--output", "-o", type=click.Path(), help="Save output to file")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option(
+    "--parallel/--no-parallel",
+    default=True,
+    help="Execute independent brains in parallel (default: True)",
+)
 def run(
     brief: str | None,
     file: str | None,
@@ -56,6 +61,7 @@ def run(
     use_mcp: bool,
     output: str | None,
     verbose: bool,
+    parallel: bool,
 ) -> None:
     """Orchestrate brains to process user brief (Pure Function Architecture v2.0).
 
@@ -184,6 +190,7 @@ def run(
         click.echo(f"📋 Brief: {brief_model.problem_statement[:80]}...")
         click.echo(f"🧠 Brains: {', '.join(brain_ids)}")
         click.echo(f"🔌 MCP: {'enabled' if use_mcp else 'disabled (mock mode)'}")
+        click.echo(f"⚡ Parallel: {'enabled' if parallel else 'disabled (sequential)'}")
         click.echo(f"👤 Auth: {validated_key.owner}")
         click.echo("")
 
@@ -200,8 +207,18 @@ def run(
     # ========================================================================
     # 7. EXECUTE FLOW (async - run in event loop)
     # ========================================================================
+    async def _execute(parallel_mode: bool) -> dict[str, BaseModel]:
+        if parallel_mode:
+            return await coordinator.execute_flow(brief_model, brain_ids)
+        # Sequential: run each brain independently (one at a time)
+        seq_results: dict[str, BaseModel] = {}
+        for brain_id in brain_ids:
+            brain_results = await coordinator.execute_flow(brief_model, [brain_id])
+            seq_results.update(brain_results)
+        return seq_results
+
     try:
-        results = asyncio.run(coordinator.execute_flow(brief_model, brain_ids))
+        results = asyncio.run(_execute(parallel))
 
         # ====================================================================
         # 8. DISPLAY RESULTS
@@ -285,6 +302,11 @@ def run(
 @click.option("--use-mcp", is_flag=True, help="Use MCP for real NotebookLM calls")
 @click.option("--output", "-o", type=click.Path(), help="Save output to file")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option(
+    "--parallel/--no-parallel",
+    default=True,
+    help="Execute brains in parallel (default: True)",
+)
 def go(
     brief: str | None,
     file: str | None,
@@ -293,6 +315,7 @@ def go(
     use_mcp: bool,
     output: str | None,
     verbose: bool,
+    parallel: bool,
 ) -> None:
     """Quick command to orchestrate (alias for 'run')."""
     # Forward all arguments to the run command
@@ -307,6 +330,7 @@ def go(
         "--output" if output else None,
         output or None,
         "--verbose" if verbose else None,
+        "--parallel" if parallel else "--no-parallel",
     ]
     # Flatten arguments and filter out None values
     filtered_args: list[str] = [arg for arg in args_list if arg is not None]

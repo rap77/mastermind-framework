@@ -8,6 +8,7 @@ This module provides endpoints for:
 Requirements: UI-02, UI-03, UI-07
 """
 
+import os
 import uuid
 from datetime import datetime, timedelta
 from typing import cast
@@ -37,7 +38,7 @@ jwt_scheme = HTTPBearer()
 api_key_scheme = HTTPBearer()
 
 # JWT configuration
-SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Load from ENV_VAR
+SECRET_KEY = os.environ.get("MM_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRY_MINUTES = 30
 REFRESH_TOKEN_EXPIRY_HOURS = 24
