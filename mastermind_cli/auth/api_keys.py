@@ -146,15 +146,17 @@ def validate_api_key(api_key: str) -> APIKey | None:
     # 1. Check environment variable (CLI mode)
     env_key = os.getenv("MM_API_KEY")
     if env_key and api_key == env_key:
-        # Create APIKey from environment
-        return APIKey(
-            key=api_key,
-            key_hash=hash_api_key(api_key),
-            owner="cli-user",
-            created_at=datetime.now(timezone.utc).isoformat(),
-            is_active=True,
-            scopes=["read", "write"],
-        )
+        try:
+            return APIKey(
+                key=api_key,
+                key_hash=hash_api_key(api_key),
+                owner="cli-user",
+                created_at=datetime.now(timezone.utc).isoformat(),
+                is_active=True,
+                scopes=["read", "write"],
+            )
+        except Exception:
+            return None
 
     # 2. Check SQLite database (Web UI mode) - synchronous version
     # For async contexts, use validate_api_key_async instead
