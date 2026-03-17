@@ -147,7 +147,7 @@ class LegacyBrainAdapter(Generic[T]):
                 f"Got: {normalized_dict}"
             ) from e
 
-    def _extract_brief(self, input: BaseModel) -> str:
+    def _extract_brief(self, input: Any) -> str:
         """
         Extract brief text from input model.
 

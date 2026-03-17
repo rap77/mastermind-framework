@@ -97,7 +97,7 @@ class StatelessCoordinator:
         self.correlation_id: str = ""  # Flow correlation ID
 
         # Flow configuration (for DAG execution)
-        self.flow_config = None
+        self.flow_config: FlowConfig | None = None
 
     async def execute_flow(
         self, brief: Brief, brain_ids: list[str]
