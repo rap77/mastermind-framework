@@ -6,16 +6,22 @@ Requirements: UI-01, UI-07
 """
 
 import hashlib
+import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from mastermind_cli.api.routes import auth, tasks
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.state.database import DatabaseConnection
+
+_WEB_DIR = Path(__file__).parent.parent / "web"
 
 
 def create_app(db_path: str = ":memory:") -> FastAPI:
@@ -95,9 +101,16 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
     app.include_router(websocket_router, tags=["WebSocket"])
 
+    # Serve dashboard HTML
+    @app.get("/dashboard", include_in_schema=False)
+    async def dashboard() -> FileResponse:
+        return FileResponse(_WEB_DIR / "index.html")
+
     # Mount static files for web UI
-    # Note: Will be mounted in Plan 02 after creating HTML/CSS/JS
-    # app.mount("/static", StaticFiles(directory="mastermind_cli/web/static"), name="static")
+    if (_WEB_DIR / "static").exists():
+        app.mount(
+            "/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static"
+        )
 
     # Startup event: create database schema
     @app.on_event("startup")
@@ -115,8 +128,11 @@ def get_app() -> FastAPI:
 
     Usage:
         uvicorn mastermind_cli.api.app:get_app --factory
+
+    Reads MM_DB_PATH from environment (default: /app/data/mastermind.db).
     """
-    return create_app()
+    db_path = os.environ.get("MM_DB_PATH", "/app/data/mastermind.db")
+    return create_app(db_path)
 
 
 # Dependency for database access

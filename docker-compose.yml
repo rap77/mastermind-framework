@@ -1,0 +1,19 @@
+services:
+  mastermind:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - mastermind_data:/app/data
+    environment:
+      MM_DB_PATH: /app/data/mastermind.db
+      MM_ADMIN_PASSWORD: admin  # Change in production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mastermind_data:

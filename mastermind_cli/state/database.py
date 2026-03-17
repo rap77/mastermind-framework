@@ -5,7 +5,11 @@ This module provides DatabaseConnection for aiosqlite with WAL mode
 and schema creation for task state persistence.
 """
 
+import os
+import uuid
+
 import aiosqlite
+import bcrypt
 from typing import Optional, Any
 
 
@@ -193,6 +197,20 @@ class DatabaseConnection:
         )
 
         await self.conn.commit()
+
+        # Seed admin user on first run if no users exist
+        cursor = await self.conn.execute("SELECT COUNT(*) FROM users")
+        row = await cursor.fetchone()
+        if row and row[0] == 0:
+            admin_password = os.environ.get("MM_ADMIN_PASSWORD", "admin")
+            password_hash = bcrypt.hashpw(
+                admin_password.encode("utf-8"), bcrypt.gensalt(rounds=12)
+            ).decode("utf-8")
+            await self.conn.execute(
+                "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
+                [str(uuid.uuid4()), "admin", password_hash],
+            )
+            await self.conn.commit()
 
     async def create_experience_schema(self) -> None:
         """Create experience_records table for full-fidelity execution logging.
