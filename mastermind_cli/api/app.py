@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes import auth, tasks
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.state.database import DatabaseConnection
@@ -95,6 +96,9 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     async def health_check() -> dict[str, str]:
         """Health check endpoint."""
         return {"status": "healthy", "version": "1.1.0"}
+
+    # Wire db_path into all routes via dependency override
+    app.dependency_overrides[get_db_path] = lambda: db_path
 
     # Register routes
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
