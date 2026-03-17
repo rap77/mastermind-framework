@@ -48,16 +48,16 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     @app.middleware("http")
     async def audit_middleware(request: Request, call_next: Any) -> Any:
         """Log all POST/PUT/DELETE requests to audit_log table."""
-        # Extract user_id from JWT if present (set by auth dependency)
-        user_id = getattr(request.state, "user_id", None)
-
-        # Capture request body for mutations
+        # Capture request body for mutations BEFORE call_next (body is a stream)
         request_body = None
         request_hash = None
         if request.method in ["POST", "PUT", "DELETE"]:
             request_body = await request.body()
 
         response = await call_next(request)
+
+        # Extract user_id AFTER call_next (auth dependency sets request.state.user_id)
+        user_id = getattr(request.state, "user_id", None)
 
         # Write audit log for mutations
         if request.method in ["POST", "PUT", "DELETE"] and user_id:

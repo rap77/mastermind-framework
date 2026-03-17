@@ -106,9 +106,15 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def hash_token(token: str) -> str:
-    """Hash API key or refresh token for storage (bcrypt)."""
-    salt = bcrypt.gensalt(rounds=12)
-    return bcrypt.hashpw(token.encode("utf-8"), salt).decode("utf-8")
+    """Hash token for database storage using SHA256 (deterministic for lookups).
+
+    SHA256 is appropriate here because tokens are already random high-entropy
+    values. bcrypt is for passwords (brute-force protection); tokens do not
+    need salt-based hashing and require deterministic lookup.
+    """
+    import hashlib
+
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def generate_api_key() -> str:

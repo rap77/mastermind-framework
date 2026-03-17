@@ -12,10 +12,11 @@ import uuid
 from datetime import datetime, timedelta
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
+from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.types.auth import (
     LoginRequest,
     RefreshRequest,
@@ -65,6 +66,7 @@ def create_refresh_token(user_id: str) -> str:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(jwt_scheme),
 ) -> str:
     """Extract user_id from JWT access token."""
@@ -75,20 +77,23 @@ async def get_current_user(
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
+        request.state.user_id = user_id
         return cast(str, user_id)
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
 async def get_current_user_from_api_key(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(api_key_scheme),
+    db_path: str = Depends(get_db_path),
 ) -> str:
     """Extract user_id from API key."""
     token = credentials.credentials
     if not token.startswith("mm_"):
         raise HTTPException(status_code=401, detail="Invalid API key format")
 
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
             "SELECT user_id FROM api_keys WHERE key_hash = ?",
             [hash_token(token)],
@@ -96,11 +101,14 @@ async def get_current_user_from_api_key(
         row = await cursor.fetchone()
         if row is None:
             raise HTTPException(status_code=401, detail="Invalid API key")
+        request.state.user_id = row[0]
         return cast(str, row[0])
 
 
 async def get_current_user_any(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(jwt_scheme),
+    db_path: str = Depends(get_db_path),
 ) -> str:
     """Extract user_id from JWT or API key (flexible auth)."""
     token = credentials.credentials
@@ -109,13 +117,15 @@ async def get_current_user_any(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") == "access":
-            return cast(str, payload.get("sub"))
+            user_id = cast(str, payload.get("sub"))
+            request.state.user_id = user_id
+            return user_id
     except JWTError:
         pass
 
     # Try API key
     if token.startswith("mm_"):
-        async with DatabaseConnection(":memory:") as db:
+        async with DatabaseConnection(db_path) as db:
             cursor = await db.conn.execute(
                 "SELECT user_id FROM api_keys WHERE key_hash = ?",
                 [hash_token(token)],
@@ -128,6 +138,7 @@ async def get_current_user_any(
                     [datetime.utcnow(), hash_token(token)],
                 )
                 await db.conn.commit()
+                request.state.user_id = row[0]
                 return cast(str, row[0])
 
     raise HTTPException(status_code=401, detail="Invalid authentication")
@@ -137,13 +148,16 @@ async def get_current_user_any(
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest) -> TokenResponse:
+async def login(
+    request: LoginRequest,
+    db_path: str = Depends(get_db_path),
+) -> TokenResponse:
     """Authenticate user and return JWT tokens.
 
     Validates credentials, creates session with refresh_token_hash,
     and returns access_token (30min) + refresh_token (24h).
     """
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         # Look up user by username
         cursor = await db.conn.execute(
             "SELECT id, password_hash FROM users WHERE username = ?",
@@ -182,7 +196,10 @@ async def login(request: LoginRequest) -> TokenResponse:
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(request: RefreshRequest) -> TokenResponse:
+async def refresh(
+    request: RefreshRequest,
+    db_path: str = Depends(get_db_path),
+) -> TokenResponse:
     """Exchange refresh token for new tokens WITH ROTATION.
 
     CRITICAL: Old refresh_token is deleted from database (revoked).
@@ -197,7 +214,7 @@ async def refresh(request: RefreshRequest) -> TokenResponse:
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         # Look up session by refresh_token_hash
         cursor = await db.conn.execute(
             "SELECT id, rotation_count FROM sessions WHERE user_id = ? AND refresh_token_hash = ?",
@@ -246,17 +263,18 @@ async def refresh(request: RefreshRequest) -> TokenResponse:
 async def create_api_key(
     request: APIKeyCreate,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> APIKeyResponse:
     """Create API key for CLI access (UI-07 requirement).
 
     Key is returned only ONCE (on creation).
     Key format: mm_ + 32 hex chars
-    Key is hashed with bcrypt before storage.
+    Key is hashed with SHA256 before storage.
     """
     api_key_id = str(uuid.uuid4())
     plaintext_key = generate_api_key()
 
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         await db.conn.execute(
             """INSERT INTO api_keys (id, user_id, key_hash, name, created_at)
                VALUES (?, ?, ?, ?, ?)""",
@@ -281,9 +299,10 @@ async def create_api_key(
 @router.get("/api-keys")
 async def list_api_keys(
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, list[dict[str, object]]]:
     """List user's API keys."""
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
             """SELECT id, name, created_at, last_used FROM api_keys
                WHERE user_id = ?
@@ -304,9 +323,10 @@ async def list_api_keys(
 async def revoke_api_key(
     api_key_id: str,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, str]:
     """Revoke API key."""
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         await db.conn.execute(
             "DELETE FROM api_keys WHERE id = ? AND user_id = ?",
             [api_key_id, user_id],
@@ -319,11 +339,12 @@ async def revoke_api_key(
 @router.post("/logout")
 async def logout(
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, str]:
     """Revoke refresh token (logout)."""
     # Note: In production, accept refresh_token in request body to revoke specific session
     # For now, revoke all sessions for user
-    async with DatabaseConnection(":memory:") as db:
+    async with DatabaseConnection(db_path) as db:
         await db.conn.execute("DELETE FROM sessions WHERE user_id = ?", [user_id])
         await db.conn.commit()
 

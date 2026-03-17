@@ -13,16 +13,12 @@ from typing import Optional, Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.state.database import DatabaseConnection
 
 # Router
 router = APIRouter()
-
-
-def get_db_path() -> str:
-    """Database path dependency — override via app.dependency_overrides in tests."""
-    return ":memory:"
 
 
 # ===== Request/Response Models =====

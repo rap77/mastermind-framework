@@ -12,9 +12,10 @@ import uuid
 from collections import deque
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
 
+from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.state.database import DatabaseConnection
 
 # JWT config
@@ -125,7 +126,12 @@ router = APIRouter()
 
 
 @router.websocket("/ws/tasks/{task_id}")
-async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str) -> None:
+async def websocket_endpoint(
+    websocket: WebSocket,
+    task_id: str,
+    token: str,
+    db_path: str = Depends(get_db_path),
+) -> None:
     """WebSocket endpoint for real-time progress updates.
 
     Query params:
@@ -138,7 +144,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: str) -> 
     except JWTError:
         # Try API key
         if token.startswith("mm_"):
-            async with DatabaseConnection(":memory:") as db:
+            async with DatabaseConnection(db_path) as db:
                 from mastermind_cli.types.auth import hash_token
 
                 cursor = await db.conn.execute(
