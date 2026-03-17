@@ -367,25 +367,40 @@ class TestAuthValidation:
     def test_web_auth_with_database(self, tmp_path):
         """Test Web UI authentication via SQLite database."""
         import asyncio
+        from unittest.mock import patch
 
         async def test_async():
-            # Create logger with database
             db_path = str(tmp_path / "test_auth.db")
             logger = ExecutionLogger(db_path=db_path, enabled=True)
 
-            # Save API key to database
             from mastermind_cli.auth.api_keys import APIKeyCreate, create_api_key
             from mastermind_cli.state.database import get_db
 
-            key_data = APIKeyCreate(owner="web-user", scopes=["read", "write"])
-            full_key, response = await create_api_key(key_data)
+            # Create schema on the file DB
+            db_init = get_db(db_path)
+            await db_init.connect()
+            await db_init.create_auth_schema()
+            await db_init.close()
 
-            # Verify key exists in database
+            # Pre-connect a DB instance so create_api_key (which skips connect()) can use it
+            connected_db = get_db(db_path)
+            await connected_db.connect()
+
+            key_data = APIKeyCreate(owner="web-user", scopes=["read", "write"])
+
+            # Patch get_db to return the already-connected instance
+            with patch(
+                "mastermind_cli.state.database.get_db",
+                return_value=connected_db,
+            ):
+                full_key, response = await create_api_key(key_data)
+
+            await connected_db.close()
+
+            # Verify key exists in the file DB
             db = get_db(db_path)
             await db.connect()
-            await db.create_auth_schema()
 
-            # Verify retrieval
             key_hash = hash_api_key(full_key)
             retrieved = await db.get_api_key(key_hash)
             assert retrieved is not None

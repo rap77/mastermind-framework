@@ -71,14 +71,15 @@ async def create_task(
     async with DatabaseConnection(db_path) as db:
         # Create execution record
         await db.conn.execute(
-            """INSERT INTO executions (id, flow_config, brief, created_at, status)
-               VALUES (?, ?, ?, ?, ?)""",
+            """INSERT INTO executions (id, flow_config, brief, created_at, status, user_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             [
                 task_id,
                 request.flow or "{}",
                 request.brief,
                 datetime.utcnow(),
                 "pending",
+                user_id,
             ],
         )
         await db.conn.commit()
@@ -108,13 +109,16 @@ async def list_tasks(
     async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
             """SELECT id, brief, created_at, status FROM executions
+               WHERE user_id = ?
                ORDER BY created_at DESC
                LIMIT ? OFFSET ?""",
-            [limit, offset],
+            [user_id, limit, offset],
         )
         rows = await cursor.fetchall()
 
-        count_cursor = await db.conn.execute("SELECT COUNT(*) FROM executions")
+        count_cursor = await db.conn.execute(
+            "SELECT COUNT(*) FROM executions WHERE user_id = ?", [user_id]
+        )
         count_row = await count_cursor.fetchone()
         total = count_row[0] if count_row else 0
 
@@ -141,8 +145,8 @@ async def get_task(
     """
     async with DatabaseConnection(db_path) as db:
         cursor = await db.conn.execute(
-            "SELECT * FROM executions WHERE id = ?",
-            [task_id],
+            "SELECT * FROM executions WHERE id = ? AND user_id = ?",
+            [task_id, user_id],
         )
         row = await cursor.fetchone()
         if row is None:
@@ -161,10 +165,11 @@ async def get_task(
 async def get_task_state(
     task_id: str,
     user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
 ) -> dict[str, object]:
     """Get current task state (optimized for <100ms queries - PERF-02)."""
     # Same as get_task for now (will add brain_states in Task 2)
-    return await get_task(task_id, user_id)
+    return await get_task(task_id, user_id, db_path)
 
 
 @router.delete("/{task_id}")
@@ -179,8 +184,8 @@ async def cancel_task(
     """
     async with DatabaseConnection(db_path) as db:
         await db.conn.execute(
-            "UPDATE executions SET status = 'cancelled' WHERE id = ?",
-            [task_id],
+            "UPDATE executions SET status = 'cancelled' WHERE id = ? AND user_id = ?",
+            [task_id, user_id],
         )
         await db.conn.commit()
 
@@ -240,8 +245,8 @@ async def get_task_graph(
     async with DatabaseConnection(db_path) as db:
         # Fetch execution record
         cursor = await db.conn.execute(
-            "SELECT flow_config, status FROM executions WHERE id = ?",
-            [task_id],
+            "SELECT flow_config, status FROM executions WHERE id = ? AND user_id = ?",
+            [task_id, user_id],
         )
         row = await cursor.fetchone()
         if row is None:

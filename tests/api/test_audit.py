@@ -1,63 +1,91 @@
 """Test audit logging for all mutations.
 
-This module contains test stubs for audit log creation and querying.
-Tests will be implemented after Plan 01 Task 1.
-
 Requirements: UI-07
 """
 
+import pytest
 
-def test_audit_log_created():
-    """Test all POST/PUT/DELETE requests are logged to audit_log table.
-
-    Verifies:
-    - POST /api/tasks creates audit entry
-    - DELETE /api/tasks/{id} creates audit entry
-    - POST /api/auth/login creates audit entry
-    - Entry includes: id, user_id, endpoint, method, request_hash, status, timestamp
-
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: Audit log created")
+from mastermind_cli.state.database import DatabaseConnection
 
 
-def test_audit_entries_include_user():
-    """Test audit log entries include user_id, endpoint, timestamp, request_hash.
+@pytest.mark.asyncio
+async def test_audit_log_created(client, auth_headers, db_path):
+    """POST /api/tasks creates an audit_log entry."""
+    await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Audit test task"},
+    )
 
-    Verifies:
-    - user_id is extracted from JWT
-    - endpoint is the request path
-    - method is POST/PUT/DELETE
-    - request_hash is SHA256 prefix of body
-    - response_status is HTTP status code
-
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: Audit entry structure")
-
-
-def test_read_operations_not_logged():
-    """Test GET requests do not create audit log entries.
-
-    Verifies:
-    - GET /api/tasks creates NO audit entry
-    - GET /api/tasks/{id} creates NO audit entry
-    - Only mutations are logged
-
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: Read operations not logged")
+    async with DatabaseConnection(db_path) as db:
+        cursor = await db.conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE endpoint = '/api/tasks' AND method = 'POST'"
+        )
+        row = await cursor.fetchone()
+        assert row[0] >= 1
 
 
-def test_audit_log_query():
-    """Test audit log can be queried for user activity.
+@pytest.mark.asyncio
+async def test_audit_entries_include_user(client, auth_headers, db_path):
+    """Audit entries have user_id, endpoint, method, request_hash, response_status."""
+    await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Audit structure test"},
+    )
 
-    Verifies:
-    - Query by user_id returns their mutations
-    - Query by timestamp range works
-    - Results ordered by timestamp DESC
-    - Used for compliance debugging
+    async with DatabaseConnection(db_path) as db:
+        cursor = await db.conn.execute(
+            """SELECT user_id, endpoint, method, request_hash, response_status
+               FROM audit_log WHERE endpoint = '/api/tasks' AND method = 'POST'
+               ORDER BY timestamp DESC LIMIT 1"""
+        )
+        row = await cursor.fetchone()
+        assert row is not None
+        user_id, endpoint, method, request_hash, status = row
+        assert user_id is not None
+        assert endpoint == "/api/tasks"
+        assert method == "POST"
+        assert request_hash is not None
+        assert status == 201
 
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: Audit log query")
+
+@pytest.mark.asyncio
+async def test_read_operations_not_logged(client, auth_headers, db_path):
+    """GET requests do not create audit entries."""
+    # Count before
+    async with DatabaseConnection(db_path) as db:
+        before = await (
+            await db.conn.execute("SELECT COUNT(*) FROM audit_log WHERE method = 'GET'")
+        ).fetchone()
+        count_before = before[0] if before else 0
+
+    await client.get("/api/tasks", headers=auth_headers)
+
+    async with DatabaseConnection(db_path) as db:
+        after = await (
+            await db.conn.execute("SELECT COUNT(*) FROM audit_log WHERE method = 'GET'")
+        ).fetchone()
+        count_after = after[0] if after else 0
+
+    assert count_after == count_before
+
+
+@pytest.mark.asyncio
+async def test_audit_log_query(client, auth_headers, db_path):
+    """Audit log can be queried by user_id."""
+    await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Query test"},
+    )
+
+    from tests.api.conftest import TEST_USER_ID
+
+    async with DatabaseConnection(db_path) as db:
+        cursor = await db.conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE user_id = ?",
+            [TEST_USER_ID],
+        )
+        row = await cursor.fetchone()
+        assert row[0] >= 1

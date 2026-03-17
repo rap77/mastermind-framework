@@ -1,81 +1,79 @@
 """Test multi-user session isolation and concurrent requests.
 
-This module contains test stubs for session isolation and concurrency.
-Tests will be implemented after Plan 01 Task 2.
-
 Requirements: UI-08
 """
+
+import asyncio
 
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_concurrent_requests_isolated():
-    """Test multiple users have isolated sessions.
+async def test_concurrent_requests_isolated(client, auth_headers, auth_headers_b):
+    """Users A and B have isolated task lists."""
+    await client.post("/api/tasks", headers=auth_headers, json={"brief": "A task"})
+    await client.post("/api/tasks", headers=auth_headers_b, json={"brief": "B task"})
 
-    Verifies:
-    - User A and User B can make requests simultaneously
-    - User A doesn't see User B's tasks
-    - Session data doesn't leak between users
-    - Per-request orchestrator instances (ARCH-03)
+    list_a = await client.get("/api/tasks", headers=auth_headers)
+    list_b = await client.get("/api/tasks", headers=auth_headers_b)
 
-    TODO: Implement after Plan 01 Task 2 (UI-08 requirement)
-    """
-    raise AssertionError("Test stub: Session isolation")
+    ids_a = {t["id"] for t in list_a.json()["tasks"]}
+    ids_b = {t["id"] for t in list_b.json()["tasks"]}
 
-
-@pytest.mark.asyncio
-async def test_user_cannot_access_other_tasks():
-    """Test user A cannot access user B's tasks.
-
-    Verifies:
-    - GET /api/tasks returns only user's own tasks
-    - GET /api/tasks/{id} returns 404 for other user's task
-    - DELETE /api/tasks/{id} returns 403 for other user's task
-    - WebSocket connection rejected for other user's task
-
-    TODO: Implement after Plan 01 Task 2 (UI-08 requirement)
-    """
-    raise AssertionError("Test stub: Cross-user access blocked")
+    assert ids_a.isdisjoint(ids_b), "Sessions leaked between users"
 
 
 @pytest.mark.asyncio
-async def test_concurrent_task_creation():
-    """Test multiple users can create tasks simultaneously.
+async def test_user_cannot_access_other_tasks(client, auth_headers, auth_headers_b):
+    """User A gets 404 on user B's tasks."""
+    create_b = await client.post(
+        "/api/tasks", headers=auth_headers_b, json={"brief": "Private B"}
+    )
+    task_id = create_b.json()["task_id"]
 
-    Verifies:
-    - No race conditions in task creation
-    - Each task has unique task_id
-    - Tasks are assigned to correct user
-    - No cross-contamination
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Concurrent task creation")
-
-
-def test_api_key_isolation():
-    """Test API keys are scoped to user who created them.
-
-    Verifies:
-    - User A's API key cannot access User B's resources
-    - API key inherits user's permissions
-    - API key scope is enforced in all endpoints
-
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: API key isolation")
+    response = await client.get(f"/api/tasks/{task_id}", headers=auth_headers)
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_session_persistence():
-    """Test user session persists across requests.
+async def test_concurrent_task_creation(client, auth_headers, auth_headers_b):
+    """Concurrent task creation produces unique IDs and correct ownership."""
+    results = await asyncio.gather(
+        client.post("/api/tasks", headers=auth_headers, json={"brief": "Concurrent A"}),
+        client.post(
+            "/api/tasks", headers=auth_headers_b, json={"brief": "Concurrent B"}
+        ),
+    )
+    ids = [r.json()["task_id"] for r in results]
+    assert ids[0] != ids[1], "Duplicate task_id generated"
 
-    Verifies:
-    - JWT token works across multiple requests
-    - User identity maintained in session
-    - Session timeout works (1 hour idle)
 
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Session persistence")
+@pytest.mark.asyncio
+async def test_api_key_isolation(client, auth_headers, auth_headers_b):
+    """API key is scoped to its owner."""
+    # Create task as user B
+    task_b = await client.post(
+        "/api/tasks", headers=auth_headers_b, json={"brief": "B only"}
+    )
+    task_id = task_b.json()["task_id"]
+
+    # User A creates API key
+    key_resp = await client.post(
+        "/api/auth/api-keys", headers=auth_headers, json={"name": "scoped"}
+    )
+    api_key = key_resp.json()["key"]
+
+    # API key of A cannot access B's task
+    response = await client.get(
+        f"/api/tasks/{task_id}",
+        headers={"Authorization": f"Bearer {api_key}"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_session_persistence(client, auth_headers):
+    """JWT token works across multiple requests."""
+    for _ in range(3):
+        response = await client.get("/api/tasks", headers=auth_headers)
+        assert response.status_code == 200

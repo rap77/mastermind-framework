@@ -1,127 +1,172 @@
 """Test authentication endpoints and JWT token management.
 
-This module contains test stubs for login, refresh token rotation, and API key functionality.
-Tests will be implemented after Plan 01 Task 1.
-
 Requirements: UI-02, UI-03, UI-07
 """
 
+from datetime import datetime, timedelta
 
-def test_login_success():
-    """Test POST /api/auth/login with valid credentials returns 200.
+import pytest
+from jose import jwt
 
-    Verifies:
-    - Valid username/password returns access_token and refresh_token
-    - Token type is "Bearer"
-    - Access token expires in 30 minutes
-    - Refresh token expires in 24 hours
+from tests.api.conftest import TEST_USER_ID, TEST_USERNAME, TEST_PASSWORD
 
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Login success")
+SECRET_KEY = "your-secret-key-change-in-production"
+ALGORITHM = "HS256"
 
 
-def test_login_invalid_credentials():
-    """Test POST /api/auth/login with invalid credentials returns 401.
-
-    Verifies:
-    - Wrong username returns 401
-    - Wrong password returns 401
-    - Error message doesn't reveal if user exists
-
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Login invalid")
-
-
-def test_refresh_token_rotation():
-    """Test POST /api/auth/refresh returns new access_token AND new refresh_token.
-
-    Verifies:
-    - Valid refresh_token returns new access_token
-    - NEW refresh_token is also returned (rotation)
-    - Old refresh_token is invalidated (deleted from DB)
-    - Using old refresh_token again returns 401
-
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Refresh token rotation")
+@pytest.mark.asyncio
+async def test_login_success(client):
+    """Valid credentials return access_token + refresh_token."""
+    response = await client.post(
+        "/api/auth/login",
+        json={"username": TEST_USERNAME, "password": TEST_PASSWORD},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"].lower() == "bearer"
 
 
-def test_old_refresh_token_rejected():
-    """Test POST /api/auth/refresh with old/revoked token returns 401.
-
-    Verifies:
-    - After rotation, old refresh_token is rejected
-    - Replay attacks are prevented
-    - Error message is generic
-
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Old refresh token rejected")
+@pytest.mark.asyncio
+async def test_login_invalid_credentials(client):
+    """Wrong password returns 401."""
+    response = await client.post(
+        "/api/auth/login",
+        json={"username": TEST_USERNAME, "password": "wrongpassword"},
+    )
+    assert response.status_code == 401
 
 
-def test_expired_token_rejected():
-    """Test POST /api/auth/refresh with expired token returns 401.
+@pytest.mark.asyncio
+async def test_refresh_token_rotation(client):
+    """Refresh returns new access_token AND new refresh_token."""
+    import asyncio
 
-    Verifies:
-    - Expired access_token returns 401
-    - Expired refresh_token returns 401
-    - User must login again
+    login = await client.post(
+        "/api/auth/login",
+        json={"username": TEST_USERNAME, "password": TEST_PASSWORD},
+    )
+    old_refresh = login.json()["refresh_token"]
 
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Expired token rejected")
+    # Wait 1s so the new JWT has a different `exp` (second-resolution) and differs
+    await asyncio.sleep(1.1)
 
-
-def test_api_key_creation():
-    """Test POST /api/auth/api-keys creates API key for authenticated user.
-
-    Verifies:
-    - Authenticated user can create API key
-    - Key is returned only once (on creation)
-    - Key format is "mm_" + 32 hex chars
-    - Key is hashed in database
-
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: API key creation")
+    response = await client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": old_refresh},
+    )
+    assert response.status_code == 200
+    new_tokens = response.json()
+    assert "access_token" in new_tokens
+    assert "refresh_token" in new_tokens
+    assert new_tokens["refresh_token"] != old_refresh
 
 
-def test_api_key_authentication():
-    """Test API key can be used via Authorization: Bearer {key} header.
+@pytest.mark.asyncio
+async def test_old_refresh_token_rejected(client):
+    """After rotation, old refresh_token is rejected."""
+    import asyncio
 
-    Verifies:
-    - API key works for /api/tasks endpoints
-    - API key is scoped to user who created it
-    - API key can be revoked
+    login = await client.post(
+        "/api/auth/login",
+        json={"username": TEST_USERNAME, "password": TEST_PASSWORD},
+    )
+    old_refresh = login.json()["refresh_token"]
 
-    TODO: Implement after Plan 01 Task 1 (UI-07 requirement)
-    """
-    raise AssertionError("Test stub: API key authentication")
+    # Wait 1s so new JWT has different exp and a different hash is stored
+    await asyncio.sleep(1.1)
 
+    # First use — rotates and deletes old session
+    await client.post("/api/auth/refresh", json={"refresh_token": old_refresh})
 
-def test_api_key_isolation():
-    """Test API keys are scoped to user who created them.
-
-    Verifies:
-    - User A's API key cannot access User B's resources
-    - API key inherits user's permissions
-    - Cross-user access returns 403
-
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: API key isolation")
+    # Second use of old token must fail (session was deleted during rotation)
+    response = await client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": old_refresh},
+    )
+    assert response.status_code == 401
 
 
-def test_logout():
-    """Test POST /api/auth/logout revokes refresh token.
+@pytest.mark.asyncio
+async def test_expired_token_rejected(client):
+    """Expired access token returns 401 on protected endpoints."""
+    expired = jwt.encode(
+        {
+            "sub": TEST_USER_ID,
+            "exp": datetime.utcnow() - timedelta(seconds=1),
+            "type": "access",
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    response = await client.get(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {expired}"},
+    )
+    assert response.status_code == 401
 
-    Verifies:
-    - Logout deletes refresh_token from database
-    - Subsequent refresh attempts fail
-    - Access token still works until expiry
 
-    TODO: Implement after Plan 01 Task 1
-    """
-    raise AssertionError("Test stub: Logout functionality")
+@pytest.mark.asyncio
+async def test_api_key_creation(client, auth_headers):
+    """Authenticated user can create API key with mm_ prefix."""
+    response = await client.post(
+        "/api/auth/api-keys",
+        headers=auth_headers,
+        json={"name": "test-key"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["key"].startswith("mm_")
+    assert data["name"] == "test-key"
+
+
+@pytest.mark.asyncio
+async def test_api_key_authentication(client, auth_headers):
+    """API key can authenticate on protected endpoints."""
+    create_resp = await client.post(
+        "/api/auth/api-keys",
+        headers=auth_headers,
+        json={"name": "cli-key"},
+    )
+    api_key = create_resp.json()["key"]
+
+    response = await client.get(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {api_key}"},
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_api_key_isolation(client, auth_headers, auth_headers_b):
+    """User A's API key cannot access User B's tasks."""
+    # Create task as user B
+    task_resp = await client.post(
+        "/api/tasks",
+        headers=auth_headers_b,
+        json={"brief": "Task for user B"},
+    )
+    task_id = task_resp.json()["task_id"]
+
+    # User A creates an API key
+    key_resp = await client.post(
+        "/api/auth/api-keys",
+        headers=auth_headers,
+        json={"name": "a-key"},
+    )
+    api_key_a = key_resp.json()["key"]
+
+    # User A tries to access user B's task — must get 404
+    response = await client.get(
+        f"/api/tasks/{task_id}",
+        headers={"Authorization": f"Bearer {api_key_a}"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_logout(client, auth_headers):
+    """Logout returns 200."""
+    response = await client.post("/api/auth/logout", headers=auth_headers)
+    assert response.status_code == 200

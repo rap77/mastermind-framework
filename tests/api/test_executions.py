@@ -1,131 +1,124 @@
 """Test task management endpoints (CRUD operations).
 
-This module contains test stubs for task creation, listing, retrieval, and cancellation.
-Tests will be implemented after Plan 01 Task 2.
-
 Requirements: UI-06
 """
 
-
-def test_create_task():
-    """Test POST /api/tasks creates task and returns task_id.
-
-    Verifies:
-    - Valid brief creates task
-    - Response includes task_id, status, created_at
-    - Task is queued for execution
-    - Requires authentication
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Create task")
+import pytest
 
 
-def test_create_task_validation():
-    """Test POST /api/tasks validates input.
-
-    Verifies:
-    - Brief is required (1-10000 chars)
-    - Flow is optional
-    - Max_iterations defaults to 3
-    - Invalid input returns 422
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Task validation")
-
-
-def test_list_tasks():
-    """Test GET /api/tasks returns list of user's tasks.
-
-    Verifies:
-    - Only authenticated user's tasks are returned
-    - Supports limit and offset params
-    - Returns tasks ordered by created_at DESC
-    - Response: {tasks, total, limit, offset}
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: List tasks")
+@pytest.mark.asyncio
+async def test_create_task(client, auth_headers):
+    """POST /api/tasks creates task and returns task_id."""
+    response = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Build a landing page"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert "task_id" in data
+    assert data["status"] == "pending"
+    assert "created_at" in data
 
 
-def test_get_task():
-    """Test GET /api/tasks/{id} returns task state.
-
-    Verifies:
-    - Returns task for authenticated user
-    - Returns 404 if task doesn't exist
-    - Returns 403 if task belongs to other user
-    - Response: {id, status, progress, result, error, timestamps}
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Get task")
+@pytest.mark.asyncio
+async def test_create_task_validation(client, auth_headers):
+    """Empty brief returns 422."""
+    response = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": ""},
+    )
+    assert response.status_code == 422
 
 
-def test_cancel_task():
-    """Test DELETE /api/tasks/{id} cancels running task.
+@pytest.mark.asyncio
+async def test_list_tasks(client, auth_headers):
+    """GET /api/tasks returns list of user's tasks."""
+    # Create a task first
+    await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Task for list test"},
+    )
 
-    Verifies:
-    - Running task is cancelled
-    - Returns {message, task_id}
-    - Cancellation is logged to audit
-    - Requires ownership
-
-    TODO: Implement after Plan 01 Task 2
-    """
-    raise AssertionError("Test stub: Cancel task")
-
-
-def test_export_json():
-    """Test export JSON downloads valid .json file.
-
-    Verifies:
-    - Content-Type: application/json
-    - File downloads with attachment header
-    - JSON is valid and pretty-printed
-    - Uses JSON.stringify (2-space indent)
-
-    TODO: Implement after Plan 02 Task 3
-    """
-    raise AssertionError("Test stub: Export JSON")
+    response = await client.get("/api/tasks", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "tasks" in data
+    assert "total" in data
+    assert isinstance(data["tasks"], list)
+    assert data["total"] >= 1
 
 
-def test_export_yaml():
-    """Test export YAML downloads valid .yaml file using js-yaml.
+@pytest.mark.asyncio
+async def test_get_task(client, auth_headers):
+    """GET /api/tasks/{id} returns task; 404 for unknown."""
+    create = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Task for get test"},
+    )
+    task_id = create.json()["task_id"]
 
-    Verifies:
-    - Content-Type: text/yaml
-    - YAML is valid (jsyaml.dump with indent: 2, lineWidth: -1)
-    - File downloads with attachment header
+    response = await client.get(f"/api/tasks/{task_id}", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["id"] == task_id
 
-    TODO: Implement after Plan 02 Task 3
-    """
-    raise AssertionError("Test stub: Export YAML")
-
-
-def test_export_markdown():
-    """Test export Markdown downloads formatted .md file.
-
-    Verifies:
-    - Content-Type: text/markdown
-    - Markdown has headers (##) and bullet points
-    - Code blocks use ```json...``` format
-    - File downloads with attachment header
-
-    TODO: Implement after Plan 02 Task 3
-    """
-    raise AssertionError("Test stub: Export Markdown")
+    not_found = await client.get("/api/tasks/nonexistent-id", headers=auth_headers)
+    assert not_found.status_code == 404
 
 
-def test_session_isolation():
-    """Test user A cannot access user B's tasks.
+@pytest.mark.asyncio
+async def test_cancel_task(client, auth_headers):
+    """DELETE /api/tasks/{id} cancels task."""
+    create = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Task to cancel"},
+    )
+    task_id = create.json()["task_id"]
 
-    Verifies:
-    - GET /api/tasks returns only user's own tasks
-    - GET /api/tasks/{id} returns 404 for other user's task
-    - DELETE /api/tasks/{id} returns 403 for other user's task
+    response = await client.delete(f"/api/tasks/{task_id}", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_id"] == task_id
 
-    TODO: Implement after Plan 01 Task 2 (UI-08 requirement)
-    """
-    raise AssertionError("Test stub: Session isolation")
+
+@pytest.mark.asyncio
+@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
+async def test_export_json(client, auth_headers):
+    """Export JSON — frontend feature, no backend endpoint."""
+
+
+@pytest.mark.asyncio
+@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
+async def test_export_yaml(client, auth_headers):
+    """Export YAML — frontend feature, no backend endpoint."""
+
+
+@pytest.mark.asyncio
+@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
+async def test_export_markdown(client, auth_headers):
+    """Export Markdown — frontend feature, no backend endpoint."""
+
+
+@pytest.mark.asyncio
+async def test_session_isolation(client, auth_headers, auth_headers_b):
+    """User A cannot access User B's tasks."""
+    # Create task as user B
+    create_b = await client.post(
+        "/api/tasks",
+        headers=auth_headers_b,
+        json={"brief": "User B private task"},
+    )
+    task_id_b = create_b.json()["task_id"]
+
+    # User A list — must NOT include user B's task
+    list_a = await client.get("/api/tasks", headers=auth_headers)
+    task_ids_a = [t["id"] for t in list_a.json()["tasks"]]
+    assert task_id_b not in task_ids_a
+
+    # User A get — must get 404
+    get_resp = await client.get(f"/api/tasks/{task_id_b}", headers=auth_headers)
+    assert get_resp.status_code == 404

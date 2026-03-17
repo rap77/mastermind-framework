@@ -188,7 +188,7 @@ si hay market fit antes de invertir en desarrollo."""
 
         # Test with short answer
         follow_up = coordinator._generate_basic_follow_up(
-            question="What is your name?", answer="John"
+            _question="What is your name?", answer="John"
         )
 
         assert follow_up is not None, "Follow-up should not be None"

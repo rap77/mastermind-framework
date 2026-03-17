@@ -100,7 +100,8 @@ class DatabaseConnection:
                 flow_config TEXT NOT NULL,
                 brief TEXT NOT NULL,
                 created_at TIMESTAMP,
-                status TEXT
+                status TEXT,
+                user_id TEXT
             )
         """)
 
