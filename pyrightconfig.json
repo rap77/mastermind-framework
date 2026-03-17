@@ -1,0 +1,14 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.14",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "standard",
+  "reportMissingImports": true,
+  "reportMissingModuleSource": false,
+  "exclude": [
+    ".venv",
+    "tests/e2e",
+    "**/__pycache__"
+  ]
+}
