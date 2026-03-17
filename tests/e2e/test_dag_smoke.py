@@ -12,7 +12,7 @@ Run manually with: uv run pytest tests/e2e/test_dag_smoke.py --no-cov
 import pytest
 from playwright.sync_api import Page, expect
 
-pytestmark = pytest.mark.skip(reason="Requires running server at localhost:8000")
+pytestmark = pytest.mark.e2e
 
 
 def test_dag_graph_smoke(page: Page):

@@ -82,11 +82,47 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run E2E tests
-        run: uv run pytest tests/e2e/ -v
-
       - name: Run semantic regression tests
         run: uv run pytest tests/integration/test_semantic_regression.py -v -m slow
 
       - name: Run backward compatibility tests
         run: uv run pytest tests/integration/test_backward_compat.py -v -m slow
+
+  # Level 4: E2E Tests (requires running server - manual trigger or staging)
+  level4-e2e:
+    name: Level 4 - E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch'  # Manual trigger only
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install Playwright browsers
+        run: uv run playwright install chromium --with-deps
+
+      - name: Start server
+        run: uv run uvicorn mastermind_cli.web.app:app --port 8000 &
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server did not start in 30s" && exit 1
+
+      - name: Run E2E tests
+        run: uv run pytest tests/e2e/ -m e2e -v --no-cov

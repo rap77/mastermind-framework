@@ -95,6 +95,7 @@ addopts = [
     "--tb=short",
     "--cov=mastermind_cli",
     "--cov-report=term-missing:skip-covered",
+    "--ignore=tests/e2e",
 ]
 markers = [
     "asyncio: mark test as async",
