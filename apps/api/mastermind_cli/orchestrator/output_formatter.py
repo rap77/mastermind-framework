@@ -4,6 +4,226 @@ Output Formatter - Formats orchestrator outputs for human consumption.
 
 from typing import Any
 
+from mastermind_cli.types.interfaces import (
+    BrainOutput,
+    ProductStrategy,
+    UXResearch,
+    UIDesign,
+    FrontendDesign,
+    BackendDesign,
+    QADevOpsPlan,
+    GrowthDataEvaluation,
+    MasterInterviewerOutput,
+)
+
+
+def format_brain_output(output: BrainOutput) -> str:
+    """
+    Format any brain output as readable markdown for CLI display and GSD context files.
+
+    Returns a markdown string suitable for:
+    - Terminal display after `mm orchestrate run`
+    - Pasting into CONTEXT.md for GSD phase planning
+    """
+    if isinstance(output, ProductStrategy):
+        return _fmt_product_strategy(output)
+    elif isinstance(output, UXResearch):
+        return _fmt_ux_research(output)
+    elif isinstance(output, UIDesign):
+        return _fmt_ui_design(output)
+    elif isinstance(output, FrontendDesign):
+        return _fmt_frontend_design(output)
+    elif isinstance(output, BackendDesign):
+        return _fmt_backend_design(output)
+    elif isinstance(output, QADevOpsPlan):
+        return _fmt_qa_devops(output)
+    elif isinstance(output, GrowthDataEvaluation):
+        return _fmt_growth_data(output)
+    elif isinstance(output, MasterInterviewerOutput):
+        return _fmt_master_interviewer(output)
+    else:
+        return f"## Brain Output\n\n```\n{output}\n```"
+
+
+def _fmt_product_strategy(o: ProductStrategy) -> str:
+    lines = [
+        "## Brain #1 — Product Strategy",
+        "",
+        f"**Positioning:** {o.positioning}",
+        f"**Target Audience:** {o.target_audience}",
+        "",
+        "**Key Features:**",
+        *[f"- {f}" for f in o.key_features],
+        "",
+        "**Success Metrics:**",
+        *[f"- {m}" for m in o.success_metrics],
+    ]
+    if o.risks:
+        lines += ["", "**Risks:**", *[f"- {r}" for r in o.risks]]
+    return "\n".join(lines)
+
+
+def _fmt_ux_research(o: UXResearch) -> str:
+    lines = [
+        "## Brain #2 — UX Research",
+        "",
+        "**User Journeys:**",
+        *[f"- {j.get('step', j)}" for j in o.user_journeys],
+        "",
+        "**Pain Points:**",
+        *[f"- {p}" for p in o.pain_points],
+        "",
+        "**Opportunities:**",
+        *[f"- {op}" for op in o.opportunities],
+        "",
+        f"**Methodology:** {o.research_methodology}",
+    ]
+    if o.screen_flows:
+        lines += [
+            "",
+            "**Screen Flows:**",
+            *[f"- {f.get('flow', f)}" for f in o.screen_flows],
+        ]
+    return "\n".join(lines)
+
+
+def _fmt_ui_design(o: UIDesign) -> str:
+    palette = " · ".join(f"{k}: {v}" for k, v in o.color_palette.items())
+    typo = (
+        " · ".join(f"{k}: {v}" for k, v in o.typography.items()) if o.typography else ""
+    )
+    lines = [
+        "## Brain #3 — UI Design",
+        "",
+        f"**Visual Language:** {o.visual_language}",
+        f"**Colors:** {palette}",
+    ]
+    if typo:
+        lines.append(f"**Typography:** {typo}")
+    if o.spacing_system:
+        lines.append(f"**Spacing:** {o.spacing_system}")
+    lines += [
+        "",
+        "**Components:**",
+        *[
+            f"- {c.get('name', c)}: {c.get('description', '')}"
+            for c in o.component_hierarchy
+        ],
+        "",
+        "**Design Principles:**",
+        *[f"- {p}" for p in o.design_principles],
+    ]
+    return "\n".join(lines)
+
+
+def _fmt_frontend_design(o: FrontendDesign) -> str:
+    lines = [
+        "## Brain #4 — Frontend Architecture",
+        "",
+        f"**Framework:** {o.framework}",
+        f"**State Management:** {o.state_management}",
+        f"**Styling:** {o.styling_approach}",
+    ]
+    if o.routing_strategy:
+        lines.append(f"**Routing:** {o.routing_strategy}")
+    lines += [
+        "",
+        "**Component Hierarchy:**",
+        *[
+            f"- {k}: {', '.join(v) if isinstance(v, list) else v}"
+            for k, v in o.component_hierarchy.items()
+        ],
+        "",
+        "**Build Tools:**",
+        *[f"- {t}" for t in o.build_tools],
+    ]
+    if o.performance_targets:
+        lines += [
+            "",
+            "**Performance Targets:**",
+            *[f"- {t}" for t in o.performance_targets],
+        ]
+    return "\n".join(lines)
+
+
+def _fmt_backend_design(o: BackendDesign) -> str:
+    lines = [
+        "## Brain #5 — Backend Architecture",
+        "",
+        f"**Architecture:** {o.architecture}",
+        f"**API Design:** {o.api_design}",
+        f"**Authentication:** {o.authentication}",
+        "",
+        "**Data Models:**",
+        *[
+            f"- {m.get('name', m)}: {', '.join(m.get('fields', []))}"
+            for m in o.data_models
+        ],
+    ]
+    return "\n".join(lines)
+
+
+def _fmt_qa_devops(o: QADevOpsPlan) -> str:
+    return "\n".join(
+        [
+            "## Brain #6 — QA/DevOps",
+            "",
+            f"**Testing Strategy:** {o.testing_strategy}",
+            f"**CI/CD:** {o.ci_cd_pipeline}",
+            f"**Monitoring:** {o.monitoring}",
+            f"**Deployment:** {o.deployment_strategy}",
+        ]
+    )
+
+
+def _fmt_growth_data(o: GrowthDataEvaluation) -> str:
+    verdict_emoji = {
+        "APPROVE": "✅",
+        "CONDITIONAL": "⚠️",
+        "REJECT": "❌",
+        "ESCALATE": "🚨",
+    }
+    lines = [
+        "## Brain #7 — Growth & Data (Evaluator)",
+        "",
+        f"**Verdict:** {verdict_emoji.get(o.verdict, '')} {o.verdict}",
+        f"**Score:** {o.score}/10",
+        "",
+        f"**Feedback:** {o.feedback}",
+    ]
+    if o.approval_conditions:
+        lines += ["", "**Conditions:**", *[f"- {c}" for c in o.approval_conditions]]
+    if o.rejection_reasons:
+        lines += [
+            "",
+            "**Rejection Reasons:**",
+            *[f"- {r}" for r in o.rejection_reasons],
+        ]
+    return "\n".join(lines)
+
+
+def _fmt_master_interviewer(o: MasterInterviewerOutput) -> str:
+    if not o.is_ambiguous:
+        return (
+            "## Brain #8 — Master Interviewer\n\n"
+            f"✅ Brief is clear (confidence: {o.confidence_score:.0%})\n\n"
+            "No clarification needed — proceed to planning."
+        )
+    lines = [
+        "## Brain #8 — Master Interviewer",
+        "",
+        f"⚠️ Brief is ambiguous (confidence: {o.confidence_score:.0%})",
+        "",
+        "**Clarifying Questions:**",
+    ]
+    for i, q in enumerate(o.interview_plan, 1):
+        lines += [
+            "",
+            f"**Q{i}:** {q.get('question', '')}",
+            f"*{q.get('context', '')}*",
+        ]
+    return "\n".join(lines)
+
 
 class OutputFormatter:
     """Formats orchestrator outputs for human consumption."""

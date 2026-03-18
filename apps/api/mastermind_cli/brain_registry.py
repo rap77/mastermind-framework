@@ -141,7 +141,7 @@ BRAIN_REGISTRY: dict[str, dict[str, Any]] = {
     },
     "#7": {
         "name": "Growth/Data",
-        "notebook_id": "d8de74d6-7028-44ed-b4d4-784d6a9256e6",
+        "notebook_id": "d8de74d6-7028-44ed-b4d5-784d6a9256e6",
         "expertise": "Growth & Evaluation - Metrics, experimentation, optimization",
     },
     "#8": {

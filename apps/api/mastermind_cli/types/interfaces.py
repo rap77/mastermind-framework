@@ -119,6 +119,10 @@ class UXResearch(BaseModel):
     research_methodology: str = Field(
         ..., description="How this research was conducted"
     )
+    screen_flows: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Key screen flows and navigation paths",
+    )
     generated_at: datetime = Field(
         default_factory=datetime.now, description="When this research was generated"
     )
@@ -136,6 +140,11 @@ class UIDesign(BaseModel):
     color_palette: dict[str, str] = Field(
         ..., description="Color scheme (primary, secondary, etc.)"
     )
+    typography: dict[str, str] = Field(
+        default_factory=dict,
+        description="Font choices (heading, body, mono, scale)",
+    )
+    spacing_system: str = Field(default="", description="Spacing scale and layout grid")
     component_hierarchy: list[dict[str, Any]] = Field(
         ..., min_length=1, description="UI component structure"
     )
@@ -159,6 +168,12 @@ class FrontendDesign(BaseModel):
     component_hierarchy: dict[str, Any] = Field(..., description="Component structure")
     state_management: str = Field(..., description="State management approach")
     styling_approach: str = Field(..., description="CSS/Styling solution")
+    routing_strategy: str = Field(
+        default="", description="Routing approach and patterns"
+    )
+    performance_targets: list[str] = Field(
+        default_factory=list, description="Core Web Vitals and perf targets"
+    )
     build_tools: list[str] = Field(
         default_factory=list, description="Required build tools"
     )

@@ -9,13 +9,13 @@ Architecture Principle:
 we DON'T need shared state."
 """
 
+import re
 from typing import Protocol, runtime_checkable, Any, Literal
 
 # Import interfaces from types module
 # Use absolute import to avoid conflict with stdlib 'types' module
 from mastermind_cli.types.interfaces import (
     BrainInput,
-    Brief,
     ProductStrategy,
     UXResearch,
     UIDesign,
@@ -42,6 +42,72 @@ class MCPClient(Protocol):
 
 
 # =============================================================================
+# PARSING HELPERS - Shared across all brains
+# =============================================================================
+
+
+def _parse_sections(knowledge: str) -> dict[str, str]:
+    """
+    Parse LABEL: content blocks from NotebookLM structured response.
+
+    Handles both inline (LABEL: value) and multiline (LABEL:\n- item) formats.
+    """
+    sections: dict[str, str] = {}
+    current_key: str | None = None
+    current_lines: list[str] = []
+
+    for line in knowledge.split("\n"):
+        # Detect UPPERCASE_KEY: pattern at start of line
+        match = re.match(r"^([A-Z][A-Z_]+):\s*(.*)", line)
+        if match:
+            if current_key is not None:
+                sections[current_key] = "\n".join(current_lines).strip()
+            current_key = match.group(1)
+            rest = match.group(2).strip()
+            current_lines = [rest] if rest else []
+        elif current_key is not None:
+            current_lines.append(line)
+
+    if current_key is not None:
+        sections[current_key] = "\n".join(current_lines).strip()
+
+    return sections
+
+
+def _parse_list(text: str) -> list[str]:
+    """Parse bullet list items from text. Handles -, *, •, numbered."""
+    items: list[str] = []
+    for line in text.split("\n"):
+        line = line.strip()
+        cleaned = re.sub(r"^[-*•]\s+", "", line)
+        cleaned = re.sub(r"^\d+\.\s+", "", cleaned)
+        if cleaned and not cleaned.endswith(":"):
+            items.append(cleaned)
+    return items
+
+
+def _get(sections: dict[str, str], key: str, default: str = "") -> str:
+    """Get section value with fallback."""
+    return sections.get(key, default) or default
+
+
+def _get_list(
+    sections: dict[str, str], key: str, default: list[str] | None = None
+) -> list[str]:
+    """Get section as parsed list with fallback."""
+    text = sections.get(key, "")
+    if not text:
+        return default if default is not None else []
+    items = _parse_list(text)
+    return items if items else (default if default is not None else [])
+
+
+def _get_context(brain_input: BrainInput, key: str) -> Any:
+    """Get value from additional_context (outputs from previous brains)."""
+    return brain_input.additional_context.get(key)
+
+
+# =============================================================================
 # BRAIN #1: PRODUCT STRATEGY
 # =============================================================================
 
@@ -54,78 +120,51 @@ def brain_01_product_strategy(
 
     NO self.state access. NO global variables.
     Only returns ProductStrategy output model.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client (not global)
-
-    Returns:
-        ProductStrategy with positioning, audience, features, metrics
     """
-    # NotebookLM notebook for Brain #1 (Software Development)
     notebook_id = "f276ccb3-0bce-4069-8b55-eae8693dbe75"
-
-    # Construct query from brief
     brief = brain_input.brief
-    query = f"""Based on the following product brief, provide a comprehensive product strategy analysis:
 
-Brief: {brief.problem_statement}
+    query = f"""Based on the following product brief, provide a comprehensive product strategy analysis.
 
-Context: {brief.context}
-Constraints: {', '.join(brief.constraints)}
+BRIEF: {brief.problem_statement}
+CONTEXT: {brief.context}
+CONSTRAINTS: {', '.join(brief.constraints)}
+TARGET_AUDIENCE: {brief.target_audience or 'Not specified'}
 
-Please provide:
-1. Product Positioning (what makes it unique)
-2. Target Audience (who is this for?)
-3. Key Features (MVP scope, prioritized)
-4. Success Metrics (how to measure success)
-5. Risks (potential concerns)
+Respond using EXACTLY these labeled sections:
 
-Provide a clear, concise response."""
+POSITIONING: [unique value proposition and market position]
+AUDIENCE: [specific target audience description]
+FEATURES:
+- [feature 1]
+- [feature 2]
+- [feature 3]
+METRICS:
+- [metric 1]
+- [metric 2]
+RISKS:
+- [risk 1]
+- [risk 2]
 
-    # Query NotebookLM via MCP
+Use the labeled format exactly. Be specific and actionable."""
+
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
 
-    # Parse knowledge into structured output
-    # In production, use LLM to extract structured data
-    # For now, use simple parsing or mock
     return ProductStrategy(
         brief=brief,
-        positioning=_extract_positioning(knowledge, brief),
-        target_audience=_extract_audience(knowledge, brief),
-        key_features=_extract_features(knowledge, brief),
-        success_metrics=_extract_metrics(knowledge, brief),
-        risks=_extract_risks(knowledge, brief),
+        positioning=_get(s, "POSITIONING", knowledge[:500]),
+        target_audience=_get(
+            s,
+            "AUDIENCE",
+            brief.target_audience or "Software developers and technical teams",
+        ),
+        key_features=_get_list(s, "FEATURES", ["Core feature 1", "Core feature 2"]),
+        success_metrics=_get_list(
+            s, "METRICS", ["User adoption rate", "Feature completion rate"]
+        ),
+        risks=_get_list(s, "RISKS", []),
     )
-
-
-def _extract_positioning(knowledge: str, brief: Brief) -> str:
-    """Extract positioning from NotebookLM response."""
-    # Simple extraction - in production use LLM parsing
-    return knowledge[:500] if len(knowledge) > 500 else knowledge
-
-
-def _extract_audience(knowledge: str, brief: Brief) -> str:
-    """Extract target audience from NotebookLM response."""
-    if brief.target_audience:
-        return brief.target_audience
-    return "Software developers and technical teams"
-
-
-def _extract_features(knowledge: str, brief: Brief) -> list[str]:
-    """Extract key features from NotebookLM response."""
-    # Simple parsing - in production use LLM
-    return ["Core feature 1", "Core feature 2", "Core feature 3"]
-
-
-def _extract_metrics(knowledge: str, brief: Brief) -> list[str]:
-    """Extract success metrics from NotebookLM response."""
-    return ["User adoption rate", "Feature completion rate", "User satisfaction score"]
-
-
-def _extract_risks(knowledge: str, brief: Brief) -> list[str]:
-    """Extract risks from NotebookLM response."""
-    return ["Technical complexity", "Market competition", "Resource constraints"]
 
 
 # =============================================================================
@@ -138,38 +177,54 @@ def brain_02_ux_research(brain_input: BrainInput, mcp_client: MCPClient) -> UXRe
     Pure function: UX Research brain.
 
     Analyzes user journeys, pain points, and opportunities.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        UXResearch with journeys, pain points, opportunities
+    Chains from Brain #1 output if available in additional_context.
     """
-    notebook_id = "ux-research-notebook-id"  # TODO: Set actual notebook
-
+    notebook_id = "ea006ece-00a9-4d5c-91f5-012b8b712936"
     brief = brain_input.brief
-    query = f"""Analyze the user experience for the following product:
 
-Brief: {brief.problem_statement}
-Target Audience: {brief.target_audience or "General users"}
+    # Chain from Brain #1 if available
+    strategy_context = ""
+    prev = _get_context(brain_input, "brain-01-product-strategy")
+    if prev and isinstance(prev, dict):
+        strategy_context = f"\nProduct Strategy Context: {prev.get('positioning', '')}"
 
-Please provide:
-1. User Journeys (key paths through the product)
-2. Pain Points (user problems to solve)
-3. Opportunities (improvement areas)
-4. Research Methodology (how this analysis was done)
+    query = f"""Analyze the user experience for the following product.
 
-Provide a clear, concise response."""
+BRIEF: {brief.problem_statement}
+TARGET_AUDIENCE: {brief.target_audience or 'General users'}{strategy_context}
 
-    # Query NotebookLM (result not used in mock implementation)
-    _ = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+Respond using EXACTLY these labeled sections:
+
+JOURNEYS:
+- [journey 1: user path description]
+- [journey 2: user path description]
+PAIN_POINTS:
+- [pain point 1]
+- [pain point 2]
+OPPORTUNITIES:
+- [opportunity 1]
+- [opportunity 2]
+SCREEN_FLOWS:
+- [screen 1 → screen 2: action description]
+- [screen 2 → screen 3: action description]
+METHODOLOGY: [research approach description]
+
+Use the labeled format exactly. Be specific about user behavior."""
+
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
+
+    journeys_raw = _get_list(
+        s, "JOURNEYS", ["Primary user flow", "Secondary user flow"]
+    )
+    screen_flows_raw = _get_list(s, "SCREEN_FLOWS", [])
 
     return UXResearch(
-        user_journeys=[{"step": "Journey step 1"}, {"step": "Journey step 2"}],
-        pain_points=["Pain point 1", "Pain point 2"],
-        opportunities=["Opportunity 1", "Opportunity 2"],
-        research_methodology="NotebookLM-based analysis",
+        user_journeys=[{"step": j} for j in journeys_raw],
+        pain_points=_get_list(s, "PAIN_POINTS", ["Complexity", "Lack of feedback"]),
+        opportunities=_get_list(s, "OPPORTUNITIES", ["Simplification", "Automation"]),
+        research_methodology=_get(s, "METHODOLOGY", "NotebookLM-based UX analysis"),
+        screen_flows=[{"flow": f} for f in screen_flows_raw],
     )
 
 
@@ -183,65 +238,79 @@ def brain_03_ui_design(brain_input: BrainInput, mcp_client: MCPClient) -> UIDesi
     Pure function: UI Design brain.
 
     Generates visual design system and component hierarchy.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        UIDesign with visual language, color palette, component hierarchy
+    Chains from Brain #2 (UX Research) if available.
     """
     notebook_id = "8d544475-6860-4cd7-9037-8549325493dd"
-
     brief = brain_input.brief
-    query = f"""Based on the following product brief, provide a comprehensive UI design system:
 
-Brief: {brief.problem_statement}
-Target Audience: {brief.target_audience or "General users"}
-Context: {brief.context}
+    # Chain from Brain #2 if available
+    ux_context = ""
+    prev = _get_context(brain_input, "brain-02-ux-research")
+    if prev and isinstance(prev, dict):
+        pain_points = ", ".join(prev.get("pain_points", [])[:3])
+        ux_context = f"\nUX Research Context: Key pain points: {pain_points}"
 
-Please provide:
-1. Visual Language (style, aesthetic, mood)
-2. Color Palette (primary, secondary, accent, background, text)
-3. Component Hierarchy (header, navigation, main content, cards, forms, etc.)
-4. Design Principles (accessibility, consistency, simplicity, etc.)
+    query = f"""Based on the following product brief, provide a comprehensive UI design system.
 
-Provide a clear, actionable design specification."""
+BRIEF: {brief.problem_statement}
+TARGET_AUDIENCE: {brief.target_audience or 'General users'}
+CONTEXT: {brief.context}{ux_context}
+
+Respond using EXACTLY these labeled sections:
+
+VISUAL_LANGUAGE: [style description, aesthetic, mood, tone]
+COLOR_PRIMARY: [hex value]
+COLOR_SECONDARY: [hex value]
+COLOR_ACCENT: [hex value]
+COLOR_BACKGROUND: [hex value]
+COLOR_TEXT: [hex value]
+TYPOGRAPHY_HEADING: [font name and weight]
+TYPOGRAPHY_BODY: [font name and weight]
+TYPOGRAPHY_MONO: [font name for code]
+SPACING_SYSTEM: [spacing scale description, e.g. 4px base, 8-16-24-32-48]
+COMPONENTS:
+- [component 1: description]
+- [component 2: description]
+- [component 3: description]
+PRINCIPLES:
+- [principle 1]
+- [principle 2]
+- [principle 3]
+
+Use the labeled format exactly."""
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
 
     return UIDesign(
-        visual_language=knowledge[:500] if len(knowledge) > 500 else knowledge,
+        visual_language=_get(s, "VISUAL_LANGUAGE", knowledge[:500]),
         color_palette={
-            "primary": "#6366f1",
-            "secondary": "#8b5cf6",
-            "accent": "#06b6d4",
-            "background": "#0f172a",
-            "text": "#f8fafc",
+            "primary": _get(s, "COLOR_PRIMARY", "#6366f1"),
+            "secondary": _get(s, "COLOR_SECONDARY", "#8b5cf6"),
+            "accent": _get(s, "COLOR_ACCENT", "#06b6d4"),
+            "background": _get(s, "COLOR_BACKGROUND", "#0f172a"),
+            "text": _get(s, "COLOR_TEXT", "#f8fafc"),
         },
+        typography={
+            "heading": _get(s, "TYPOGRAPHY_HEADING", "Inter, 600"),
+            "body": _get(s, "TYPOGRAPHY_BODY", "Inter, 400"),
+            "mono": _get(s, "TYPOGRAPHY_MONO", "JetBrains Mono"),
+        },
+        spacing_system=_get(s, "SPACING_SYSTEM", "4px base — 8/16/24/32/48/64px scale"),
         component_hierarchy=[
             {
-                "name": "Header",
-                "type": "navigation",
-                "children": ["Logo", "Nav", "UserMenu"],
-            },
-            {
-                "name": "MainContent",
-                "type": "layout",
-                "children": ["HeroSection", "BrainGrid"],
-            },
-            {
-                "name": "BrainCard",
-                "type": "interactive",
-                "children": ["Status", "Output", "Actions"],
-            },
+                "name": c.split(":")[0].strip(),
+                "description": c.split(":", 1)[-1].strip(),
+            }
+            for c in _get_list(
+                s, "COMPONENTS", ["Header: navigation", "BrainCard: status display"]
+            )
         ],
-        design_principles=[
-            "Accessibility first",
-            "Consistent spacing",
-            "Progressive disclosure",
-            "Dark mode native",
-        ],
+        design_principles=_get_list(
+            s,
+            "PRINCIPLES",
+            ["Accessibility first", "Consistent spacing", "Dark mode native"],
+        ),
     )
 
 
@@ -255,44 +324,71 @@ def brain_04_frontend(brain_input: BrainInput, mcp_client: MCPClient) -> Fronten
     Pure function: Frontend brain.
 
     Defines technical frontend architecture and implementation.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        FrontendDesign with framework, components, state management
+    Chains from Brain #3 (UI Design) if available.
     """
     notebook_id = "85e47142-0a65-41d9-9848-49b8b5d2db33"
-
     brief = brain_input.brief
-    query = f"""Based on the following product brief, provide a frontend architecture specification:
 
-Brief: {brief.problem_statement}
-Context: {brief.context}
-Constraints: {', '.join(brief.constraints)}
+    # Chain from Brain #3 if available
+    design_context = ""
+    prev = _get_context(brain_input, "brain-03-ui-design")
+    if prev and isinstance(prev, dict):
+        visual = prev.get("visual_language", "")
+        design_context = f"\nUI Design Context: {visual[:200]}"
 
-Please provide:
-1. Framework choice and justification (React, Vue, Next.js, etc.)
-2. Component structure (atomic design, composition patterns)
-3. State management approach (Zustand, Redux, Context, etc.)
-4. Styling solution (Tailwind, CSS Modules, styled-components, etc.)
-5. Build tools and toolchain (Vite, Next.js, webpack, etc.)
+    query = f"""Based on the following product brief, provide a concrete frontend architecture specification.
 
-Provide a concrete, implementation-ready specification."""
+BRIEF: {brief.problem_statement}
+CONTEXT: {brief.context}
+CONSTRAINTS: {', '.join(brief.constraints)}{design_context}
+
+Respond using EXACTLY these labeled sections:
+
+FRAMEWORK: [framework name and version with justification]
+STATE_MANAGEMENT: [approach and library]
+STYLING: [CSS solution and libraries]
+ROUTING: [routing strategy and key routes]
+COMPONENTS_PAGES:
+- [page 1]
+- [page 2]
+COMPONENTS_LAYOUT:
+- [layout component 1]
+- [layout component 2]
+COMPONENTS_SHARED:
+- [shared component 1]
+- [shared component 2]
+BUILD_TOOLS:
+- [tool 1]
+- [tool 2]
+PERFORMANCE:
+- [target 1, e.g. LCP < 2.5s]
+- [target 2]
+
+Use the labeled format exactly. Be concrete and implementation-ready."""
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
+
+    pages = _get_list(
+        s,
+        "COMPONENTS_PAGES",
+        ["CommandCenter", "TheNexus", "StrategyVault", "EngineRoom"],
+    )
+    layout = _get_list(s, "COMPONENTS_LAYOUT", ["AppShell", "Sidebar", "Header"])
+    shared = _get_list(
+        s, "COMPONENTS_SHARED", ["BrainCard", "StatusBadge", "OutputPanel"]
+    )
 
     return FrontendDesign(
-        framework=f"Next.js 16 + React 19 — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
-        component_hierarchy={
-            "pages": ["CommandCenter", "TheNexus", "StrategyVault", "EngineRoom"],
-            "layout": ["AppShell", "Sidebar", "Header"],
-            "shared": ["BrainCard", "StatusBadge", "OutputPanel"],
-        },
-        state_management="Zustand 5 — WebSocket dispatcher as singleton store",
-        styling_approach="Tailwind CSS 4 + shadcn/ui + Magic UI",
-        build_tools=["Next.js 16", "TypeScript 5", "ESLint", "Prettier"],
+        framework=_get(s, "FRAMEWORK", "Next.js 16 + React 19"),
+        component_hierarchy={"pages": pages, "layout": layout, "shared": shared},
+        state_management=_get(s, "STATE_MANAGEMENT", "Zustand 5"),
+        styling_approach=_get(s, "STYLING", "Tailwind CSS 4 + shadcn/ui + Magic UI"),
+        routing_strategy=_get(s, "ROUTING", "Next.js App Router — file-based routing"),
+        performance_targets=_get_list(s, "PERFORMANCE", ["LCP < 2.5s", "FID < 100ms"]),
+        build_tools=_get_list(
+            s, "BUILD_TOOLS", ["Next.js 16", "TypeScript 5", "ESLint"]
+        ),
     )
 
 
@@ -306,52 +402,66 @@ def brain_05_backend(brain_input: BrainInput, mcp_client: MCPClient) -> BackendD
     Pure function: Backend brain.
 
     Defines backend architecture, API design, and data models.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        BackendDesign with architecture, API design, data models
+    Chains from Brain #1 (Product Strategy) if available.
     """
     notebook_id = "c6befbbc-b7dd-4ad0-a677-314750684208"
-
     brief = brain_input.brief
-    query = f"""Based on the following product brief, provide a backend architecture specification:
 
-Brief: {brief.problem_statement}
-Context: {brief.context}
-Constraints: {', '.join(brief.constraints)}
+    # Chain from Brain #1 if available
+    strategy_context = ""
+    prev = _get_context(brain_input, "brain-01-product-strategy")
+    if prev and isinstance(prev, dict):
+        features = ", ".join(prev.get("key_features", [])[:3])
+        strategy_context = f"\nProduct Strategy Context: Key features: {features}"
 
-Please provide:
-1. Architecture pattern (microservices, monolith, event-driven, etc.)
-2. API design approach (REST, GraphQL, WebSocket, etc.)
-3. Core data models (entities, relationships, schema)
-4. Authentication and authorization strategy
-5. Performance and scalability considerations
+    query = f"""Based on the following product brief, provide a concrete backend architecture specification.
 
-Provide a concrete, implementation-ready specification."""
+BRIEF: {brief.problem_statement}
+CONTEXT: {brief.context}
+CONSTRAINTS: {', '.join(brief.constraints)}{strategy_context}
+
+Respond using EXACTLY these labeled sections:
+
+ARCHITECTURE: [architecture pattern with rationale]
+API_DESIGN: [API approach, protocols, versioning]
+DATA_MODEL_1: [entity name: fields description]
+DATA_MODEL_2: [entity name: fields description]
+DATA_MODEL_3: [entity name: fields description]
+AUTHENTICATION: [auth strategy]
+PERFORMANCE:
+- [requirement 1, e.g. p99 < 200ms]
+- [requirement 2]
+
+Use the labeled format exactly. Be concrete and implementation-ready."""
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
+
+    data_models = []
+    for i in range(1, 6):
+        val = s.get(f"DATA_MODEL_{i}", "")
+        if val:
+            parts = val.split(":", 1)
+            data_models.append(
+                {
+                    "name": parts[0].strip(),
+                    "fields": _parse_list(parts[1]) if len(parts) > 1 else [],
+                }
+            )
+
+    if not data_models:
+        data_models = [
+            {"name": "Execution", "fields": ["id", "brief", "status", "created_at"]},
+            {"name": "BrainOutput", "fields": ["brain_id", "content", "execution_id"]},
+        ]
 
     return BackendDesign(
-        architecture=f"FastAPI + Python 3.14 — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
-        api_design="REST + WebSocket (real-time brain execution events)",
-        data_models=[
-            {
-                "name": "Execution",
-                "fields": ["id", "brief", "status", "brain_outputs", "created_at"],
-            },
-            {
-                "name": "BrainOutput",
-                "fields": ["brain_id", "content", "confidence", "execution_id"],
-            },
-            {
-                "name": "APIKey",
-                "fields": ["id", "key_hash", "user_id", "created_at", "last_used"],
-            },
-        ],
-        authentication="JWT (30min) + refresh rotation (24h) + API Keys (mmsk_ prefix)",
+        architecture=_get(s, "ARCHITECTURE", "FastAPI + Python 3.14 — monolith"),
+        api_design=_get(s, "API_DESIGN", "REST + WebSocket"),
+        data_models=data_models,
+        authentication=_get(
+            s, "AUTHENTICATION", "JWT (30min) + refresh rotation (24h) + API Keys"
+        ),
     )
 
 
@@ -365,37 +475,61 @@ def brain_06_qa_devops(brain_input: BrainInput, mcp_client: MCPClient) -> QADevO
     Pure function: QA/DevOps brain.
 
     Defines testing strategy and deployment pipeline.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        QADevOpsPlan with testing strategy, CI/CD, monitoring, deployment
+    Chains from Brain #4 (Frontend) + Brain #5 (Backend) if available.
     """
     notebook_id = "74cd3a81-1350-4927-af14-c0c4fca41a8e"
-
     brief = brain_input.brief
-    query = f"""Based on the following product brief, provide a QA and DevOps strategy:
 
-Brief: {brief.problem_statement}
-Context: {brief.context}
+    # Chain from Brains #4 and #5 if available
+    tech_context = ""
+    prev_fe = _get_context(brain_input, "brain-04-frontend")
+    prev_be = _get_context(brain_input, "brain-05-backend")
+    if prev_fe and isinstance(prev_fe, dict):
+        tech_context += f"\nFrontend: {prev_fe.get('framework', '')} + {prev_fe.get('styling_approach', '')}"
+    if prev_be and isinstance(prev_be, dict):
+        tech_context += f"\nBackend: {prev_be.get('architecture', '')} — {prev_be.get('api_design', '')}"
 
-Please provide:
-1. Testing strategy (unit, integration, E2E, coverage targets)
-2. CI/CD pipeline (stages, tools, automation)
-3. Monitoring and logging (observability, alerting)
-4. Deployment strategy (Docker, cloud, zero-downtime)
+    query = f"""Based on the following product brief, provide a concrete QA and DevOps strategy.
 
-Provide a concrete, implementation-ready specification."""
+BRIEF: {brief.problem_statement}
+CONTEXT: {brief.context}{tech_context}
+
+Respond using EXACTLY these labeled sections:
+
+TESTING_STRATEGY: [overall testing approach with coverage targets]
+UNIT_TESTING: [framework and patterns]
+INTEGRATION_TESTING: [approach and key integration points]
+E2E_TESTING: [framework and key user flows to test]
+CI_CD: [pipeline stages and tools]
+MONITORING: [observability approach, logging, alerting]
+DEPLOYMENT: [deployment strategy and infrastructure]
+
+Use the labeled format exactly. Be concrete and actionable."""
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
+
+    testing_parts = [
+        _get(s, "TESTING_STRATEGY", ""),
+        _get(s, "UNIT_TESTING", ""),
+        _get(s, "INTEGRATION_TESTING", ""),
+        _get(s, "E2E_TESTING", ""),
+    ]
+    testing_strategy = (
+        " | ".join(p for p in testing_parts if p) or "pytest + Playwright"
+    )
 
     return QADevOpsPlan(
-        testing_strategy=f"pytest (unit/integration) + Playwright (E2E) — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
-        ci_cd_pipeline="GitHub Actions: typecheck → pytest → semantic regression (3-tier)",
-        monitoring="Structured logging (JSON) + health endpoints + Docker metrics",
-        deployment_strategy="Multi-stage Docker build → docker compose up -d (api:8000, web:3000)",
+        testing_strategy=testing_strategy,
+        ci_cd_pipeline=_get(
+            s, "CI_CD", "GitHub Actions: typecheck → pytest → semantic regression"
+        ),
+        monitoring=_get(
+            s, "MONITORING", "Structured logging (JSON) + health endpoints"
+        ),
+        deployment_strategy=_get(
+            s, "DEPLOYMENT", "Multi-stage Docker → docker compose up -d"
+        ),
     )
 
 
@@ -413,73 +547,64 @@ def brain_07_growth_data(
     Pure function: Growth & Data brain (Evaluator).
 
     Evaluates all previous brain outputs and provides verdict.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-        previous_outputs: Dict of {brain_id: output} to evaluate
-
-    Returns:
-        GrowthDataEvaluation with verdict, score, feedback
     """
-    notebook_id = "evaluator-notebook-id"  # TODO: Set actual notebook
+    notebook_id = "d8de74d6-7028-44ed-b4d5-784d6a9256e6"
 
-    # Build evaluation context from previous outputs
     context = "\n".join(
-        [
-            f"{brain_id}: {output}"
-            for brain_id, output in (previous_outputs or {}).items()
-        ]
+        f"{brain_id}: {output}" for brain_id, output in (previous_outputs or {}).items()
     )
 
-    query = f"""Evaluate the following product strategy outputs:
+    query = f"""Evaluate the following product development outputs critically.
 
+ORIGINAL_BRIEF: {brain_input.brief.problem_statement}
+
+OUTPUTS_TO_EVALUATE:
 {context}
 
-Original Brief: {brain_input.brief.problem_statement}
+Respond using EXACTLY these labeled sections:
 
-Please provide:
-1. Verdict (APPROVE, CONDITIONAL, REJECT, ESCALATE)
-2. Score (0-10)
-3. Detailed feedback
-4. Approval conditions (if CONDITIONAL)
-5. Rejection reasons (if REJECT)
+VERDICT: [APPROVE, CONDITIONAL, REJECT, or ESCALATE]
+SCORE: [number from 0 to 10]
+FEEDBACK: [detailed evaluation of overall quality and coherence]
+CONDITIONS:
+- [condition 1 if CONDITIONAL — what needs to change]
+- [condition 2 if CONDITIONAL]
+REJECTION_REASONS:
+- [reason 1 if REJECT]
+- [reason 2 if REJECT]
 
-Provide a clear, concise evaluation."""
+Use the labeled format exactly. Be rigorous — quality over approval."""
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
 
     return GrowthDataEvaluation(
-        verdict=_extract_verdict(knowledge),
-        score=_extract_score(knowledge),
-        feedback=knowledge[:1000],
-        approval_conditions=[],
-        rejection_reasons=[],
+        verdict=_extract_verdict(s),
+        score=_extract_score(s, knowledge),
+        feedback=_get(s, "FEEDBACK", knowledge[:1000]),
+        approval_conditions=_get_list(s, "CONDITIONS", []),
+        rejection_reasons=_get_list(s, "REJECTION_REASONS", []),
     )
 
 
 def _extract_verdict(
-    knowledge: str,
+    s: dict[str, str],
 ) -> Literal["APPROVE", "CONDITIONAL", "REJECT", "ESCALATE"]:
-    """Extract verdict from evaluation."""
-    knowledge_upper = knowledge.upper()
-    if "APPROVE" in knowledge_upper and "CONDITIONAL" not in knowledge_upper:
-        return "APPROVE"
-    elif "REJECT" in knowledge_upper or "ESCALATE" in knowledge_upper:
-        return "REJECT" if "REJECT" in knowledge_upper else "ESCALATE"
-    else:
-        return "CONDITIONAL"
+    """Extract verdict from parsed sections."""
+    verdict_raw = s.get("VERDICT", "").upper()
+    for v in ("APPROVE", "CONDITIONAL", "REJECT", "ESCALATE"):
+        if v in verdict_raw:
+            return v
+    return "CONDITIONAL"
 
 
-def _extract_score(knowledge: str) -> float:
-    """Extract score from evaluation."""
-    # Simple parsing - look for number in 0-10 range
-    import re
-
-    scores = re.findall(r"\b([0-9]|10)\b", knowledge)
-    if scores:
-        return float(scores[0])
-    return 7.0  # Default score
+def _extract_score(s: dict[str, str], knowledge: str) -> float:
+    """Extract numeric score from parsed sections or raw knowledge."""
+    score_text = s.get("SCORE", "")
+    numbers = re.findall(r"\b(10|[0-9](?:\.[0-9])?)\b", score_text or knowledge)
+    if numbers:
+        return min(float(numbers[0]), 10.0)
+    return 7.0
 
 
 # =============================================================================
@@ -493,17 +618,10 @@ def brain_08_master_interviewer(
     """
     Pure function: Master Interviewer brain (Discovery).
 
-    Detects ambiguity in brief and generates interview plan.
-
-    Args:
-        brain_input: User's brief and context
-        mcp_client: Injected MCP client
-
-    Returns:
-        MasterInterviewerOutput with ambiguity detection and interview plan
+    Detects ambiguity in brief and generates real clarifying questions
+    from NotebookLM knowledge.
     """
-    notebook_id = "5330e845-29dc-4219-9d7e-c1ccb4851bb3"  # Brain #8 notebook
-
+    notebook_id = "5330e845-29dc-4219-9d7e-c1ccb4851bb3"
     brief = brain_input.brief
 
     # Ambiguity detection (3-tier)
@@ -518,7 +636,7 @@ def brain_08_master_interviewer(
 
     is_ambiguous = (
         word_count < 15
-        or (brief.problem_statement.count("?") >= 2)
+        or brief.problem_statement.count("?") >= 2
         or has_ambiguity_markers
         or missing_problem
     )
@@ -531,26 +649,45 @@ def brain_08_master_interviewer(
             confidence_score=0.9,
         )
 
-    # Generate interview plan via NotebookLM
-    query = f"""The following user brief is ambiguous. Generate 3-5 clarifying questions:
+    query = f"""The following product brief needs clarification. Generate 5 specific, insightful questions to understand the real problem.
 
-Brief: {brief.problem_statement}
-Context: {brief.context}
+BRIEF: {brief.problem_statement}
+CONTEXT: {brief.context}
 
-Generate questions to clarify:
-1. Problem definition (what exactly are we solving?)
-2. Target audience (who is this for?)
-3. Success criteria (how will we know it works?)
+Respond using EXACTLY these labeled sections:
 
-Provide questions in a clear, numbered format."""
+QUESTION_1: [specific question about problem definition]
+CONTEXT_1: [why this question matters]
+QUESTION_2: [specific question about target audience]
+CONTEXT_2: [why this question matters]
+QUESTION_3: [specific question about success criteria]
+CONTEXT_3: [why this question matters]
+QUESTION_4: [specific question about constraints or scope]
+CONTEXT_4: [why this question matters]
+QUESTION_5: [specific question about technical or business requirements]
+CONTEXT_5: [why this question matters]
 
-    # Query NotebookLM (result not used in mock implementation)
-    _ = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+Use the labeled format exactly. Questions must be specific to this brief."""
 
-    interview_plan = [
-        {"question": f"Question {i+1}", "context": "Clarification needed"}
-        for i in range(5)
-    ]
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+    s = _parse_sections(knowledge)
+
+    interview_plan = []
+    for i in range(1, 6):
+        question = s.get(f"QUESTION_{i}", "")
+        context = s.get(f"CONTEXT_{i}", "Clarification needed")
+        if question:
+            interview_plan.append({"question": question, "context": context})
+
+    # Fallback if parsing failed
+    if not interview_plan:
+        interview_plan = [
+            {
+                "question": f"Q{i}: {knowledge[i*100:(i+1)*100].strip()}",
+                "context": "From NotebookLM",
+            }
+            for i in range(min(5, len(knowledge) // 100))
+        ]
 
     return MasterInterviewerOutput(
         is_ambiguous=True,
