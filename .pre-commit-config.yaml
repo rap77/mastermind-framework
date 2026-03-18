@@ -1,0 +1,79 @@
+repos:
+  # ============================================
+  # Git-Hook Shield: Secret Detection (runs FIRST)
+  # NOTE: Trufflehog requires manual installation first:
+  #   pre-commit install --hook-type commit-msg
+  # ============================================
+  # - repo: https://github.com/trufflesecurity/trufflehog
+  #   rev: v3.90.2
+  #   hooks:
+  #     - id: trufflehog
+  #       name: TruffleHog Secret Scanner
+  #       description: Detect secrets before they're committed
+
+  # ============================================
+  # Gentleman Guardian Angel (AI Code Review)
+  # Runs SECOND - blocks commit on critical issues
+  # ============================================
+  - repo: local
+    hooks:
+      - id: gga
+        name: Gentleman Guardian Angel
+        entry: bash -c 'unset CLAUDECODE && unset CLAUDE_CODE_ENTRYPOINT && gga run'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ============================================
+  # General - Pre-commit hooks
+  # ============================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-toml
+
+  # ============================================
+  # Python - Ruff Linter & Formatter
+  # ============================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        name: Ruff Linter
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff-format
+
+  # ============================================
+  # Python - Type Checking (mypy strict)
+  # ============================================
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy strict mode
+        entry: uv run mypy --strict mastermind_cli/
+        language: system
+        pass_filenames: false
+        types: [python]
+
+  # ============================================
+  # Python - Unit Tests (pre-push only)
+  # ============================================
+  - repo: local
+    hooks:
+      - id: pytest-unit
+        name: Pytest Unit Tests
+        entry: uv run pytest tests/unit/ -v -x
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
