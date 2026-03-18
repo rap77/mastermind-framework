@@ -39,6 +39,7 @@ packages = ["mastermind_cli"]
 
 [tool.uv]
 package = true
+env-file = "../../.env"
 
 [tool.uv.workspace]
 members = []
