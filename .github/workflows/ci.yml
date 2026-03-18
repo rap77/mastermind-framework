@@ -5,124 +5,76 @@ on:
     branches: [master]
   push:
     branches: [master]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: apps/api
 
 jobs:
-  # Level 1: Type checking (runs on all PRs)
   level1-typecheck:
-    name: Level 1 - Type Check
+    name: Level 1 - Type Check (API)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v1
         with:
           version: "latest"
+      - run: uv sync
+      - run: uv run mypy --strict mastermind_cli/
+      - run: uv run ruff check .
 
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Run mypy strict mode
-        run: uv run mypy --strict mastermind_cli/
-
-      - name: Run ruff linter
-        run: uv run ruff check .
-
-  # Level 2: Unit & Contract Tests (runs on all PRs)
   level2-tests:
-    name: Level 2 - Tests
+    name: Level 2 - Tests (API)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v1
         with:
           version: "latest"
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Run unit tests
-        run: uv run pytest tests/unit/ -v --cov=mastermind_cli --cov-report=xml
-
-      - name: Run integration tests
-        run: uv run pytest tests/integration/ -v -m "not slow"
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - run: uv sync
+      - run: uv run pytest tests/unit/ -v --cov=mastermind_cli --cov-report=xml
+      - run: uv run pytest tests/integration/ -v -m "not slow"
+      - uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          file: apps/api/coverage.xml
           fail_ci_if_error: false
 
-  # Level 3: Semantic Integration (runs on PRs as warning + mandatory on master)
   level3-semantic:
-    name: Level 3 - Semantic Integration
+    name: Level 3 - Semantic Integration (API)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
-    continue-on-error: true  # Don't block PRs, just warn
-
+    continue-on-error: true
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v1
         with:
           version: "latest"
+      - run: uv sync
+      - run: uv run pytest tests/integration/test_semantic_regression.py -v -m slow
+      - run: uv run pytest tests/integration/test_backward_compat.py -v -m slow
 
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Run semantic regression tests
-        run: uv run pytest tests/integration/test_semantic_regression.py -v -m slow
-
-      - name: Run backward compatibility tests
-        run: uv run pytest tests/integration/test_backward_compat.py -v -m slow
-
-  # Level 4: E2E Tests (requires running server - manual trigger or staging)
   level4-e2e:
     name: Level 4 - E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'workflow_dispatch'  # Manual trigger only
-
+    if: github.event_name == 'workflow_dispatch'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v1
         with:
           version: "latest"
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Install Playwright browsers
-        run: uv run playwright install chromium --with-deps
-
-      - name: Start server
-        run: uv run uvicorn mastermind_cli.web.app:app --port 8000 &
-
-      - name: Wait for server to be ready
+      - run: uv sync
+      - run: uv run playwright install chromium --with-deps
+      - run: uv run uvicorn mastermind_cli.api.app:get_app --factory --port 8000 &
+      - name: Wait for server
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Server ready after ${i}s"
-              exit 0
-            fi
+            curl -sf http://localhost:8000/ > /dev/null 2>&1 && echo "Ready after ${i}s" && exit 0
             sleep 1
           done
-          echo "Server did not start in 30s" && exit 1
-
-      - name: Run E2E tests
-        run: uv run pytest tests/e2e/ -m e2e -v --no-cov
+          echo "Server did not start" && exit 1
+      - run: uv run pytest tests/e2e/ -m e2e -v --no-cov

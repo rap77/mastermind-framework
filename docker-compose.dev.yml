@@ -7,28 +7,29 @@ services:
       - "8000:8000"
     volumes:
       - mastermind_data:/app/data
+      - ./apps/api/mastermind_cli:/app/mastermind_cli   # hot reload
+      - ./apps/api/agents:/app/agents
     environment:
       MM_DB_PATH: /app/data/mastermind.db
       MM_ADMIN_PASSWORD: ${MM_ADMIN_PASSWORD:-admin}
-      MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      MM_SECRET_KEY: ${MM_SECRET_KEY:-dev-secret-key}
+    command: uvicorn mastermind_cli.api.app:get_app --factory --host 0.0.0.0 --port 8000 --reload
 
   web:
     build:
       context: ./apps/web
       dockerfile: ../../docker/web/Dockerfile
+      target: deps                  # solo instala deps, no buildea
     ports:
       - "3000:3000"
+    volumes:
+      - ./apps/web:/app             # hot reload Next.js
+      - /app/node_modules           # evita sobreescribir node_modules
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: npm run dev
     depends_on:
-      api:
-        condition: service_healthy
+      - api
 
 volumes:
   mastermind_data:

@@ -1,6 +1,20 @@
 # MasterMind Framework
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/rap77/mastermind-framework)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/rap77/mastermind-framework)
+
+## Monorepo Structure
+
+```
+apps/
+  api/          → Python FastAPI + CLI (brain orchestration)
+  web/          → Next.js 16 dashboard (in development)
+docker/
+  api/          → Dockerfile for API service
+  web/          → Dockerfile for web service
+  postgres/     → PostgreSQL + pgvector (v3.0 migration)
+docker-compose.yml      → production
+docker-compose.dev.yml  → development (hot reload)
+```
 [![Python](https://img.shields.io/badge/python-3.14+-blue)](https://python.org)
 
 > **Arquitectura Cognitiva Modular para Cerebros Especializados**
