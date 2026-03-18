@@ -6,33 +6,20 @@ MasterMind Framework is a **cognitive architecture** that provides 7 specialized
 
 ## Installation Methods
 
-### Method 1: UV (Recommended - Fastest)
+### Method 1: UV (Recommended)
 
 ```bash
 # Navigate to framework directory
 cd ~/proy/mastermind
 
 # Install in editable mode (development)
-uv pip install -e .
+uv sync
 
 # Or install from PyPI (when published)
-uv pip install mastermind-framework
+uv add mastermind-framework
 ```
 
-### Method 2: PIP (Traditional)
-
-```bash
-# Navigate to framework directory
-cd ~/proy/mastermind
-
-# Install in editable mode
-pip install -e .
-
-# Or install from PyPI (when published)
-pip install mastermind-framework
-```
-
-### Method 3: UVX (No Installation - Experimental)
+### Method 2: UVX (No Installation - Experimental)
 
 ```bash
 # Run without installation
@@ -218,10 +205,7 @@ rm .claude/skills/mastermind-*.md
 ### Remove Framework Globally
 
 ```bash
-# If installed with uv/pip
-uv pip uninstall mastermind-framework
-# or
-pip uninstall mastermind-framework
+uv remove mastermind-framework
 ```
 
 ## Troubleshooting
@@ -232,10 +216,10 @@ pip uninstall mastermind-framework
 
 ```bash
 # Check installation
-pip list | grep mastermind
+uv tool list | grep mastermind
 
 # Reinstall
-cd ~/proy/mastermind && uv pip install -e .
+cd ~/proy/mastermind && uv sync
 ```
 
 ### "Could not find MasterMind Framework directory"
@@ -283,7 +267,7 @@ git clone https://github.com/rap77/mastermind-framework.git
 cd mastermind-framework
 
 # Install in editable mode
-uv pip install -e .
+uv sync
 
 # Now changes to the code are immediately available
 ```

@@ -87,7 +87,7 @@ cd mastermind-framework
 uv sync
 
 # Instalar CLI globalmente
-uv pip install -e .
+uv tool install -e .
 
 # Verificar instalación
 mastermind info

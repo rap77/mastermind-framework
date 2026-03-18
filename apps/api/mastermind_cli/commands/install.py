@@ -567,9 +567,7 @@ def run(uvx: bool) -> None:
     if uvx:
         console.print("[yellow]Launching MasterMind with uvx...[/yellow]")
         console.print("\n[cyan]This is experimental. For production use:[/cyan]")
-        console.print("  [dim]pip install mastermind-framework[/dim]")
-        console.print("  [dim]# or[/dim]")
-        console.print("  [dim]uv pip install mastermind-framework[/dim]")
+        console.print("  [dim]uv add mastermind-framework[/dim]")
         console.print("\n[green]✓ uvx mode ready[/green]")
     else:
         console.print("[yellow]MasterMind is already running![/yellow]")

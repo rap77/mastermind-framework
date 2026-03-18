@@ -223,7 +223,7 @@ uv run python scripts/evaluar_proyecto.py --example --mcp
 ### Error: "MCP not available"
 ```bash
 # Instala y autentica nlm CLI
-pip install nlm
+uv tool install nlm
 nlm login
 
 # Reintenta con --mcp

@@ -22,6 +22,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 6 | QA/DevOps | GARANTIZA estabilidad | (pendiente) |
 | 7 | Growth/Data | EVOLUCIONA todo (meta-cerebro en tiempo real) | (pendiente) |
 
+## Package Manager Rules (OBLIGATORIO)
+
+| Runtime | Package Manager | Prohibido |
+|---------|----------------|-----------|
+| Python  | `uv` siempre   | pip, poetry, conda |
+| Node.js | `pnpm` siempre | npm, yarn |
+
+```bash
+# Python — siempre uv
+uv run <script>        # ejecutar
+uv add <package>       # agregar dependencia
+uv sync                # sincronizar
+
+# Node.js — siempre pnpm
+pnpm install           # instalar dependencias
+pnpm add <package>     # agregar dependencia
+pnpm run <script>      # ejecutar script
+```
+
 ## Development Commands
 
 ```bash
