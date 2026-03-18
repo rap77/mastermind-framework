@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Production Platform
-status: archived
-stopped_at: v2.0 milestone archived — UAT 12/12 passed, 45/45 requirements verified, milestones/ created
-last_updated: "2026-03-17T00:00:00Z"
-last_activity: "2026-03-17 — v2.0 ARCHIVED: UAT Phase 3 complete (12/12), all 45 requirements verified, MILESTONES.md created, ready for v2.1"
+milestone: v2.1
+milestone_name: War Room Frontend
+status: defining_requirements
+stopped_at: Milestone v2.1 started — defining requirements
+last_updated: "2026-03-18T00:00:00Z"
+last_activity: "2026-03-18 — v2.1 started: War Room Frontend (Next.js 16 + React 19 + 4 screens + WS Dispatcher)"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,13 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-**Milestone:** v2.0.0 RELEASED (2026-03-15)
-**Branch:** master (9b7c3d7..a63ada0)
-**Tag:** v2.0.0
-**Status:** All 4 phases complete, all 17 plans executed, all UAT tests passed
-**Last activity:** Released to GitHub with full release notes
+**Milestone:** v2.1 War Room Frontend
+**Branch:** master
+**Status:** Defining requirements
+**Last activity:** 2026-03-18 — Milestone started, requirements gathering in progress
 
-Progress: [██████████] 100% (17/17 plans, v2.0.0 RELEASED 🚀)
+Progress: [░░░░░░░░░░] 0% (phases not yet defined)
 
 ## Performance Metrics
 
@@ -233,4 +232,4 @@ Next command: `/sc:load` to load full context
 - Archive: `.planning/milestones/v2.0-ROADMAP.md`, `.planning/milestones/v2.0-REQUIREMENTS.md`
 - MILESTONES.md created with full stats
 
-**Next Step:** `/gsd:new-milestone` to start v2.1
+**Next Step:** Define requirements and roadmap for v2.1 War Room Frontend

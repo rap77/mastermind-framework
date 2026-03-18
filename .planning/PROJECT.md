@@ -8,15 +8,27 @@ A cognitive architecture framework for building specialized AI-powered solutions
 
 **Expert AI collaboration that scales.** Multiple specialized brains working in parallel on complex problems — faster, safer, and more reliably than any single brain alone. 4.65x speedup validated, 467 tests passing, production-hardened with CI/CD and Docker.
 
-## Current State (v2.0.0 — 2026-03-17)
+## Current Milestone: v2.1 War Room Frontend
 
-- **Python:** 14,275 LOC across `mastermind_cli/`
+**Goal:** Replace the Alpine.js/HTMX dashboard with a Next.js 16 production frontend — a real-time "war room" for orchestrating AI brains visually.
+
+**Target features:**
+- Command Center: brief input (Raycast-style) + Bento Grid showing live status of all 24 brains
+- The Nexus: real-time DAG visualization with React Flow (replaces D3.js)
+- Strategy Vault: results and generated outputs management
+- Engine Room: structured logs, API key management, brain YAML config
+- WebSocket Dispatcher: centralized WS connection via Zustand store (single connection, per-component subscriptions)
+
+## Current State (v2.0.0 → v2.1 in progress)
+
+- **Python:** 14,275 LOC across `apps/api/mastermind_cli/`
 - **Brains:** 24 active (7 Software Dev + 16 Marketing + 1 Master Interviewer)
-- **Tests:** 467 passed, 0 failed, 8 skipped
+- **Tests:** 292 unit tests passing (apps/api), 0 failed
 - **CI:** 3-tier pipeline (typecheck → tests → semantic) on GitHub Actions
-- **Docker:** Multi-stage build, `docker compose up -d` → localhost:8000
+- **Docker:** Multi-stage build, `docker compose up -d` → api:8000, web:3000
 - **Auth:** JWT (30min) + refresh rotation (24h), API Keys for CLI access
 - **DB:** SQLite WAL mode, aiosqlite, 0.39ms status queries
+- **Monorepo:** apps/api/ (Python FastAPI) + apps/web/ (Next.js 16 placeholder)
 - **Tag:** v2.0.0 on `master`
 
 ## Requirements
@@ -37,13 +49,22 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - ✓ **Performance** (PERF-01 through PERF-04) — 4.65x speedup, 0.39ms queries — v2.0
 - ✓ **Testing** (TEST-01 through TEST-05) — 467 tests, mypy CI, E2E web UI — v2.0
 
-### Active (v2.1 candidates)
+### Active (v2.1 — War Room Frontend)
 
-- [ ] Fix `--parallel` flag missing in `orchestrate run` CLI command
-- [ ] Complete PRP-00-00 Tasks 4-10 (API Key auth, Legacy wrapper, CLI updates, Error handling, Perf tests, Docs, Migration guide)
-- [ ] Enable trufflehog secret scanner in CI
-- [ ] Push Docker image to registry
-- [ ] Production monitoring and alerting
+- [ ] **Frontend foundation** — Next.js 16 + React 19 + TypeScript + Tailwind 4 initialized in apps/web/
+- [ ] **Command Center** — Brief input (Raycast-style) + Magic UI Bento Grid with live brain status
+- [ ] **The Nexus** — Real-time DAG with React Flow, nodes illuminate on brain_step_completed events
+- [ ] **Strategy Vault** — Results and generated outputs display
+- [ ] **Engine Room** — Structured logs viewer, API key management, brain YAML config
+- [ ] **WebSocket Dispatcher** — Centralized WS store (Zustand), per-component event subscriptions
+
+### Deferred (v2.2+)
+
+- Production hardening: HTTPS+nginx, rate limiting, MM_SECRET_KEY mandatory, session cleanup
+- Semantic routing: replace FlowDetector keyword matching with Claude classifier
+- Trufflehog secret scanner in CI
+- Docker image push to registry
+- Production monitoring and alerting
 
 ### Out of Scope
 
@@ -63,7 +84,11 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - JWT + refresh rotation: stateless, API-friendly, jti for collision prevention
 - SQLite WAL over PostgreSQL: no infrastructure dependency for single-host
 - sentence-transformers (local): no API cost, runs in CI for semantic regression tests
-- HTMX/Alpine.js over React: no build step, SSR-friendly
+- HTMX/Alpine.js over React: no build step, SSR-friendly (v2.0 — replaced in v2.1)
+- **Next.js 16 + React 19** for v2.1 frontend: Server Components for data, Client Components for real-time
+- **React Flow** for DAG visualization: replaces D3.js — better React integration, built-in interactivity
+- **Zustand** for WebSocket dispatcher: single WS connection shared across all components
+- **shadcn/ui + Magic UI**: shadcn for structure, Magic UI for animated "wow" moments (Bento Grid)
 
 **Technical debt carried into v2.1:**
 - SECRET_KEY hardcoded (TODO: load from ENV_VAR)
@@ -85,6 +110,9 @@ A cognitive architecture framework for building specialized AI-powered solutions
 | **StatelessCoordinator** | Pure Function Architecture → multi-user safe, simpler | ✅ Per-request instances, no race conditions |
 | **JWT + refresh rotation** | Stateless, API + web compatible, replay prevention | ✅ UAT: refresh rotation tested 12/12 |
 | **HTMX over React** | No build step, SSR-friendly, sufficient for v2.0 dashboard | ✅ Shipped — functional dashboard |
+| **Next.js 16 over HTMX** | v2.1 needs real-time UX, component composition, TypeScript | — v2.1 in progress |
+| **React Flow over D3.js** | Better React integration, interactivity built-in, less custom code | — v2.1 in progress |
+| **Zustand WS Dispatcher** | Single connection, pub/sub by event type, avoids prop drilling | — v2.1 in progress |
 | **3-tier CI** | Token cost control: typecheck → tests → semantic | ✅ GitHub Actions running |
 | **Multi-stage Docker** | ~50% image size reduction | ✅ Production Docker deployed |
 
@@ -97,4 +125,4 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - **PostgreSQL + pgvector**: Migrate from SQLite + JSONB when scale demands it
 
 ---
-*Last updated: 2026-03-17 after v2.0 milestone completion*
+*Last updated: 2026-03-18 after v2.1 milestone started*
