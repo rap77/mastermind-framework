@@ -61,7 +61,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy strict mode
-        entry: uv run mypy --strict mastermind_cli/
+        entry: bash -c 'cd apps/api && uv run mypy --strict mastermind_cli/'
         language: system
         pass_filenames: false
         types: [python]
@@ -73,7 +73,7 @@ repos:
     hooks:
       - id: pytest-unit
         name: Pytest Unit Tests
-        entry: uv run pytest tests/unit/ -v -x
+        entry: bash -c 'cd apps/api && uv run pytest tests/unit/ -v -x'
         language: system
         pass_filenames: false
         stages: [pre-push]

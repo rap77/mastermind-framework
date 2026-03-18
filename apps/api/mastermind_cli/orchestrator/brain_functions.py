@@ -18,6 +18,10 @@ from mastermind_cli.types.interfaces import (
     Brief,
     ProductStrategy,
     UXResearch,
+    UIDesign,
+    FrontendDesign,
+    BackendDesign,
+    QADevOpsPlan,
     GrowthDataEvaluation,
     MasterInterviewerOutput,
 )
@@ -166,6 +170,232 @@ Provide a clear, concise response."""
         pain_points=["Pain point 1", "Pain point 2"],
         opportunities=["Opportunity 1", "Opportunity 2"],
         research_methodology="NotebookLM-based analysis",
+    )
+
+
+# =============================================================================
+# BRAIN #3: UI DESIGN
+# =============================================================================
+
+
+def brain_03_ui_design(brain_input: BrainInput, mcp_client: MCPClient) -> UIDesign:
+    """
+    Pure function: UI Design brain.
+
+    Generates visual design system and component hierarchy.
+
+    Args:
+        brain_input: User's brief and context
+        mcp_client: Injected MCP client
+
+    Returns:
+        UIDesign with visual language, color palette, component hierarchy
+    """
+    notebook_id = "8d544475-6860-4cd7-9037-8549325493dd"
+
+    brief = brain_input.brief
+    query = f"""Based on the following product brief, provide a comprehensive UI design system:
+
+Brief: {brief.problem_statement}
+Target Audience: {brief.target_audience or "General users"}
+Context: {brief.context}
+
+Please provide:
+1. Visual Language (style, aesthetic, mood)
+2. Color Palette (primary, secondary, accent, background, text)
+3. Component Hierarchy (header, navigation, main content, cards, forms, etc.)
+4. Design Principles (accessibility, consistency, simplicity, etc.)
+
+Provide a clear, actionable design specification."""
+
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+
+    return UIDesign(
+        visual_language=knowledge[:500] if len(knowledge) > 500 else knowledge,
+        color_palette={
+            "primary": "#6366f1",
+            "secondary": "#8b5cf6",
+            "accent": "#06b6d4",
+            "background": "#0f172a",
+            "text": "#f8fafc",
+        },
+        component_hierarchy=[
+            {
+                "name": "Header",
+                "type": "navigation",
+                "children": ["Logo", "Nav", "UserMenu"],
+            },
+            {
+                "name": "MainContent",
+                "type": "layout",
+                "children": ["HeroSection", "BrainGrid"],
+            },
+            {
+                "name": "BrainCard",
+                "type": "interactive",
+                "children": ["Status", "Output", "Actions"],
+            },
+        ],
+        design_principles=[
+            "Accessibility first",
+            "Consistent spacing",
+            "Progressive disclosure",
+            "Dark mode native",
+        ],
+    )
+
+
+# =============================================================================
+# BRAIN #4: FRONTEND
+# =============================================================================
+
+
+def brain_04_frontend(brain_input: BrainInput, mcp_client: MCPClient) -> FrontendDesign:
+    """
+    Pure function: Frontend brain.
+
+    Defines technical frontend architecture and implementation.
+
+    Args:
+        brain_input: User's brief and context
+        mcp_client: Injected MCP client
+
+    Returns:
+        FrontendDesign with framework, components, state management
+    """
+    notebook_id = "85e47142-0a65-41d9-9848-49b8b5d2db33"
+
+    brief = brain_input.brief
+    query = f"""Based on the following product brief, provide a frontend architecture specification:
+
+Brief: {brief.problem_statement}
+Context: {brief.context}
+Constraints: {', '.join(brief.constraints)}
+
+Please provide:
+1. Framework choice and justification (React, Vue, Next.js, etc.)
+2. Component structure (atomic design, composition patterns)
+3. State management approach (Zustand, Redux, Context, etc.)
+4. Styling solution (Tailwind, CSS Modules, styled-components, etc.)
+5. Build tools and toolchain (Vite, Next.js, webpack, etc.)
+
+Provide a concrete, implementation-ready specification."""
+
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+
+    return FrontendDesign(
+        framework=f"Next.js 16 + React 19 — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
+        component_hierarchy={
+            "pages": ["CommandCenter", "TheNexus", "StrategyVault", "EngineRoom"],
+            "layout": ["AppShell", "Sidebar", "Header"],
+            "shared": ["BrainCard", "StatusBadge", "OutputPanel"],
+        },
+        state_management="Zustand 5 — WebSocket dispatcher as singleton store",
+        styling_approach="Tailwind CSS 4 + shadcn/ui + Magic UI",
+        build_tools=["Next.js 16", "TypeScript 5", "ESLint", "Prettier"],
+    )
+
+
+# =============================================================================
+# BRAIN #5: BACKEND
+# =============================================================================
+
+
+def brain_05_backend(brain_input: BrainInput, mcp_client: MCPClient) -> BackendDesign:
+    """
+    Pure function: Backend brain.
+
+    Defines backend architecture, API design, and data models.
+
+    Args:
+        brain_input: User's brief and context
+        mcp_client: Injected MCP client
+
+    Returns:
+        BackendDesign with architecture, API design, data models
+    """
+    notebook_id = "c6befbbc-b7dd-4ad0-a677-314750684208"
+
+    brief = brain_input.brief
+    query = f"""Based on the following product brief, provide a backend architecture specification:
+
+Brief: {brief.problem_statement}
+Context: {brief.context}
+Constraints: {', '.join(brief.constraints)}
+
+Please provide:
+1. Architecture pattern (microservices, monolith, event-driven, etc.)
+2. API design approach (REST, GraphQL, WebSocket, etc.)
+3. Core data models (entities, relationships, schema)
+4. Authentication and authorization strategy
+5. Performance and scalability considerations
+
+Provide a concrete, implementation-ready specification."""
+
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+
+    return BackendDesign(
+        architecture=f"FastAPI + Python 3.14 — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
+        api_design="REST + WebSocket (real-time brain execution events)",
+        data_models=[
+            {
+                "name": "Execution",
+                "fields": ["id", "brief", "status", "brain_outputs", "created_at"],
+            },
+            {
+                "name": "BrainOutput",
+                "fields": ["brain_id", "content", "confidence", "execution_id"],
+            },
+            {
+                "name": "APIKey",
+                "fields": ["id", "key_hash", "user_id", "created_at", "last_used"],
+            },
+        ],
+        authentication="JWT (30min) + refresh rotation (24h) + API Keys (mmsk_ prefix)",
+    )
+
+
+# =============================================================================
+# BRAIN #6: QA/DEVOPS
+# =============================================================================
+
+
+def brain_06_qa_devops(brain_input: BrainInput, mcp_client: MCPClient) -> QADevOpsPlan:
+    """
+    Pure function: QA/DevOps brain.
+
+    Defines testing strategy and deployment pipeline.
+
+    Args:
+        brain_input: User's brief and context
+        mcp_client: Injected MCP client
+
+    Returns:
+        QADevOpsPlan with testing strategy, CI/CD, monitoring, deployment
+    """
+    notebook_id = "74cd3a81-1350-4927-af14-c0c4fca41a8e"
+
+    brief = brain_input.brief
+    query = f"""Based on the following product brief, provide a QA and DevOps strategy:
+
+Brief: {brief.problem_statement}
+Context: {brief.context}
+
+Please provide:
+1. Testing strategy (unit, integration, E2E, coverage targets)
+2. CI/CD pipeline (stages, tools, automation)
+3. Monitoring and logging (observability, alerting)
+4. Deployment strategy (Docker, cloud, zero-downtime)
+
+Provide a concrete, implementation-ready specification."""
+
+    knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
+
+    return QADevOpsPlan(
+        testing_strategy=f"pytest (unit/integration) + Playwright (E2E) — {knowledge[:200] if len(knowledge) > 200 else knowledge}",
+        ci_cd_pipeline="GitHub Actions: typecheck → pytest → semantic regression (3-tier)",
+        monitoring="Structured logging (JSON) + health endpoints + Docker metrics",
+        deployment_strategy="Multi-stage Docker build → docker compose up -d (api:8000, web:3000)",
     )
 
 
@@ -337,9 +567,12 @@ Provide questions in a clear, numbered format."""
 BRAIN_FUNCTIONS = {
     "brain-01-product-strategy": brain_01_product_strategy,
     "brain-02-ux-research": brain_02_ux_research,
+    "brain-03-ui-design": brain_03_ui_design,
+    "brain-04-frontend": brain_04_frontend,
+    "brain-05-backend": brain_05_backend,
+    "brain-06-qa-devops": brain_06_qa_devops,
     "brain-07-growth-data": brain_07_growth_data,
     "brain-08-master-interviewer": brain_08_master_interviewer,
-    # Add more brains as needed
 }
 
 
