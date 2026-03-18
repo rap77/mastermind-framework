@@ -1,0 +1,23 @@
+{
+  "brain-02-ux-research": {
+    "brain_id": "brain-02-ux-research",
+    "user_journeys": [
+      {
+        "step": "Journey step 1"
+      },
+      {
+        "step": "Journey step 2"
+      }
+    ],
+    "pain_points": [
+      "Pain point 1",
+      "Pain point 2"
+    ],
+    "opportunities": [
+      "Opportunity 1",
+      "Opportunity 2"
+    ],
+    "research_methodology": "NotebookLM-based analysis",
+    "generated_at": "2026-03-17 22:36:06.440951"
+  }
+}
