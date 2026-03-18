@@ -87,38 +87,36 @@
 
 ## Traceability
 
-*Populated during roadmap creation.*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | — | Pending |
-| FND-02 | — | Pending |
-| FND-03 | — | Pending |
-| FND-04 | — | Pending |
-| BE-01 | — | Pending |
-| BE-02 | — | Pending |
-| SB-01 | — | Pending |
-| WS-01 | — | Pending |
-| WS-02 | — | Pending |
-| WS-03 | — | Pending |
-| CC-01 | — | Pending |
-| CC-02 | — | Pending |
-| CC-03 | — | Pending |
-| NEX-01 | — | Pending |
-| NEX-02 | — | Pending |
-| NEX-03 | — | Pending |
-| SV-01 | — | Pending |
-| SV-02 | — | Pending |
-| ER-01 | — | Pending |
-| ER-02 | — | Pending |
-| ER-03 | — | Pending |
-| UX-01 | — | Pending |
+| FND-01 | Phase 5 | Pending |
+| FND-02 | Phase 5 | Pending |
+| FND-03 | Phase 5 | Pending |
+| FND-04 | Phase 5 | Pending |
+| SB-01 | Phase 5 | Pending |
+| WS-01 | Phase 5 | Pending |
+| WS-02 | Phase 5 | Pending |
+| WS-03 | Phase 5 | Pending |
+| BE-01 | Phase 6 | Pending |
+| CC-01 | Phase 6 | Pending |
+| CC-02 | Phase 6 | Pending |
+| CC-03 | Phase 6 | Pending |
+| BE-02 | Phase 7 | Pending |
+| NEX-01 | Phase 7 | Pending |
+| NEX-02 | Phase 7 | Pending |
+| NEX-03 | Phase 7 | Pending |
+| SV-01 | Phase 8 | Pending |
+| SV-02 | Phase 8 | Pending |
+| ER-01 | Phase 8 | Pending |
+| ER-02 | Phase 8 | Pending |
+| ER-03 | Phase 8 | Pending |
+| UX-01 | Phase 8 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 22 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 22 ⚠️
+- Mapped to phases: 22 ✅
+- Unmapped: 0 ✅
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after initial definition*
+*Last updated: 2026-03-18 — traceability populated after roadmap creation*
