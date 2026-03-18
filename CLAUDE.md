@@ -163,6 +163,18 @@ Cuando trabajes en este proyecto, lee en este orden:
 3. `docs/PRD/09-Filesystem-Structure.md` - Estructura de carpetas
 4. Cerebro específico en `docs/PRD/05-*.md` o `06-*.md`
 
+## mm Brain Context — GSD Integration
+
+**IMPORTANTE:** Antes de cualquier operación GSD, verificar si aplica la skill `mm:brain-context`:
+
+| Momento | Cuándo | Qué hacer |
+|---------|--------|-----------|
+| **Momento 1** | Antes de crear ROADMAP.md | Correr brains relevantes → `.planning/research/BRAIN-0X-CONTEXT.md` |
+| **Momento 2** | Antes de `/gsd:plan-phase N` | Brain del dominio de la fase → `CONTEXT.md` de la fase |
+| **Momento 3** | Después de PLAN.md, antes de ejecutar | brain-07 valida el plan → aprobar o iterar |
+
+Skill completa: `.claude/skills/mm/brain-context/SKILL.md`
+
 ## Language
 
 Todo el contenido y documentación está en **español**. El código y comandos usan inglés (convención estándar).
