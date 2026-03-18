@@ -5,7 +5,6 @@ This module provides the ability to make actual NotebookLM MCP calls
 when the CLI is executed from within Claude Code.
 """
 
-import os
 import json
 import subprocess
 from typing import Any, Optional, List
@@ -35,13 +34,66 @@ class MCPIntegration:
         self._claude_code_available = self._check_claude_code()
 
     def _check_claude_code(self) -> bool:
-        """Check if running in Claude Code environment."""
-        # Check if Claude Code environment variables are present
-        return os.getenv("CLAUDE_CODE_SESSION") is not None
+        """Check if nlm CLI is available for NotebookLM queries."""
+        try:
+            result = subprocess.run(
+                ["nlm", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
 
     def is_available(self) -> bool:
         """Check if MCP integration is available."""
         return self.use_mcp and self._claude_code_available
+
+    def query_brain(
+        self,
+        brain_id: str,
+        query: str,
+        timeout: int = 120,
+    ) -> dict[str, Any]:
+        """Query a brain notebook by notebook_id (MCPClient protocol method).
+
+        Args:
+            brain_id: Notebook UUID (passed as notebook_id by TypeSafeMCPWrapper)
+            query: Query string
+            timeout: Timeout in seconds
+
+        Returns:
+            Dict with 'response', 'success', and optional 'error' keys
+        """
+        if not self.is_available():
+            return {
+                "response": "",
+                "success": False,
+                "error": "MCP not available — use --use-mcp with nlm installed",
+            }
+
+        try:
+            cmd = ["nlm", "query", "notebook", brain_id, query]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout
+            )
+            if result.returncode != 0:
+                return {
+                    "response": "",
+                    "success": False,
+                    "error": f"nlm query failed: {result.stderr}",
+                }
+            raw = result.stdout.strip()
+            # nlm returns JSON — extract the answer field
+            try:
+                data = json.loads(raw)
+                answer = data.get("value", {}).get("answer", raw)
+            except json.JSONDecodeError:
+                answer = raw
+            return {"response": answer, "success": True}
+        except Exception as e:
+            return {"response": "", "success": False, "error": str(e)}
 
     def query_notebook(
         self,
@@ -90,7 +142,9 @@ class MCPIntegration:
         except Exception as e:
             return {"status": "error", "error": str(e), "query_spec": query_spec}
 
-    def _execute_nl_mcp(self, action: str, params: dict[str, Any], timeout: int) -> str:
+    def _execute_nl_mcp(
+        self, _action: str, params: dict[str, Any], timeout: int
+    ) -> str:
         """Execute NotebookLM MCP command via nlm CLI.
 
         This uses the nlm command-line tool which wraps MCP calls.
@@ -103,20 +157,15 @@ class MCPIntegration:
         Returns:
             Response string from NotebookLM
         """
-        # Build nlm command
-        cmd = ["nlm", "query"]
-
-        # Add notebook ID
+        # Build nlm command: nlm query notebook <notebook_id> <question>
         notebook_id = params.get("notebook_id")
         if notebook_id is None:
             raise ValueError("notebook_id is required")
         if not isinstance(notebook_id, str):
             notebook_id = str(notebook_id)
-        cmd.extend(["--notebook", notebook_id])
 
-        # Add query
         query = params.get("query", "")
-        cmd.extend(["--query", query])
+        cmd = ["nlm", "query", "notebook", notebook_id, query]
 
         # Execute
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)

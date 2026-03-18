@@ -57,8 +57,10 @@ def _parse_sections(knowledge: str) -> dict[str, str]:
     current_lines: list[str] = []
 
     for line in knowledge.split("\n"):
+        # Strip markdown bold markers before matching (NotebookLM wraps labels in **)
+        stripped = re.sub(r"\*\*", "", line)
         # Detect UPPERCASE_KEY: pattern at start of line
-        match = re.match(r"^([A-Z][A-Z_]+):\s*(.*)", line)
+        match = re.match(r"^([A-Z][A-Z_]+):\s*(.*)", stripped)
         if match:
             if current_key is not None:
                 sections[current_key] = "\n".join(current_lines).strip()
