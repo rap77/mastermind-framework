@@ -1,350 +1,388 @@
-# Feature Research: MasterMind Framework v2.0
+# Feature Research: MasterMind War Room Frontend (v2.1)
 
-**Domain:** Cognitive Architecture Platform (Parallel Execution + Type Safety + Web UI)
-**Researched:** 2026-03-13
-**Confidence:** MEDIUM (Web search unavailable, based on codebase analysis + ecosystem knowledge)
+**Domain:** Real-time AI orchestration dashboard — "War Room" for parallel brain execution
+**Researched:** 2026-03-19
+**Confidence:** HIGH (verified with React Flow docs, Magic UI source, multiple current sources)
+
+---
+
+## Context: What Already Exists (Do Not Re-Build)
+
+The backend is production-ready. These are DONE:
+
+| Backend Capability | Status | Notes |
+|-------------------|--------|-------|
+| FastAPI + JWT auth + refresh rotation | DONE | Token expiry 30min, refresh 24h |
+| WebSocket server | DONE | Events: `brain_step_started`, `brain_step_completed`, `execution_finished` |
+| 24 brains parallel execution (4.65x speedup) | DONE | DAG via asyncio.TaskGroup |
+| Execution tracking + brain outputs in SQLite WAL | DONE | 0.39ms status queries |
+| REST API for orchestration, history, config | DONE | FastAPI, Pydantic v2 |
+
+Frontend replaces Alpine.js/HTMX dashboard. All data comes from the existing API.
+
+---
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist. Missing these = product feels incomplete.
+Features that, if missing, make the product feel broken or unfinished.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Task Status Indication** | Users need to know what's happening | LOW | Progress bars, status messages, completion percentage |
-| **Error Messages** | When things fail, users need explanations | LOW | Clear error descriptions, not just stack traces |
-| **Task Cancellation** | Users should control execution | MEDIUM | Graceful shutdown of running tasks |
-| **Result Export** | Users want to save outputs | LOW | JSON, YAML, Markdown export (already exists in v1.3) |
-| **Configuration Persistence** | Re-run without reconfiguring | MEDIUM | Save/load execution configurations |
-| **Type Validation** | Catch data errors before execution | MEDIUM | Pydantic already validates, needs enforcement |
-| **Basic Authentication** | Multi-user requires security | MEDIUM | Simple username/password, RBAC basics |
-| **Session Management** | Track user state across requests | MEDIUM | Session storage, timeout handling |
-| **Responsive UI** | Works on mobile/tablet | LOW | CSS grid/flexbox, responsive design |
-| **Audit Logging** | Who did what, when | LOW | Timestamp, user, action (already have eval logs) |
+| Feature | Why Expected | Complexity | Backend Dependency |
+|---------|--------------|------------|--------------------|
+| Brief textarea with submit button | Users need to initiate executions | LOW | `POST /api/orchestrate` |
+| Brain status tiles (pending/active/complete/error) | Can't use a war room without status visibility | MEDIUM | WebSocket `brain_step_*` events |
+| DAG nodes change appearance on state change | If nodes don't react to events, graph is useless | MEDIUM | WebSocket + React Flow `setNodes` |
+| Strategy Vault — list past executions + view outputs | Users need to retrieve brain outputs | LOW | `GET /api/executions` |
+| Engine Room — live log stream | Operators expect logs for debugging | MEDIUM | WebSocket log events |
+| Single WebSocket connection (not per-component) | Multiple connections to same WS endpoint will fail at scale | MEDIUM | Zustand store pattern |
+| Auth gate (login → JWT in localStorage) | Backend requires JWT; frontend without auth = 401 everywhere | LOW | `POST /api/auth/login` |
+| Error state handling per brain tile | Silent failures are unacceptable | LOW | `brain_step_failed` event |
+| Responsive layout (≥768px) | War rooms are used on varied screens | LOW | CSS only |
+| Dark mode | Developer tools universally dark-themed | LOW | Tailwind `dark:` variant |
 
 ### Differentiators (Competitive Advantage)
 
-Features that set the product apart. Not required, but valuable.
+Features that make this "war room" feel alive vs. a generic dashboard.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Visual Dependency Graph** | See brain relationships intuitively | HIGH | Interactive DAG visualization (D3.js/Cytoscape.js) |
-| **Parallel Execution Dashboard** | Real-time view of multiple brains running | HIGH | WebSocket updates, live task cards |
-| **Type-Auto-Completion** | IDE-like experience in browser | HIGH | Monaco/Ace editor with type hints |
-| **Brain-to-Brain Comm Visualization** | See how brains collaborate | MEDIUM | Message flow animation |
-| **Replay/Debug Mode** | Step through execution history | HIGH | Time-travel debugging for orchestration |
-| **Smart Caching** | Skip redundant brain queries | MEDIUM | Cache by brief hash + brain config |
-| **Live Interview Collaboration** | Multiple users in discovery session | HIGH | Shared cursor, real-time chat |
-| **Execution Comparison** | Compare two runs side-by-side | MEDIUM | Diff view of brain outputs |
-| **Custom Metrics Dashboard** | Track agency KPIs | MEDIUM | Charts: success rate, avg iterations, brain usage |
-| **Template Library** | Reusable execution patterns | LOW | Pre-built flows for common scenarios |
-| **Hot-Reload Brains** | Update brains without restart | MEDIUM | Watch filesystem, reload on change |
-| **Granular Permissions** | Per-brain, per-niche access control | HIGH | Complex RBAC system |
+| Bento Grid with live pulse animations on active brains | Spatial layout makes 24 brains scannable at a glance; pulse signals "this is happening" | MEDIUM | Magic UI BentoGrid + CSS `animate-pulse` per status |
+| React Flow nodes illuminate on WS events | Visual causality — watching the DAG execute in real-time is the core "wow" | HIGH | `NodeStatusIndicator` from `@xyflow/react`, Zustand bridge |
+| Raycast-style command input (full-screen overlay, keyboard-first) | Feels intentional, not a form; matches how power users work | MEDIUM | `cmdk` or shadcn Command + textarea expansion |
+| Progressive AI output rendering (token streaming, not page load) | Perceived speed: watching a brain "think" is more engaging than waiting | HIGH | Server-Sent Events or WS streaming + `streamdown` or `react-markdown` with memoization |
+| Brain status badge coloring in Bento Grid matches DAG node state | Visual consistency = users trust the UI faster | LOW | Single source of truth in Zustand, both screens subscribe |
+| Strategy Vault — diff view between two executions | Agencies need to compare "this brief vs last brief" | HIGH | Custom diff component |
+| Engine Room — filter logs by brain name + level | 24 brains generate noise; filtering by brain reduces cognitive load | MEDIUM | Client-side filter against `brain_name` in log payload |
+| Time-to-first-output metric visible in Command Center | Shows value immediately: "Brain #1 responded in 1.2s" | LOW | Timestamp delta from execution_started to first brain_step_completed |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that seem good but create problems.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Real-Time Collaborative Editing** | "Like Google Docs for brains" | Extreme complexity (CRDTs), operational transform overkill | Session isolation with explicit sharing |
-| **Auto-Scaling** | "Handle 1000 users automatically" | Kubernetes complexity, cost overkill for v2.0 | Manual deployment guide, performance docs |
-| **ML-Based Optimization** | "System learns to be faster" | R&D heavy, unpredictable behavior | Explicit configuration, profiling tools |
-| **Blockchain/Audit Trail** | "Immutable proof of execution" | Overengineering, performance hit | File-based audit logs (already exists) |
-| **Mobile Native Apps** | "Use on iPhone" | Fragmented codebase, app store overhead | Responsive web UI (PWA future) |
-| **Voice Interface** | "Talk to brains" | Speech-to-text complexity, low ROI | Text-first, voice via browser API later |
-| **Full RAG Vector DB** | "Search across all brains" | Premature optimization (v3.0 feature) | NotebookLM search is sufficient for now |
-| **Multi-Tenant SaaS** | "Host for customers" | Auth complexity, data isolation, compliance nightmares | Single-tenant deployment, customer hosts own instance |
+| One WebSocket connection per component | "Simplest" to implement in each component | N connections to FastAPI WS endpoint; state desync between components; reconnect storms | Zustand WS Dispatcher: single connection, per-component `subscribe(eventType, cb)` |
+| Polling as WebSocket fallback | "What if WS disconnects?" | Adds 10x server load, defeats real-time purpose, creates stale-state UX | Exponential backoff reconnection in Zustand store; 3 retries then show "reconnecting…" banner |
+| D3.js for DAG (keep from v2.0) | Already familiar, why switch? | Zero React integration — all imperative DOM; state sync nightmare with React; React Flow exists | React Flow — built for React, NodeStatusIndicator built-in, Zustand integration documented |
+| Infinite scroll in Strategy Vault | "Show all executions" | Executions are large (24 brain outputs each); infinite scroll = unbounded memory | Pagination (20 per page) + search by date/brief text |
+| Editable YAML in browser with no validation | "Let me edit brain configs in-place" | Invalid YAML silently breaks brains; users won't know until execution fails | Monaco editor + YAML schema validation, save blocked on parse error |
+| Auto-refresh entire page on WS disconnect | "At least something happens" | Kills in-flight animations, loses form state, terrible UX | Reconnect indicator banner only; page state preserved |
+| SSE for everything (abandon WebSocket) | "SSE is simpler for streaming" | Backend already uses WS; switching means rewriting FastAPI handlers | Keep WS for bidirectional control events; SSE only if adding server-push streaming of brain outputs specifically |
+| Tabs per brain in Strategy Vault | "See each brain's output in its own tab" | 24 tabs is unusable tab-soup | Accordion/collapsible sections within single execution view |
+
+---
+
+## Screen-Specific Feature Analysis
+
+### Screen 1: Command Center
+
+**Purpose:** Brief submission + live status overview of all 24 brains.
+
+**Table Stakes:**
+- Textarea with ≥3 lines visible, grow-on-type behavior
+- Submit triggers `POST /api/orchestrate` with brief text
+- Disable submit during active execution (prevent double-submission)
+- Bento Grid showing all 24 brains with name + current status
+
+**UX Pattern — Raycast-style Command Input:**
+
+The `cmdk` library (shadcn Command wrapper) provides keyboard-first modal overlay. For a "brief" (multi-line, freeform text), the correct pattern is NOT a command palette — those are for single-line actions. The correct pattern is:
+
+1. **Command palette to OPEN the brief modal** — `⌘K` / `Ctrl+K` opens full-screen overlay
+2. **Inside the modal: textarea** — auto-focused, `Cmd+Enter` submits, `Escape` closes
+3. **Context selector above textarea** — choose niche (Software Dev / Marketing) before submitting
+
+This matches Linear's issue creation (command to open, structured form inside) and avoids the anti-pattern of trying to submit a paragraph via a search-style input.
+
+**Differentiator:** Add "brain group pre-selection" — toggle which of the 24 brains to include before submitting. Checkbox grid in the command modal. Medium complexity, high value for agencies running partial flows.
+
+**Bento Grid — Magic UI vs custom CSS Grid:**
+
+Magic UI BentoGrid (`magicui.design/docs/components/bento-grid`) is a React component built on CSS Grid under the hood, with Framer Motion animations included. The tradeoffs:
+
+| Criterion | Magic UI BentoGrid | Custom CSS Grid |
+|-----------|-------------------|-----------------|
+| Setup time | 5 minutes (copy-paste) | 2-4 hours (layout logic) |
+| Animations | Included (hover, scale, glow) | Write from scratch |
+| Tile sizing | Predefined `col-span` variants | Full control |
+| Bundle size | ~15KB (Framer Motion already in stack) | ~0KB extra |
+| Customization | Props-based, limited | Total control |
+| Status-reactive styling | Requires wrapping with custom logic | First-class CSS var |
+| `className` injection | Yes (className prop per item) | N/A |
+
+**Recommendation: Use Magic UI BentoGrid** as the structural shell, inject Tailwind status classes (`border-blue-500 animate-pulse` for active, `border-green-500` for complete, etc.) via the `className` prop per brain tile. Framer Motion is already in the stack (React Flow uses it). Zero extra bundle cost.
+
+**Brain tile content:**
+- Brain name (truncated at 20 chars)
+- Status badge (pending/active/complete/error) with color
+- Execution time (if complete)
+- Output preview (first 80 chars of output, truncated)
+- Click → opens Strategy Vault filtered to that brain's last output
+
+### Screen 2: The Nexus (DAG Visualization)
+
+**Purpose:** Real-time directed acyclic graph showing brain execution flow, nodes illuminate as events arrive.
+
+**React Flow Patterns for Real-Time Node State:**
+
+React Flow's recommended architecture for real-time updates uses **Zustand as the shared state bridge** (documented officially at `reactflow.dev/learn/advanced-use/state-management`). The pattern:
+
+```
+WebSocket event → Zustand store action → React Flow re-reads nodes from store
+```
+
+Critical constraint from React Flow docs: **you must create a new node object (spread) to trigger re-renders** — mutating node data in place does NOT work.
+
+**Node state machine for brains:**
+
+| State | Visual | CSS | Animation |
+|-------|--------|-----|-----------|
+| `pending` | Grey border, muted text | `opacity-50` | None |
+| `active` | Blue border, bright text | `border-blue-400` | `NodeStatusIndicator` with `status="loading"` (spinning border) |
+| `complete` | Green border, checkmark icon | `border-green-400` | Brief scale pulse on transition (Framer Motion `animate={{ scale: [1, 1.05, 1] }}`) |
+| `error` | Red border, X icon | `border-red-400` | `NodeStatusIndicator` with `status="error"` |
+
+`NodeStatusIndicator` is a built-in React Flow UI component (`@xyflow/react`) that wraps custom nodes and handles the `loading`/`success`/`error`/`initial` states with built-in border-spin animation. Use it — don't build this manually.
+
+**Edge animation on activation:**
+
+When a brain completes, its outgoing edges to dependent brains should animate (dashed animated stroke). React Flow supports `animated: true` on edges, which renders a CSS `stroke-dashoffset` animation. Flip `animated` to `true` in the Zustand store when `brain_step_completed` fires for the source node.
+
+**Layout:**
+
+24 nodes is a medium-size DAG. Use React Flow's `dagre` layout algorithm (`@dagrejs/dagre` + `reactflow-dagre-layout`). Run layout once on mount, don't re-layout on status changes (only data changes, not positions).
+
+**Performance note:** With 24 nodes and frequent WS updates, use `useStore` selector to only re-render the specific node that changed, not the entire graph. The Zustand + React Flow pattern handles this correctly when using `updateNodeData()` from React Flow's internal API (added in React Flow 12).
+
+### Screen 3: Strategy Vault
+
+**Purpose:** Browse execution history, view brain outputs.
+
+**Patterns for progressive/streamed AI output display:**
+
+Outputs are stored in SQLite (not streamed to the Vault — the Vault shows completed results). However, if brain outputs are long (they often are), the display pattern matters.
+
+**Pattern: Accordion + Markdown rendering with memoization**
+
+Each brain output is stored as text (likely Markdown). Use:
+1. `react-markdown` with memoization (Vercel AI SDK cookbook pattern) — prevents re-render cascade when parent updates
+2. `rehype-highlight` for code blocks inside outputs
+3. Collapsible accordion per brain (24 brains = don't show all at once)
+4. Copy-to-clipboard per brain output (one button, no friction)
+
+**If outputs stream during execution (future WS enhancement):**
+Use `streamdown` (Vercel's open-source, `github.com/vercel/streamdown`) — handles incomplete markdown tokens without visual glitches. Drop-in replacement for `react-markdown`. Handles unterminated code blocks, partial links, etc.
+
+**Execution list view:**
+- Sort by date DESC (most recent first)
+- Show: brief text (truncated 100 chars), timestamp, total brains, execution time, status
+- Filter: by niche, by date range, by status
+- Search: full-text on brief content (client-side filtering is fine for <1000 executions)
+- Pagination: 20 per page — do NOT use infinite scroll (brain outputs are large)
+
+**Diff view (differentiator, defer to v2.1.1):**
+Compare two execution results side-by-side. Use `diff` npm package + custom rendering. Medium complexity, high agency value. Defer to after core Vault is working.
+
+### Screen 4: Engine Room
+
+**Purpose:** Structured log viewer, API key management, brain YAML config.
+
+**Log Viewer Pattern — Virtual Scrolling:**
+
+For a real-time log stream from 24 parallel brains, logs can accumulate fast (thousands of entries per execution). Virtual scrolling is mandatory, not optional.
+
+**Library recommendation: `react-logviewer` (melloware fork of react-lazylog)**
+
+- Virtual scrolling via `react-virtualized` under the hood
+- Loads logs from WebSocket natively (`websocket` prop)
+- ANSI color support (brain logs may use `rich` output from Python)
+- Follow mode (auto-scroll to bottom as new logs arrive)
+- Search/filter built-in
+- Copy line on click
+- GitHub: `melloware/react-logviewer`, actively maintained as of 2025
+
+**Why not TanStack Virtual with custom implementation:**
+TanStack Virtual is more flexible but requires building the entire log rendering pipeline manually (line parsing, ANSI coloring, follow mode, search). `react-logviewer` has all of this. Use the library.
+
+**Log level color conventions (match Python `logging` module):**
+
+| Level | Color | Tailwind Class |
+|-------|-------|----------------|
+| DEBUG | Grey | `text-slate-400` |
+| INFO | White | `text-slate-100` |
+| WARNING | Yellow | `text-yellow-400` |
+| ERROR | Red | `text-red-400` |
+| CRITICAL | Red bold | `text-red-500 font-bold` |
+| BRAIN_START | Blue | `text-blue-400` |
+| BRAIN_COMPLETE | Green | `text-green-400` |
+
+**Filter controls (must-have):**
+- Level filter (checkbox: DEBUG/INFO/WARNING/ERROR)
+- Brain name filter (dropdown, multi-select)
+- Clear logs button (local only — doesn't delete from backend)
+- Download logs as `.txt`
+
+**API Key Management:**
+- List API keys with masked display (`sk-...xxxx`)
+- Create new key (modal, label required)
+- Revoke key (confirmation dialog)
+- Never show full key after creation (show once, then mask)
+- Backend dependency: `GET/POST/DELETE /api/keys` — verify this exists in v2.0 API
+
+**Brain YAML Config:**
+- Read-only list of brain YAML files with Monaco editor viewer
+- Edit mode: Monaco with YAML language support (`monaco-editor` + `@monaco-editor/react`)
+- Validate on change: parse YAML client-side (use `yaml` npm package), block save if invalid
+- Save triggers `PUT /api/brains/{brain_id}/config`
+
+---
 
 ## Feature Dependencies
 
 ```
-[Parallel Task Execution]
-    ├──requires──> [Dependency Graph Resolution]
-    │                └──requires──> [Task State Management]
-    └──enhances──> [Real-Time Progress Dashboard]
+[WebSocket Dispatcher (Zustand)]
+    ├──required by──> [Command Center — live brain tiles]
+    ├──required by──> [The Nexus — node illumination]
+    └──required by──> [Engine Room — live log stream]
 
-[Type-Safe Interfaces]
-    ├──requires──> [Pydantic Models for All Data]
-    │                └──requires──> [Mypy Strict Mode Configuration]
-    └──enables──> [Auto-Completion in Web UI]
+[Auth (JWT in Zustand/localStorage)]
+    └──required by──> ALL screens (401 without it)
 
-[Web Dashboard]
-    ├──requires──> [WebSocket Server]
-    │                └──requires──> [Session Management]
-    ├──requires──> [Authentication System]
-    └──enhances──> [Visual Dependency Graph]
+[Command Center — brief submission]
+    └──enables──> [The Nexus — execution to visualize]
+                      └──enables──> [Strategy Vault — execution to view]
 
-[Multi-User Sessions]
-    ├──requires──> [User Authentication]
-    ├──requires──> [Session Isolation]
-    └──conflicts──> [Shared Global State] (must be refactored)
+[React Flow + dagre layout]
+    └──requires──> [Execution DAG shape from API]
+                      (GET /api/executions/{id}/dag or inferred from brain dependencies)
 
-[Real-Time Progress]
-    ├──requires──> [Parallel Task Execution]
-    └──requires──> [WebSocket Updates]
+[Strategy Vault — output rendering]
+    └──requires──> [GET /api/executions/{id} with brain outputs]
 
-[Visual Dependency Graph]
-    ├──requires──> [Dependency Graph Resolution]
-    └──requires──> [D3.js/Cytoscape.js Frontend]
+[Engine Room — YAML editor]
+    └──requires──> [GET/PUT /api/brains/{id}/config — verify in FastAPI backend]
 ```
 
 ### Dependency Notes
 
-- **[Parallel Task Execution] requires [Task State Management]:** Can't track parallel tasks without centralized state store (Redis/SQLite)
-- **[Type-Safe Interfaces] enables [Auto-Completion]:** With strict typing, IDE can provide suggestions in Monaco editor
-- **[Multi-User Sessions] conflicts with [Shared Global State]:** Current coordinator uses instance variables, must be refactored to session-scoped
-- **[Real-Time Progress] requires [Parallel Task Execution]:** Sequential execution has trivial progress (0% → 100% with nothing in between)
-- **[Visual Dependency Graph] requires [Dependency Graph Resolution]:** Can't visualize what you don't understand
+- **WebSocket Dispatcher must be built first** — 3 of 4 screens depend on it. If built per-component, refactoring cost is high.
+- **Auth before any screen** — Every API call needs JWT. Build login page + token storage before building screens.
+- **The Nexus requires knowing the DAG shape** — The frontend needs the brain dependency graph structure. Verify `GET /api/executions/{id}/dag` or equivalent exists in the FastAPI backend. If not, this needs a new endpoint.
+- **Strategy Vault has no WS dependency** — It reads completed data from REST. Can be built offline from the WS work.
+
+---
 
 ## MVP Definition
 
-### Launch With (v2.0)
+### Launch With (v2.1 core)
 
-Minimum viable product — what's needed to validate the concept.
+Minimum viable "war room" — must validate the concept end-to-end.
 
-**Parallel Execution Core:**
-- [ ] **Dependency Graph Resolution** — Detect brain dependencies from flow definitions
-- [ ] **Task State Management** — SQLite-based task store with status (pending/running/completed/failed)
-- [ ] **Parallel Executor** — asyncio-based parallel brain execution with dependency waiting
+- [ ] **Auth gate** — Login page, JWT in Zustand, axios interceptor for token refresh
+- [ ] **WebSocket Dispatcher** — Zustand store, single connection, `subscribe(event, cb)` API, reconnect logic
+- [ ] **Command Center** — Bento Grid with 24 brain tiles + status colors + command input modal
+- [ ] **The Nexus** — React Flow DAG, nodes change state on WS events via `NodeStatusIndicator`
+- [ ] **Strategy Vault** — Execution list + individual execution view with accordion brain outputs
+- [ ] **Engine Room (logs only)** — `react-logviewer` wired to WS log events, filter by level
 
-**Type Safety Foundation:**
-- [ ] **Strict Pydantic Models** — All coordinator/brain data as typed models (75% done, see models.py)
-- [ ] **Mypy Strict Mode** — Enable strict type checking, fix all errors
-- [ ] **Type-Safe MCP Wrapper** — Typed MCP client integration
+### Add After Validation (v2.1.x)
 
-**Web Dashboard (Basic):**
-- [ ] **FastAPI Backend** — REST API for orchestration endpoints
-- [ ] **Basic Auth** — Simple username/password (single-tenant)
-- [ ] **Task Status Page** — List active/completed tasks with status
-- [ ] **Manual Brain Trigger** — Web form to execute single brain
-- [ ] **Static Asset Serving** — Serve HTML/CSS/JS
+Features to add once core is working and used.
 
-### Add After Validation (v2.1)
+- [ ] **Engine Room — API key management** — List/create/revoke keys UI
+- [ ] **Engine Room — YAML editor** — Monaco + YAML validation, save to API
+- [ ] **Brain group pre-selection in Command modal** — Choose which brains to include
+- [ ] **Execution diff view in Strategy Vault** — Compare two runs
 
-Features to add once core is working.
+### Future Consideration (v2.2+)
 
-- [ ] **Real-Time Progress** — WebSocket updates for live task status
-- [ ] **Visual Dependency Graph** — D3.js interactive DAG visualization
-- [ ] **Multi-User Support** — Session isolation, per-user task lists
-- [ ] **Execution History** — Browse past runs, view outputs
-- [ ] **Configuration UI** — Create/edit execution flows via web interface
-- [ ] **Advanced RBAC** — Per-niche, per-brain permissions
+- [ ] **Execution replay** — Step through a past execution in the DAG (time-travel)
+- [ ] **Brain analytics** — Which brains are slowest, error rates, token usage
+- [ ] **Custom Bento Grid layout** — Drag-resize tiles, persist layout to localStorage
+- [ ] **Collaborative viewing** — Multiple users watching same execution (read-only)
+- [ ] **SSE streaming of brain outputs** — Watch brain write its output token-by-token during execution
 
-### Future Consideration (v3.0+)
-
-Features to defer until product-market fit is established.
-
-- [ ] **Full RAG System** — Vector DB with semantic search across all brains
-- [ ] **ML-Based Optimization** — Learn optimal execution paths
-- [ ] **Auto-Scaling** — Horizontal scaling with Kubernetes
-- [ ] **Real-Time Collaboration** — Multiple users editing same session
-- [ ] **Mobile Apps** — Native iOS/Android applications
+---
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| **Task State Management** | HIGH (enables parallel) | MEDIUM (SQLite + schema) | P1 |
-| **Dependency Graph Resolution** | HIGH (enables parallel) | HIGH (flow analysis) | P1 |
-| **Parallel Executor** | HIGH (faster execution) | HIGH (asyncio refactoring) | P1 |
-| **Strict Pydantic Models** | HIGH (catch bugs early) | MEDIUM (already started) | P1 |
-| **Mypy Strict Mode** | MEDIUM (developer UX) | MEDIUM (fix type errors) | P1 |
-| **FastAPI Backend** | HIGH (enables web UI) | LOW (simple REST) | P1 |
-| **Basic Auth** | HIGH (security) | LOW (simple password) | P1 |
-| **Task Status Page** | HIGH (visibility) | LOW (HTML + polling) | P1 |
-| **Manual Brain Trigger** | MEDIUM (convenience) | LOW (form + API call) | P2 |
-| **Real-Time Progress** | HIGH (UX) | MEDIUM (WebSockets) | P2 |
-| **Visual Dependency Graph** | MEDIUM (clarity) | HIGH (D3.js + backend) | P2 |
-| **Multi-User Sessions** | MEDIUM (agencies need it) | HIGH (session isolation) | P2 |
-| **Execution History** | MEDIUM (debugging) | MEDIUM (pagination + filters) | P2 |
-| **Configuration UI** | MEDIUM (no-code) | HIGH (complex forms) | P3 |
-| **Advanced RBAC** | LOW (single-tenant OK) | HIGH (complex auth) | P3 |
-| **Replay/Debug Mode** | MEDIUM (debugging) | HIGH (time-travel) | P3 |
-| **Auto-Completion in Editor** | MEDIUM (DX) | HIGH (Monaco + types) | P3 |
-| **Smart Caching** | LOW (nice to have) | MEDIUM (cache invalidation) | P3 |
-
-**Priority key:**
-- **P1:** Must have for v2.0 launch
-- **P2:** Should have, add when possible (v2.1)
-- **P3:** Nice to have, future consideration (v3.0+)
-
-## Competitor Feature Analysis
-
-| Feature | LangChain | LangGraph | Airflow | Prefect | Our Approach |
-|---------|-----------|-----------|---------|---------|--------------|
-| **Parallel Execution** | ✅ Yes (async) | ✅ Yes (DAG) | ✅ Yes (DAG) | ✅ Yes (DAG) | ✅ Planned (asyncio) |
-| **Type Safety** | ❌ Partial | ❌ Partial | ❌ None | ❌ Partial | ✅ Pydantic + mypy strict |
-| **Web Dashboard** | ✅ LangSmith | ✅ LangStudio | ✅ Yes | ✅ Prefect Cloud | ✅ Planned (FastAPI) |
-| **Real-Time Progress** | ✅ Yes | ✅ Yes | ⚠️ Polling | ✅ Yes | ✅ Planned (WebSocket) |
-| **Visual DAG** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Maybe (D3.js) |
-| **Multi-User** | ✅ Yes (SaaS) | ✅ Yes (SaaS) | ✅ Yes (RBAC) | ✅ Yes (SaaS) | ⚠️ Basic (single-tenant) |
-| **Self-Hosted** | ❌ No | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes (only option) |
-| **AI-Native** | ✅ Yes | ✅ Yes | ❌ No | ❌ No | ✅ Yes (brains-first) |
-| **Domain-Specific** | ❌ Generic | ❌ Generic | ❌ Generic | ❌ Generic | ✅ Yes (expert niches) |
-
-**Key Differentiators:**
-1. **Type Safety** — Only strict-typed framework in this space
-2. **Self-Hosted Only** — No vendor lock-in, full data control
-3. **Domain-Specific Brains** — Not generic LLM orchestration
-4. **Expert Knowledge Distillation** — Built-in expert sources (230+)
-
-## Domain-Specific Features
-
-### 1. Parallel Task Execution Systems
-
-**Table Stakes:**
-- Task queue with pending/running/completed states
-- Dependency resolution (A depends on B → B runs first)
-- Error handling (task failure → stop dependents or continue?)
-- Execution logs (what ran, when, how long)
-
-**Differentiators:**
-- Smart dependency detection from flow definitions
-- Dynamic parallelism (auto-detect independent tasks)
-- Predictive execution time estimation
-- Execution replay with same random seeds
-
-**Anti-Features:**
-- Complex retry policies (exponential backoff is overkill)
-- Distributed execution (single-machine is fine for v2.0)
-- Priority queues (all tasks are equal priority)
-
-### 2. Type-Safe Python Frameworks
-
-**Table Stakes:**
-- Pydantic models for all data structures
-- mypy type checking (not strict, but enabled)
-- Type hints on all public APIs
-- Runtime validation at boundaries
-
-**Differentiators:**
-- **Strict mypy mode** (no `Any`, no untyped calls)
-- **Type-safe MCP** (validated notebook queries)
-- **Generated TypeScript types** (for web UI)
-- **Auto-completion in CLI** (type-driven suggestions)
-
-**Anti-Features:**
-- Runtime type checker (Typeguard is too slow)
-- Full TypeScript backend (stay in Python)
-- Generic type system (keep it simple)
-
-### 3. Web Dashboards for AI Systems
-
-**Table Stakes:**
-- Task list with status (pending/running/completed/failed)
-- Individual task detail page (logs, output, errors)
-- Manual trigger form (execute brain with inputs)
-- Basic authentication (login screen)
-- Responsive design (works on tablet)
-
-**Differentiators:**
-- **Live brain collaboration** (multiple users viewing same run)
-- **Visual dependency graph** (DAG animation)
-- **Type-aware forms** (validation errors in real-time)
-- **Execution comparison** (diff two runs)
-- **Brain usage analytics** (which brains used most)
-
-**Anti-Features:**
-- Real-time code editing (too complex)
-- Collaborative cursors (overkill)
-- Dark mode toggle (nice to have, defer)
-- Mobile app (PWA is enough)
-
-## Technical Complexity Notes
-
-### High Complexity Features (Require R&D)
-
-1. **Dependency Graph Resolution**
-   - Challenge: Detect implicit dependencies from brain outputs
-   - Risk: Circular dependencies, deadlock
-   - Approach: Explicit dependency declarations in flow configs
-
-2. **Visual Dependency Graph**
-   - Challenge: Layout algorithms for large DAGs (23+ brains)
-   - Risk: Performance with 100+ nodes
-   - Approach: Use Cytoscape.js with force-directed layout, lazy rendering
-
-3. **Multi-User Session Isolation**
-   - Challenge: Current coordinator is singleton (instance variables)
-   - Risk: Race conditions, mixed state
-   - Approach: Refactor to session-scoped coordinators, request context
-
-### Medium Complexity (Standard Patterns)
-
-1. **Parallel Executor**
-   - Pattern: asyncio.gather with dependency semaphore
-   - Risk: NotebookLM MCP is not async (needs thread pool)
-   - Approach: Run in executor thread, await futures
-
-2. **WebSocket Real-Time Updates**
-   - Pattern: Socket.IO or native WebSockets
-   - Risk: Connection state management
-   - Approach: Reconnection logic, heartbeat
-
-3. **Authentication System**
-   - Pattern: FastAPI Security with HTTPBasic
-   - Risk: Password storage (use bcrypt)
-   - Approach: Simple file-based users (no DB needed)
-
-### Low Complexity (Well-Understood)
-
-1. **Task State Management**
-   - Pattern: SQLite with tasks table
-   - Risk: None (standard CRUD)
-   - Approach: SQLAlchemy ORM or raw SQL
-
-2. **FastAPI Backend**
-   - Pattern: REST endpoints with Pydantic models
-   - Risk: None (mature framework)
-   - Approach: One endpoint per operation
-
-3. **Static Asset Serving**
-   - Pattern: Whitenoise or FastAPI StaticFiles
-   - Risk: None (standard)
-   - Approach: Build frontend to dist/, serve from FastAPI
-
-## Implementation Risk Assessment
-
-| Feature | Risk Level | Risk Type | Mitigation |
-|---------|------------|-----------|------------|
-| **Dependency Graph Resolution** | HIGH | Technical (circular deps) | Explicit declarations, cycle detection |
-| **Parallel Executor** | MEDIUM | Technical (async MCP) | Thread pool executor, timeout handling |
-| **Visual Dependency Graph** | MEDIUM | UX (large DAGs) | Progressive rendering, filters |
-| **Mypy Strict Mode** | LOW | Process (fix errors) | Incremental adoption, CI blocking |
-| **WebSocket Updates** | LOW | Technical (disconnects) | Reconnection logic, polling fallback |
-| **Multi-User Sessions** | HIGH | Architectural (state) | Session-scoped coordinators |
-| **Authentication** | LOW | Security (passwords) | bcrypt, https enforcement |
-| **Real-Time Collaboration** | HIGH | Technical (race conditions) | Operational transforms or CRDTs (defer to v2.1) |
-
-## Sources
-
-**Codebase Analysis:**
-- `/home/rpadron/proy/mastermind/mastermind_cli/memory/models.py` — Existing Pydantic patterns
-- `/home/rpadron/proy/mastermind/mastermind_cli/orchestrator/coordinator.py` — Current orchestration patterns
-- `/home/rpadron/proy/mastermind/pyproject.toml` — Current dependencies (Pydantic 2.0+, click, rich)
-
-**Ecosystem Knowledge (LOW confidence without WebSearch):**
-- Python asyncio for parallel execution
-- FastAPI for web dashboard
-- WebSocket for real-time updates
-- D3.js/Cytoscape.js for DAG visualization
-- Celery/Airflow patterns for task scheduling (competitor analysis)
-
-**Missing Verification (WebSearch was rate-limited):**
-- Current best practices for Python parallel task execution (2026)
-- Type-safe Python framework adoption trends (2026)
-- Web dashboard real-time progress patterns (2026)
-- Multi-user session management in Python (2026)
-
-**Confidence Level: MEDIUM**
-- Codebase analysis is HIGH confidence
-- Ecosystem knowledge is MEDIUM confidence (based on training data, not verified with current sources)
-- Competitor analysis is LOW confidence (without WebSearch verification)
+| Auth gate | HIGH (blocking) | LOW | P1 |
+| WebSocket Dispatcher (Zustand) | HIGH (enabling) | MEDIUM | P1 |
+| Command Center — Bento Grid | HIGH (first impression) | MEDIUM | P1 |
+| Command Center — brief submission | HIGH (core loop) | LOW | P1 |
+| The Nexus — DAG with node states | HIGH (the "wow") | HIGH | P1 |
+| Strategy Vault — execution list | HIGH (users need outputs) | LOW | P1 |
+| Strategy Vault — output view | HIGH (core value) | MEDIUM | P1 |
+| Engine Room — log viewer | MEDIUM (debugging) | MEDIUM | P1 |
+| Edge animation on brain activation | MEDIUM (polish) | LOW | P2 |
+| Engine Room — API keys | MEDIUM (operations) | LOW | P2 |
+| Engine Room — YAML editor | MEDIUM (config) | MEDIUM | P2 |
+| Brain pre-selection in command modal | MEDIUM (power users) | MEDIUM | P2 |
+| Execution diff view | MEDIUM (agency use case) | HIGH | P3 |
+| Execution replay / time-travel | LOW (nice to have) | HIGH | P3 |
+| Brain analytics | LOW (premature) | HIGH | P3 |
 
 ---
 
-*Feature research for: MasterMind Framework v2.0*
-*Researched: 2026-03-13*
-*Confidence: MEDIUM (WebSearch unavailable, codebase analysis + ecosystem knowledge)*
+## Competitor Feature Analysis
+
+Comparing against tools users compare to MasterMind visually.
+
+| Feature | LangSmith Studio | Prefect UI | Airflow UI | Our War Room |
+|---------|-----------------|------------|------------|--------------|
+| Command input modal | ❌ None | ❌ None | ❌ None | ✅ Raycast-style cmdk |
+| Bento Grid status tiles | ❌ List view | ❌ List view | ❌ Table | ✅ Magic UI animated tiles |
+| DAG node illumination on events | ✅ State coloring | ✅ State coloring | ✅ State coloring | ✅ + animation (NodeStatusIndicator) |
+| Real-time log stream | ✅ Yes | ✅ Yes | ⚠️ Polling | ✅ react-logviewer + WS |
+| Brain output Markdown rendering | ✅ Yes | ❌ No | ❌ No | ✅ react-markdown + memoization |
+| Domain-specific brain vocabulary | ❌ Generic tasks | ❌ Generic flows | ❌ Generic tasks | ✅ "Cerebros", briefs, niches |
+
+**Key differentiator:** The command center + bento grid combination is unique to this product. Workflow orchestration tools universally use table/list views. The spatial bento layout with real-time status illumination is the visual identity of the war room.
+
+---
+
+## Technical Complexity Notes by Screen
+
+### Screen complexity ranking (highest → lowest effort)
+
+1. **The Nexus** (HIGH) — React Flow + Zustand bridge + WS events + DAG layout algorithm + edge animation. Most moving parts.
+2. **WebSocket Dispatcher** (MEDIUM-HIGH) — Singleton Zustand store, reconnect logic, typed event subscriptions, cleanup on unmount. Foundation for 3 screens.
+3. **Command Center** (MEDIUM) — Bento Grid layout with 24 dynamic tiles, status subscriptions per tile, command modal with cmdk.
+4. **Engine Room** (MEDIUM) — react-logviewer WS integration, filter controls, Monaco editor for YAML (two independent sub-features).
+5. **Strategy Vault** (LOW-MEDIUM) — Mostly data fetching + Markdown rendering. No real-time. Simplest screen.
+
+### The Nexus — known implementation pitfalls
+
+- **Simultaneous node updates cause freezes** — React Flow issue #4779. Fix: batch WS events in Zustand, apply in single `setNodes` call, not one call per event.
+- **dagre layout must run once, not on every update** — Re-running layout resets positions; users lose context. Run on mount only, preserve positions on state changes.
+- **React Flow internal `updateNodeData` vs manual `setNodes`** — In React Flow 12+, use `updateNodeData(id, data)` from `useReactFlow()` for partial updates. Faster than full `setNodes` map on every event.
+
+### WebSocket Dispatcher — known pitfalls
+
+- **Connection race on mount** — Multiple components mounting simultaneously all try to connect. Use a module-level singleton pattern in Zustand (connection created once, reused).
+- **Stale closure in event handlers** — WS `onmessage` captures stale Zustand state. Fix: use `useStore.getState()` directly inside handlers, not `state` from `set`.
+- **Cleanup on page unload vs component unmount** — Don't close the WS connection on component unmount (other components need it). Only close on explicit logout or `beforeunload`.
+
+---
+
+## Sources
+
+- [React Flow State Management docs](https://reactflow.dev/learn/advanced-use/state-management) — Zustand bridge pattern, HIGH confidence
+- [React Flow Node Status Indicator](https://reactflow.dev/ui/components/node-status-indicator) — Built-in status states (loading/success/error/initial), HIGH confidence
+- [React Flow updateNodeData issue #4779](https://github.com/xyflow/xyflow/issues/4779) — Simultaneous update freeze, MEDIUM confidence (GitHub issue, not resolved docs)
+- [Magic UI Bento Grid](https://magicui.design/docs/components/bento-grid) — Component structure and props, HIGH confidence
+- [Bento Grids for AI Dashboards — Baltech](https://baltech.in/blog/bento-grids-for-ai-dashboards/) — Tile hierarchy patterns, MEDIUM confidence
+- [Vercel Streamdown](https://github.com/vercel/streamdown) — Streaming Markdown renderer, HIGH confidence
+- [react-logviewer (melloware)](https://github.com/melloware/react-logviewer) — Log viewer with WS + ANSI, HIGH confidence
+- [TanStack Virtual comparison](https://borstch.com/blog/development/comparing-tanstack-virtual-with-react-window-which-one-should-you-choose) — Virtualization library comparison, MEDIUM confidence
+- [shadcn Command component](https://ui.shadcn.com/docs/components/radix/command) — cmdk integration, HIGH confidence
+- [Vercel AI SDK — Markdown chatbot with memoization](https://ai-sdk.dev/cookbook/next/markdown-chatbot-with-memoization) — Memoized Markdown rendering pattern, HIGH confidence
+- [Command Palette UX patterns](https://uxpatterns.dev/patterns/advanced/command-palette) — Command palette design principles, MEDIUM confidence
+- [LangGraph Studio visualization](https://mem0.ai/blog/visual-ai-agent-debugging-langgraph-studio) — Competitor DAG visualization patterns, MEDIUM confidence
+
+---
+
+*Feature research for: MasterMind War Room Frontend (v2.1)*
+*Researched: 2026-03-19*
+*Confidence: HIGH — all major claims verified against official documentation or current sources*

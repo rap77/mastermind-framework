@@ -1,775 +1,970 @@
 # Architecture Research
 
-**Domain:** Multi-agent cognitive architecture with CLI + Web UI
-**Researched:** 2026-03-13
-**Overall Confidence:** HIGH
-
-Based on analysis of the existing v1.3.0 codebase and established patterns for distributed systems, type-safe APIs, and parallel orchestration.
+**Domain:** Next.js 16 frontend integrating with existing FastAPI backend (War Room v2.1)
+**Researched:** 2026-03-18
+**Confidence:** HIGH
 
 ---
 
-## Executive Summary
+## Context
 
-MasterMind v2.0 requires architectural evolution from **sequential CLI orchestration** to **parallel type-safe platform** with web interface. Research reveals four critical integration points:
+This document supersedes the v2.0 architecture research. The backend (apps/api/) is complete and
+stable. This research addresses the six specific integration questions for the v2.1 Next.js frontend:
 
-1. **Parallel Execution:** Asyncio task groups (Python 3.11+) with dependency DAG for brain orchestration
-2. **Type Safety:** Pydantic v2 models at all boundaries (MCP, CLI, Web, Brains) with strict mypy
-3. **Web UI:** FastAPI backend sharing business logic with CLI, WebSocket for real-time progress
-4. **Shared Memory Foundation:** Experience storage schema designed for future v3.0 vector DB integration
-
-The architecture maintains **backward compatibility** with v1.3.0 brains while enabling parallel speedups (3-10x for independent brains) and type-safe contracts for enterprise integration.
+1. JWT auth flow with httpOnly cookies
+2. Single WebSocket connection shared across navigation
+3. Zustand store shape for WebSocket + brain state
+4. React Flow custom nodes and the Server/Client boundary
+5. API calls strategy (server vs client, CORS)
+6. Build order for fastest feedback loop
 
 ---
 
-## Standard Architecture
+## Critical Next.js 16 Breaking Change: middleware → proxy
 
-### System Overview (v2.0)
+**IMPORTANT:** Next.js 16 deprecated `middleware.ts`. Route protection now lives in `proxy.ts`.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Interface Layer                         │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐              ┌─────────────┐                   │
-│  │  CLI (v1)   │              │  Web UI (v2)│                   │
-│  │  Click cmds │              │  FastAPI +  │                   │
-│  │             │              │  WebSocket  │                   │
-│  └──────┬──────┘              └──────┬──────┘                   │
-└─────────┼────────────────────────────┼──────────────────────────┘
-          │                            │
-          └────────────┬───────────────┘
-                       ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      API Gateway Layer                          │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │           Orchestrator API (Pydantic models)            │   │
-│  │  - orchestrate_brief()                                  │   │
-│  │  - query_brain()                                        │   │
-│  │  - get_progress() (WebSocket)                           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-                       ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                   Parallel Orchestration Layer                  │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐     │
-│  │   Dependency │  │   Parallel   │  │  Result          │     │
-│  │   Resolver   │→│   Executor   │→│  Aggregator      │     │
-│  │   (DAG)      │  │ (asyncio TG)  │  │                  │     │
-│  └──────────────┘  └──────────────┘  └──────────────────┘     │
-└─────────────────────────────────────────────────────────────────┘
-                       ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      Knowledge Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐    │
-│  │   Brain     │  │   Brain     │  │  MCP Wrapper        │    │
-│  │  Executor   │  │   Executor   │  │  (Type-safe)        │    │
-│  └──────┬──────┘  └──────┬──────┘  └─────────────────────┘    │
-│         │                │                      ↓                │
-│         └────────────────┴──────────────→  NotebookLM          │
-└─────────────────────────────────────────────────────────────────┘
-                       ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      Memory Layer (v2.0 Foundation)             │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐      │
-│  │  Experience   │  │   Session     │  │  Vector       │      │
-│  │  Store        │  │   Store       │  │  Schema       │      │
-│  │  (JSONB)      │  │  (JSON)       │  │  (future)     │      │
-│  └───────────────┘  └───────────────┘  └───────────────┘      │
-└─────────────────────────────────────────────────────────────────┘
+middleware.ts  →  proxy.ts
+export function middleware()  →  export function proxy()
 ```
 
-### Component Responsibilities
+The proxy runtime is **Node.js only** (not edge). The `jose` library must be used for JWT
+verification (not `jsonwebtoken`, which is Node-only and breaks edge). Since we are now on Node.js
+runtime anyway, `jsonwebtoken` works too — but `jose` is the safer cross-version choice.
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| **CLI Interface** | Terminal entry point, backward compatibility | Click commands wrapping OrchestratorAPI |
-| **Web UI** | Browser interface, real-time updates | FastAPI + WebSocket + HTML/JS frontend |
-| **Orchestrator API** | Type-safe orchestration entry point | Pydantic models, service layer |
-| **Dependency Resolver** | Build execution DAG from brain config | NetworkX + brain metadata |
-| **Parallel Executor** | Execute independent brains concurrently | asyncio.TaskGroup (3.11+) |
-| **Result Aggregator** | Merge parallel outputs into deliverable | Reduction strategy pattern |
-| **MCP Wrapper** | Type-safe NotebookLM communication | Pydantic models for MCP protocol |
-| **Brain Executor** | Query individual brains | Existing executor with type hints |
-| **Experience Store** | Log executions for future learning | JSONB files, designed for v3.0 vector DB |
+Cookies API is now **fully async**. `cookies()` must be awaited everywhere (breaking change from v15).
+
+---
+
+## System Overview
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        Browser (Next.js 16)                      │
+├──────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │proxy.ts     │  │ Server       │  │ Client Components        │ │
+│  │(route guard)│  │ Components   │  │ "use client"             │ │
+│  │             │  │ (data fetch) │  │ - WS events              │ │
+│  │cookie check │  │ no WS/store  │  │ - React Flow             │ │
+│  └──────┬──────┘  └──────┬───────┘  └────────────┬─────────────┘ │
+│         │                │                       │               │
+│         │          server-side fetch             │               │
+│         │         (Authorization header)         │               │
+│         │                │                       │               │
+│  ┌──────┴──────────────── ┴────────────────── ──┘│               │
+│  │              Zustand Store (Client-side)      │               │
+│  │  wsStore: connection + event subscriptions   │               │
+│  │  brainStore: nodes map (brain_id → state)    │               │
+│  │  authStore: access_token (memory only)       │               │
+│  └───────────────────────┬──────────────────────┘               │
+└──────────────────────────┼───────────────────────────────────────┘
+                           │ WebSocket ws://localhost:8000/ws/tasks/{task_id}?token=...
+                           │ REST   http://localhost:8000/api/...
+┌──────────────────────────▼───────────────────────────────────────┐
+│              FastAPI Backend (apps/api/ — UNCHANGED)             │
+├──────────────────────────────────────────────────────────────────┤
+│  POST /api/auth/login    → { access_token, refresh_token }       │
+│  POST /api/auth/refresh  → { access_token, refresh_token }       │
+│  POST /api/tasks         → { task_id, status }                   │
+│  GET  /api/tasks         → task list                             │
+│  GET  /api/tasks/{id}/graph → nodes[], edges[]                   │
+│  WS   /ws/tasks/{id}?token=... → brain events                    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 1. JWT Auth Flow: httpOnly Cookies + proxy.ts
+
+### Decision: Dual-Token Storage Strategy
+
+Store tokens in httpOnly cookies, never in localStorage or Zustand state.
+
+**Why httpOnly cookies:**
+- XSS protection: client-side JS cannot read the token
+- `proxy.ts` can read them synchronously for route protection
+- Survives page refresh without re-auth
+
+**Why NOT memory-only tokens for access_token:**
+- Lost on navigation/refresh
+- Forces re-auth on every page load
+
+**Why NOT localStorage:**
+- Accessible to XSS attacks
+- Violates security best practices for JWTs
+
+### Cookie Layout
+
+```
+access_token   httpOnly, SameSite=Lax, Path=/
+refresh_token  httpOnly, SameSite=Lax, Path=/api/auth/refresh
+```
+
+Setting `Path=/api/auth/refresh` for the refresh token means it is only sent to the refresh
+endpoint, reducing attack surface.
+
+### Token Flow
+
+```
+Login (Server Action)
+  → POST /api/auth/login → { access_token, refresh_token }
+  → Set-Cookie: access_token (httpOnly, 30min)
+  → Set-Cookie: refresh_token (httpOnly, 24h, Path=/api/auth/refresh)
+  → redirect('/command-center')
+
+proxy.ts (every protected route)
+  → const cookies = await cookies()
+  → const token = cookies.get('access_token')
+  → if (!token) redirect('/login')
+  → verify token with jose (JWTS_HS256)
+  → if expired → attempt refresh via internal fetch
+  → if refresh fails → redirect('/login')
+
+Server Components (data fetch)
+  → const cookies = await cookies()
+  → fetch(`${API_URL}/api/tasks`, {
+      headers: { Authorization: `Bearer ${cookies.get('access_token')}` }
+    })
+
+WebSocket (Client Component)
+  → token cannot be read from httpOnly cookie in client JS
+  → SOLUTION: route handler GET /api/token-hint returns token for WS use only
+  → OR: pass token as prop from Server Component to Client Component
+  → RECOMMENDED: pass access_token as prop from Server layout to WS context provider
+```
+
+### Implementation: proxy.ts (replaces middleware.ts)
+
+```typescript
+// apps/web/proxy.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+
+const SECRET = new TextEncoder().encode(
+  process.env.MM_SECRET_KEY ?? "change-me-in-production"
+);
+
+const PROTECTED = ["/command-center", "/nexus", "/vault", "/engine-room"];
+
+export async function proxy(request: NextRequest) {
+  const isProtected = PROTECTED.some((p) =>
+    request.nextUrl.pathname.startsWith(p)
+  );
+
+  if (!isProtected) return NextResponse.next();
+
+  const token = request.cookies.get("access_token")?.value;
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  try {
+    await jwtVerify(token, SECRET);
+    return NextResponse.next();
+  } catch {
+    // Token expired — attempt refresh via internal API call
+    const refreshToken = request.cookies.get("refresh_token")?.value;
+    if (!refreshToken) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const { access_token, refresh_token } = await response.json();
+    const nextResponse = NextResponse.next();
+    nextResponse.cookies.set("access_token", access_token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 30, // 30 min
+    });
+    nextResponse.cookies.set("refresh_token", refresh_token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/api/auth/refresh",
+      maxAge: 60 * 60 * 24, // 24h
+    });
+    return nextResponse;
+  }
+}
+
+export const config = {
+  matcher: ["/command-center/:path*", "/nexus/:path*", "/vault/:path*", "/engine-room/:path*"],
+};
+```
+
+### Token Handoff for WebSocket
+
+The access_token in httpOnly cookies is invisible to client JS. The WS endpoint requires a token
+query param. Solution: pass the token from the Server Component layout as a prop.
+
+```typescript
+// app/(protected)/layout.tsx — Server Component
+import { cookies } from "next/headers";
+import { WSProvider } from "@/components/ws-provider";
+
+export default async function ProtectedLayout({ children }) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value ?? "";
+
+  return (
+    <WSProvider token={token}>
+      {children}
+    </WSProvider>
+  );
+}
+```
+
+This is the cleanest solution: no Route Handler needed, token flows from server to client in a
+single React tree pass. The `WSProvider` is a Client Component that initializes the Zustand store.
+
+---
+
+## 2. WebSocket: Single Connection Across Navigation
+
+### Problem
+
+Client Components are re-mounted on navigation. A naive `useEffect(() => new WebSocket(...))` in a
+component creates a new connection every time the user navigates between screens, multiplying
+connections.
+
+### Solution: Module-Level Singleton + Zustand Store Lifecycle
+
+The WebSocket connection is managed at **module scope** inside the Zustand store, not inside a
+React component. The store persists across renders and navigation because Zustand stores are module
+singletons.
+
+```typescript
+// apps/web/src/stores/ws-store.ts
+import { create } from "zustand";
+
+type BrainEvent =
+  | { type: "brain_step_started"; brain_id: string; brain_name: string; task_id: string }
+  | { type: "brain_step_completed"; brain_id: string; output: string; duration_ms: number }
+  | { type: "brain_step_failed"; brain_id: string; error: string }
+  | { type: "execution_complete"; task_id: string; total_duration_ms: number };
+
+interface WSStore {
+  socket: WebSocket | null;
+  taskId: string | null;
+  token: string | null;
+  status: "disconnected" | "connecting" | "connected" | "error";
+  connect: (taskId: string, token: string) => void;
+  disconnect: () => void;
+  // Event subscribers by type
+  listeners: Map<string, Set<(event: BrainEvent) => void>>;
+  subscribe: (type: BrainEvent["type"], fn: (event: BrainEvent) => void) => () => void;
+}
+
+export const useWSStore = create<WSStore>((set, get) => ({
+  socket: null,
+  taskId: null,
+  token: null,
+  status: "disconnected",
+  listeners: new Map(),
+
+  connect: (taskId, token) => {
+    const { socket, taskId: currentTask } = get();
+
+    // Reuse connection if same task is already connected
+    if (socket && currentTask === taskId && socket.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    // Close previous connection
+    if (socket) {
+      socket.close();
+    }
+
+    set({ status: "connecting", taskId, token });
+
+    const ws = new WebSocket(
+      `${process.env.NEXT_PUBLIC_WS_URL}/ws/tasks/${taskId}?token=${token}`
+    );
+
+    ws.onopen = () => set({ socket: ws, status: "connected" });
+    ws.onclose = () => set({ socket: null, status: "disconnected" });
+    ws.onerror = () => set({ socket: null, status: "error" });
+
+    ws.onmessage = (event) => {
+      const data: BrainEvent = JSON.parse(event.data);
+      const listeners = get().listeners.get(data.type);
+      if (listeners) {
+        listeners.forEach((fn) => fn(data));
+      }
+    };
+  },
+
+  disconnect: () => {
+    const { socket } = get();
+    if (socket) socket.close();
+    set({ socket: null, status: "disconnected", taskId: null });
+  },
+
+  subscribe: (type, fn) => {
+    const { listeners } = get();
+    if (!listeners.has(type)) listeners.set(type, new Set());
+    listeners.get(type)!.add(fn);
+
+    // Return unsubscribe function
+    return () => {
+      listeners.get(type)?.delete(fn);
+    };
+  },
+}));
+```
+
+### Why this works across navigation
+
+Zustand store is module-level. When the user navigates from `/nexus` to `/command-center`, React
+unmounts the Nexus components but the store module stays in memory. The `socket` reference is
+preserved. New components subscribe to events from the existing connection.
+
+### WSProvider (Client Component — wraps protected layout)
+
+```typescript
+// apps/web/src/components/ws-provider.tsx
+"use client";
+import { useEffect } from "react";
+import { useWSStore } from "@/stores/ws-store";
+
+interface WSProviderProps {
+  token: string;
+  children: React.ReactNode;
+}
+
+export function WSProvider({ token, children }: WSProviderProps) {
+  const setToken = useWSStore((s) => s.token);
+
+  // Store token so components can initiate WS connections
+  useEffect(() => {
+    useWSStore.setState({ token });
+  }, [token]);
+
+  return <>{children}</>;
+}
+```
+
+---
+
+## 3. Zustand Store Architecture
+
+### Three stores, each with a single responsibility
+
+```
+useWSStore       — WebSocket lifecycle + event pub/sub
+useBrainStore    — Brain states (updated by WS events)
+useAuthStore     — Token in memory for WS (NOT cookies, those are server-only)
+```
+
+### useBrainStore: The Re-render Prevention Store
+
+This is the most performance-critical store. With 24 brains, we must NOT store all nodes in a
+single array — updating one brain would re-render all 24 node components.
+
+**Key insight:** Store brains as a `Map<brain_id, BrainState>` and use Immer for surgical updates.
+Each React Flow node reads ONLY its own state via a targeted selector.
+
+```typescript
+// apps/web/src/stores/brain-store.ts
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+
+export type BrainStatus = "idle" | "pending" | "running" | "completed" | "failed";
+
+export interface BrainState {
+  brainId: string;
+  brainName: string;
+  status: BrainStatus;
+  output: string | null;
+  error: string | null;
+  durationMs: number | null;
+  startedAt: number | null;
+}
+
+interface BrainStore {
+  brains: Map<string, BrainState>;
+  activeTaskId: string | null;
+  setActiveTask: (taskId: string, initialNodes: { id: string; label: string }[]) => void;
+  handleBrainStarted: (brainId: string, brainName: string, taskId: string) => void;
+  handleBrainCompleted: (brainId: string, output: string, durationMs: number) => void;
+  handleBrainFailed: (brainId: string, error: string) => void;
+  resetTask: () => void;
+}
+
+export const useBrainStore = create<BrainStore>()(
+  immer((set) => ({
+    brains: new Map(),
+    activeTaskId: null,
+
+    setActiveTask: (taskId, initialNodes) =>
+      set((state) => {
+        state.activeTaskId = taskId;
+        state.brains = new Map(
+          initialNodes.map((n) => [
+            n.id,
+            {
+              brainId: n.id,
+              brainName: n.label,
+              status: "pending",
+              output: null,
+              error: null,
+              durationMs: null,
+              startedAt: null,
+            },
+          ])
+        );
+      }),
+
+    handleBrainStarted: (brainId, brainName, taskId) =>
+      set((state) => {
+        const brain = state.brains.get(brainId);
+        if (brain) {
+          brain.status = "running";
+          brain.startedAt = Date.now();
+        }
+      }),
+
+    handleBrainCompleted: (brainId, output, durationMs) =>
+      set((state) => {
+        const brain = state.brains.get(brainId);
+        if (brain) {
+          brain.status = "completed";
+          brain.output = output;
+          brain.durationMs = durationMs;
+        }
+      }),
+
+    handleBrainFailed: (brainId, error) =>
+      set((state) => {
+        const brain = state.brains.get(brainId);
+        if (brain) {
+          brain.status = "failed";
+          brain.error = error;
+        }
+      }),
+
+    resetTask: () =>
+      set((state) => {
+        state.brains = new Map();
+        state.activeTaskId = null;
+      }),
+  }))
+);
+
+// Targeted selector — component ONLY re-renders when its own brain changes
+export const useBrainState = (brainId: string) =>
+  useBrainStore((s) => s.brains.get(brainId));
+```
+
+### WS Event → Brain Store Bridge
+
+This bridge component lives once at the app level. It subscribes to WS events and dispatches to
+the brain store. It has NO render output.
+
+```typescript
+// apps/web/src/components/ws-brain-bridge.tsx
+"use client";
+import { useEffect } from "react";
+import { useWSStore } from "@/stores/ws-store";
+import { useBrainStore } from "@/stores/brain-store";
+
+export function WSBrainBridge() {
+  const subscribe = useWSStore((s) => s.subscribe);
+  const { handleBrainStarted, handleBrainCompleted, handleBrainFailed } = useBrainStore();
+
+  useEffect(() => {
+    const unsubs = [
+      subscribe("brain_step_started", (e) => {
+        if (e.type === "brain_step_started") {
+          handleBrainStarted(e.brain_id, e.brain_name, e.task_id);
+        }
+      }),
+      subscribe("brain_step_completed", (e) => {
+        if (e.type === "brain_step_completed") {
+          handleBrainCompleted(e.brain_id, e.output, e.duration_ms);
+        }
+      }),
+      subscribe("brain_step_failed", (e) => {
+        if (e.type === "brain_step_failed") {
+          handleBrainFailed(e.brain_id, e.error);
+        }
+      }),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [subscribe, handleBrainStarted, handleBrainCompleted, handleBrainFailed]);
+
+  return null;
+}
+```
+
+---
+
+## 4. React Flow: Server/Client Boundary + Node Re-render Prevention
+
+### Boundary Rule
+
+React Flow is entirely a Client Component concern. No React Flow import belongs in a Server
+Component. The pattern is:
+
+```
+Server Component (page.tsx)
+  → fetch /api/tasks/{id}/graph  (nodes[], edges[])
+  → pass nodes/edges as props to NexusCanvas (Client Component)
+
+NexusCanvas ("use client")
+  → initializes React Flow with nodes from props
+  → hands off state management to useBrainStore for live updates
+```
+
+### Preventing 23-node cascade re-renders
+
+The critical mistake is passing WS state through React Flow's `nodes` array. When one brain
+changes, React Flow would re-compute and re-render all nodes.
+
+**Correct pattern: stable node data + external state lookup in each node**
+
+```typescript
+// The nodes array passed to ReactFlow NEVER changes (position/layout only)
+// Brain state comes from useBrainStore inside each node component
+
+// ✅ CORRECT: Custom node reads its own state from store
+// apps/web/src/components/brain-node.tsx
+"use client";
+import { memo } from "react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { useBrainState } from "@/stores/brain-store";
+import { cn } from "@/lib/utils";
+
+const STATUS_COLORS: Record<string, string> = {
+  idle: "border-slate-600 bg-slate-900",
+  pending: "border-slate-500 bg-slate-800",
+  running: "border-blue-500 bg-blue-950 animate-pulse",
+  completed: "border-emerald-500 bg-emerald-950",
+  failed: "border-red-500 bg-red-950",
+};
+
+function BrainNodeComponent({ id, data }: NodeProps) {
+  // Targeted selector — only re-renders when THIS brain's state changes
+  const brainState = useBrainState(id);
+  const status = brainState?.status ?? "idle";
+
+  return (
+    <div className={cn("rounded-lg border-2 px-4 py-3 min-w-[140px]", STATUS_COLORS[status])}>
+      <Handle type="target" position={Position.Top} />
+      <p className="text-xs font-medium text-white truncate">{data.label as string}</p>
+      <p className="text-xs text-slate-400 capitalize">{status}</p>
+      {brainState?.durationMs && (
+        <p className="text-xs text-slate-500">{brainState.durationMs}ms</p>
+      )}
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
+// React.memo prevents re-render when PARENT re-renders
+// The store selector handles re-render when brain state changes
+export const BrainNode = memo(BrainNodeComponent);
+```
+
+```typescript
+// ❌ WRONG: Passing ws state through node data
+const nodes = brains.map(b => ({
+  id: b.id,
+  data: { status: b.status }  // This triggers full node array replacement → all nodes re-render
+}));
+```
+
+### NexusCanvas Client Component
+
+```typescript
+// apps/web/src/components/nexus-canvas.tsx
+"use client";
+import { useMemo } from "react";
+import { ReactFlow, Background, Controls, type Node, type Edge } from "@xyflow/react";
+import { BrainNode } from "./brain-node";
+import "@xyflow/react/dist/style.css";
+
+// Declared OUTSIDE component — prevents new reference on every render
+const NODE_TYPES = { brainNode: BrainNode };
+
+interface NexusCanvasProps {
+  initialNodes: Node[];
+  initialEdges: Edge[];
+}
+
+export function NexusCanvas({ initialNodes, initialEdges }: NexusCanvasProps) {
+  // Layout-only nodes — these NEVER change after mount
+  // State comes from useBrainStore inside each node
+  const nodes = useMemo(
+    () => initialNodes.map((n) => ({ ...n, type: "brainNode" })),
+    [initialNodes]  // Only recomputes if layout changes (navigation to new task)
+  );
+
+  return (
+    <div className="h-full w-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={initialEdges}
+        nodeTypes={NODE_TYPES}
+        fitView
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </div>
+  );
+}
+```
+
+---
+
+## 5. API Calls: Server vs Client, CORS
+
+### CORS: Already Configured
+
+The FastAPI backend has `CORSMiddleware` with `allow_origins=["*"]`. No CORS changes needed in
+the backend for development. For production, tighten to `allow_origins=["http://localhost:3000"]`
+or the production domain.
+
+### Server-side fetch (Server Components)
+
+Use for: initial page data, task lists, brain configs, anything that benefits from SSR or caching.
+
+```typescript
+// apps/web/src/lib/api.ts
+import { cookies } from "next/headers";
+import "server-only";
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+
+  const res = await fetch(`${API}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
+    // No cache by default — dashboard is real-time
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status} ${path}`);
+  }
+
+  return res.json();
+}
+```
+
+### Client-side fetch (Client Components)
+
+Use for: mutations triggered by user interaction (create task, cancel task), cases where the result
+must update UI without navigation.
+
+```typescript
+// apps/web/src/lib/client-api.ts — Client-safe API utility
+// Does NOT use cookies() — reads token from WSStore which holds it in memory
+
+export async function clientFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // Token was passed from Server Component → WSProvider → stored in wsStore
+  const token = useWSStore.getState().token;
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
+  });
+
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+```
+
+### When to use Server vs Client fetch
+
+| Use case | Approach | Why |
+|----------|----------|-----|
+| Initial task list on page load | Server Component + `apiFetch` | SSR, faster initial paint |
+| Task graph for Nexus | Server Component + `apiFetch` | Data available before hydration |
+| Create task (form submit) | Server Action | Progressive enhancement |
+| Cancel running task (button) | Client Component + `clientFetch` | Immediate UI feedback |
+| Poll task status | NOT needed | WebSocket handles real-time updates |
+
+---
+
+## 6. Build Order: Fastest Feedback Loop
+
+Build in this order because each screen validates the next layer's foundation.
+
+### Screen 1: Login (authentication plumbing)
+
+**Why first:** Every other screen depends on auth. Building login first validates the entire
+auth flow: cookie setting, proxy.ts route protection, token handoff to WSProvider.
+
+- Server Action for form submission
+- `POST /api/auth/login` → set httpOnly cookies
+- proxy.ts redirect validation
+- If login works → auth architecture is correct
+
+### Screen 2: Command Center (brief input + brain grid)
+
+**Why second:** Exercises REST API (brain list, task creation) and the WS connection initiation.
+The Bento Grid with 24 brain cards validates the `useBrainStore` and `useBrainState` selectors.
+No React Flow complexity yet.
+
+- `GET /api/brains` (need to verify this endpoint exists — see gaps below)
+- `POST /api/tasks` → get task_id → open WS
+- WS events → useBrainStore updates → BrainCard components update individually
+- Validates re-render prevention before Nexus complexity
+
+### Screen 3: The Nexus (React Flow DAG)
+
+**Why third:** Depends on task_id from Command Center and WS infrastructure from Screen 2.
+Build after WS → BrainStore pipeline is proven correct.
+
+- `GET /api/tasks/{id}/graph` → nodes[], edges[]
+- ReactFlow with custom BrainNode components
+- BrainNode reads from useBrainStore (already working from Screen 2)
+- Test: launch task in Command Center, switch to Nexus → nodes illuminate
+
+### Screen 4: Strategy Vault + Engine Room
+
+**Why last:** Read-only views of data already in the API. Lowest risk, no new integration
+patterns. Build after the complex screens prove the infrastructure.
 
 ---
 
 ## Recommended Project Structure
 
 ```
-mastermind_cli/
-├── api/                          # NEW: API Gateway Layer
-│   ├── __init__.py
-│   ├── models.py                 # Pydantic models (all boundaries)
-│   ├── orchestration.py          # OrchestratorAPI (service layer)
-│   ├── dependencies.py           # Dependency resolver (DAG)
-│   ├── parallel.py               # Parallel executor (asyncio)
-│   └── websocket.py              # WebSocket for real-time updates
-│
-├── orchestrator/                 # EXISTING: Enhanced with types
-│   ├── coordinator.py            # Refactor to use OrchestratorAPI
-│   ├── flow_detector.py          # Existing (keep)
-│   ├── plan_generator.py         # Existing (keep)
-│   ├── brain_executor.py         # Add type hints
-│   ├── evaluator.py              # Existing (keep)
-│   ├── output_formatter.py       # Existing (keep)
-│   └── mcp_integration.py        # Add Pydantic models
-│
-├── web/                          # NEW: Web UI Backend
-│   ├── __init__.py
-│   ├── app.py                    # FastAPI application
-│   ├── routes/
-│   │   ├── orchestration.py      # POST /orchestrate
-│   │   ├── brains.py             # GET /brains
-│   │   └── sessions.py           # GET/POST /sessions
-│   ├── websocket/
-│   │   └── progress.py           # WS /progress/{session_id}
-│   └── templates/
-│       └── dashboard.html        # Single-page app
-│
-├── memory/                       # EXISTING: Enhanced for v2.0
-│   ├── models.py                 # Add ExperienceRecord (v3.0-ready)
-│   ├── storage.py                # Existing (keep)
-│   ├── interview_logger.py       # Existing (keep)
-│   └── experience_store.py       # NEW: Experience logging
-│
-├── commands/                     # EXISTING: CLI wraps API
-│   ├── orchestrate.py            # Use OrchestratorAPI
-│   ├── source.py                 # Existing (keep)
-│   ├── brain.py                  # Existing (keep)
-│   └── evaluation.py             # Existing (keep)
-│
-└── utils/                        # EXISTING: Type hints added
-    ├── validation.py             # Existing (keep)
-    ├── yaml.py                   # Existing (keep)
-    └── git.py                    # Existing (keep)
+apps/web/
+├── proxy.ts                    # Route protection (NOT middleware.ts — Next.js 16)
+├── next.config.ts
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx          # Root layout (fonts, global styles)
+│   │   ├── (auth)/
+│   │   │   └── login/
+│   │   │       └── page.tsx    # Server Component — login form
+│   │   └── (protected)/
+│   │       ├── layout.tsx      # Server Component — fetches token, wraps WSProvider
+│   │       ├── command-center/
+│   │       │   └── page.tsx    # Server Component — fetches brain list
+│   │       ├── nexus/
+│   │       │   └── page.tsx    # Server Component — fetches task graph
+│   │       ├── vault/
+│   │       │   └── page.tsx
+│   │       └── engine-room/
+│   │           └── page.tsx
+│   ├── actions/
+│   │   ├── auth.ts             # "use server" — login, logout, refresh
+│   │   └── tasks.ts            # "use server" — create task, cancel task
+│   ├── components/
+│   │   ├── ws-provider.tsx     # "use client" — initializes token in wsStore
+│   │   ├── ws-brain-bridge.tsx # "use client" — routes WS events to brainStore
+│   │   ├── brain-node.tsx      # "use client" — React Flow custom node
+│   │   ├── nexus-canvas.tsx    # "use client" — React Flow canvas
+│   │   ├── brain-card.tsx      # "use client" — Bento Grid brain card
+│   │   └── command-input.tsx   # "use client" — Raycast-style input
+│   ├── stores/
+│   │   ├── ws-store.ts         # WebSocket lifecycle + pub/sub
+│   │   └── brain-store.ts      # Brain states map + Immer updates
+│   └── lib/
+│       ├── api.ts              # "server-only" — server-side fetch with cookies
+│       ├── client-api.ts       # Client-side fetch with token from wsStore
+│       └── utils.ts            # cn() and other utilities
 ```
-
-### Structure Rationale
-
-- **`api/`** — New API gateway layer separates orchestration logic from CLI/Web interfaces. Enables both to share the same type-safe business logic.
-- **`web/`** — FastAPI backend follows standard project structure with `routes/`, `websocket/`, `templates/`. Keeps web code isolated but consuming shared API.
-- **`orchestrator/`** — Existing components enhanced with type hints, not replaced. Coordinator refactored to delegate parallel execution to `api/`.
-- **`memory/`** — New `experience_store.py` logs executions in v3.0-ready schema (embeddings prepared for future vector DB).
-- **`commands/`** — CLI becomes thin wrapper around `OrchestratorAPI`, maintaining backward compatibility.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Orchestrator API (Service Layer Pattern)
+### Pattern 1: Token Waterfall (Server → Client)
 
-**What:** Centralized service layer with Pydantic models at all boundaries. CLI and Web UI call the same API.
+**What:** httpOnly cookie token flows from Server Component → Client Component prop → Zustand
+store. No client JS ever reads cookies directly.
 
-**When to use:** Multiple interfaces (CLI, Web, API) need to share business logic with type safety.
-
-**Trade-offs:**
-- ✅ Single source of truth for orchestration logic
-- ✅ Type safety across all boundaries
-- ✅ Easy testing (mock API layer)
-- ❌ Additional abstraction layer (complexity)
-- ❌ API changes affect all clients
-
-**Example:**
-```python
-# mastermind_cli/api/models.py
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-
-class BrainRequest(BaseModel):
-    """Type-safe brain execution request."""
-    brain_id: int = Field(..., description="Brain identifier")
-    query: str = Field(..., min_length=1, description="Query for the brain")
-    context: Optional[Dict[str, Any]] = Field(default=None, description="Additional context")
-
-class BrainResponse(BaseModel):
-    """Type-safe brain execution response."""
-    brain_id: int
-    status: str  # "success" | "error" | "iteration"
-    content: str
-    metadata: Dict[str, Any]
-    timestamp: float
-
-class OrchestrationRequest(BaseModel):
-    """Type-safe orchestration request."""
-    brief: str = Field(..., min_length=1)
-    flow: Optional[str] = None
-    max_iterations: int = Field(default=3, ge=1, le=10)
-    parallel: bool = Field(default=True, description="Enable parallel execution")
-
-class OrchestrationResponse(BaseModel):
-    """Type-safe orchestration response."""
-    session_id: str
-    status: str  # "running" | "completed" | "failed"
-    results: Dict[str, BrainResponse]
-    deliverable: Optional[str]
-
-# mastermind_cli/api/orchestration.py
-from .models import OrchestrationRequest, OrchestrationResponse
-from ..orchestrator.coordinator import Coordinator
-
-class OrchestratorAPI:
-    """Type-safe orchestration API."""
-
-    def __init__(self):
-        self.coordinator = Coordinator()
-        self.parallel_executor = ParallelExecutor()
-
-    async def orchestrate_brief(
-        self,
-        request: OrchestrationRequest
-    ) -> OrchestrationResponse:
-        """Orchestrate brains for a brief."""
-        # Generate plan
-        plan = self.coordinator.plan_generator.generate(
-            request.brief,
-            request.flow or self.coordinator._detect_flow(request.brief)
-        )
-
-        # Resolve dependencies
-        dag = self.dependency_resolver.resolve(plan)
-
-        # Execute in parallel
-        if request.parallel:
-            results = await self.parallel_executor.execute_parallel(dag)
-        else:
-            results = await self.parallel_executor.execute_sequential(dag)
-
-        # Aggregate results
-        deliverable = self.coordinator.formatter.format_final_deliverable(results)
-
-        return OrchestrationResponse(
-            session_id=plan['session_id'],
-            status="completed",
-            results=results,
-            deliverable=deliverable
-        )
-```
-
----
-
-### Pattern 2: Parallel Executor with Task Groups (Python 3.11+)
-
-**What:** Use `asyncio.TaskGroup` for structured concurrency. Automatically handles errors and cancels unfinished tasks.
-
-**When to use:** Multiple independent brains can execute concurrently. Some brains depend on outputs of others.
+**When to use:** Any time a Client Component needs auth credentials (WS, client-side API calls).
 
 **Trade-offs:**
-- ✅ 3-10x speedup for independent brains
-- ✅ Automatic error handling and cleanup
-- ✅ Built into Python 3.11+ (no dependencies)
-- ❌ Requires brain dependency metadata
-- ❌ Debugging concurrent code is harder
-- ❌ Python 3.11+ required (already satisfied: project uses 3.14)
+- Safe against XSS (cookies not accessible to JS)
+- Token is briefly visible in React component tree (in memory only, not DOM)
+- Requires Server Component wrapping the Client Component — always true with App Router layouts
 
-**Example:**
-```python
-# mastermind_cli/api/parallel.py
-import asyncio
-from typing import Dict, List, Any
-from ..api.models import BrainRequest, BrainResponse
+### Pattern 2: Map-Based Brain Store with Immer
 
-class ParallelExecutor:
-    """Execute brain tasks in parallel using TaskGroup."""
+**What:** Store brains as `Map<string, BrainState>` with Immer middleware. Update individual
+entries without touching others. Each node component uses a targeted selector.
 
-    async def execute_parallel(
-        self,
-        dag: Dict[str, Any]
-    ) -> Dict[str, BrainResponse]:
-        """Execute brains in parallel respecting dependencies.
-
-        Args:
-            dag: Dependency graph from DependencyResolver
-
-        Returns:
-            Mapping of brain_id to BrainResponse
-        """
-        results = {}
-
-        # Group tasks by dependency level (topological sort)
-        levels = self._group_by_level(dag)
-
-        for level, brain_ids in levels.items():
-            print(f"Executing level {level}: {brain_ids}")
-
-            async with asyncio.TaskGroup() as tg:
-                tasks = {}
-                for brain_id in brain_ids:
-                    # Create task for each brain
-                    task = tg.create_task(
-                        self._execute_brain(brain_id, dag)
-                    )
-                    tasks[brain_id] = task
-
-                # Wait for all tasks in this level
-                for brain_id, task in tasks.items():
-                    results[brain_id] = await task
-
-        return results
-
-    async def _execute_brain(
-        self,
-        brain_id: int,
-        dag: Dict[str, Any]
-    ) -> BrainResponse:
-        """Execute a single brain."""
-        brain_config = dag['brains'][brain_id]
-
-        # Call existing brain executor (wrapped in async)
-        response = await asyncio.to_thread(
-            self.coordinator.brain_executor.execute,
-            brain_config['query'],
-            brain_id
-        )
-
-        return BrainResponse(
-            brain_id=brain_id,
-            status=response.get('status', 'success'),
-            content=response.get('content', ''),
-            metadata=response.get('metadata', {}),
-            timestamp=time.time()
-        )
-
-    def _group_by_level(self, dag: Dict[str, Any]) -> Dict[int, List[int]]:
-        """Group brain IDs by dependency level.
-
-        Level 0: No dependencies
-        Level 1: Depends on Level 0
-        Level 2: Depends on Level 1, etc.
-        """
-        # Topological sort implementation
-        levels = {}
-        brain_levels = {}
-
-        for brain_id in dag['brains']:
-            level = self._calculate_level(brain_id, dag, brain_levels)
-            if level not in levels:
-                levels[level] = []
-            levels[level].append(brain_id)
-
-        return levels
-
-    def _calculate_level(
-        self,
-        brain_id: int,
-        dag: Dict[str, Any],
-        brain_levels: Dict[int, int]
-    ) -> int:
-        """Recursively calculate dependency level."""
-        if brain_id in brain_levels:
-            return brain_levels[brain_id]
-
-        dependencies = dag['brains'][brain_id].get('depends_on', [])
-        if not dependencies:
-            brain_levels[brain_id] = 0
-            return 0
-
-        max_dep_level = max(
-            self._calculate_level(dep_id, dag, brain_levels)
-            for dep_id in dependencies
-        )
-        brain_levels[brain_id] = max_dep_level + 1
-        return brain_levels[brain_id]
-```
-
----
-
-### Pattern 3: Dependency Resolver (DAG-based Execution)
-
-**What:** Build a Directed Acyclic Graph (DAG) from brain dependencies. Execute in topological order levels.
-
-**When to use:** Brains have explicit dependencies (e.g., Brain #2 requires output from Brain #1).
+**When to use:** Any time you have N independent entities that receive independent real-time
+updates. Anti-pattern is an array with spread replacement.
 
 **Trade-offs:**
-- ✅ Maximum parallelism (only wait when necessary)
-- ✅ Clear dependency visualization
-- ✅ Prevents circular dependencies
-- ❌ Requires dependency metadata in brain configs
-- ❌ Complex for simple flows
+- Zero cascade re-renders when one brain updates
+- Immer enables direct mutation syntax (safer for Maps)
+- Map is not JSON-serializable (no persist middleware on this store)
 
-**Example:**
-```python
-# mastermind_cli/api/dependencies.py
-from typing import Dict, List, Any
-import networkx as nx
+### Pattern 3: WS Pub/Sub Inside Zustand
 
-class DependencyResolver:
-    """Resolve brain dependencies and build execution DAG."""
+**What:** The WS `onmessage` handler dispatches to a Map of typed listeners. Components/bridges
+subscribe and unsubscribe in useEffect. Store manages the WebSocket lifecycle.
 
-    def resolve(self, plan: Dict[str, Any]) -> Dict[str, Any]:
-        """Build execution DAG from plan.
-
-        Args:
-            plan: Execution plan from PlanGenerator
-
-        Returns:
-            DAG with brains and their dependencies
-        """
-        dag = {
-            'brains': {},
-            'graph': nx.DiGraph()
-        }
-
-        for task in plan['tasks']:
-            brain_id = task['brain_id']
-            dag['brains'][brain_id] = {
-                'query': task['query'],
-                'depends_on': self._get_dependencies(brain_id, task)
-            }
-            dag['graph'].add_node(brain_id)
-
-        # Add dependency edges
-        for brain_id, brain_data in dag['brains'].items():
-            for dep_id in brain_data['depends_on']:
-                dag['graph'].add_edge(dep_id, brain_id)
-
-        # Validate no cycles
-        if not nx.is_directed_acyclic_graph(dag['graph']):
-            raise ValueError("Circular brain dependencies detected")
-
-        return dag
-
-    def _get_dependencies(self, brain_id: int, task: Dict[str, Any]) -> List[int]:
-        """Extract dependencies based on flow type.
-
-        Examples:
-        - Validation flow: Brain #7 depends on Brain #1
-        - Full product: Brains #2-6 depend on #1, #7 depends on all
-        """
-        flow = task.get('flow', 'standard')
-
-        if flow == 'validation_only':
-            return [1] if brain_id == 7 else []
-        elif flow == 'full_product':
-            if brain_id == 1:
-                return []
-            elif brain_id == 7:
-                return [1, 2, 3, 4, 5, 6]
-            else:
-                return [1]
-        else:
-            return []
-```
-
----
-
-### Pattern 4: MCP Wrapper with Pydantic Models
-
-**What:** Wrap MCP protocol calls with Pydantic models for type-safe communication with NotebookLM.
-
-**When to use:** Integrating with external services (MCP servers) that return unstructured data.
+**When to use:** Multiple components need different WS event types without prop drilling or context
+re-renders.
 
 **Trade-offs:**
-- ✅ Type safety at MCP boundary
-- ✅ Validation and serialization in one place
-- ✅ Clear contract definition
-- ❌ Requires maintaining models for each MCP tool
-- ❌ MCP schema changes require model updates
+- Decouples WS from React tree (no re-render on every event)
+- Subscribers self-manage (unsubscribe on unmount)
+- Debugging requires Redux DevTools or console inspection
 
-**Example:**
-```python
-# mastermind_cli/api/mcp_models.py
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+### Pattern 4: Stable Node Array + External State in Custom Nodes
 
-class MCPQueryRequest(BaseModel):
-    """Type-safe MCP query request."""
-    notebook_id: str = Field(..., description="NotebookLM notebook ID")
-    query: str = Field(..., min_length=1, description="Query text")
-    context: Optional[Dict[str, Any]] = None
+**What:** React Flow's `nodes` array contains ONLY layout data (id, position, type). Live state
+comes from useBrainStore inside each custom node component via targeted selector.
 
-class MCPQueryResponse(BaseModel):
-    """Type-safe MCP query response."""
-    answer: str
-    sources: List[str]
-    confidence: float = Field(ge=0.0, le=1.0)
-    metadata: Dict[str, Any]
-
-class MCPClient:
-    """Type-safe MCP client wrapper."""
-
-    async def query_notebook(
-        self,
-        request: MCPQueryRequest
-    ) -> MCPQueryResponse:
-        """Query NotebookLM via MCP with type safety."""
-        # Call existing MCP integration
-        raw_response = await self._mcp_integration.call(
-            "query",
-            notebook_id=request.notebook_id,
-            query=request.query,
-            context=request.context
-        )
-
-        # Validate response
-        return MCPQueryResponse(**raw_response)
-```
-
----
-
-### Pattern 5: FastAPI + WebSocket for Real-time Progress
-
-**What:** FastAPI backend with WebSocket connections for real-time brain execution progress.
-
-**When to use:** Web UI needs to show live execution status without polling.
+**When to use:** React Flow graphs with real-time node state updates.
 
 **Trade-offs:**
-- ✅ Real-time updates (no polling overhead)
-- ✅ Bi-directional communication
-- ✅ Built-in async support
-- ❌ WebSocket management complexity
-- ❌ Connection state handling
-
-**Example:**
-```python
-# mastermind_cli/web/websocket/progress.py
-from fastapi import WebSocket
-from typing import Dict, Set
-import asyncio
-import json
-
-class ProgressManager:
-    """Manage WebSocket connections for progress updates."""
-
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-
-    async def connect(self, session_id: str, websocket: WebSocket):
-        """Accept WebSocket connection."""
-        await websocket.accept()
-        self.active_connections[session_id] = websocket
-
-    def disconnect(self, session_id: str):
-        """Remove WebSocket connection."""
-        if session_id in self.active_connections:
-            del self.active_connections[session_id]
-
-    async def send_progress(
-        self,
-        session_id: str,
-        brain_id: int,
-        status: str,
-        progress: float
-    ):
-        """Send progress update to client."""
-        if session_id not in self.active_connections:
-            return
-
-        websocket = self.active_connections[session_id]
-        await websocket.send_json({
-            'type': 'progress',
-            'brain_id': brain_id,
-            'status': status,
-            'progress': progress
-        })
-
-# mastermind_cli/web/routes/orchestration.py
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from ..websocket.progress import ProgressManager
-from ...api.orchestration import OrchestratorAPI
-
-router = APIRouter()
-progress_manager = ProgressManager()
-orchestrator = OrchestratorAPI()
-
-@router.post("/orchestrate")
-async def orchestrate(request: OrchestrationRequest):
-    """Start orchestration and return session ID."""
-    session_id = str(uuid.uuid4())
-
-    # Start background task
-    asyncio.create_task(
-        _orchestrate_with_updates(session_id, request)
-    )
-
-    return {"session_id": session_id, "status": "started"}
-
-@router.websocket("/progress/{session_id}")
-async def progress_websocket(websocket: WebSocket, session_id: str):
-    """WebSocket endpoint for real-time progress."""
-    await progress_manager.connect(session_id, websocket)
-    try:
-        while True:
-            # Keep connection alive
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        progress_manager.disconnect(session_id)
-
-async def _orchestrate_with_updates(
-    session_id: str,
-    request: OrchestrationRequest
-):
-    """Execute orchestration with progress updates."""
-    async for progress in orchestrator.orchestrate_brief_async(request):
-        await progress_manager.send_progress(
-            session_id,
-            progress.brain_id,
-            progress.status,
-            progress.progress
-        )
-```
-
----
-
-### Pattern 6: Experience Store (v3.0 Foundation)
-
-**What:** Log all brain executions with structured schema designed for future vector DB integration.
-
-**When to use:** Building for future ML/learning capabilities without implementing full RAG system.
-
-**Trade-offs:**
-- ✅ Future-proof data structure
-- ✅ Enables analytics today
-- ✅ No ML complexity in v2.0
-- ❌ Storage overhead
-- ❌ Schema design needs careful thought
-
-**Example:**
-```python
-# mastermind_cli/memory/models.py
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-from datetime import datetime
-
-class ExperienceRecord(BaseModel):
-    """Execution record designed for future vector DB integration.
-
-    v2.0: JSONB storage with embeddings stub
-    v3.0: Migrate to PostgreSQL + pgvector for semantic search
-    """
-    # Core execution data
-    execution_id: str = Field(..., description="Unique execution ID")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    brief: str = Field(..., description="Original user brief")
-    flow: str = Field(..., description="Flow type used")
-
-    # Brain outputs
-    brain_outputs: Dict[int, str] = Field(
-        ...,
-        description="Mapping of brain_id to output content"
-    )
-
-    # Evaluation data
-    evaluation_score: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Quality score from evaluator"
-    )
-    iterations: int = Field(default=0, description="Number of iterations")
-
-    # Future ML fields (v3.0)
-    embedding_stub: Optional[List[float]] = Field(
-        default=None,
-        description="Placeholder for brief embedding (v3.0)"
-    )
-    outcome: Optional[str] = Field(
-        default=None,
-        description="User-reported outcome (success/failure/needs_work)"
-    )
-
-    # Metadata
-    niche: str = Field(..., description="Niche (software/marketing)")
-    session_id: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-class ExperienceStore:
-    """Store execution records for future learning."""
-
-    def __init__(self, storage_path: str):
-        self.storage_path = storage_path
-
-    async def log_execution(self, record: ExperienceRecord):
-        """Log execution to JSONB storage."""
-        file_path = self._get_file_path(record.timestamp)
-
-        # Append to JSONL file (one JSON object per line)
-        with open(file_path, 'a') as f:
-            f.write(record.model_dump_json() + '\n')
-
-    async def find_similar_executions(
-        self,
-        brief: str,
-        limit: int = 5
-    ) -> List[ExperienceRecord]:
-        """Find similar executions (v2.0: keyword match, v3.0: vector search).
-
-        v2.0 Implementation: Simple keyword matching
-        v3.0 Implementation: pgvector semantic search
-        """
-        # v2.0: Load recent records and match keywords
-        records = await self._load_recent_records(days=30)
-
-        # Simple keyword matching (v3.0: replace with vector similarity)
-        brief_words = set(brief.lower().split())
-        similarities = []
-
-        for record in records:
-            record_words = set(record.brief.lower().split())
-            intersection = brief_words & record_words
-            similarity = len(intersection) / max(len(brief_words), 1)
-            similarities.append((record, similarity))
-
-        # Sort by similarity and return top N
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        return [r for r, _ in similarities[:limit]]
-```
+- Eliminates the single biggest React Flow performance pitfall
+- Custom node must be wrapped in `React.memo` and declared outside parent component
+- NODE_TYPES object must be declared outside the parent component (prevents new reference)
 
 ---
 
 ## Data Flow
 
-### Request Flow (CLI)
+### Happy Path: User submits brief → brains execute → Nexus illuminates
 
 ```
-User Input → CLI Command
-    → OrchestratorAPI.orchestrate_brief()
-        → PlanGenerator.generate()
-        → DependencyResolver.resolve()
-            → ParallelExecutor.execute_parallel()
-                → BrainExecutor.execute() (asyncio tasks)
-                    → MCPClient.query_notebook()
-                        → NotebookLM MCP
-    ← ResultAggregator.merge_results()
-← OutputFormatter.format_deliverable()
-← Display to user
+1. User types brief → Command Center input
+2. Server Action: POST /api/tasks → { task_id: "abc123" }
+3. Client Component: useWSStore.connect("abc123", token)
+4. WS open: ws://localhost:8000/ws/tasks/abc123?token=...
+5. useBrainStore.setActiveTask("abc123", initialNodes)
+6. WSBrainBridge subscriptions active
+
+7. WS event: brain_step_started { brain_id: "brain-01" }
+   → WSBrainBridge → handleBrainStarted("brain-01", ...)
+   → Immer updates brains.get("brain-01").status = "running"
+   → ONLY brain-01 BrainCard/BrainNode re-renders (targeted selector)
+
+8. WS event: brain_step_completed { brain_id: "brain-01", output, duration_ms }
+   → handleBrainCompleted → status = "completed"
+   → brain-01 node turns green
+
+9. WS event: execution_complete
+   → useWSStore.disconnect()
 ```
 
-### Request Flow (Web UI)
+### Auth Refresh Flow
 
 ```
-User Input → POST /orchestrate (FastAPI)
-    → OrchestratorAPI.orchestrate_brief()
-        → [Same as CLI]
-    → Returns session_id immediately
-    → Background task executes orchestration
-
-WebSocket Connection → WS /progress/{session_id}
-    ← Real-time updates via ProgressManager
-        ← ParallelExecutor sends progress after each brain
-← Browser updates UI
+1. proxy.ts intercepts request
+2. jwtVerify(access_token) → throws (expired)
+3. POST /api/auth/refresh with refresh_token cookie
+4. New tokens received → set new cookies in response
+5. Request continues → no user interruption
 ```
 
-### State Management
+---
 
-```
-[CLI/Web UI] (Stateless)
-    ↓
-[OrchestratorAPI] (Stateless service)
-    ↓
-[ExperienceStore] (Persistent JSONB)
-    ↓
-[Future: VectorDB] (v3.0)
-```
+## Integration Points
 
-**Key Design Decision:** No in-memory session state. All state persisted to ExperienceStore. Enables:
-- Recovery from crashes
-- Multiple workers (future scaling)
-- Audit trail
-- Future ML training data
+### New vs Modified
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `apps/api/` | **UNCHANGED** | All endpoints already exist and work |
+| `apps/web/proxy.ts` | **NEW** | Replaces middleware.ts — route protection |
+| `apps/web/src/stores/ws-store.ts` | **NEW** | WS lifecycle + pub/sub |
+| `apps/web/src/stores/brain-store.ts` | **NEW** | Brain states with Immer |
+| `apps/web/src/components/ws-brain-bridge.tsx` | **NEW** | Bridges WS events to brain store |
+| `apps/web/src/components/brain-node.tsx` | **NEW** | React Flow custom node |
+| `apps/web/src/actions/auth.ts` | **NEW** | Server Actions for login/logout |
+| `apps/web/src/lib/api.ts` | **NEW** | Server-only fetch utility |
+| `docker-compose.yml` | **UNCHANGED** | web:3000 already configured |
+
+### Backend Endpoints Required
+
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| `POST /api/auth/login` | Exists | Returns `access_token` + `refresh_token` |
+| `POST /api/auth/refresh` | Exists | Rotation implemented |
+| `POST /api/tasks` | Exists | Returns `task_id` |
+| `GET /api/tasks` | Exists | Pagination supported |
+| `GET /api/tasks/{id}/graph` | Exists | Returns `nodes[]`, `edges[]` |
+| `WS /ws/tasks/{id}?token=` | Exists | Throttled 300ms, Ghost Mode buffer |
+| `GET /api/brains` | **MISSING** | Need to verify — Command Center needs brain list |
+
+**Gap:** The `/api/brains` endpoint is not in the existing routes. The Command Center Bento Grid
+needs to list all 24 brains with their current status. This endpoint must be added to the API
+before Screen 2 can be completed.
+
+---
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: middleware.ts (Next.js 15 pattern)
+
+**What people do:** Create `middleware.ts` from tutorials written before Next.js 16.
+**Why it's wrong:** Deprecated in Next.js 16. Renamed to `proxy.ts`, function renamed to `proxy()`.
+The `edge` runtime is NOT supported in proxy. Code will still run (backward compat) but emits
+deprecation warnings and the runtime constraint differs.
+**Do this instead:** Use `proxy.ts` from day one.
+
+### Anti-Pattern 2: Token in localStorage
+
+**What people do:** Store JWT in `localStorage` for easy client-side access.
+**Why it's wrong:** XSS vulnerable. Any injected script reads the token.
+**Do this instead:** httpOnly cookies + token waterfall from Server Component layout.
+
+### Anti-Pattern 3: Full Node Array Replacement on WS Event
+
+**What people do:** `setNodes(nodes.map(n => n.id === updated.id ? {...n, data: newData} : n))`
+**Why it's wrong:** Returns new array reference → React Flow reconciles all 24 nodes → 24
+re-renders per WS event. At 300ms throttle and 24 parallel brains = potentially 80 re-renders
+per second.
+**Do this instead:** External store with Map + targeted selector per node. React Flow's node array
+is layout-only and never changes after initial render.
+
+### Anti-Pattern 4: useEffect WebSocket in a Component
+
+**What people do:** `useEffect(() => { const ws = new WebSocket(...) }, [taskId])`
+**Why it's wrong:** Creates new connection on every component mount. Navigation to another screen
+and back = new connection. Parallel subscriptions from different components = multiple connections.
+**Do this instead:** Module-level singleton in Zustand store. `connect()` is idempotent — checks
+if same task is already connected before opening new socket.
+
+### Anti-Pattern 5: useWSStore() without selector
+
+**What people do:** `const wsStore = useWSStore()` (selects entire store)
+**Why it's wrong:** Component re-renders on ANY store change, including `onmessage` firing for
+every WS packet.
+**Do this instead:** `const connect = useWSStore((s) => s.connect)` — select only what you need.
+For multiple fields: `useShallow`.
 
 ---
 
@@ -777,218 +972,51 @@ WebSocket Connection → WS /progress/{session_id}
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| **0-1K users** | Single FastAPI worker, file-based storage sufficient |
-| **1K-100K users** | Multiple workers (Gunicorn), PostgreSQL for ExperienceStore |
-| **100K+ users** | Microservices split (orchestrator separate from API), Redis for caching |
-
-### Scaling Priorities
-
-1. **First bottleneck:** NotebookLM MCP calls (network I/O)
-   - **Fix:** Parallel execution already addresses this (3-10x speedup)
-   - **Future:** MCP response caching
-
-2. **Second bottleneck:** File-based ExperienceStore
-   - **Fix:** Migrate to PostgreSQL at 1K+ users
-   - **Future:** Vector DB for semantic search (v3.0)
-
-3. **Third bottleneck:** Single-worker FastAPI
-   - **Fix:** Gunicorn with multiple workers
-   - **Requirement:** Move from file locks to database-backed session store
+| Single user (v2.1) | Current design — sufficient. SQLite WAL, single WS per task. |
+| 5-10 concurrent users | No changes needed. FastAPI async handles concurrent WS connections. |
+| 50+ users | Replace SQLite with PostgreSQL. Add WS reconnection with exponential backoff. |
+| Production hardening | nginx reverse proxy (eliminates CORS), HTTPS, rate limiting (v2.2 scope). |
 
 ---
 
-## Anti-Patterns
+## Open Gaps
 
-### Anti-Pattern 1: Sharing In-Memory State Between CLI and Web
+1. **`GET /api/brains` endpoint:** The Command Center Bento Grid needs to list all 24 brains. This
+   endpoint does not exist in the current API. The `brain_registry.py` file likely has the data;
+   a new route must expose it.
 
-**What people do:** Use global variables or singleton objects to share execution state between CLI and Web UI.
+2. **WS reconnection strategy:** The current WS store has no exponential backoff on disconnect.
+   For v2.1 this is acceptable (local dev, no flaky network). For production (v2.2), implement
+   reconnection with max retries.
 
-**Why it's wrong:**
-- CLI and Web run in separate processes
-- Race conditions and corruption
-- Can't scale to multiple workers
+3. **Token expiry during active WS session:** If the access_token expires while a WS connection
+   is open, the next REST call will 401. The client needs a silent refresh hook. Acceptable to
+   defer to v2.2 since tokens last 30 minutes and tasks typically complete faster.
 
-**Do this instead:**
-- Use ExperienceStore for persistence
-- Session-based communication (session_id)
-- Stateless service layer (OrchestratorAPI)
-
----
-
-### Anti-Pattern 2: Tight Coupling to MCP Protocol
-
-**What people do:** Expose raw MCP responses throughout the codebase.
-
-**Why it's wrong:**
-- MCP schema changes break everything
-- No validation at boundaries
-- Hard to mock for testing
-
-**Do this instead:**
-- Wrap MCP calls in Pydantic models
-- Single MCPClient class with typed methods
-- Validate responses at boundary
-
----
-
-### Anti-Pattern 3: Parallelizing Everything Without Dependencies
-
-**What people do:** Run all brains in parallel without considering dependencies.
-
-**Why it's wrong:**
-- Brain #2 may need output from Brain #1
-- wasted computation on failed flows
-- Inconsistent results
-
-**Do this instead:**
-- Use DependencyResolver to build DAG
-- Execute in topological levels
-- Only parallelize independent brains
-
----
-
-### Anti-Pattern 4: Building Full ML System in v2.0
-
-**What people do:** Implement vector DB, embeddings, and ML training in v2.0.
-
-**Why it's wrong:**
-- Massive R&D effort
-- Delays core features (parallel, web UI)
-- May not be needed yet
-
-**Do this instead:**
-- Design data structures for v3.0 (ExperienceRecord)
-- Log executions in v3.0-ready schema
-- Implement keyword-based search (v2.0)
-- Defer vector DB until proven need
-
----
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **NotebookLM MCP** | Async Pydantic wrapper | Retry logic, timeout handling |
-| **Future: PostgreSQL** | Repository pattern via SQLAlchemy | Migrate from JSONB at scale |
-| **Future: Vector DB** | Abstract embedding service | Prepare schema, defer implementation |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| **CLI ↔ OrchestratorAPI** | Direct Python calls (sync) | CLI blocks on completion |
-| **Web UI ↔ OrchestratorAPI** | FastAPI routes (async) | Returns session_id immediately |
-| **OrchestratorAPI ↔ ParallelExecutor** | Async/await | TaskGroup for structured concurrency |
-| **All components ↔ ExperienceStore** | Async repository pattern | JSONB files (v2.0), DB (v3.0) |
-
----
-
-## Build Order & Dependencies
-
-### Phase 1: Foundation (Type Safety)
-1. Create `api/models.py` with all Pydantic models
-2. Add strict mypy configuration
-3. Type-hint existing orchestrator components
-4. **Dependency:** Enables all other phases
-
-### Phase 2: Parallel Execution
-1. Implement `api/dependencies.py` (DependencyResolver)
-2. Implement `api/parallel.py` (ParallelExecutor)
-3. Refactor `coordinator.py` to use OrchestratorAPI
-4. **Dependency:** Requires Phase 1 (type-safe models)
-
-### Phase 3: Web UI Backend
-1. Create `web/app.py` (FastAPI application)
-2. Implement `web/routes/orchestration.py`
-3. Implement `web/websocket/progress.py`
-4. **Dependency:** Requires Phase 2 (parallel executor)
-
-### Phase 4: Web UI Frontend
-1. Create `web/templates/dashboard.html`
-2. Implement WebSocket client for progress
-3. Add basic authentication (optional)
-4. **Dependency:** Requires Phase 3 (backend routes)
-
-### Phase 5: Experience Store (v3.0 Foundation)
-1. Implement `memory/experience_store.py`
-2. Add logging to all orchestrator executions
-3. Implement keyword-based similarity search
-4. **Dependency:** Can proceed in parallel with Phase 2-4
-
-### Phase 6: Migration & Polish
-1. Update CLI commands to use OrchestratorAPI
-2. Add E2E tests for parallel flows
-3. Add E2E tests for web UI
-4. Documentation and deployment guides
-5. **Dependency:** Requires all previous phases
-
----
-
-## Migration Path from v1.3.0
-
-### Backward Compatibility Strategy
-
-**Maintain CLI functionality:**
-- Existing `mm orchestrate run` command unchanged
-- Internally refactored to use `OrchestratorAPI`
-- Default to `parallel=False` unless explicitly enabled
-- All v1.3.0 brains work without modification
-
-**Configuration opt-in:**
-```yaml
-# brains.yaml (v2.0 additions)
-brains:
-  1:
-    id: 1
-    name: "Product Strategy"
-    dependencies: []  # NEW: Explicit dependencies
-  2:
-    id: 2
-    name: "UX Research"
-    dependencies: [1]  # NEW: Depends on Brain #1
-```
-
-**Gradual rollout:**
-1. v2.0.0: Type safety + Parallel execution (CLI only)
-2. v2.1.0: Web UI backend (FastAPI)
-3. v2.2.0: Web UI frontend + Experience Store
-4. v2.3.0: Polish, testing, documentation
-
-**No breaking changes:**
-- All existing brains remain compatible
-- CLI interface unchanged
-- Optional opt-in for parallel execution
-- Web UI is additive, not replacement
+4. **React Compiler stability:** Next.js 16 includes React Compiler (stable) but disabled by
+   default. Custom React Flow nodes wrapped in `React.memo` PLUS React Compiler = double
+   memoization. Enable React Compiler only after verifying no conflicts with `@xyflow/react`.
 
 ---
 
 ## Sources
 
-**High Confidence:**
-- Existing MasterMind v1.3.0 codebase analysis
-- Python 3.11+ asyncio TaskGroup documentation
-- Pydantic v2 documentation (type-safe boundaries)
-- FastAPI official documentation (WebSockets, async)
+**HIGH confidence (official documentation):**
+- [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16) — proxy.ts, async cookies, Turbopack default
+- [React Flow state management](https://reactflow.dev/learn/advanced-use/state-management) — Zustand integration pattern
+- [React Flow performance](https://reactflow.dev/learn/advanced-use/performance) — React.memo requirement, node re-render prevention
+- [Zustand 5 patterns](https://github.com/pmndrs/zustand) — useShallow, immer middleware, module singleton
 
-**Medium Confidence:**
-- NetworkX DAG patterns (dependency resolution)
-- Architectural patterns from Clean Architecture, Hexagonal Architecture
-- Standard practices for CLI/Web API sharing business logic
+**MEDIUM confidence (verified against official + multiple sources):**
+- JWT httpOnly cookie pattern for Next.js App Router — multiple 2026 sources consistent
+- Zustand singleton for WS (module-level store survives navigation) — verified via zustand discussions
+- Token waterfall (Server Component → Client Component prop) — official App Router patterns
 
-**Low Confidence (Web Search Limit Reached):**
-- Web search unavailable for current 2026 patterns
-- Recommendations based on established patterns (2018-2025)
-- May miss newer 2026 innovations in multi-agent systems
-
-**Gaps:**
-- Current 2026 best practices for multi-agent shared memory (web search limit)
-- Latest FastAPI WebSocket patterns (web search limit)
-- Modern async Python performance benchmarks (web search limit)
+**LOW confidence (single source or inference):**
+- React Compiler + React.memo interaction with React Flow nodes — needs validation during build
 
 ---
 
-*Architecture research for: MasterMind Framework v2.0*
-*Researched: 2026-03-13*
-*Confidence: HIGH (based on codebase analysis + established patterns)*
+*Architecture research for: MasterMind Framework v2.1 — Next.js 16 War Room Frontend*
+*Researched: 2026-03-18*
+*Confidence: HIGH*

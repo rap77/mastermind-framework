@@ -1,278 +1,337 @@
 # Pitfalls Research
 
-**Domain:** Framework Refactoring (Sequential → Parallel + Type Safety + Web UI)
-**Researched:** 2026-03-13
-**Confidence:** MEDIUM (WebSearch unavailable, drawing from Python ecosystem knowledge + existing concerns)
+**Domain:** Next.js 16 + React Flow + Magic UI + Tailwind 4 + Zustand — Added to existing FastAPI backend
+**Researched:** 2026-03-18
+**Confidence:** HIGH (verified through official docs, React Flow changelog, GitHub issues, CVE databases)
+
+> Note: This file supersedes the v2.0 PITFALLS.md (backend refactoring pitfalls). Those remain valid
+> for `apps/api/`. This file covers **only v2.1 frontend addition pitfalls** for `apps/web/`.
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: False Parallelism — The Threading Trap
+### Pitfall 1: React Flow CSS Import Location — Silent Style Breakage
 
 **What goes wrong:**
-You add `asyncio` or threading to speed up brain execution, but Python's GIL and I/O-bound nature mean you see zero performance improvement. Or worse, performance degrades due to context switching overhead.
+You import `@xyflow/react/dist/style.css` in a component file or layout.tsx. In Tailwind 4, this
+causes React Flow's built-in styles (handles, edges, minimap, background) to be silently overridden
+or missing. Nodes render without handles. The canvas background is gone. Edge lines disappear.
+Everything "works" in the sense that no error is thrown, but the DAG looks broken.
 
 **Why it happens:**
-- Brain execution is primarily I/O-bound (MCP calls to NotebookLM)
-- Developers confuse CPU parallelism (multiprocessing) with I/O concurrency (asyncio)
-- Threading in Python doesn't bypass the GIL for CPU-bound work
-- `asyncio` requires *all* blocking operations to be async — mixing sync and async kills benefits
+Tailwind 4 is a CSS-first configuration engine. It processes stylesheets through a cascade layer
+system. When React Flow CSS is imported outside the layer system (e.g., directly in a `.tsx` file),
+Tailwind's cascade can override it with lower-specificity rules. In v3 this was not an issue because
+Tailwind used a different specificity model.
 
 **How to avoid:**
-1. **Profile before parallelizing** — Use `cProfile` to confirm I/O vs CPU bottleneck
-2. **Use `asyncio` for I/O-bound** — MCP calls, network requests, file I/O
-3. **Use `multiprocessing` only for CPU-bound** — Rare in this framework
-4. **Make async all the way down** — MCP client must be async, not just wrapper
-5. **Benchmark real workloads** — Test with actual multi-brain flows, not synthetic tests
+Move the React Flow CSS import into `global.css`, placed inside `@layer base`, AFTER the Tailwind
+import. The correct order in `apps/web/src/app/globals.css` is:
+
+```css
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
+```
+
+Remove any `import '@xyflow/react/dist/style.css'` from `.tsx` files.
 
 **Warning signs:**
-- Adding threads/async doesn't improve latency
-- CPU usage at 100% on single core despite parallel code
-- Context switching overhead visible in profiler (> 20% time in `switch`)
+- React Flow canvas renders but edges are invisible
+- Node handles don't appear on hover
+- DAG background grid is missing
+- Works in dev but breaks after production build (build ordering differs)
 
 **Phase to address:**
-Phase 1 (Parallel Execution Foundation) — Before writing any parallel code, must:
-- Profile current sequential execution
-- Identify I/O vs CPU boundaries
-- Create performance baseline
-
-**Recovery strategy:**
-HIGH cost if wrong choice made. Requires rewriting orchestration layer:
-- If threading used incorrectly → migrate to `asyncio`
-- If `asyncio` used with sync MCP → rewrite MCP client to be async
-- If multiprocessing used unnecessarily → remove complexity, use `asyncio`
+Phase 1 (Frontend Foundation). Set this up before writing any React Flow component. Verify with a
+smoke test: render a 2-node, 1-edge graph and confirm handles and edges are visible.
 
 ---
 
-### Pitfall 2: The Dependency Graph Blind Spot
+### Pitfall 2: Magic UI Component Installer Fails on Tailwind 4 Projects
 
 **What goes wrong:**
-You parallelize brains that appear independent but actually share state or have hidden dependencies. Race conditions cause non-deterministic failures — works in dev, fails in production.
+Running `npx shadcn@latest add` for a Magic UI component throws:
+`ENOENT: no such file or directory, open '.../tailwind.config.ts'`
+
+The installer expected a Tailwind 3 config file that doesn't exist in Tailwind 4 projects. The
+component does not install. Developers waste hours debugging the CLI, assuming their project setup
+is wrong.
 
 **Why it happens:**
-- Current sequential execution masks dependency violations
-- Brains share `orchestrator.state` dict implicitly
-- Brain #7 (Evaluator) assumes sequential execution order
-- No explicit dependency declaration — dependencies are emergent from execution order
+Magic UI's component registry was originally written against Tailwind 3. Tailwind 4 eliminates
+`tailwind.config.ts` entirely in favor of CSS-only configuration. The Magic UI installer was patched
+(PR #620) but some components and animation utilities still need manual CSS definition because they
+relied on `tailwind.config.ts` to inject keyframes and animation classes.
 
 **How to avoid:**
-1. **Explicit dependency declaration** — Each brain declares `dependencies: List[BrainID]`
-2. **Dependency graph validation** — Topological sort before execution
-3. **State isolation** — Each brain gets isolated input/output, no shared mutable state
-4. **Deterministic execution** — Same inputs → same outputs, same execution order
-5. **Parallelism only at leaf nodes** — Only brains with no dependencies run in parallel
+1. Use `npx shadcn@latest` (not `@canary`) — the fix has shipped
+2. After installing any Magic UI animated component (Marquee, SparklesText, etc.), verify the
+   required `@keyframes` are present in `globals.css`. If animations are missing, add them manually
+3. For Bento Grid specifically: it uses CSS variables for color theming — verify they match your
+   Tailwind 4 theme variables (v4 uses `--color-*` prefix, not Tailwind 3's `colors.*` config)
+4. Check `https://magicui.design/docs/tailwind-v4` for the current migration guide
 
 **Warning signs:**
-- Flaky tests that pass/fail randomly
-- Different results on same input
-- Failures that disappear when adding debug prints (Heisenbugs)
-- Brain #7 rejects valid outputs intermittently
+- `ENOENT: tailwind.config.ts` error during `npx shadcn add`
+- Animations installed but don't play (keyframes missing from CSS)
+- Component renders but colors are wrong (CSS variable mismatch)
+- `@apply` directives in component files throw errors (Tailwind 4 `@apply` is more restricted)
 
 **Phase to address:**
-Phase 1 (Parallel Execution Foundation) — Must implement:
-- Dependency graph system
-- State isolation layer
-- Deterministic execution tests
-
-**Recovery strategy:**
-MEDIUM cost. Requires:
-- Auditing all brain-to-brain communication
-- Adding explicit dependency declarations
-- Implementing state isolation
-- Writing deterministic execution tests
+Phase 1 (Frontend Foundation). Install and smoke-test ONE Magic UI animated component (e.g.,
+Bento Grid) before building the full Command Center. Catch this early — adding it later means
+retrofitting color tokens and animations across all components.
 
 ---
 
-### Pitfall 3: The Type Safety Half-Migration
+### Pitfall 3: React Flow + shadcn/ui Nodes — Drag Stolen by Interactive Elements
 
 **What goes wrong:**
-You add type hints to core modules but leave MCP integration and brain system untyped. Or you use `mypy --strict` but sprinkle `# type: ignore` everywhere. Result: False confidence, runtime errors still happen.
+You build a custom brain node using shadcn Button, Input, or Select components inside the node.
+In the DAG, clicking a button drags the node instead of triggering the button's onClick. Or
+scrolling a Select dropdown scrolls the canvas instead. The node appears interactive but isn't.
 
 **Why it happens:**
-- `mypy` strict mode is aggressive — requires 100% coverage or massive `# type: ignore`
-- MCP returns `dict[str, Any]` — hard to type without wrapper models
-- Existing codebase has 40% coverage, 0% in critical paths
-- Gradual typing requires discipline to maintain type boundary hygiene
+React Flow wraps every node in a drag listener. Mouse events on child elements bubble up to the
+node's drag handler unless explicitly stopped. shadcn components don't know they're inside a React
+Flow node and don't apply the necessary stop-propagation classes.
 
 **How to avoid:**
-1. **Pydantic models at boundaries** — MCP responses, CLI inputs, brain outputs
-2. **Accept `Any` at external boundaries, strict internally** — Type MCP responses immediately
-3. **Enable `mypy` strict mode incrementally** — Start with `mypy strict` on new code only
-4. **Create TypedDict for partial safety** — Better than `Any`, less work than Pydantic
-5. **Set CI to fail on new `# type: ignore`** — Prevent accumulating technical debt
+Apply React Flow utility classes to every interactive element inside a custom node:
+- `nodrag` — prevents the node from being dragged when the user interacts with this element
+- `nopan` — prevents the canvas from panning when clicking and dragging this element
+
+For shadcn components this means adding className on the wrapper or the component's `className` prop:
+
+```tsx
+// Button inside a node
+<Button className="nodrag nopan" onClick={handleClick}>
+  View Details
+</Button>
+
+// Input inside a node
+<Input className="nodrag nopan" value={label} onChange={...} />
+
+// For react-select or similar — wrap the container
+<div className="nodrag nopan">
+  <Select ... />
+</div>
+```
+
+Use `BaseNode` from React Flow UI (updated for shadcn compatibility) instead of a plain `<div>` as
+the node wrapper — it handles the correct wrapper structure out of the box.
 
 **Warning signs:**
-- `# type: ignore` appears in code review
-- `mypy` runs take > 30 seconds (indicates complexity)
-- New code added without type hints
-- Runtime type errors in supposedly type-safe code
+- Clicking a button inside a node moves the node
+- Text inputs inside nodes are impossible to focus without dragging
+- Select dropdowns close immediately when trying to scroll options
+- Only detectable through manual interaction testing, not unit tests
 
 **Phase to address:**
-Phase 2 (Type Safety Foundation) — Must:
-- Create Pydantic models for all data structures
-- Type MCP integration layer (highest risk)
-- Enable `mypy` strict on new code only
-- Add `# type: ignore` gate in CI
-
-**Recovery strategy:**
-MEDIUM cost if partial migration. Requires:
-- Removing `# type: ignore` annotations
-- Adding proper Pydantic models
-- Retyping untyped modules
+Phase 2 (The Nexus — DAG View). Address before building any brain node component. Create a
+single `BrainNode` base component with the utility classes as the standard, so all 24 node
+variants inherit correct behavior.
 
 ---
 
-### Pitfall 4: The Authentication State Schism
+### Pitfall 4: WebSocket in Next.js App Router — SSR Crashes and Hydration Mismatches
 
 **What goes wrong:**
-CLI uses local config file for auth, web UI uses session cookies. User authenticates in CLI, then opens web UI and has to authenticate again. Or worse — web UI can't access CLI's NotebookLM tokens.
+You create a Zustand WebSocket store and call `new WebSocket(...)` at module level or in the store
+initializer. The Next.js build crashes with `ReferenceError: WebSocket is not defined` during
+SSR because `window` and `WebSocket` don't exist on the server. Or you guard with
+`typeof window !== 'undefined'` but the component still produces a hydration mismatch because
+server and client render different initial states.
 
 **Why it happens:**
-- CLI tools traditionally use `~/.config/` for auth state
-- Web apps use browser cookies/session storage
-- No unified auth layer designed
-- NotebookLM MCP tokens stored in CLI config, not accessible to web backend
+Next.js app router runs every component on the server first by default. Even `"use client"` components
+are pre-rendered on the server for their initial HTML. The WebSocket API is browser-only. Zustand
+stores initialized at module level run during SSR.
 
 **How to avoid:**
-1. **Unified auth service** — Both CLI and UI call same auth API
-2. **Shared credential store** — Database or encrypted file, not CLI config
-3. **CLI becomes UI client** — CLI authenticates via web backend, not locally
-4. **Session tokens, not API keys** — Use short-lived JWTs, not long-lived API keys
-5. **OAuth flow unification** — Both interfaces use same OAuth redirect handler
+1. Never initialize a WebSocket connection outside a `useEffect` or a client-only init function
+2. In the Zustand WS dispatcher store, use lazy initialization:
+   ```ts
+   // WRONG — runs during SSR
+   const socket = new WebSocket(WS_URL);
+
+   // CORRECT — lazy, client-only
+   connect: () => {
+     if (typeof window === 'undefined') return;
+     const socket = new WebSocket(WS_URL);
+     set({ socket });
+   }
+   ```
+3. Wrap the component that calls `store.connect()` in `dynamic()` with `ssr: false` if it must
+   connect immediately on mount:
+   ```ts
+   const WsProvider = dynamic(() => import('./WsProvider'), { ssr: false });
+   ```
+4. Use `useEffect` in the Zustand subscriber to call `connect()` on the client side
 
 **Warning signs:**
-- Users report "I logged in on CLI but web says unauthorized"
-- Auth logic duplicated between CLI and UI code
-- Token refresh logic exists in two places
-- Different token lifetimes between interfaces
+- Build-time error: `ReferenceError: WebSocket is not defined`
+- Console error: `Hydration failed because the server rendered HTML didn't match the client`
+- WS connects in development but crashes in production build
+- Connection fires twice (StrictMode double-invoke in dev)
 
 **Phase to address:**
-Phase 3 (Web UI Foundation) — Must:
-- Design unified auth service before UI implementation
-- Refactor CLI to use shared auth (breaking change)
-- Migrate existing auth tokens to shared store
-
-**Recovery strategy:**
-HIGH cost. Requires:
-- Redesigning auth architecture
-- Migrating user tokens (breaking change for existing users)
-- Rewriting CLI auth flow
-- Implementing token migration script
+Phase 1 (Frontend Foundation). The WS dispatcher is the spine of the entire real-time UI. Get
+the SSR-safe initialization pattern right before building any subscriber components. A wrong
+pattern here cascades to every real-time feature.
 
 ---
 
-### Pitfall 5: The Multi-Orchestrator Race
+### Pitfall 5: Zustand WebSocket Store — 24 Simultaneous Updates Cause Re-render Storm
 
 **What goes wrong:**
-Web UI allows multiple users to run orchestrations simultaneously. Two users run product strategy flows at the same time — Brain #7's evaluation gets mixed up, User A sees User B's results.
+The FastAPI backend fires 24 `brain_step_completed` events within milliseconds when a parallel
+execution completes. Each event hits the Zustand store, which updates a single `brains` object.
+All 24 Bento Grid tiles and all 24 React Flow nodes re-render synchronously. The UI freezes for
+300-500ms. At 60fps this drops to single-digit frames during the burst.
 
 **Why it happens:**
-- Current orchestrator uses global state (module-level variables)
-- No request context or session isolation
-- Brain #7's `current_task` is a singleton
-- MCP client is shared across all requests
-- No concurrency control on shared resources (NotebookLM rate limits)
+- If all 24 brains share one Zustand slice (e.g., `brains: Record<BrainId, BrainState>`), any
+  update to one brain triggers all subscribers that use that slice
+- Even with per-brain selectors, 24 rapid `setState` calls create 24 separate React reconciliation
+  cycles, since React 19's automatic batching only covers events in a single synchronous call chain
+- The WS `onmessage` handler is an async event, so batching does NOT automatically apply
 
 **How to avoid:**
-1. **Per-request orchestrator instances** — No global state
-2. **Session-scoped execution context** — All state tied to session ID
-3. **Database-backed orchestration** — Progress stored in DB, not memory
-4. **MCP client pooling** — Connection pool with rate limiting
-5. **Idempotent operations** — Retries don't create duplicate work
+1. Use per-brain selectors to minimize subscriber scope:
+   ```ts
+   // WRONG — re-renders all 24 components on any brain update
+   const brains = useWsStore(state => state.brains);
+
+   // CORRECT — re-renders only when THIS brain changes
+   const brain = useWsStore(state => state.brains[brainId]);
+   ```
+2. Batch WS messages using `requestAnimationFrame` instead of immediate `setState`:
+   ```ts
+   let pendingUpdates: BrainEvent[] = [];
+   let rafScheduled = false;
+
+   ws.onmessage = (event) => {
+     pendingUpdates.push(JSON.parse(event.data));
+     if (!rafScheduled) {
+       rafScheduled = true;
+       requestAnimationFrame(() => {
+         useWsStore.setState(applyBatch(pendingUpdates));
+         pendingUpdates = [];
+         rafScheduled = false;
+       });
+     }
+   };
+   ```
+3. Memoize custom React Flow node components with `React.memo` — prevents re-render when parent
+   re-renders but the node's own data hasn't changed
+4. For Bento Grid tiles, use the Zustand `subscribe` API (not hooks) for high-frequency updates
+   that should drive animation without React re-renders
 
 **Warning signs:**
-- Integration tests fail when run in parallel
-- User sees another user's results
-- NotebookLM rate limit errors under load
-- "Task not found" errors for valid task IDs
+- UI freezes for 200-500ms when all brains complete in parallel (4.65x speedup means they burst)
+- Chrome DevTools shows 24+ React renders in a single 16ms frame
+- React Flow canvas jank during brain execution
+- `console.log` in a tile component fires 24 times per execution cycle
 
 **Phase to address:**
-Phase 3 (Web UI Foundation) — Before going multi-user:
-- Audit all global state in orchestrator
-- Implement session isolation
-- Add multi-user integration tests
-
-**Recovery strategy:**
-HIGH cost. Requires:
-- Refactoring orchestrator to be stateless
-- Implementing session management
-- Adding database for orchestration state
-- Rewriting Brain #7 to handle concurrent evaluations
+Phase 2 (Command Center). Must implement the RAF batching pattern before building the Bento Grid,
+not after. Retrofitting it later requires touching every subscriber component.
 
 ---
 
-### Pitfall 6: The MCP Integration Bottleneck
+### Pitfall 6: JWT Authentication — middleware.ts Is Not a Security Boundary
 
 **What goes wrong:**
-Parallel execution sends 10 simultaneous requests to NotebookLM via MCP. MCP server rate-limits or crashes. Or worse — requests get interleaved, responses go to wrong brains.
+You implement JWT verification ONLY in `middleware.ts` to protect routes. An attacker sends a
+request with the `x-middleware-subrequest` header (CVE-2025-29927) and bypasses all authentication,
+reaching protected API routes and pages directly. This is a real, disclosed critical CVE affecting
+all Next.js versions before 15.2.3.
 
 **Why it happens:**
-- MCP protocol designed for single-request flows
-- No request/response correlation mechanism
-- MCP server not designed for concurrent requests
-- No backpressure handling in orchestrator
+Next.js middleware uses an internal header `x-middleware-subrequest` to prevent infinite middleware
+loops. Before the patch, any external request could forge this header and skip middleware entirely.
+This is a design flaw, not a configuration error.
 
 **How to avoid:**
-1. **Semaphore limiting** — Max N concurrent MCP requests
-2. **Request correlation IDs** — Track which response belongs to which request
-3. **MCP connection pooling** — Separate connections per "session"
-4. **Circuit breaker** — Stop sending requests if MCP fails repeatedly
-5. **Response queue matching** — Match responses to requests via ID
+1. Use Next.js 15.2.3+ or 16.x (patch included) — verify in `package.json`
+2. NEVER rely solely on `middleware.ts` for auth. Verify the JWT in every Server Component and
+   Route Handler that accesses protected data:
+   ```ts
+   // In every protected Server Component or Route Handler:
+   const session = await verifyJWT(cookies().get('token')?.value);
+   if (!session) redirect('/login');
+   ```
+3. Store JWT in `httpOnly` cookie, not `localStorage`. Browser WS connections can't send custom
+   headers, so the token must be accessible to the server
+4. For the FastAPI WebSocket endpoint: pass the JWT as a query param at connect time ONLY
+   (short-lived token). Rotate it — the WS connection doesn't re-auth after initial handshake
 
 **Warning signs:**
-- MCP timeout errors increase with parallelism
-- Brains receive wrong knowledge (misrouted responses)
-- `nlm` process crashes under load
-- Requests hang indefinitely
+- Next.js version < 15.2.3 in `package.json`
+- `middleware.ts` is the only place JWT is checked
+- Protected pages accessible via direct URL after stripping cookies
+- localStorage used for JWT (XSS attack surface)
 
 **Phase to address:**
-Phase 1 (Parallel Execution Foundation) — Must:
-- Benchmark MCP under concurrent load
-- Implement semaphore limiting
-- Add request correlation
-
-**Recovery strategy:**
-MEDIUM cost. Requires:
-- Implementing MCP connection pooling
-- Adding semaphore limiting
-- Rewriting MCP client to handle concurrency
+Phase 1 (Frontend Foundation). Auth architecture is foundational — wrong decisions here require
+rewriting every protected page. Check Next.js version before writing a single line of auth code.
 
 ---
 
-### Pitfall 7: The Backward Compatibility Breaking Point
+### Pitfall 7: CORS + WebSocket — Two Different Problems, One Misconfiguration
 
 **What goes wrong:**
-v2.0 introduces type-safe Pydantic models for brain communication. Existing v1.x brains (23 brains across 2 niches) break because they return raw dicts, not Pydantic models. Users can't upgrade without rewriting all their brains.
+You configure FastAPI CORS to allow `http://localhost:3000`. HTTP requests from Next.js work.
+But the WebSocket connection from the frontend fails with a 403 or connects but immediately closes.
+Or you proxy HTTP through Next.js rewrites thinking it will also proxy WebSocket — it won't.
+Next.js rewrites do NOT proxy WebSocket upgrade requests in Next.js 15. Next.js 16 introduces
+`proxy.js` but with Node.js runtime constraints.
 
 **Why it happens:**
-- No deprecation path designed
-- Breaking changes introduced without migration guide
-- Type safety enforced at boundary (all or nothing)
-- No compatibility shim provided
+- CORS is HTTP-only. WebSocket upgrade handshake (`ws://`) uses HTTP for the initial handshake but
+  is a separate protocol — browsers apply different same-origin checks
+- FastAPI's `CORSMiddleware` allows the WS handshake origin but developers often forget to include
+  `allow_credentials=True` when using `httpOnly` cookies for auth
+- Next.js rewrites proxy HTTP traffic through the Next.js server, masking CORS. But WS traffic goes
+  directly from the browser to FastAPI — CORS must be explicitly allowed on FastAPI
 
 **How to avoid:**
-1. **Deprecation cycle** — Support old format for N versions, warn loudly
-2. **Adapter pattern** — Convert v1 brains to v2 format automatically
-3. **Feature flags** — Allow users to opt into v2 behavior
-4. **Migration script** — Auto-convert existing brains to new format
-5. **Separate v1/v2 execution paths** — Run old brains in compatibility mode
+1. Never proxy WebSocket through Next.js — connect the browser directly to FastAPI WS endpoint
+2. Configure FastAPI CORS explicitly for both HTTP and WS origins:
+   ```python
+   app.add_middleware(
+     CORSMiddleware,
+     allow_origins=["http://localhost:3000", "http://web:3000"],
+     allow_credentials=True,   # Required for httpOnly cookie auth
+     allow_methods=["*"],
+     allow_headers=["*"],
+   )
+   ```
+3. In `apps/web/next.config.ts`, use rewrites only for REST API calls (hides CORS in dev, works in prod behind nginx):
+   ```ts
+   rewrites: async () => [{
+     source: '/api/:path*',
+     destination: 'http://localhost:8000/:path*',
+   }]
+   ```
+   Do NOT attempt to rewrite WebSocket paths — connect directly from the client
 
 **Warning signs:**
-- Existing brains fail after upgrade
-- No migration path documented
-- Users forced to rewrite brains immediately
-- Breaking changes in minor/patch versions
+- HTTP requests work but WS gives `403 Forbidden` on handshake
+- WebSocket connects but closes after `1006` code (abnormal closure)
+- CORS errors only appear in browser console, not server logs (origin header mismatch)
+- Works on localhost but breaks in Docker (container hostnames differ from localhost)
 
 **Phase to address:**
-Phase 2 (Type Safety Foundation) — Must:
-- Design compatibility layer before enforcing types
-- Create brain format migration script
-- Document deprecation timeline
-
-**Recovery strategy:**
-MEDIUM cost. Requires:
-- Implementing compatibility shim
-- Writing migration tooling
-- Maintaining dual code paths (v1/v2)
+Phase 1 (Frontend Foundation). Wire up the FastAPI CORS config and test a raw WebSocket connection
+from the browser before building any React component. A broken WS connection makes every
+subsequent feature untestable.
 
 ---
 
@@ -280,108 +339,123 @@ MEDIUM cost. Requires:
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| `# type: ignore` on MCP responses | Unblocks type migration | Hides real errors, false confidence | Only in Phase 1, must be tracked |
-| Global state in orchestrator | Faster development, less code | Impossible multi-user support | CLI-only (v1.x), never in v2.0 |
-| Sequential execution | Simple debugging, predictable | 5-10 min flows, can't scale | MVP only, Phase 0 target |
-| Mixing sync/async in MCP | Works with existing MCP client | No performance benefit, complexity | Never — pure async required |
-| CLI-only auth | Fast to implement | UI must re-implement, duplicate code | Acceptable for CLI-only v1.x |
+| WS in Context API instead of Zustand | Simpler setup | Re-renders entire subtree on every message | Never for 24 brains — use Zustand |
+| Single `brains` Zustand slice, no selectors | Faster to write | Re-render storm on parallel brain bursts | Acceptable for single brain, never for 24 |
+| JWT in localStorage | No cookie setup needed | XSS attack surface, WS auth complexity | Never in production |
+| `nodrag`/`nopan` added reactively (bug reports) | Less upfront work | Broken UX shipped, hard to find all instances | Never — add to BaseNode template from day one |
+| React Flow CSS in component imports | Works locally | Breaks in production Tailwind 4 build | Never — must be in globals.css |
+| `typeof window !== 'undefined'` guards for WS | Quick fix | Hydration mismatches, hard-to-trace bugs | Acceptable as stopgap, not permanent |
+| Middleware-only JWT verification | Less code per route | CVE-2025-29927 bypass risk | Never — always verify at data access point |
+
+---
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| **NotebookLM MCP** | Treating as synchronous, blocking main thread | All MCP calls must be async, use asyncio |
-| **Brain execution** | Assuming independent, running all in parallel | Build dependency graph, parallelize leaves only |
-| **Type system** | Using `Any` at boundaries, no validation | Pydantic models at all boundaries, validate early |
-| **Web UI backend** | Calling orchestrator directly (global state) | Per-request orchestrator instances, session-scoped |
-| **Auth system** | Separate CLI/web auth implementations | Unified auth service, CLI uses web backend |
-| **Multi-user sessions** | Storing state in memory (module vars) | Database-backed session state |
+| **React Flow + Tailwind 4** | Import `@xyflow/react/dist/style.css` in `.tsx` | Import inside `@layer base` in `globals.css` |
+| **Magic UI + Tailwind 4** | Run `npx shadcn@latest add` and assume it works | Verify keyframes in `globals.css` after install |
+| **Zustand + WebSocket** | Initialize socket at module level | Lazy init in `connect()` action, call from `useEffect` |
+| **Next.js + FastAPI WS** | Proxy WS through Next.js rewrites | Direct browser → FastAPI connection |
+| **JWT + WebSocket** | Pass JWT as Authorization header | Browser WS API has no custom headers — use query param (short-lived token) |
+| **shadcn inside React Flow node** | No utility classes | Every interactive element gets `nodrag nopan` classes |
+| **FastAPI CORS + cookies** | Missing `allow_credentials=True` | Required when using `httpOnly` cookies for auth |
+| **Docker networking + WS** | Hardcode `localhost:8000` in WS URL | Use environment variable, different value in container vs host |
+
+---
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| **False parallelism** | No latency improvement, high CPU | Profile first, use asyncio for I/O | Immediately — measurable in Phase 1 |
-| **GIL contention** | Single core at 100%, slow execution | Avoid threading for CPU work | At 5+ concurrent brain executions |
-| **MCP bottleneck** | Timeouts increase with concurrency | Semaphore limiting (max 3-5 concurrent) | At 3+ simultaneous brain queries |
-| **Memory leaks** | Growing memory, slow GC | Explicit cleanup, connection pooling | After 100+ orchestrations |
-| **DB contention** | Slow queries, locks | Connection pooling, optimistic concurrency | At 10+ concurrent users |
+| **Zustand slice too coarse** | All 24 nodes re-render on any brain update | Per-brain selectors: `state => state.brains[id]` | Immediately — visible at 24 brains |
+| **WS burst without RAF batching** | UI freeze 200-500ms during parallel brain completion | RAF-based message accumulator in WS store | When 5+ brains complete simultaneously |
+| **React Flow nodes not memoized** | Every parent re-render cascades to all 24 nodes | `React.memo` on every node component | At 10+ nodes with frequent updates |
+| **Magic UI animations on 24 tiles** | GPU thrash, frame drops during bulk updates | Disable complex animations during active execution (CSS class toggle) | When all 24 brains are animating simultaneously |
+| **React Flow edge re-calculation** | Slow edge routing on node position changes | Avoid dynamic edge path recalculation for status-only updates | With complex DAG layouts |
+
+---
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| **Token leakage in logs** | NotebookLM tokens exposed to anyone with logs | Redact tokens from logs, use secret scanning |
-| **Session hijacking** | User A accesses User B's orchestration results | Strict session ID validation, CSRF tokens |
-| **Auth bypass in CLI** | CLI bypasses web auth, accesses everything | CLI must authenticate via web backend |
-| **MCP injection** | Malicious brief injects commands into MCP | Sanitize all user inputs, validate schemas |
-| **Rate limit abuse** | User floods system with orchestrations | Per-user rate limiting, quota enforcement |
+| **JWT only in middleware.ts** | CVE-2025-29927 auth bypass — attacker skips all protection | Verify JWT at every protected Server Component and Route Handler |
+| **JWT in localStorage** | XSS steals auth token | Store in `httpOnly; Secure; SameSite=Strict` cookie |
+| **WS token in long-lived query param** | Token in server logs, browser history | Use short-lived (60s) pre-auth token for WS handshake only |
+| **`allow_origins=["*"]` with credentials** | CORS spec error — browser blocks the request | Explicit origin list, never wildcard with `allow_credentials=True` |
+| **SECRET_KEY hardcoded in apps/api** | Git history exposes key forever | Load from `MM_SECRET_KEY` env var before v2.1 ships |
+
+---
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| **Silent failures in parallel** | Brain fails but user sees "complete" | Aggregate all errors, show at end |
-| **Unpredictable execution order** | Can't follow which brain is running | Visual progress shows topological order |
-| **Lost context on errors** | User restarts from beginning | Checkpoint/resume from last success |
-| **Type error gibberish** | `mypy` errors confuse non-technical users | Friendly error messages, show what to fix |
-| **Auth friction CLI→Web** | Login twice, confusing session | Single sign-on, shared session state |
+| **No WS reconnect on disconnect** | UI silently goes stale — brain events lost after network blip | Zustand store exponential backoff reconnect strategy |
+| **All 24 Bento tiles animate simultaneously** | Visual chaos, nothing stands out | Animate only the actively changing tile, idle tiles are static |
+| **React Flow node glow on every WS message** | Glow for 1ms — imperceptible | Debounce visual state — hold "active" state for minimum 500ms |
+| **DAG re-layout on every brain update** | Nodes jump around during execution | Lock DAG positions during execution, only layout on load |
+| **WS connection shown as loading forever** | User doesn't know if WS failed | 5s timeout → show "Connecting..." → show error with retry button |
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Parallel execution:** Often missing dependency validation — verify topological sort catches all violations
-- [ ] **Type safety:** Often missing MCP integration typing — verify all MCP responses use Pydantic models
-- [ ] **Web UI:** Often missing session isolation — verify two users can run flows simultaneously without cross-talk
-- [ ] **Auth unification:** Often missing CLI→backend integration — verify CLI uses web backend for auth
-- [ ] **Multi-user:** Often missing database-backed state — verify orchestrator state survives server restart
-- [ ] **Error recovery:** Often missing checkpoint/resume — verify failed orchestrations can be continued
-- [ ] **Performance:** Often missing concurrency benchmarking — verify parallel execution is actually faster
-- [ ] **Backward compatibility:** Often missing brain format migration — verify v1 brains work in v2
+- [ ] **React Flow CSS:** Import in `globals.css` inside `@layer base` — verify handles and edges visible in production build
+- [ ] **Magic UI keyframes:** Animated components play their animations — verify in production build, not just dev
+- [ ] **nodrag/nopan:** Every interactive element inside BrainNode has utility classes — verify by clicking buttons without node moving
+- [ ] **WS SSR safety:** `npm run build` succeeds without `WebSocket is not defined` — verify before any WS feature
+- [ ] **JWT security:** Every protected Server Component and Route Handler independently verifies JWT — verify with middleware disabled
+- [ ] **CORS + credentials:** WS connects successfully from browser to FastAPI:8000 — verify with `httpOnly` cookie present
+- [ ] **Docker WS URL:** WS URL uses env var, connects correctly inside and outside Docker network — verify both contexts
+- [ ] **Parallel brain burst:** Render 24 simultaneous Zustand updates in test — verify no UI freeze >16ms
+
+---
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| **False parallelism** | HIGH | Rewrite orchestration layer with correct concurrency model (asyncio vs multiprocessing) |
-| **Dependency graph blind spot** | MEDIUM | Add explicit dependency declarations, implement state isolation, write deterministic tests |
-| **Type safety half-migration** | MEDIUM | Remove `# type: ignore`, add Pydantic models, retype untyped modules |
-| **Auth state schism** | HIGH | Redesign auth architecture, migrate tokens, rewrite CLI auth flow |
-| **Multi-orchestrator race** | HIGH | Refactor to stateless, add session management, implement DB backing |
-| **MCP bottleneck** | MEDIUM | Implement connection pooling, semaphore limiting, request correlation |
-| **Backward compatibility break** | MEDIUM | Implement compatibility shim, write migration tooling, maintain dual paths |
+| **React Flow CSS in wrong location** | LOW | Move import to `globals.css @layer base`, rebuild |
+| **Magic UI missing keyframes** | LOW | Add `@keyframes` manually to `globals.css` |
+| **nodrag/nopan missing from nodes** | MEDIUM | Audit all node components, add to BaseNode wrapper, cascades to all 24 variants |
+| **WS SSR crashes** | MEDIUM | Refactor store init to lazy pattern, wrap consumers in `dynamic(ssr: false)` |
+| **Re-render storm** | HIGH | Requires restructuring Zustand slices + adding RAF batching + memoizing all node components |
+| **JWT middleware-only auth** | HIGH | Add JWT verification to every protected route — can be 20+ files |
+| **CORS misconfiguration** | LOW | Fix FastAPI `CORSMiddleware` config, restart API container |
+| **WS proxy through Next.js** | MEDIUM | Remove rewrite rule, update WS URL to direct FastAPI endpoint, handle CORS properly |
+
+---
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| False parallelism | Phase 1 — Profile before implementing | Benchmark shows >2x improvement |
-| Dependency graph blind spot | Phase 1 — Dependency graph system | Tests pass with all dependency permutations |
-| Type safety half-migration | Phase 2 — Pydantic at boundaries | `mypy strict` passes, zero `# type: ignore` |
-| Auth state schism | Phase 3 — Unified auth service | CLI and UI use same session |
-| Multi-orchestrator race | Phase 3 — Session isolation | Multi-user integration tests pass |
-| MCP bottleneck | Phase 1 — Semaphore limiting | No MCP errors under concurrent load |
-| Backward compatibility break | Phase 2 — Migration tooling | v1 brains run without modification |
+| React Flow CSS import location | Phase 1 — Frontend Foundation | `npm run build` + smoke test: 2-node graph with visible handles and edges |
+| Magic UI Tailwind 4 compatibility | Phase 1 — Frontend Foundation | One animated Magic UI component renders and animates in prod build |
+| WS SSR safety (hydration) | Phase 1 — Frontend Foundation | `npm run build` produces zero `WebSocket is not defined` errors |
+| JWT security (CVE-2025-29927) | Phase 1 — Frontend Foundation | Middleware disabled → protected pages still reject unauthenticated requests |
+| CORS + WebSocket setup | Phase 1 — Frontend Foundation | Browser WS connects to FastAPI:8000 from Next.js:3000 |
+| nodrag/nopan on interactive nodes | Phase 2 — The Nexus (DAG) | Click button inside BrainNode → button fires, node does not move |
+| Zustand re-render storm | Phase 2 — Command Center (Bento Grid) | 24 simultaneous Zustand updates complete in <16ms (1 frame) |
+| Docker WS URL env var | Phase 3 — Integration | WS connects correctly in `docker compose up` and in host dev server |
+
+---
 
 ## Sources
 
-**Note:** WebSearch was unavailable during research (quota limit reached). Findings are based on:
-- Python ecosystem knowledge (asyncio, threading, GIL behavior)
-- Existing concerns in CONCERNS.md (sequential execution, type safety, multi-user gaps)
-- Common refactoring patterns (sequential→parallel, dynamic→static typing)
-- Framework architecture principles (dependency injection, state isolation)
-
-**Confidence level:** MEDIUM — Recommendations are grounded in established Python best practices but lack recent 2026-specific validation. Consider verification through:
-- Python asyncio documentation (official)
-- mypy type system documentation (official)
-- FastAPI/FastStream multi-pattern examples (real-world parallel systems)
-- Post-mortems of projects that attempted similar migrations (search required when WebSearch available)
-
-**Recommended follow-up research:**
-1. Search for "Python sequential to parallel refactoring war stories 2025 2026"
-2. Search for "mypy strict migration large codebase experiences"
-3. Search for "FastAPI multi-user session isolation patterns"
-4. Search for "MCP (Model Context Protocol) concurrent request handling"
+- [React Flow UI: React 19 & Tailwind CSS 4 Updates (Oct 2025)](https://reactflow.dev/whats-new/2025-10-28) — HIGH confidence (official changelog)
+- [React Flow Utility Classes — nodrag, nopan](https://reactflow.dev/learn/customization/utility-classes) — HIGH confidence (official docs)
+- [Magic UI Issue #548 — tailwind.config.ts missing with Tailwind v4](https://github.com/magicuidesign/magicui/issues/548) — HIGH confidence (resolved, PR #620)
+- [CVE-2025-29927 — Next.js Middleware Authorization Bypass](https://projectdiscovery.io/blog/nextjs-middleware-authorization-bypass) — HIGH confidence (disclosed CVE)
+- [Zustand WebSocket integration discussion](https://github.com/pmndrs/zustand/discussions/2779) — MEDIUM confidence (community)
+- [React Flow Performance Guide](https://reactflow.dev/learn/advanced-use/performance) — HIGH confidence (official docs)
+- [Next.js WebSocket proxy limitations](https://github.com/vercel/next.js/discussions/38057) — MEDIUM confidence (community + official discussion)
+- [FastAPI WebSocket JWT authentication](https://dev.to/hamurda/how-i-solved-websocket-authentication-in-fastapi-and-why-depends-wasnt-enough-1b68) — MEDIUM confidence (real-world post-mortem)
+- [React 19 batching behavior for async events](https://codehustle.tech/posts/react-19-features-guide-complete-update/) — MEDIUM confidence (multiple sources agree)
+- [Next.js authentication guide — httpOnly cookies](https://nextjs.org/docs/app/guides/authentication) — HIGH confidence (official docs)
 
 ---
-*Pitfalls research for: MasterMind Framework v2.0*
-*Researched: 2026-03-13*
+*Pitfalls research for: MasterMind Framework v2.1 — War Room Frontend*
+*Researched: 2026-03-18*

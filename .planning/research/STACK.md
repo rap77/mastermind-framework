@@ -1,20 +1,12 @@
-# Stack Research: MasterMind Framework v2.0
+# Stack Research: MasterMind Framework v2.1 Frontend
 
-**Domain:** Cognitive Architecture Platform (Python)
-**Researched:** 2026-03-13
-**Confidence:** HIGH (based on official docs and established patterns)
+**Domain:** Real-time War Room Frontend (Next.js + React + Tailwind + Component Libraries)
+**Researched:** 2026-03-17
+**Confidence:** HIGH (Next.js 16, Tailwind 4, shadcn/ui — all verified via official docs and release notes)
 
----
-
-## Executive Summary
-
-MasterMind v2.0 requires three major capabilities: **parallel task execution**, **strict type safety**, and **web dashboard**. This stack prioritizes simplicity, maintainability, and compatibility with existing v1.3.0 code while adding production-ready infrastructure.
-
-**Core recommendations:**
-- **Parallel execution:** `asyncio` for I/O-bound tasks + `anyio` for portable async, avoid premature multiprocessing
-- **Type safety:** `mypy strict` + `pydantic>=2.10` with type validation, not runtime type hints
-- **Web dashboard:** `FastAPI` + `WebSocket` for real-time updates, NOT Streamlit/Dash (wrong use case)
-- **Task queue:** Defer to v2.1+ - current sequential execution is sufficient for initial parallelization
+> **Note:** This file replaces the v2.0 Python/FastAPI stack research for the current milestone.
+> The backend stack (FastAPI, Pydantic, asyncio) is already validated and unchanged.
+> This document covers ONLY the new `apps/web/` frontend.
 
 ---
 
@@ -24,123 +16,16 @@ MasterMind v2.0 requires three major capabilities: **parallel task execution**, 
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **Python** | 3.14+ | Core runtime | Latest stable with improved type hints, pattern matching, perf |
-| **FastAPI** | 0.115+ | Web dashboard backend | Modern async framework, automatic OpenAPI, WebSocket native support |
-| **WebSocket** | Native via FastAPI | Real-time dashboard updates | Built-in to FastAPI, no extra deps, bidirectional comms |
-| **asyncio** | Standard library (3.14+) | Parallel task execution | I/O-bound tasks (MCP calls, API requests), zero overhead |
-| **anyio** | 3.7+ | Portable async/await | Abstraction over asyncio/trio, future-proofs for async backends |
-| **pydantic** | 2.10+ | Data validation + type safety | Runtime validation, JSON serialization, mypy plugin, V2 stable |
+| **Next.js** | 16.1.7 (latest patch) | React framework + App Router | Turbopack stable, React 19.2 built-in, Server Components + Client Components split for real-time UI |
+| **React** | 19.2.x | UI runtime | Required by Next.js 16; includes ViewTransitions, `useEffectEvent`, `<Activity/>` |
+| **TypeScript** | 5.1+ (required by Next.js 16) | Type safety | Minimum 5.1.0 per Next.js 16 breaking changes — use 5.9.x for latest |
+| **Tailwind CSS** | 4.x | Styling | Configured in CSS only (@import syntax), no tailwind.config.js — breaking change from v3 |
+| **shadcn/ui** | latest (Tailwind v4 mode) | Component primitives | CLI auto-detects Tailwind v4, outputs `new-york` style by default, OKLCH colors |
+| **@xyflow/react** | 12.10.1 | DAG visualization | React Flow v12 — package renamed from `reactflow`, React 19 + Tailwind 4 native support |
+| **Zustand** | 5.x | WebSocket dispatcher + client state | Single WS connection in store, per-component subscriptions via selectors |
+| **Magic UI** | latest (Tailwind v4 mode) | Animated components (Bento Grid, Animated Beam, Orbiting Circles) | Copy-paste model via `magicui-cli`, Tailwind 4 + React 19 by default as of 2026 |
 
-**Confidence:** HIGH - All are production-proven with official support
-
----
-
-### Parallel Task Execution
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **asyncio** | Built-in (3.14+) | I/O-bound parallel tasks | MCP calls, HTTP requests, DB queries, file I/O |
-| **anyio** | 3.7+ | Async backend abstraction | When you might switch backends (trio, curio) later |
-| **concurrent.futures** | Built-in | CPU-bound parallel tasks | Heavy computation, data processing (rare for v2.0) |
-
-**NOT recommended for v2.0:**
-- ❌ **Celery** - Overkill for single-host orchestration, adds Redis/RabbitMQ dependency
-- ❌ **multiprocessing** - Unnecessary complexity, Python GIL not an issue for I/O-bound tasks
-- ❌ **RQ (Redis Queue)** - Adds Redis dependency, asyncio is sufficient for MVP
-
-**Rationale:**
-- MasterMind tasks are **I/O-bound** (waiting for NotebookLM MCP, Claude API, file reads)
-- `asyncio` provides true concurrency for I/O without threading/multiprocessing overhead
-- Brain orchestration is **single-host** (no distributed workers in v2.0)
-- Task queues add operational complexity that's not needed yet
-
-**Confidence:** HIGH - Established pattern for I/O-bound services
-
----
-
-### Type Safety
-
-| Tool | Version | Purpose | Configuration |
-|------|---------|---------|---------------|
-| **mypy** | 1.14+ | Static type checking | `--strict` mode, incremental caching |
-| **pydantic** | 2.10+ | Runtime validation + types | `strict` mode, mypy plugin enabled |
-| **types-*** | Varied | Type stubs for third-party | `types-PyYAML`, `types-redis`, etc. |
-
-**mypy strict mode setup:**
-```toml
-[tool.mypy]
-python_version = "3.14"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-disallow_any_generics = true
-check_untyped_defs = true
-no_implicit_optional = true
-
-plugins = ["pydantic.mypy"]
-```
-
-**Pydantic v2 type safety:**
-```python
-from pydantic import BaseModel, ConfigDict
-
-class BrainOutput(BaseModel):
-    model_config = ConfigDict(strict=True)  # Strict validation
-
-    brain_id: int
-    status: Literal["success", "error", "pending"]
-    content: str
-    metadata: Dict[str, Any] = {}
-    timestamp: datetime
-```
-
-**Key improvements over v1.3.0:**
-- ✅ All function signatures must have type hints
-- ✅ No `Any` types without explicit `# type: ignore` with justification
-- ✅ Pydantic models catch invalid data at runtime
-- ✅ mypy catches type bugs before runtime
-- ✅ Better IDE autocomplete and refactoring
-
-**Confidence:** HIGH - Industry standard for type-safe Python in 2025
-
----
-
-### Web Dashboard Framework
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **FastAPI** | 0.115+ | REST API + WebSocket | Native async, auto docs, type validation |
-| **Uvicorn** | 0.34+ | ASGI server | Production async server, hot reload |
-| **WebSocket** | Built-in to FastAPI | Real-time updates | No extra deps, native to FastAPI |
-| **HTTPX** | 0.28+ | Async HTTP client | Used by dashboard to talk to orchestrator |
-
-**Frontend (minimal):**
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **HTMX** | 2.0+ | Dynamic UI without SPA complexity | Server-driven, minimal JS |
-| **Alpine.js** | 3.14+ | Light interactivity | Tiny, progressive enhancement |
-| **Tailwind CSS** | 4.0+ | Styling | Utility-first, modern, fast dev |
-
-**NOT recommended:**
-- ❌ **Streamlit** - Wrong paradigm (data science dashboards, not orchestration UI)
-- ❌ **Dash** - Too heavy, Plotly dependency, not suited for real-time orchestration
-- ❌ **React/Vue SPA** - Overkill for v2.0, adds build complexity, HTMX is sufficient
-
-**Architecture:**
-```
-FastAPI (port 8000)
-├── REST endpoints: /brains, /sessions, /tasks
-├── WebSocket: /ws/session/{id} (real-time updates)
-└── Static files: / (serve HTMX frontend)
-
-HTMX frontend (single HTML file + Tailwind)
-├── Real-time progress via WebSocket
-├── Async form submissions to FastAPI
-└── No build step, no bundler
-```
-
-**Confidence:** HIGH - FastAPI is de facto standard for Python async APIs in 2025
+**Confidence:** HIGH — versions verified from official release notes and npm as of 2026-03-17
 
 ---
 
@@ -148,186 +33,106 @@ HTMX frontend (single HTML file + Tailwind)
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| **structlog** | 25.0+ | Structured logging | When you need JSON logs, observability |
-| **rich** | 13.9+ | Terminal output (existing) | Keep for CLI, add web dashboard alongside |
-| **pytest-asyncio** | 0.25+ | Async test support | When testing async/await code |
-| **httpx** | 0.28+ | Async HTTP client | For dashboard ↔ orchestrator communication |
-| **websockets** | 14.0+ | WebSocket client (if needed) | For testing WebSocket endpoints |
+| **tw-animate-css** | latest | CSS animations | Replaces `tailwindcss-animate` — shadcn/ui deprecated tailwindcss-animate, tw-animate-css is the v4 default |
+| **motion** (Framer Motion) | 11+ | Magic UI dependency | Magic UI installs via `magicui-cli`, which pulls motion for animated components |
+| **clsx** | 2.x | Conditional className builder | Part of the `cn()` utility from shadcn/ui |
+| **tailwind-merge** | 2.x | Merge Tailwind classes without conflicts | Used in `cn()` — prevents class collision when composing components |
+| **lucide-react** | latest | Icon library | shadcn/ui default icon set — use latest for React 19 compatibility |
+| **@radix-ui/*** | latest | shadcn/ui headless primitives | Update all `@radix-ui/*` packages when upgrading to Tailwind v4 |
 
-**Existing dependencies to keep:**
-- ✅ `click>=8.1.0` - CLI framework (coexists with web UI)
-- ✅ `rich>=13.0.0` - Terminal formatting
-- ✅ `pyyaml>=6.0` - Config parsing
-- ✅ `gitpython>=3.1.0` - Git operations
-- ✅ `semver>=3.0.0` - Versioning
-- ✅ `pytest>=9.0.2` - Testing
+---
+
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| **Turbopack** | Default bundler in Next.js 16 | Enabled by default — 2-5x faster builds, 10x faster Fast Refresh. Use `next dev --webpack` only if custom webpack plugin required |
+| **ESLint (Flat Config)** | Linting | Next.js 16 defaults to ESLint Flat Config format — `eslint.config.mjs`, not `.eslintrc.json` |
+| **@types/node** | Node.js type stubs | Required for `next.config.ts` |
 
 ---
 
 ## Installation
 
+### Step 1 — Bootstrap Next.js 16 with Tailwind 4 and TypeScript
+
 ```bash
-# Core v2.0 additions
-uv add \
-    "fastapi>=0.115.0" \
-    "uvicorn[standard]>=0.34.0" \
-    "anyio>=3.7.0" \
-    "structlog>=25.0.0" \
-    "httpx>=0.28.0" \
-    "websockets>=14.0.0" \
-    "pytest-asyncio>=0.25.0"
-
-# Upgrade Pydantic to latest v2
-uv add "pydantic>=2.10.0"
-
-# Type stubs for mypy
-uv add -D \
-    "mypy>=1.14.0" \
-    "types-PyYAML" \
-    "types-redis"  # If you add Redis later
-
-# Frontend (via CDN, no npm needed)
-# - HTMX: https://unpkg.com/htmx.org@2.0.3
-# - Alpine.js: https://cdn.jsdelivr.net/npm/alpinejs@3.14.0
-# - Tailwind: CDN or standalone CLI
+# In apps/web/ (already a placeholder dir)
+npx create-next-app@latest . \
+  --typescript \
+  --tailwind \
+  --app \
+  --turbopack \
+  --import-alias "@/*"
 ```
 
-**pyproject.toml updates:**
-```toml
-[project]
-dependencies = [
-    # Existing v1.3.0 deps...
-    "click>=8.1.0",
-    "rich>=13.0.0",
-    "pyyaml>=6.0",
-    "gitpython>=3.1.0",
-    "semver>=3.0.0",
+This generates: Next.js 16.x, React 19.2, TypeScript 5.x, Tailwind 4, App Router, Turbopack.
 
-    # v2.0 additions
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.34.0",
-    "anyio>=3.7.0",
-    "pydantic>=2.10.0",
-    "structlog>=25.0.0",
-    "httpx>=0.28.0",
-    "websockets>=14.0.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "pytest-asyncio>=0.25.0",
-    "mypy>=1.14.0",
-    "types-PyYAML",
-]
-
-[tool.mypy]
-python_version = "3.14"
-strict = true
-plugins = ["pydantic.mypy"]
-
-[[tool.mypy.overrides]]
-module = "mastermind_cli.*"
-disallow_untyped_defs = true
+**Resulting package.json core deps:**
+```json
+{
+  "next": "^16.1.7",
+  "react": "^19.2.1",
+  "react-dom": "^19.2.1",
+  "typescript": "^5.9.3"
+}
 ```
 
----
+### Step 2 — Initialize shadcn/ui (Tailwind v4 mode)
 
-## Alternatives Considered
-
-### Parallel Execution
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| **asyncio + anyio** | Celery + Redis | When you need distributed workers across multiple hosts (v3.0+) |
-| **asyncio + anyio** | multiprocessing | When tasks are CPU-bound (ML model training, heavy computation) |
-| **asyncio + anyio** | RQ + Redis | When you need persistent job queue with retry logic (v2.1+) |
-
-**Why asyncio is right for v2.0:**
-- Brains spend 90% of time waiting on I/O (MCP calls, API responses)
-- No need for Redis/RabbitMQ complexity yet
-- Can add Celery later without breaking changes
-- `anyio` makes backend swappable if needed
-
----
-
-### Type Safety
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| **mypy strict + Pydantic** | Type-only (no runtime checks) | When performance is critical and you trust input |
-| **mypy strict + Pydantic** | Runtime only (no mypy) | When you don't care about IDE support or early error detection |
-| **mypy strict + Pydantic** | Pydantic v1 | Never - v2 is superior in all aspects |
-
-**Why strict mode + Pydantic:**
-- Catch bugs at dev time (mypy) AND runtime (Pydantic)
-- Pydantic v2 is 5-50x faster than v1
-- `strict` mode prevents silent type coercion bugs
-- Future ML feature needs data validation anyway
-
----
-
-### Web Dashboard
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| **FastAPI + HTMX** | Streamlit | When building data science notebooks, not orchestration UI |
-| **FastAPI + HTMX** | Dash | When building Plotly-heavy analytics dashboards |
-| **FastAPI + HTMX** | React SPA | When you need complex client-side state (v3.0+) |
-| **FastAPI + HTMX** | Django Admin | When you need CRUD CMS, not custom orchestration |
-
-**Why FastAPI + HTMX:**
-- FastAPI: Native async, type-safe, automatic OpenAPI docs
-- HTMX: No build step, server-driven, works with REST
-- Cohesive with existing Python stack
-- Can migrate to React later without backend changes
-
----
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **Celery** | Adds Redis/RabbitMQ, overkill for single-host | asyncio + anyio (now), Celery (v3.0 if distributed) |
-| **multiprocessing** | GIL not an issue for I/O-bound tasks, complex IPC | asyncio for I/O, concurrent.futures for CPU |
-| **Streamlit** | Wrong paradigm (notebook-style, not orchestration UI) | FastAPI + HTMX for custom dashboards |
-| **Dash** | Plotly dependency too heavy, not suited for real-time | FastAPI + HTMX + Chart.js if needed |
-| **React SPA** | Build complexity, overkill for MVP | HTMX for v2.0, React (optional v3.0) |
-| **Pydantic v1** | Deprecated, slower, worse type inference | Pydantic v2.10+ |
-| **Flask** | Not async-first, less type-safe than FastAPI | FastAPI (built on Starlette, async-native) |
-| **Tornado** | Legacy, less maintained, not type-safe | FastAPI + WebSocket |
-
----
-
-## Stack Patterns by Variant
-
-### If parallel I/O tasks (MCP calls, HTTP requests):
-- Use `asyncio.gather()` for concurrent execution
-- Example: Run 5 brains in parallel, wait for all
-```python
-async def execute_brains_parallel(brain_tasks: List[Task]) -> List[Result]:
-    return await asyncio.gather(*[execute_brain(t) for t in brain_tasks])
+```bash
+# Inside apps/web/
+npx shadcn@latest init -t next
 ```
 
-### If CPU-bound tasks (data processing, ML):
-- Use `concurrent.futures.ProcessPoolExecutor`
-- Example: Parallel data transformation
-```python
-from concurrent.futures import ProcessPoolExecutor
+The CLI detects Tailwind v4 automatically and configures:
+- `globals.css` with `@import "tailwindcss"` and `@import "tw-animate-css"` (NOT `@tailwind base/components/utilities`)
+- `@theme inline` block with OKLCH colors (NOT HSL variables in `:root`)
+- `components.json` with `new-york` style by default (NOT `default` — deprecated in Tailwind v4)
+- Deprecates `tailwindcss-animate` → installs `tw-animate-css`
 
-with ProcessPoolExecutor() as executor:
-    results = executor.map(cpu_bound_function, data)
+**Add components as needed:**
+```bash
+npx shadcn@latest add button card dialog input label
 ```
 
-### If dependency-aware orchestration (Brain #2 waits for #1):
-- Use `asyncio.Task` with explicit `await` on dependencies
-- Example: Brain #2 waits for Brain #1 output
-```python
-brain1_task = asyncio.create_task(execute_brain(1, task))
-await brain1_task  # Ensure Brain #1 completes
-brain2_result = await execute_brain(2, brain1_task.result())  # Use output
+### Step 3 — Initialize Magic UI
+
+```bash
+# Inside apps/web/ — after shadcn/ui is initialized
+npx magicui-cli init
+npx magicui-cli add bento-grid
+npx magicui-cli add animated-beam
+npx magicui-cli add orbiting-circles
 ```
+
+Magic UI uses the same copy-paste model as shadcn/ui. Components land in `components/magicui/`. Dependencies installed: `motion` (Framer Motion v11+).
+
+### Step 4 — React Flow
+
+```bash
+npm install @xyflow/react
+```
+
+**Critical CSS change for Tailwind 4:** Do NOT import `@xyflow/react/dist/style.css` in JSX. Import in `globals.css` instead:
+
+```css
+/* globals.css */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
+```
+
+### Step 5 — Zustand 5
+
+```bash
+npm install zustand
+```
+
+No additional plugins needed for basic WebSocket dispatcher pattern.
 
 ---
 
@@ -335,91 +140,370 @@ brain2_result = await execute_brain(2, brain1_task.result())  # Use output
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| **pydantic 2.10+** | Python 3.14+ | V2 requires 3.10+, 3.14 recommended |
-| **fastapi 0.115+** | pydantic 2.0+ | FastAPI requires Pydantic V2 |
-| **mypy 1.14+** | Python 3.14+ | Full support for 3.14 features |
-| **anyio 3.7+** | Python 3.9+ | asyncio backend default, trio optional |
-| **uvicorn 0.34+** | Python 3.9+ | ASGI server, works with FastAPI |
-| **pytest-asyncio** | pytest 9.0+ | Use `@pytest.mark.asyncio` |
-
-**Backward compatibility with v1.3.0:**
-- ✅ All existing brains remain compatible (CLI still works)
-- ✅ NotebookLM MCP integration unchanged
-- ✅ Brain YAML configs unchanged
-- ✅ Can run CLI and web dashboard simultaneously
+| `next@16.x` | `react@19.2.x` | React 19.2 is bundled — install both to keep package.json accurate |
+| `next@16.x` | `typescript@5.1+` | Hard minimum 5.1.0 — Next.js 16 breaking change |
+| `next@16.x` | Node.js 20.9+ | Hard minimum 20.9.0 — Node.js 18 dropped |
+| `tailwindcss@4.x` | No `tailwind.config.js` | v4 configured entirely in CSS — `tailwind.config.js/ts` is NOT used |
+| `shadcn/ui` (Tailwind v4) | `tw-animate-css` | `tailwindcss-animate` is deprecated — shadcn auto-installs `tw-animate-css` |
+| `@xyflow/react@12.x` | `react@18+` | React 18 and 19 both supported |
+| `@xyflow/react@12.x` | Tailwind 4 | Import style.css in globals.css (not in App.tsx/layout.tsx) — breaking change from v11 |
+| `shadcn/ui` components | `@radix-ui/*` latest | All Radix packages must be updated together when migrating to Tailwind v4 |
+| `zustand@5.x` | Next.js App Router | Store must be defined outside `app/` dir (e.g. `lib/stores/`) — avoids SSR instantiation issues |
+| `magic-ui` | `motion@11+` | Magic UI depends on Framer Motion v11 — verify no conflict with React 19 |
 
 ---
 
-## Architecture Impact
+## Tailwind 4 Configuration (CRITICAL — Breaking Change from v3)
 
-### Before (v1.3.0 - Sequential)
-```
-Coordinator → Brain #1 (sequential) → Brain #2 → ... → Brain #7
+### globals.css structure (Tailwind v4 + shadcn/ui + React Flow)
+
+```css
+/* apps/web/app/globals.css */
+
+/* 1. Tailwind v4 — replaces @tailwind base/components/utilities */
+@import "tailwindcss";
+
+/* 2. Animation library — replaces tailwindcss-animate */
+@import "tw-animate-css";
+
+/* 3. React Flow styles — must be in globals.css, NOT in layout.tsx */
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
+
+/* 4. shadcn/ui theme — OKLCH colors, @theme inline (NOT :root + HSL) */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+  /* ... rest of shadcn/ui theme variables */
+}
 ```
 
-### After (v2.0 - Parallel + Type-Safe + Web)
+### What does NOT exist in Tailwind v4
+
+| v3 concept | v4 replacement |
+|------------|----------------|
+| `tailwind.config.js` | CSS `@theme` directive in globals.css |
+| `@tailwind base` | `@import "tailwindcss"` |
+| `@tailwind components` | removed — handled by `@layer components` |
+| `@tailwind utilities` | removed — handled by `@layer utilities` |
+| `tailwindcss-animate` plugin | `tw-animate-css` package |
+| PostCSS-only setup | `@tailwindcss/vite` plugin available (faster) |
+| `:root` HSL variables | `@theme inline` with OKLCH |
+
+---
+
+## Next.js 16 Configuration (next.config.ts)
+
+```typescript
+// apps/web/next.config.ts
+const nextConfig = {
+  // Turbopack is default — no explicit config needed
+  // Enable only if you need these features:
+  reactCompiler: false,  // Keep false unless profiling shows gains; adds Babel overhead
+  cacheComponents: false, // "use cache" directive — opt in per route when needed
+};
+
+export default nextConfig;
 ```
-FastAPI (port 8000)
-├── REST API: POST /orchestrate
-├── WebSocket: /ws/session/{id}
-└── Coordinator (async)
-    ├── Parallel: asyncio.gather(Brain #1, #3, #5)
-    ├── Sequential: Brain #2 awaits Brain #1
-    └── Type-safe: Pydantic models validate all data
+
+**Breaking change — proxy.ts replaces middleware.ts:**
+```typescript
+// apps/web/proxy.ts  (was middleware.ts)
+// proxy.ts runs on Node.js runtime (not Edge)
+import { type NextRequest, NextResponse } from "next/server";
+
+export default function proxy(request: NextRequest) {
+  const token = request.cookies.get("mm_token");
+  if (!token && request.nextUrl.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+  return NextResponse.next();
+}
+```
+
+Note: `middleware.ts` still works in Next.js 16 (deprecated, not removed) — but new projects should use `proxy.ts`.
+
+---
+
+## Zustand 5 WebSocket Dispatcher Pattern
+
+The single-connection WebSocket dispatcher stores the WS reference inside the Zustand store and routes events to state by event type.
+
+```typescript
+// apps/web/lib/stores/ws-dispatcher.ts
+"use client";
+
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+
+type WsStatus = "disconnected" | "connecting" | "connected" | "error";
+
+interface BrainStepEvent {
+  type: "brain_step_completed";
+  brain_id: string;
+  step: number;
+  output: string;
+}
+
+interface TaskStatusEvent {
+  type: "task_status";
+  task_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+}
+
+type WsEvent = BrainStepEvent | TaskStatusEvent | { type: "execution_complete"; task_id: string };
+
+interface WsDispatcherStore {
+  status: WsStatus;
+  brainEvents: BrainStepEvent[];
+  taskStatus: Record<string, TaskStatusEvent["status"]>;
+  connect: (taskId: string, token: string) => void;
+  disconnect: () => void;
+}
+
+let ws: WebSocket | null = null;
+
+export const useWsDispatcher = create<WsDispatcherStore>()(
+  devtools(
+    (set) => ({
+      status: "disconnected",
+      brainEvents: [],
+      taskStatus: {},
+
+      connect: (taskId, token) => {
+        if (ws) ws.close();
+        set({ status: "connecting" });
+
+        ws = new WebSocket(`ws://localhost:8000/ws/session/${taskId}?token=${token}`);
+
+        ws.onopen = () => set({ status: "connected" });
+
+        ws.onmessage = (event) => {
+          const data: WsEvent = JSON.parse(event.data);
+          if (data.type === "brain_step_completed") {
+            set((state) => ({ brainEvents: [...state.brainEvents, data] }));
+          }
+          if (data.type === "task_status") {
+            set((state) => ({
+              taskStatus: { ...state.taskStatus, [data.task_id]: data.status },
+            }));
+          }
+        };
+
+        ws.onclose = () => set({ status: "disconnected" });
+        ws.onerror = () => set({ status: "error" });
+      },
+
+      disconnect: () => {
+        ws?.close();
+        ws = null;
+        set({ status: "disconnected" });
+      },
+    }),
+    { name: "WsDispatcher" }
+  )
+);
+```
+
+**Component consumption pattern (select only what you need):**
+```typescript
+import { useShallow } from "zustand/react/shallow";
+import { useWsDispatcher } from "@/lib/stores/ws-dispatcher";
+
+// In a Client Component:
+function BrainStatusCard({ brainId }: { brainId: string }) {
+  const events = useWsDispatcher(
+    useShallow((state) => state.brainEvents.filter((e) => e.brain_id === brainId))
+  );
+  // ...
+}
 ```
 
 ---
 
-## Migration Path from v1.3.0
+## React Flow in App Router (Server/Client boundary)
 
-### Phase 1: Type Safety (PAR-01, TS-01, TS-02, TS-03)
-1. Add `mypy --strict` to CI/CD
-2. Add type hints to all public functions
-3. Convert data classes to Pydantic models
-4. Fix type errors incrementally
+React Flow requires a Client Component — it uses browser APIs and event listeners.
 
-### Phase 2: Parallel Execution (PAR-01, PAR-02)
-1. Refactor `Coordinator.execute()` to `async def`
-2. Use `asyncio.gather()` for independent brains
-3. Add dependency graph in `PlanGenerator`
-4. Topological sort for execution order
+```typescript
+// apps/web/components/nexus/dag-view.tsx
+"use client";  // REQUIRED — React Flow is not SSR-compatible
 
-### Phase 3: Web Dashboard (UI-01, UI-02, UI-03)
-1. Create FastAPI app (`api/app.py`)
-2. Add WebSocket endpoint for real-time updates
-3. Build HTMX frontend (`frontend/dashboard.html`)
-4. Connect orchestrator to WebSocket events
+import { ReactFlow, Background, Controls, MiniMap } from "@xyflow/react";
+import { useDagStore } from "@/lib/stores/dag-store";
+
+export function DagView() {
+  const { nodes, edges, onNodesChange, onEdgesChange } = useDagStore(
+    useShallow((s) => ({
+      nodes: s.nodes,
+      edges: s.edges,
+      onNodesChange: s.onNodesChange,
+      onEdgesChange: s.onEdgesChange,
+    }))
+  );
+
+  return (
+    <div className="h-full w-full">
+      <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}>
+        <Background />
+        <Controls />
+        <MiniMap />
+      </ReactFlow>
+    </div>
+  );
+}
+```
+
+**Tailwind 4 + React Flow style collision prevention:**
+- Import `@xyflow/react/dist/style.css` in `globals.css` inside `@layer base` — this ensures Tailwind's reset does not override React Flow's base styles
+- React Flow uses CSS variables prefixed with `--xy-` — no collision with Tailwind or shadcn/ui theme variables
+- Do NOT use `className` with React Flow internal components for layout/position — use the wrapper `div` with Tailwind classes instead
 
 ---
 
-## Confidence Assessment
+## shadcn/ui Inside React Flow Custom Nodes
 
-| Area | Confidence | Reason |
-|------|------------|--------|
-| Parallel execution (asyncio) | HIGH | Industry standard for I/O-bound services since 3.7 |
-| Type safety (mypy + Pydantic) | HIGH | Pydantic v2 stable, mypy mature, official support |
-| Web dashboard (FastAPI + HTMX) | HIGH | FastAPI is #1 Python async framework, HTMX proven |
-| Defer Celery/RQ | HIGH | Consensus: premature optimization for single-host |
-| Avoid Streamlit/Dash | HIGH | Wrong paradigm (notebook vs orchestration) |
-| HTMX over React | MEDIUM | UX tradeoff, but valid for v2.0 simplicity |
+This is a supported pattern — shadcn/ui components work inside React Flow custom nodes because they are Client Components.
 
-**Overall:** HIGH confidence - All choices are established, production-proven technologies with official support and large communities.
+```typescript
+// apps/web/components/nexus/brain-node.tsx
+"use client";
+
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+type BrainNodeData = {
+  brainId: string;
+  brainName: string;
+  status: "idle" | "running" | "completed" | "failed";
+};
+
+export function BrainNode({ data }: NodeProps<BrainNodeData>) {
+  return (
+    <>
+      <Handle type="target" position={Position.Top} />
+      <Card className="w-40 border-slate-700 bg-slate-900">
+        <CardHeader className="pb-1 pt-3 px-3">
+          <span className="text-xs text-slate-400">{data.brainId}</span>
+        </CardHeader>
+        <CardContent className="px-3 pb-3">
+          <p className="text-sm font-medium text-white">{data.brainName}</p>
+          <Badge
+            className={cn(
+              "mt-1 text-xs",
+              data.status === "running" && "bg-blue-500",
+              data.status === "completed" && "bg-green-500",
+              data.status === "failed" && "bg-red-500"
+            )}
+          >
+            {data.status}
+          </Badge>
+        </CardContent>
+      </Card>
+      <Handle type="source" position={Position.Bottom} />
+    </>
+  );
+}
+```
+
+---
+
+## Alternatives Considered
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| **Next.js 16 App Router** | Next.js 15 Pages Router | Never for new projects — App Router is the current standard |
+| **Tailwind 4** | Tailwind 3 | If the project already has Tailwind 3 and migration cost is too high |
+| **@xyflow/react 12** | `reactflow` 11 | Never for new projects — package renamed, v11 no longer maintained |
+| **Zustand 5** | Redux Toolkit | RTK adds boilerplate; Zustand is idiomatic for single-app WebSocket state |
+| **Zustand 5** | React Context + useReducer | Context re-renders ALL consumers; Zustand selectors prevent unnecessary re-renders |
+| **Magic UI** | Framer Motion directly | Magic UI gives you pre-built animated components — use Framer Motion directly only for custom animations beyond what Magic UI provides |
+| **shadcn/ui** | Chakra UI / MUI | shadcn/ui is copy-paste (you own the code), fully Tailwind 4 native, no runtime overhead |
+| **tw-animate-css** | tailwindcss-animate | tailwindcss-animate is deprecated in Tailwind v4 context — tw-animate-css is the official replacement |
+
+---
+
+## What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `reactflow` (old package) | Abandoned — last published 2 years ago (v11.11.4) | `@xyflow/react` v12 |
+| `tailwindcss-animate` | Deprecated by shadcn/ui for Tailwind v4 — causes warnings | `tw-animate-css` |
+| `tailwind.config.js` | Does not exist in Tailwind v4 | CSS `@theme` directive in globals.css |
+| `import '@xyflow/react/dist/style.css'` in `.tsx` files | Breaks Tailwind 4 style cascade | Import inside `@layer base` in globals.css |
+| `middleware.ts` in new code | Deprecated in Next.js 16 | `proxy.ts` with exported `proxy` function |
+| `experimental.ppr` in next.config | Removed in Next.js 16 | `cacheComponents: true` (opt-in) |
+| `experimental.turbopack` in next.config | Moved to top-level in Next.js 16 | `turbopack: {}` at root of config |
+| `react@18` | Next.js 16 requires React 19 | `react@19.2.x` |
+| Node.js 18 | Dropped by Next.js 16 | Node.js 20.9+ (LTS) |
+| `serverRuntimeConfig` / `publicRuntimeConfig` | Removed in Next.js 16 | `.env` files + `NEXT_PUBLIC_*` prefix |
+| Default shadcn style ("default") | Deprecated in Tailwind v4 shadcn/ui | "new-york" style |
+| `useStore()` (select full store in Zustand) | Re-renders on any state change | Use selectors: `useStore((s) => s.specificField)` or `useShallow` |
+
+---
+
+## Stack Patterns by Variant
+
+**For Server Components (data fetching, no real-time):**
+- Use `async` page/layout components directly
+- Fetch from FastAPI REST endpoints in the component body
+- No Zustand, no hooks
+
+**For Client Components (real-time, interactive):**
+- Add `"use client"` directive
+- Subscribe to Zustand store with selectors
+- Never put WebSocket logic directly in a component — always via the WS dispatcher store
+
+**For React Flow custom nodes:**
+- Nodes are always Client Components
+- Wrap in `"use client"` directive
+- Use shadcn/ui components freely inside node — they work as regular React components
+- Connect node status to the Zustand WS dispatcher store for live illumination
+
+**For Magic UI Bento Grid:**
+- Copy-pasted component lives in `components/magicui/bento-grid.tsx`
+- Tailwind classes control grid layout — Tailwind 4 `grid-cols-*` syntax unchanged
+- Animated transitions use `motion` (Framer Motion) — already installed by `magicui-cli`
+
+---
+
+## Version Compatibility Matrix (Full Stack)
+
+| Package | Version | Node Required | React Required |
+|---------|---------|---------------|----------------|
+| `next` | 16.1.7 | 20.9+ | 19.2+ |
+| `react` / `react-dom` | 19.2.1 | 20.9+ | — |
+| `typescript` | 5.9.3 | — | — |
+| `tailwindcss` | 4.x | — | — |
+| `@xyflow/react` | 12.10.1 | — | 18+ |
+| `zustand` | 5.x | — | 18+ |
+| `tw-animate-css` | latest | — | — |
+| `motion` (framer-motion) | 11+ | — | 18+ |
+| `clsx` | 2.x | — | — |
+| `tailwind-merge` | 2.x | — | — |
 
 ---
 
 ## Sources
 
-- **Python asyncio docs** - Official documentation for async/await, concurrency
-- **FastAPI docs** - Official FastAPI documentation, WebSocket support
-- **Pydantic v2 docs** - Official Pydantic V2 migration guide, performance notes
-- **anyio docs** - Portable async library, backend abstraction
-- **mypy docs** - Static type checking, strict mode configuration
-- **HTMX docs** - Server-driven dynamic UI without SPA complexity
-- **Real Python** - "Async IO in Python: A Complete Walkthrough" (MEDIUM confidence - tutorial)
-- **Two Scoops of Django 3.x** - Type safety patterns (MEDIUM confidence - book reference)
+- [Next.js 16 release blog](https://nextjs.org/blog/next-16) — Breaking changes, version requirements, proxy.ts, React 19.2 — HIGH confidence
+- [Next.js 16.1 release blog](https://nextjs.org/blog/next-16-1) — Patch notes — HIGH confidence
+- [shadcn/ui Tailwind v4 docs](https://ui.shadcn.com/docs/tailwind-v4) — Migration steps, tw-animate-css, OKLCH, new-york style — HIGH confidence
+- [React Flow UI Tailwind 4 update](https://reactflow.dev/whats-new/2025-10-28) — CSS import change, shadcn/ui + React 19 update — HIGH confidence
+- [Magic UI Tailwind v4 support](https://v3.magicui.design/docs/tailwind-v4) — Confirmed Tailwind 4 + React 19 default — MEDIUM confidence (page rendered as CSS, installation details from magicui-cli npm page)
+- `@xyflow/react` npm + GitHub releases — v12.10.1 latest as of Feb 2025 — HIGH confidence
+- [Zustand WebSocket integration discussion](https://github.com/pmndrs/zustand/discussions/1651) — Single connection + reducer pattern — MEDIUM confidence (community, not official docs)
+- Skill files: `~/.claude/skills/nextjs-15/SKILL.md`, `~/.claude/skills/tailwind-4/SKILL.md`, `~/.claude/skills/zustand-5/SKILL.md` — Applied as coding standards
 
 ---
 
-*Stack research for: MasterMind Framework v2.0*
-*Researched: 2026-03-13*
+*Stack research for: MasterMind Framework v2.1 War Room Frontend*
+*Researched: 2026-03-17*
 *Confidence: HIGH*
