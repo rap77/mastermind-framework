@@ -19,13 +19,13 @@
 
 ### Schema Bridge
 
-- [ ] **SB-01**: Developer can run a schema generator script that produces Zod types from Pydantic models in apps/api/ and outputs them to apps/web/src/types/api.ts — TypeScript errors surface immediately when backend models change
+- [x] **SB-01**: Developer can run a schema generator script that produces Zod types from Pydantic models in apps/api/ and outputs them to apps/web/src/types/api.ts — TypeScript errors surface immediately when backend models change
 
 ### WebSocket Layer
 
-- [ ] **WS-01**: WebSocket connection is established once per session and shared across all screens — no reconnect on client-side navigation
-- [ ] **WS-02**: UI remains responsive at 60fps when 24 brains fire events simultaneously — RAF/requestIdleCallback batching applied before Zustand state updates
-- [ ] **WS-03**: Each brain tile and node updates independently via targeted Map<brainId, BrainState> selectors — no cascade re-renders across other tiles/nodes
+- [x] **WS-01**: WebSocket connection is established once per session and shared across all screens — no reconnect on client-side navigation
+- [x] **WS-02**: UI remains responsive at 60fps when 24 brains fire events simultaneously — RAF/requestIdleCallback batching applied before Zustand state updates
+- [x] **WS-03**: Each brain tile and node updates independently via targeted Map<brainId, BrainState> selectors — no cascade re-renders across other tiles/nodes
 
 ### Command Center
 
@@ -93,10 +93,10 @@
 | FND-02 | Phase 5 | Complete |
 | FND-03 | Phase 5 | Complete |
 | FND-04 | Phase 5 | Complete |
-| SB-01 | Phase 5 | Pending |
-| WS-01 | Phase 5 | Pending |
-| WS-02 | Phase 5 | Pending |
-| WS-03 | Phase 5 | Pending |
+| SB-01 | Phase 5 | Complete |
+| WS-01 | Phase 5 | Complete |
+| WS-02 | Phase 5 | Complete |
+| WS-03 | Phase 5 | Complete |
 | BE-01 | Phase 6 | Pending |
 | CC-01 | Phase 6 | Pending |
 | CC-02 | Phase 6 | Pending |

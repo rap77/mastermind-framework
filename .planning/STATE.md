@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: executing
-stopped_at: Completed 05-01 — Next.js 16 scaffold with Tailwind 4, shadcn/ui, React Flow
-last_updated: "2026-03-19T11:06:07.948Z"
-last_activity: "2026-03-19 — 05-01 complete: Next.js 16 scaffold verified"
+stopped_at: Completed 05-03 — Zod Schema Bridge, Zustand Stores, and WS Brain Pipeline
+last_updated: "2026-03-19T12:24:15.000Z"
+last_activity: "2026-03-19 — 05-03 complete: Zod schema bridge, wsStore, brainStore, WSBrainBridge with RAF batching"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 4
-  completed_plans: 2
-  percent: 15
+  total_plans: 13
+  completed_plans: 4
+  percent: 30
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 5 of 8 (Foundation, Auth & WebSocket Infrastructure)
-Plan: 3 of 4 in current phase (05-00, 05-01, 05-02 complete)
+Plan: 4 of 4 in current phase (05-00, 05-01, 05-02, 05-03 complete)
 Status: Executing
-Last activity: 2026-03-19 — 05-02 complete: JWT Auth & WS Token Handoff with dual-layer verification
+Last activity: 2026-03-19 — 05-03 complete: Zod schema bridge, wsStore, brainStore, WSBrainBridge with RAF batching
 
-Progress: [███░░░░░░░░] 23% (3/13 plans complete)
+Progress: [████░░░░░░░] 30% (4/13 plans complete)
 
 ## Performance Metrics
 
@@ -43,7 +43,7 @@ Progress: [███░░░░░░░░] 23% (3/13 plans complete)
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 05 Foundation + WS | 4 | 3/4 complete (05-00, 05-01, 05-02) |
+| 05 Foundation + WS | 4 | 4/4 complete (05-00, 05-01, 05-02, 05-03) |
 | 06 Command Center | 3 | Not started |
 | 07 The Nexus | 3 | Not started |
 | 08 Vault + Engine Room | 4 | Not started |
@@ -52,6 +52,7 @@ Progress: [███░░░░░░░░] 23% (3/13 plans complete)
 | Phase 05-foundation-auth-ws P00 | 15 | 6 tasks | 17 files |
 | Phase 05-foundation-auth-ws P01 | 30 | 3 tasks | 9 files |
 | Phase 05-foundation-auth-ws P02 | 24 | 5 tasks | 10 files |
+| Phase 05-foundation-auth-ws P03 | 18 | 6 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,11 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 05-foundation-auth-ws P02]: Dual-layer JWT verification (proxy.ts + AuthGuardLayout) mitigates CVE-2025-29927
 - [Phase 05-foundation-auth-ws P02]: React 19 useActionState pattern for Server Actions
 - [Phase 05-foundation-auth-ws P02]: FastAPI CORS explicit origins (wildcard + credentials prohibited)
+- [Phase 05-foundation-auth-ws P03]: Manual parity Zod schema generator (not OpenAPI auto-generation) — simpler, no backend introspection
+- [Phase 05-foundation-auth-ws P03]: RAF batching in brainStore (not WS handler) — queues 24 events, drains before paint, maintains 60fps
+- [Phase 05-foundation-auth-ws P03]: useBrainState(id) targeted selector — prevents cascade re-renders, O(1) Map lookup
+- [Phase 05-foundation-auth-ws P03]: WS token handoff via /api/auth/token — server-side cookie read, token not in client bundle
+- [Phase 05-foundation-auth-ws P03]: Immer middleware for Map<brainId, BrainState> — structural sharing, immutable updates
 
 ### Pending Todos
 
@@ -90,8 +96,7 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-19T11:06:07.946Z
-Stopped at: Completed 05-01 — Next.js 16 scaffold with Tailwind 4, shadcn/ui, React Flow
+Last session: 2026-03-19T12:24:15.000Z
+Stopped at: Completed 05-03 — Zod Schema Bridge, Zustand Stores, and WS Brain Pipeline
 Resume file: None
-Next command: `/gsd:execute-plan 05-02` (JWT Auth & WS Token Handoff)
-Next command: `/gsd:execute-phase 05-foundation-auth-ws` (continue to 05-01)
+Next command: `/gsd:execute-phase 06-command-center` (start Phase 06)
