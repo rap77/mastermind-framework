@@ -17,7 +17,7 @@ const TokenResponseSchema = z.object({
   expires_in: z.number().default(1800),
 })
 
-export async function loginAction(formData: FormData) {
+export async function loginAction(prevState: { error?: string } | null, formData: FormData) {
   const username = formData.get('username') as string
   const password = formData.get('password') as string
 

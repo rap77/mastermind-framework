@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useFormState } from 'react-dom'
+import { useActionState } from 'react'
 import { loginAction } from './actions'
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, null)
+  const [state, formAction] = useActionState(loginAction, null)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
