@@ -1,5 +1,21 @@
 # Project Research Summary
 
+## Expert Brain Context (LEER ANTES DE DEFINIR FASES)
+
+Los siguientes archivos contienen conocimiento destilado de 86+ libros de expertos mundiales,
+consultado via NotebookLM MCP. El roadmapper DEBE leerlos antes de definir fases y planes.
+
+| Brain | Archivo | Dominio |
+|-------|---------|---------|
+| Brain 02 — UX Research | `.planning/research/BRAIN-02-CONTEXT.md` | User flows, IA, research methods |
+| Brain 03 — UI Design | `.planning/research/BRAIN-03-CONTEXT.md` | Visual design, componentes, design systems |
+| Brain 04 — Frontend | `.planning/research/BRAIN-04-CONTEXT.md` | React 19, performance, state management |
+
+**Instrucción para el roadmapper:** Leer los 3 archivos BRAIN-*-CONTEXT.md antes de definir
+la estructura de fases. El conocimiento experto debe primar sobre la investigación técnica genérica.
+
+---
+
 **Project:** MasterMind Framework v2.1 — War Room Frontend
 **Domain:** Real-time AI orchestration dashboard (Next.js + React + WebSocket + DAG visualization)
 **Researched:** 2026-03-19
