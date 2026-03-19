@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
+import { WSBrainBridge } from '@/components/ws/WSBrainBridge'
 import 'server-only'
 
 export default async function AuthGuardLayout({
@@ -16,9 +17,11 @@ export default async function AuthGuardLayout({
   const isValid = await verifyToken(token)
   if (!isValid) redirect('/login')
 
+  // WSBrainBridge fetches token from /api/auth/token (server-side cookie read)
+  // No need to pass token as prop — more secure (not in client bundle)
   return (
     <>
-      {/* WSBrainBridge will mount here in Plan 05-03 */}
+      <WSBrainBridge taskId={null} />
       {children}
     </>
   )
