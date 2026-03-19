@@ -25,7 +25,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_URL: http://api:8000
+      MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}
+      NODE_ENV: production
     depends_on:
       api:
         condition: service_healthy

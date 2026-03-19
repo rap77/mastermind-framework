@@ -17,6 +17,13 @@ const TokenResponseSchema = z.object({
   expires_in: z.number().default(1800),
 })
 
+/**
+ * Server action for user authentication.
+ * Validates credentials, stores tokens in httpOnly cookies, and redirects to dashboard.
+ * @param prevState - Previous form state (for useActionState pattern).
+ * @param formData - Form data with username and password.
+ * @returns Form state with error message if login failed, or redirects on success.
+ */
 export async function loginAction(prevState: { error?: string } | null, formData: FormData) {
   const username = formData.get('username') as string
   const password = formData.get('password') as string
@@ -26,7 +33,9 @@ export async function loginAction(prevState: { error?: string } | null, formData
     return { error: 'Invalid input' }
   }
 
-  const response = await fetch(`${process.env.API_URL || 'http://api:8000'}/api/auth/login`, {
+  const apiUrl = process.env.API_URL || 'http://localhost:8000'
+
+  const response = await fetch(`${apiUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(validated.data),
@@ -36,7 +45,9 @@ export async function loginAction(prevState: { error?: string } | null, formData
     return { error: 'Invalid credentials' }
   }
 
-  const parsed = TokenResponseSchema.safeParse(await response.json())
+  const data = await response.json()
+
+  const parsed = TokenResponseSchema.safeParse(data)
   if (!parsed.success) {
     return { error: 'Invalid server response' }
   }
