@@ -7,7 +7,7 @@
 
 ### Foundation
 
-- [ ] **FND-01**: Developer can initialize apps/web/ with Next.js 16, Tailwind 4, shadcn/ui (new-york), and Magic UI — React Flow CSS loads correctly without style conflicts, Magic UI @keyframes animations verified working after install
+- [x] **FND-01**: Developer can initialize apps/web/ with Next.js 16, Tailwind 4, shadcn/ui (new-york), and Magic UI — React Flow CSS loads correctly without style conflicts, Magic UI @keyframes animations verified working after install
 - [ ] **FND-02**: User can authenticate via login page with JWT stored as httpOnly cookie (proxy.ts route protection, CVE-2025-29927 mitigated)
 - [ ] **FND-03**: User is redirected to login when accessing any protected route without a valid JWT
 - [ ] **FND-04**: Frontend connects to FastAPI WebSocket at api:8000 directly from the browser without CORS errors (Docker networking configured)
@@ -89,7 +89,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | Phase 5 | Pending |
+| FND-01 | Phase 5 | Complete |
 | FND-02 | Phase 5 | Pending |
 | FND-03 | Phase 5 | Pending |
 | FND-04 | Phase 5 | Pending |
