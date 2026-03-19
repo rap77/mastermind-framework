@@ -1,7 +1,13 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+'use client'
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useFormState } from 'react-dom'
+import { loginAction } from './actions'
 
 export default function LoginPage() {
+  const [state, formAction] = useFormState(loginAction, null)
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-8 p-8">
@@ -14,20 +20,20 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6">
+        <form action={formAction} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                Email address
+              <label htmlFor="username" className="block text-sm font-medium text-foreground">
+                Username
               </label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
                 required
                 className="mt-1"
-                placeholder="you@example.com"
+                placeholder="admin"
               />
             </div>
 
@@ -47,15 +53,17 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {state?.error && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {state.error}
+            </div>
+          )}
+
           <Button type="submit" className="w-full">
             Sign in
           </Button>
         </form>
-
-        <div className="text-center text-sm text-muted-foreground">
-          <p>Placeholder login page — authentication will be implemented in Plan 05-02</p>
-        </div>
       </div>
     </div>
-  );
+  )
 }
