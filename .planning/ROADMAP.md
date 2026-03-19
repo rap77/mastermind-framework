@@ -39,7 +39,7 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
   2. `npm run build` completes without errors — React Flow CSS renders correctly (node handles and edges visible in production build), Magic UI @keyframes animations play, WebSocket initialization does not crash SSR
   3. The Zod schema generator runs and produces `apps/web/src/types/api.ts` matching current Pydantic models; a TypeScript error surfaces immediately when a backend model changes
   4. A single WebSocket connection is established on first navigation and survives client-side route changes with zero reconnects; 24 simultaneous brain events do not cause visible UI freeze (60fps maintained via RAF batching and per-brain Map selectors)
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 05-01: Scaffold Next.js 16 app (Tailwind 4, shadcn/ui new-york, Magic UI) — verify React Flow CSS in globals.css @layer base, animated component smoke test, `npm run build` clean
@@ -55,7 +55,7 @@ Plans:
   2. User sees all 24 brain tiles in the Bento Grid with live status (idle / active / complete / error) fed from WebSocket events; status updates without a page reload
   3. Brain tiles animate on status changes: pulse during active execution, checkmark on completion, red indicator on error — animations do not drop below 60fps when all 24 update simultaneously
   4. User can open the brief input modal with Cmd+Enter, type a multi-line brief, and submit it — the modal is full-screen (not a single-line command palette), and submission triggers a real task in the backend
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 06-01: Add `GET /api/brains` endpoint to FastAPI backend (apps/api/) — source from brain_registry.py, return name/niche/status/uptime/last_called_at, add tests
@@ -71,7 +71,7 @@ Plans:
   2. User sees a DAG of brain dependencies as a React Flow graph with custom shadcn/ui Card nodes positioned via dagre layout — the graph reflects the actual dependency structure and loads from the API
   3. Nodes illuminate in real-time as brains execute: border color and glow change on brain WebSocket events — illumination causes no layout shifts or pan resets during execution
   4. User can click a node to view brain details without accidentally triggering drag or pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 07-01: Validate or extend `GET /api/tasks/{id}/graph` FastAPI endpoint — ensure payload matches React Flow Node/Edge types, add layout_positions field if missing
@@ -88,7 +88,7 @@ Plans:
   3. User can manage API keys: view masked keys, create a new key (shown once in full), and revoke an existing key
   4. User can view the YAML configuration of any brain and copy it to clipboard
   5. User can activate Focus Mode during active execution — the sidebar collapses, idle brain tiles dim, and active execution elements are highlighted
-**Plans**: TBD
+**Plans**: 3 plans created
 
 Plans:
 - [ ] 08-01: Build Strategy Vault — execution list with pagination (status/brief/duration/brain count), individual execution view (accordion per brain, react-markdown, copy-to-clipboard)
