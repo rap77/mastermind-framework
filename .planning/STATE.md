@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
-status: roadmap_complete
-stopped_at: ROADMAP.md created — 4 phases (05-08) defined, 22/22 requirements mapped
-last_updated: "2026-03-18T00:00:00Z"
-last_activity: "2026-03-18 — v2.1 roadmap created: 4 phases, 13 plans, 22 requirements mapped"
+status: executing
+stopped_at: Completed 05-00 — Test infrastructure scaffolds ready
+last_updated: "2026-03-19T11:01:52.955Z"
+last_activity: "2026-03-19 — 05-00 complete: Vitest + 13 test scaffolds"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 13
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 8
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 5 of 8 (Foundation, Auth & WebSocket Infrastructure)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-03-18 — ROADMAP.md created, ready for /gsd:plan-phase 5
+Plan: 1 of 4 in current phase (05-00 complete)
+Status: Executing
+Last activity: 2026-03-19 — 05-00 complete: Vitest + 13 test scaffolds
 
-Progress: [░░░░░░░░░░] 0% (0/13 plans complete)
+Progress: [█░░░░░░░░░░] 8% (1/13 plans complete)
 
 ## Performance Metrics
 
@@ -43,16 +43,19 @@ Progress: [░░░░░░░░░░] 0% (0/13 plans complete)
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 05 Foundation + WS | 3 | Not started |
+| 05 Foundation + WS | 4 | 1/4 complete (05-00) |
 | 06 Command Center | 3 | Not started |
 | 07 The Nexus | 3 | Not started |
 | 08 Vault + Engine Room | 4 | Not started |
+| Phase 05-foundation-auth-ws P00 | 15 | 6 tasks | 17 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 Key v2.1 architecture decisions (full log in PROJECT.md):
+- [v2.1]: Vitest over Jest — ESM-native, faster, better Next.js 16 integration (05-00)
+- [v2.1]: Co-located __tests__ directories — tests beside source files for discoverability (05-00)
 - [v2.1]: Next.js 16 + React 19 + Tailwind 4 — all versions verified, no tailwind.config.js (CSS-only config)
 - [v2.1]: Zustand 5 for WS dispatcher (module singleton) + brainStore (Map<brainId, BrainState> + Immer)
 - [v2.1]: React Flow CSS must be in globals.css @layer base (not tsx imports) — Tailwind 4 silently breaks handles otherwise
@@ -75,7 +78,7 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-18
-Stopped at: ROADMAP.md created — Phase 5 ready to plan
-Resume file: None
-Next command: `/gsd:plan-phase 5`
+Last session: 2026-03-19
+Stopped at: Completed 05-00 — Test infrastructure scaffolds ready
+Resume file: .planning/phases/05-foundation-auth-ws/05-00-SUMMARY.md
+Next command: `/gsd:execute-phase 05-foundation-auth-ws` (continue to 05-01)
