@@ -42,10 +42,11 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # Configure CORS for all origins (adjustable via env var)
+    # Configure CORS with explicit origins (Pitfall 7: wildcard + credentials is invalid)
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure via ENV_VAR in production
+        allow_origins=allowed_origins,  # Explicit origins required when allow_credentials=True
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
