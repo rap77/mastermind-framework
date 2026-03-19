@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 5 of 8 (Foundation, Auth & WebSocket Infrastructure)
-Plan: 2 of 4 in current phase (05-00, 05-01 complete)
+Plan: 3 of 4 in current phase (05-00, 05-01, 05-02 complete)
 Status: Executing
-Last activity: 2026-03-19 — 05-01 complete: Next.js 16 scaffold verified
+Last activity: 2026-03-19 — 05-02 complete: JWT Auth & WS Token Handoff with dual-layer verification
 
-Progress: [██░░░░░░░░░] 15% (2/13 plans complete)
+Progress: [███░░░░░░░░] 23% (3/13 plans complete)
 
 ## Performance Metrics
 
@@ -43,7 +43,7 @@ Progress: [██░░░░░░░░░] 15% (2/13 plans complete)
 
 | Phase | Plans | Status |
 |-------|-------|--------|
-| 05 Foundation + WS | 4 | 2/4 complete (05-00, 05-01) |
+| 05 Foundation + WS | 4 | 3/4 complete (05-00, 05-01, 05-02) |
 | 06 Command Center | 3 | Not started |
 | 07 The Nexus | 3 | Not started |
 | 08 Vault + Engine Room | 4 | Not started |
@@ -51,6 +51,7 @@ Progress: [██░░░░░░░░░] 15% (2/13 plans complete)
 **Plan durations:**
 | Phase 05-foundation-auth-ws P00 | 15 | 6 tasks | 17 files |
 | Phase 05-foundation-auth-ws P01 | 30 | 3 tasks | 9 files |
+| Phase 05-foundation-auth-ws P02 | 24 | 5 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,11 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [v2.1]: nodes array in React Flow is layout-only (never mutates) — brain state read from brainStore directly
 - [Phase 05-foundation-auth-ws]: Next.js 16 + React 19 + Tailwind 4 scaffolded with OKLCH colors
 - [Phase 05-foundation-auth-ws]: React Flow CSS in @layer base prevents Tailwind 4 cascade bug
+- [Phase 05-foundation-auth-ws P02]: jose for JWT verification (Edge Runtime compatible, not jsonwebtoken)
+- [Phase 05-foundation-auth-ws P02]: httpOnly cookie storage (mitigates XSS vs localStorage)
+- [Phase 05-foundation-auth-ws P02]: Dual-layer JWT verification (proxy.ts + AuthGuardLayout) mitigates CVE-2025-29927
+- [Phase 05-foundation-auth-ws P02]: React 19 useActionState pattern for Server Actions
+- [Phase 05-foundation-auth-ws P02]: FastAPI CORS explicit origins (wildcard + credentials prohibited)
 
 ### Pending Todos
 
