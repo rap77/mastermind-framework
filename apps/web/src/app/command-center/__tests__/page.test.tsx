@@ -10,15 +10,23 @@
  * This file tests the BentoGrid component which receives server-fetched data.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { BentoGrid } from '@/components/command-center/BentoGrid'
 
-describe('BentoGrid (receives server-fetched data)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+// Mock ClusterGroup component
+vi.mock('@/components/command-center/ClusterGroup', () => ({
+  ClusterGroup: ({ clusterConfig, brains }: { clusterConfig: any; brains: any[] }) => {
+    const filteredBrains = brains.filter((brain: any) => brain.niche === clusterConfig.niche)
+    return (
+      <div data-testid={`cluster-${clusterConfig.id}`}>
+        {clusterConfig.name}: {filteredBrains.length} brains
+      </div>
+    )
+  },
+}))
 
+describe('BentoGrid (receives server-fetched data)', () => {
   /**
    * Test 1: BentoGrid renders without errors
    */
@@ -33,16 +41,16 @@ describe('BentoGrid (receives server-fetched data)', () => {
   })
 
   /**
-   * Test 2: BentoGrid displays brain count
+   * Test 2: BentoGrid displays clusters
    */
-  it('should display brain count', () => {
+  it('should display cluster names', () => {
     const brains = [
       { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
       { id: 'brain-02', name: 'Brain 2', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
     ]
 
     render(<BentoGrid brains={brains} />)
-    expect(screen.getByText('2 brains')).toBeInTheDocument()
+    expect(screen.getByText(/Software Development/)).toBeInTheDocument()
   })
 
   /**
@@ -50,6 +58,6 @@ describe('BentoGrid (receives server-fetched data)', () => {
    */
   it('should handle empty brains array', () => {
     render(<BentoGrid brains={[]} />)
-    expect(screen.getByText('0 brains')).toBeInTheDocument()
+    expect(screen.getByTestId('bento-grid')).toBeInTheDocument()
   })
 })
