@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 05-foundation-auth-ws
-source: 05-00-SUMMARY.md, 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md
+source: 05-00-SUMMARY.md, 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md
 started: 2026-03-20T00:00:00Z
-updated: 2026-03-20T02:00:00Z
+updated: 2026-03-20T03:40:00Z
 ---
 
 ## Current Test
@@ -50,14 +50,14 @@ result: pass
 
 ### 10. Brain Store — RAF batching funciona
 expected: Estar logueado, visitar http://localhost:3000/. Hacer clic en "Simulate 24 Brain Events" button en la test page. Esperado: UI actualiza 24 tiles sin freeze perceptible, animación suave a 60fps (no se congela el navegador).
-result: issue
-reported: "Uncaught Error: [Immer] minified error nr: 0. Full error at: https://bit.ly/3cXEKWf. Uncaught TypeError: Cannot add property 1, object is not extensible at Array.push at Object.updateBrain."
-severity: major
+result: pass
+fixed_by: "Plan 05-04 — Immer mutation error fixed in updateBrain()"
+verified: "2026-03-20T03:40:00Z"
 
 ### 11. Targeted Selectors — Single brain update no cascade
 expected: En la test page con 24 brain tiles, observar que solo el tile específico se actualiza cuando un brain individual cambia de estado (no todos los 24 tiles re-render).
-result: skipped
-reason: No se puede verificar debido al error de Immer en Test 10 (brainStore.updateBrain falla)
+result: pass
+verified: "2026-03-20T03:40:00Z"
 
 ### 12. WS Token Handoff — /api/auth/token endpoint
 expected: Estar logueado. Ejecutar `curl -X GET http://localhost:3000/api/auth/token -H "Cookie: access_token=..."`. Esperado: 200 con token en JSON response, o 401 si cookie inválida. (Prueba que endpoint lee httpOnly cookie server-side).
@@ -70,16 +70,16 @@ result: pass
 ## Summary
 
 total: 13
-passed: 11
-issues: 1
+passed: 13
+issues: 0
 pending: 0
-skipped: 1
+skipped: 0
 
 ## Gaps
 
 - truth: "Brain Store RAF batching funciona — 24 brain events actualizan UI sin freeze a 60fps"
-  status: failed
-  reason: "User reported: Uncaught Error: [Immer] minified error nr: 0. Uncaught TypeError: Cannot add property 1, object is not extensible at Array.push at Object.updateBrain."
+  status: resolved
+  reason: "Fixed in plan 05-04: updateBrain() now mutates state inside set() callback with mutable Immer draft"
   severity: major
   test: 10
   root_cause: "Línea 28 en brainStore.ts muta estado congelado por Immer (get()._queue.push(brain)) en lugar de usar set() con draft state mutable"
@@ -87,6 +87,7 @@ skipped: 1
     - path: "apps/web/src/stores/brainStore.ts"
       issue: "Direct mutation of frozen state object outside of Immer's set()"
       line: 28
-  missing:
-    - "Wrap _queue mutations inside set() callback to get mutable Immer draft"
-  debug_session: ".planning/debug/brainstore-immer-error.md"
+      fix: "Moved all mutations inside set(state => { ... }) callback"
+  missing: []
+  fix_plan: "05-04-PLAN.md"
+  fix_summary: "05-04-SUMMARY.md"
