@@ -15,6 +15,24 @@ export const TokenResponseSchema = z.object({
   expires_in: z.number().default(1800),
 })
 
+// Matches mastermind_cli/api/routes/brains.py BrainMetadata
+export const BrainMetadataSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  niche: z.enum(['software-development', 'marketing-digital', 'universal']),
+  status: z.enum(['idle', 'active', 'error', 'complete']),
+  uptime: z.number(),
+  last_called_at: z.string().nullable(),
+})
+
+// Matches mastermind_cli/api/routes/brains.py PaginatedBrainsResponse
+export const PaginatedBrainsResponseSchema = z.object({
+  brains: z.array(BrainMetadataSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+})
+
 // Matches WS brain event data shape (inspect coordinator in Task 2)
 export const BrainEventSchema = z.object({
   brain_id: z.string(),
@@ -30,5 +48,7 @@ export const WSMessageSchema = z.object({
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>
 export type TokenResponse = z.infer<typeof TokenResponseSchema>
+export type BrainMetadata = z.infer<typeof BrainMetadataSchema>
+export type PaginatedBrainsResponse = z.infer<typeof PaginatedBrainsResponseSchema>
 export type BrainEvent = z.infer<typeof BrainEventSchema>
 export type WSMessage = z.infer<typeof WSMessageSchema>
