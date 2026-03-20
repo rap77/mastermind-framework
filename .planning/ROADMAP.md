@@ -24,7 +24,7 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
 **Milestone Goal:** Replace Alpine.js/HTMX dashboard with a Next.js 16 war room — real-time visual orchestration of 24 AI brains across 4 screens.
 
 - [x] **Phase 5: Foundation, Auth & WebSocket Infrastructure** — Next.js 16 scaffolded, auth gate working, WS dispatcher + BrainStore proven end-to-end against FastAPI ✅ (completed 2026-03-20)
-- [📋] **Phase 6: Command Center** — 24-brain Bento Grid with live status tiles + Raycast-style brief input modal (brain-07: 9.5/10 APPROVED, ready for execution)
+- [x] **Phase 6: Command Center** — 24-brain Bento Grid with live status tiles + Raycast-style brief input modal ✅ (completed 2026-03-20)
 - [ ] **Phase 7: The Nexus** — Real-time React Flow DAG visualization, nodes illuminate on WebSocket events
 - [ ] **Phase 8: Strategy Vault, Engine Room & UX Polish** — Execution history, live logs, API key management, brain YAML config, Focus Mode
 
@@ -60,9 +60,9 @@ Plans:
 **Plans**: 3 plans created
 
 Plans:
-- [ ] 06-01: Add `GET /api/brains` endpoint to FastAPI backend (apps/api/) — source from brain_registry.py, return name/niche/status/uptime/last_called_at, add tests
-- [ ] 06-02: Build Command Center page — Magic UI Bento Grid with 24 brain tiles, per-brain Zustand selectors (useBrainState(id)), status color classes and CSS animations
-- [ ] 06-03: Build brief input modal — shadcn/ui Command + cmdk + multi-line textarea, Cmd+Enter shortcut, POST /api/tasks integration, WS connection initiation on task start
+- [x] 06-01: Add `GET /api/brains` endpoint to FastAPI backend (apps/api/) — source from brain_registry.py, return name/niche/status/uptime/last_called_at, add tests ✅
+- [x] 06-02: Build Command Center page — Magic UI Bento Grid with 24 brain tiles, per-brain Zustand selectors (useBrainState(id)), status color classes and CSS animations ✅
+- [x] 06-03: Build brief input modal — shadcn/ui Command + cmdk + multi-line textarea, Cmd+Enter shortcut, POST /api/tasks integration, WS connection initiation on task start ✅
 
 ### Phase 7: The Nexus
 **Goal**: Users can watch the exact dependency graph of running brains illuminate in real-time — nodes glow as brains activate and complete, and clicking a node reveals brain details without interfering with canvas navigation.
@@ -109,9 +109,9 @@ Plans:
 | 3. Web UI Platform | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
 | 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
-| 6. Command Center | 7/3 | Complete   | 2026-03-20 | Pending execution |
+| 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
 | 7. The Nexus | v2.1 | 0/3 | Not started | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-20 — Phase 05 COMPLETE (5/5), Phase 06 READY (3/3, 9.5/10)*
+*Roadmap updated: 2026-03-20 — Phase 06 COMPLETE (3/3), Phase 07 PENDING*
