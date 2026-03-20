@@ -29,6 +29,7 @@ expected: Run `uv run mastermind orchestrate --brief "x" 2>&1` (brief too short,
 result: issue
 reported: "MM_API_KEY=test uv run mastermind orchestrate run 'x' → raw Python traceback. validate_api_key raises uncaught ValidationError (APIKey key min_length=37). No friendly error shown."
 severity: major
+mitigated: 2026-03-20 — Now shows friendly error: "❌ Error: Invalid API key\nYour MM_API_KEY is not valid. Generate a new key:\n  mm auth create-key\nAborted!"
 
 ### 5. Runtime Validation Tests
 expected: Run `uv run pytest tests/integration/test_cli_coordinator.py tests/unit/test_coordinator_validation.py tests/unit/test_error_messages.py tests/integration/test_mcp_wrapper.py -v` — 21 tests passing
