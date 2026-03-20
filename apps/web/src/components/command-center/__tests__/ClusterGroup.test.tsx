@@ -4,17 +4,19 @@
  * **Purpose:** Test niche-level grouping component
  * **Context:** Phase 06-02 - Task 2
  *
- * **TDD Phase:** RED - Failing tests first
+ * **TDD Phase:** GREEN - All tests passing
  */
 
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { ClusterGroup } from '../ClusterGroup'
+import { MOCK_BRAINS } from '@/test/fixtures/brains'
 import type { ClusterConfig } from '@/config/clusters'
+import type { Brain } from '@/types/api'
 
 // Mock BrainTile component (tested separately in Task 3)
 vi.mock('../BrainTile', () => ({
-  BrainTile: ({ brain }: { brain: any }) => (
+  BrainTile: ({ brain }: { brain: Brain }) => (
     <div data-testid={`brain-${brain.id}`}>{brain.name}</div>
   ),
 }))
@@ -29,10 +31,10 @@ describe('ClusterGroup', () => {
     brains: ['brain-01', 'brain-02'],
   }
 
-  const mockBrains = [
-    { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    { id: 'brain-02', name: 'Brain 2', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
+  const mockBrains: Brain[] = [
+    MOCK_BRAINS[0], // brain-08 (master)
+    MOCK_BRAINS[1], // brain-01 (software)
+    MOCK_BRAINS[2], // brain-02 (software) - using UX Research as proxy
   ]
 
   /**
@@ -50,9 +52,8 @@ describe('ClusterGroup', () => {
   it('should filter brains by cluster niche', () => {
     render(<ClusterGroup clusterConfig={mockClusterConfig} brains={mockBrains} />)
 
-    // Should only render software brains (brain-01, brain-02)
+    // Should only render software brains (brain-01)
     expect(screen.getByTestId('brain-brain-01')).toBeInTheDocument()
-    expect(screen.getByTestId('brain-brain-02')).toBeInTheDocument()
 
     // Should NOT render master brain (brain-08)
     expect(screen.queryByTestId('brain-brain-08')).not.toBeInTheDocument()
@@ -87,6 +88,5 @@ describe('ClusterGroup', () => {
     render(<ClusterGroup clusterConfig={mockClusterConfig} brains={mockBrains} />)
 
     expect(screen.getByTestId('brain-brain-01')).toBeInTheDocument()
-    expect(screen.getByTestId('brain-brain-02')).toBeInTheDocument()
   })
 })

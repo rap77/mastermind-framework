@@ -41,7 +41,7 @@ describe('BrainTile', () => {
    * Test 1: BrainTile displays brain name and status
    */
   it('should display brain name and status', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -53,7 +53,7 @@ describe('BrainTile', () => {
    * Test 2: Status color changes - idle (gray)
    */
   it('should apply opacity-60 for idle status', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -64,7 +64,7 @@ describe('BrainTile', () => {
    * Test 3: Active status triggers pulse animation (ICE-validated)
    */
   it('should apply pulse animation for active status', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'active', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'active', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -76,7 +76,7 @@ describe('BrainTile', () => {
    * Test 4: Complete status shows checkmark (ICE-validated)
    */
   it('should show checkmark icon for complete status', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'complete', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'complete', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -87,7 +87,7 @@ describe('BrainTile', () => {
    * Test 5: Error status triggers shake animation (ICE-validated)
    */
   it('should apply shake animation for error status', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'error', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'error', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -99,7 +99,7 @@ describe('BrainTile', () => {
    * Test 6: useBrainState selector prevents re-renders on other brain updates
    */
   it('should use useBrainState selector for targeted updates', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 
@@ -111,7 +111,7 @@ describe('BrainTile', () => {
    * Test 7: No cluster-level animations (glow, scan) per ICE Scoring
    */
   it('should not have cluster-level decorative animations', () => {
-    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', uptime: 0, lastUpdated: 0 })
+    vi.mocked(useBrainState).mockReturnValue({ status: 'idle', lastUpdated: 0 })
 
     render(<BrainTile brain={mockBrain} />)
 

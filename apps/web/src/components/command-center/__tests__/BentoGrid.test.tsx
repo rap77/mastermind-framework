@@ -4,18 +4,20 @@
  * **Purpose:** Test BentoGrid with semantic clustering
  * **Context:** Phase 06-02 - Task 2
  *
- * **TDD Phase:** RED - Failing tests first
+ * **TDD Phase:** GREEN - All tests passing
  */
 
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { BentoGrid } from '../BentoGrid'
+import { MOCK_BRAINS } from '@/test/fixtures/brains'
+import type { Brain } from '@/types/api'
 
 // Mock ClusterGroup component (tested separately)
 vi.mock('../ClusterGroup', () => ({
-  ClusterGroup: ({ clusterConfig, brains }: { clusterConfig: any; brains: any[] }) => {
+  ClusterGroup: ({ clusterConfig, brains }: { clusterConfig: any; brains: Brain[] }) => {
     // Simulate filtering by niche (like real ClusterGroup does)
-    const filteredBrains = brains.filter((brain: any) => brain.niche === clusterConfig.niche)
+    const filteredBrains = brains.filter((brain) => brain.niche === clusterConfig.niche)
     return (
       <div data-testid={`cluster-${clusterConfig.id}`}>
         {clusterConfig.name}: {filteredBrains.length} brains
@@ -29,10 +31,7 @@ describe('BentoGrid', () => {
    * Test 1: BentoGrid renders ClusterGroups from CLUSTER_CONFIGS
    */
   it('should render ClusterGroups from CLUSTER_CONFIGS', () => {
-    const brains = [
-      { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
-      { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0], MOCK_BRAINS[1]] // brain-08 (master), brain-01 (software)
 
     render(<BentoGrid brains={brains} />)
 
@@ -45,11 +44,7 @@ describe('BentoGrid', () => {
    * Test 2: Each ClusterGroup contains correct brains by niche
    */
   it('should filter brains by niche for each cluster', () => {
-    const brains = [
-      { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
-      { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-      { id: 'brain-02', name: 'Brain 2', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[4], MOCK_BRAINS[0], MOCK_BRAINS[1]] // brain-08 (master), brain-01, brain-02 (software)
 
     render(<BentoGrid brains={brains} />)
 
@@ -66,9 +61,7 @@ describe('BentoGrid', () => {
    * Test 3: CSS Grid layout uses auto-fit with minmax
    */
   it('should use CSS Grid with auto-fit layout', () => {
-    const brains = [
-      { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
 
     const { container } = render(<BentoGrid brains={brains} />)
 
@@ -82,9 +75,7 @@ describe('BentoGrid', () => {
   it('should render new cluster when added to CLUSTER_CONFIGS', () => {
     // This test verifies extensibility - when we add a new cluster to config,
     // it should render without BentoGrid code changes
-    const brains = [
-      { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
 
     render(<BentoGrid brains={brains} />)
 
@@ -97,9 +88,7 @@ describe('BentoGrid', () => {
    * Test 5: Master cluster is visually distinct (zinc-100 theme)
    */
   it('should apply zinc theme to master cluster', () => {
-    const brains = [
-      { id: 'brain-08', name: 'Brain 8', niche: 'master', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
 
     const { container } = render(<BentoGrid brains={brains} />)
 

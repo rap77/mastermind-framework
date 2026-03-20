@@ -4,20 +4,19 @@
  * **Purpose:** Test Command Center page with TanStack Query
  * **Context:** Phase 06-02 - Task 1
  *
- * **TDD Phase:** RED - Failing tests first
- *
- * **Note:** Server Components are tested via integration tests.
- * This file tests the BentoGrid component which receives server-fetched data.
+ * **TDD Phase:** GREEN - All tests passing
  */
 
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BentoGrid } from '@/components/command-center/BentoGrid'
+import { MOCK_BRAINS } from '@/test/fixtures/brains'
+import type { Brain } from '@/types/api'
 
 // Mock ClusterGroup component
 vi.mock('@/components/command-center/ClusterGroup', () => ({
-  ClusterGroup: ({ clusterConfig, brains }: { clusterConfig: any; brains: any[] }) => {
-    const filteredBrains = brains.filter((brain: any) => brain.niche === clusterConfig.niche)
+  ClusterGroup: ({ clusterConfig, brains }: { clusterConfig: any; brains: Brain[] }) => {
+    const filteredBrains = brains.filter((brain) => brain.niche === clusterConfig.niche)
     return (
       <div data-testid={`cluster-${clusterConfig.id}`}>
         {clusterConfig.name}: {filteredBrains.length} brains
@@ -31,10 +30,7 @@ describe('BentoGrid (receives server-fetched data)', () => {
    * Test 1: BentoGrid renders without errors
    */
   it('should render BentoGrid without errors', () => {
-    const brains = [
-      { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-      { id: 'brain-02', name: 'Brain 2', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0], MOCK_BRAINS[1]]
 
     render(<BentoGrid brains={brains} />)
     expect(screen.getByTestId('bento-grid')).toBeInTheDocument()
@@ -44,10 +40,7 @@ describe('BentoGrid (receives server-fetched data)', () => {
    * Test 2: BentoGrid displays clusters
    */
   it('should display cluster names', () => {
-    const brains = [
-      { id: 'brain-01', name: 'Brain 1', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-      { id: 'brain-02', name: 'Brain 2', niche: 'software', status: 'idle', uptime: 0, last_called_at: null },
-    ]
+    const brains = [MOCK_BRAINS[0], MOCK_BRAINS[1]]
 
     render(<BentoGrid brains={brains} />)
     expect(screen.getByText(/Software Development/)).toBeInTheDocument()
