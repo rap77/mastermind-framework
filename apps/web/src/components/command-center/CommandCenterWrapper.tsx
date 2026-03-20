@@ -75,6 +75,12 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
           return
         }
 
+        // Validate taskId exists before connecting WebSocket
+        if (!result.taskId) {
+          setError("Task created but no ID returned - cannot connect WebSocket")
+          return
+        }
+
         // Step 2: Get WS token
         const tokenResponse = await fetch("/api/auth/token")
         if (!tokenResponse.ok) {
@@ -84,8 +90,8 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
 
         const { access_token } = await tokenResponse.json()
 
-        // Step 3: Connect WebSocket
-        wsStore.connect(access_token)
+        // Step 3: Connect WebSocket with taskId AND token
+        wsStore.connect(result.taskId, access_token)
 
         // Step 4: Close modal
         setIsModalOpen(false)
