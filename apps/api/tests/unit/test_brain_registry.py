@@ -70,3 +70,83 @@ def test_yaml_schema_valid():
         assert "id" in brain
         assert "name" in brain
         assert "status" in brain
+
+
+def test_get_all_brains_paginated():
+    """Test that get_all_brains returns paginated response."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, page_size=24, user_id="test-user")
+
+    # Should have pagination metadata
+    assert "brains" in result
+    assert "total" in result
+    assert "page" in result
+    assert "page_size" in result
+
+    # Should return all current brains by default
+    assert result["total"] >= 8  # At least brains 1-8
+    assert len(result["brains"]) <= 24  # Respects page_size
+
+
+def test_get_all_brains_default_page_size():
+    """Test that default page_size=24 returns all current brains."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, user_id="test-user")
+
+    # Should use default page_size=24
+    assert result["page_size"] == 24
+    assert len(result["brains"]) >= 8  # At least brains 1-8
+
+
+def test_get_all_brains_brain_metadata():
+    """Test that each brain has required metadata fields."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, page_size=24, user_id="test-user")
+
+    # Check first brain has all required fields
+    if len(result["brains"]) > 0:
+        brain = result["brains"][0]
+        assert "id" in brain
+        assert "name" in brain
+        assert "niche" in brain
+        assert "status" in brain
+        assert "uptime" in brain
+        assert "last_called_at" in brain
+
+
+def test_get_all_brains_niche_values():
+    """Test that niche is one of: master, software, marketing."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, page_size=24, user_id="test-user")
+
+    valid_niches = ["software-development", "marketing-digital", "universal"]
+    for brain in result["brains"]:
+        assert brain["niche"] in valid_niches
+
+
+def test_get_all_brains_status_values():
+    """Test that status is one of: idle, active, error, complete."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, page_size=24, user_id="test-user")
+
+    valid_statuses = ["idle", "active", "error", "complete"]
+    for brain in result["brains"]:
+        assert brain["status"] in valid_statuses
+
+
+def test_get_all_brains_pagination_logic():
+    """Test that page_size=10 with page=1 returns first 10 brains."""
+    from mastermind_cli.brain_registry import get_all_brains
+
+    result = get_all_brains(page=1, page_size=10, user_id="test-user")
+
+    # Should return first 10 brains
+    assert len(result["brains"]) <= 10
+    assert result["page"] == 1
+    assert result["page_size"] == 10
+    assert result["total"] >= 8  # Total should reflect all brains
