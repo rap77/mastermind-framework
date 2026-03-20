@@ -17,6 +17,7 @@ import { cookies } from "next/headers"
 import DOMPurify from "dompurify"
 
 // FastAPI base URL (from env or default)
+// Note: Server-side env var (not NEXT_PUBLIC_) — runs on server, not client
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000"
 
 /**
