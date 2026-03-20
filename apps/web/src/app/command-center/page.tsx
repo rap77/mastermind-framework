@@ -2,13 +2,14 @@
  * Command Center Page
  *
  * **Purpose:** Main dashboard showing all 24 AI brains in Bento Grid layout
- * **Context:** Phase 06-02 - Task 1
+ * **Context:** Phase 06-02 - Task 1, Phase 06-03 - Task 4
  *
  * **Architecture:**
  * - Server Component (fetches brains server-side for initial render)
  * - Uses TanStack Query for data fetching and caching
  * - Passes brains data to BentoGrid component
  * - Handles loading/error states with proper error boundaries
+ * - Client wrapper provides Cmd+Enter shortcut and modal
  *
  * **N+1 Prevention:**
  * - Single query fetches ALL brain data including cluster metadata
@@ -18,6 +19,7 @@
 
 import { fetchBrains } from '@/lib/api'
 import { BentoGrid } from '@/components/command-center/BentoGrid'
+import { CommandCenterWrapper } from '@/components/command-center/CommandCenterWrapper'
 
 /**
  * Command Center Page Component
@@ -71,8 +73,17 @@ export default async function CommandCenterPage() {
    * - Brains array from TanStack Query
    * - BentoGrid handles clustering by niche internally
    * - No additional queries needed (data already pre-clustered by niche field)
+   *
+   * **Client Wrapper:**
+   * - CommandCenterWrapper provides Cmd+Enter shortcut
+   * - BriefInputModal for task submission
+   * - WebSocket connection after task creation
    */
-  return <BentoGrid brains={brainsData.brains} />
+  return (
+    <CommandCenterWrapper>
+      <BentoGrid brains={brainsData.brains} />
+    </CommandCenterWrapper>
+  )
 }
 
 /**
