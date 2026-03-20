@@ -65,6 +65,72 @@ def get_brain_count() -> int:
     return len(BRAIN_CONFIGS)
 
 
+def get_all_brains(
+    page: int = 1,
+    page_size: int = 24,
+    user_id: str = "anonymous",
+) -> dict[str, Any]:
+    """
+    Get all brains with pagination support.
+
+    Args:
+        page: Page number (1-indexed, default=1)
+        page_size: Number of brains per page (default=24, max=100)
+        user_id: User ID for IDOR protection (prepares for multi-tenant future)
+
+    Returns:
+        Dict with:
+        - brains: List[Dict] - Brain metadata for current page
+        - total: int - Total number of brains
+        - page: int - Current page number
+        - page_size: int - Page size used
+
+    Security:
+        user_id is accepted for future multi-tenant support. In v2.1, all users
+        see the same 24 brains (single-tenant architecture).
+    """
+    # Validate page_size (max 100 for performance)
+    page_size = min(page_size, 100)
+
+    # Get all brains as list
+    all_brains = list(BRAIN_CONFIGS.values())
+
+    # Calculate pagination offset
+    offset = (page - 1) * page_size
+
+    # Paginate brains
+    paginated_brains = all_brains[offset : offset + page_size]
+
+    # Transform brains to response format
+    brain_metadata = []
+    for brain in paginated_brains:
+        # Get niche from config, default to "software-development" for backward compat
+        niche = brain.get("niche", "software-development")
+
+        # Map status to allowed values
+        status = brain.get("status", "idle")
+        if status not in ["idle", "active", "error", "complete"]:
+            status = "idle"
+
+        brain_metadata.append(
+            {
+                "id": brain["id"],
+                "name": brain["name"],
+                "niche": niche,
+                "status": status,
+                "uptime": 0.0,  # TODO: Track actual uptime from brain executor
+                "last_called_at": None,  # TODO: Track from execution history
+            }
+        )
+
+    return {
+        "brains": brain_metadata,
+        "total": len(all_brains),
+        "page": page,
+        "page_size": page_size,
+    }
+
+
 class BrainRegistry:
     """
     Brain registry for dependency resolver.
