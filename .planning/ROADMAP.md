@@ -39,7 +39,7 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
   2. `npm run build` completes without errors — React Flow CSS renders correctly (node handles and edges visible in production build), Magic UI @keyframes animations play, WebSocket initialization does not crash SSR
   3. The Zod schema generator runs and produces `apps/web/src/types/api.ts` matching current Pydantic models; a TypeScript error surfaces immediately when a backend model changes
   4. A single WebSocket connection is established on first navigation and survives client-side route changes with zero reconnects; 24 simultaneous brain events do not cause visible UI freeze (60fps maintained via RAF batching and per-brain Map selectors)
-\*\*Plans\*\*: 4 plans created
+**Plans**: 4 plans created
 
 Plans:
 - [ ] 05-01: Scaffold Next.js 16 app (Tailwind 4, shadcn/ui new-york, Magic UI) — verify React Flow CSS in globals.css @layer base, animated component smoke test, `npm run build` clean
@@ -89,7 +89,7 @@ Plans:
   3. User can manage API keys: view masked keys, create a new key (shown once in full), and revoke an existing key
   4. User can view the YAML configuration of any brain and copy it to clipboard
   5. User can activate Focus Mode during active execution — the sidebar collapses, idle brain tiles dim, and active execution elements are highlighted
-**Plans**: 3 plans created
+**Plans**: 4 plans created
 
 Plans:
 - [ ] 08-01: Build Strategy Vault — execution list with pagination (status/brief/duration/brain count), individual execution view (accordion per brain, react-markdown, copy-to-clipboard)
@@ -107,10 +107,10 @@ Plans:
 | 2. Parallel Execution Core | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 3. Web UI Platform | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
-| 5. Foundation, Auth | 5. Foundation, Auth & WS Infrastructure | v2.1 | 0/3 | WS Infrastructure | v2.1 | 0/4 | Not started | - |
+| 5. Foundation, Auth & WS Infrastructure | v2.1 | 0/4 | Not started | - |
 | 6. Command Center | v2.1 | 0/3 | Not started | - |
 | 7. The Nexus | v2.1 | 0/3 | Not started | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-18 — v2.1 War Room Frontend phases defined (05–08)*
+*Roadmap updated: 2026-03-19 — Phase 05 gap closure plan 05-04 added*
