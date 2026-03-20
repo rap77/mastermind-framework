@@ -23,7 +23,7 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
 
 **Milestone Goal:** Replace Alpine.js/HTMX dashboard with a Next.js 16 war room — real-time visual orchestration of 24 AI brains across 4 screens.
 
-- [ ] **Phase 5: Foundation, Auth & WebSocket Infrastructure** — Next.js 16 scaffolded, auth gate working, WS dispatcher + BrainStore proven end-to-end against FastAPI
+- [x] **Phase 5: Foundation, Auth & WebSocket Infrastructure** — Next.js 16 scaffolded, auth gate working, WS dispatcher + BrainStore proven end-to-end against FastAPI ✅ (completed 2026-03-20)
 - [ ] **Phase 6: Command Center** — 24-brain Bento Grid with live status tiles + Raycast-style brief input modal
 - [ ] **Phase 7: The Nexus** — Real-time React Flow DAG visualization, nodes illuminate on WebSocket events
 - [ ] **Phase 8: Strategy Vault, Engine Room & UX Polish** — Execution history, live logs, API key management, brain YAML config, Focus Mode
@@ -42,10 +42,11 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
 **Plans**: 4 plans created
 
 Plans:
-- [ ] 05-01: Scaffold Next.js 16 app (Tailwind 4, shadcn/ui new-york, Magic UI) — verify React Flow CSS in globals.css @layer base, animated component smoke test, `npm run build` clean
-- [ ] 05-02: Implement JWT auth gate — login page, httpOnly cookie token storage, proxy.ts route protection, JWT verification in Server Components (CVE-2025-29927 mitigation), FastAPI CORS with allow_credentials=True
-- [ ] 05-03: Build Zod schema bridge (SB-01) + Zustand stores (wsStore singleton, brainStore with Immer + Map<brainId, BrainState>) + WSBrainBridge + RAF batching — prove WS→BrainStore pipeline end-to-end against FastAPI backend with real brain events
-- [ ] 05-04: Fix Immer mutation error in brainStore RAF batching — wrap _queue mutations inside set() callback for mutable draft
+- [x] 05-00: Vitest testing infrastructure — 15 test scaffolds, config, setup.ts
+- [x] 05-01: Scaffold Next.js 16 app (Tailwind 4, shadcn/ui new-york, Magic UI) — verify React Flow CSS in globals.css @layer base, animated component smoke test, `npm run build` clean
+- [x] 05-02: Implement JWT auth gate — login page, httpOnly cookie token storage, proxy.ts route protection, JWT verification in Server Components (CVE-2025-29927 mitigation), FastAPI CORS with allow_credentials=True
+- [x] 05-03: Build Zod schema bridge (SB-01) + Zustand stores (wsStore singleton, brainStore with Immer + Map<brainId, BrainState>) + WSBrainBridge + RAF batching — prove WS→BrainStore pipeline end-to-end against FastAPI backend with real brain events
+- [x] 05-04: Fix Immer mutation error in brainStore RAF batching — wrap _queue mutations inside set() callback for mutable draft
 
 ### Phase 6: Command Center
 **Goal**: Users can submit a brief via the war room's command interface and watch 24 AI brain tiles update in real-time on the Bento Grid — the core orchestration loop is visible and interactive.
@@ -107,10 +108,10 @@ Plans:
 | 2. Parallel Execution Core | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 3. Web UI Platform | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
-| 5. Foundation, Auth & WS Infrastructure | v2.1 | 0/4 | Not started | - |
+| 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
 | 6. Command Center | v2.1 | 0/3 | Not started | - |
 | 7. The Nexus | v2.1 | 0/3 | Not started | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-19 — Phase 05 gap closure plan 05-04 added*
+*Roadmap updated: 2026-03-20 — Phase 05 COMPLETE (5/5 plans)*
