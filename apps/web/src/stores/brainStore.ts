@@ -25,13 +25,16 @@ export const useBrainStore = create<BrainStoreState>()(
 
     updateBrain: (brain) => {
       // Accumulate in queue — RAF drains before each paint (WS-02 requirement)
-      get()._queue.push(brain)
-      if (!get()._rafId) {
-        const id = requestAnimationFrame(() => {
-          get()._drainQueue()
-        })
-        set(state => { state._rafId = id })
-      }
+      // All mutations must be inside set() callback for Immer compatibility
+      set(state => {
+        state._queue.push(brain)
+        if (!state._rafId) {
+          const id = requestAnimationFrame(() => {
+            get()._drainQueue()
+          })
+          state._rafId = id
+        }
+      })
     },
 
     _drainQueue: () => {
