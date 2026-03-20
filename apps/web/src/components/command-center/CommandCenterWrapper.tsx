@@ -84,7 +84,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
         // Step 2: Get WS token
         const tokenResponse = await fetch("/api/auth/token")
         if (!tokenResponse.ok) {
-          setError("Failed to get WebSocket token")
+          setError("Task created! Could not connect to real-time updates. Your brief is being processed — check the Strategy Vault for results.")
           return
         }
 
