@@ -39,12 +39,13 @@ See full details: `.planning/milestones/v2.0-ROADMAP.md`
   2. `npm run build` completes without errors — React Flow CSS renders correctly (node handles and edges visible in production build), Magic UI @keyframes animations play, WebSocket initialization does not crash SSR
   3. The Zod schema generator runs and produces `apps/web/src/types/api.ts` matching current Pydantic models; a TypeScript error surfaces immediately when a backend model changes
   4. A single WebSocket connection is established on first navigation and survives client-side route changes with zero reconnects; 24 simultaneous brain events do not cause visible UI freeze (60fps maintained via RAF batching and per-brain Map selectors)
-**Plans**: 3 plans created
+\*\*Plans\*\*: 4 plans created
 
 Plans:
 - [ ] 05-01: Scaffold Next.js 16 app (Tailwind 4, shadcn/ui new-york, Magic UI) — verify React Flow CSS in globals.css @layer base, animated component smoke test, `npm run build` clean
 - [ ] 05-02: Implement JWT auth gate — login page, httpOnly cookie token storage, proxy.ts route protection, JWT verification in Server Components (CVE-2025-29927 mitigation), FastAPI CORS with allow_credentials=True
 - [ ] 05-03: Build Zod schema bridge (SB-01) + Zustand stores (wsStore singleton, brainStore with Immer + Map<brainId, BrainState>) + WSBrainBridge + RAF batching — prove WS→BrainStore pipeline end-to-end against FastAPI backend with real brain events
+- [ ] 05-04: Fix Immer mutation error in brainStore RAF batching — wrap _queue mutations inside set() callback for mutable draft
 
 ### Phase 6: Command Center
 **Goal**: Users can submit a brief via the war room's command interface and watch 24 AI brain tiles update in real-time on the Bento Grid — the core orchestration loop is visible and interactive.
@@ -106,7 +107,7 @@ Plans:
 | 2. Parallel Execution Core | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 3. Web UI Platform | v2.0 | 4/4 | Complete | 2026-03-13 |
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
-| 5. Foundation, Auth & WS Infrastructure | v2.1 | 0/3 | Not started | - |
+| 5. Foundation, Auth | 5. Foundation, Auth & WS Infrastructure | v2.1 | 0/3 | WS Infrastructure | v2.1 | 0/4 | Not started | - |
 | 6. Command Center | v2.1 | 0/3 | Not started | - |
 | 7. The Nexus | v2.1 | 0/3 | Not started | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
