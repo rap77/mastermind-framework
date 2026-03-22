@@ -11,10 +11,14 @@ import type { Brain } from '@/lib/api'
 // ─── CRITICAL: NODE_TYPES at MODULE LEVEL — NEVER inline in JSX ───────────────
 // Inline definition causes React Flow to remount the canvas on every render.
 // This is an invariant from BRAIN-FEED.md: always module-level constant.
+// Exported as NODE_TYPES_EXPORT for test verification of reference stability.
 // ──────────────────────────────────────────────────────────────────────────────
 const NODE_TYPES = {
   brainNode: BrainNode,
 } as const
+
+// Export for test isolation — verifies module-level stability without rendering
+export const NODE_TYPES_EXPORT = NODE_TYPES
 
 // Node dimensions — fixed constants, never use node.measured (Pitfall 2 from research)
 const BRAIN_NODE_W = 160
