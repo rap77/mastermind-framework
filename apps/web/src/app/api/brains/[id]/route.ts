@@ -18,7 +18,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const apiUrl = process.env.API_URL || 'http://localhost:8000'
+  const apiUrl = process.env.API_URL || 'http://localhost:8001'
   const { id: brainId } = await params  // CRITICAL: await params in Next.js 16
 
   // CRITICAL: Get JWT token from httpOnly cookie

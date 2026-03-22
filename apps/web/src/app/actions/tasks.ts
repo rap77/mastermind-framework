@@ -20,7 +20,7 @@ function stripHtml(input: string): string {
 }
 
 // FastAPI base URL (from env or default)
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000"
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8001"
 
 /**
  * Server Action response for task creation

@@ -74,7 +74,7 @@ export async function fetchBrains(
   pageSize: number = 24
 ): Promise<BrainsResponse> {
   // CRITICAL: Server Component reads cookies and calls FastAPI directly
-  const apiUrl = process.env.API_URL || 'http://localhost:8000'
+  const apiUrl = process.env.API_URL || 'http://localhost:8001'
   const url = `${apiUrl}/api/brains?page=${page}&page_size=${pageSize}`
 
   // Get JWT token from httpOnly cookie
@@ -122,7 +122,7 @@ export async function fetchBrains(
  */
 export async function fetchBrain(brainId: string): Promise<Brain> {
   // CRITICAL: Server Component reads cookies and calls FastAPI directly
-  const apiUrl = process.env.API_URL || 'http://localhost:8000'
+  const apiUrl = process.env.API_URL || 'http://localhost:8001'
   const url = `${apiUrl}/api/brains/${brainId}`
 
   // Get JWT token from httpOnly cookie
