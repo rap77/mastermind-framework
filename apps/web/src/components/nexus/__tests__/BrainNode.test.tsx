@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BrainNode } from '../BrainNode'
 import type { NodeProps } from '@xyflow/react'
+import * as brainStore from '@/stores/brainStore'
 
-// Mock brainStore — isolate from Zustand
+// Mock brainStore — isolate from Zustand; individual tests override via vi.mocked
 vi.mock('@/stores/brainStore', () => ({
   useBrainState: vi.fn().mockReturnValue(undefined),
 }))
@@ -45,6 +46,11 @@ function makeBrainNodeProps(overrides?: Partial<NodeProps>): NodeProps {
 }
 
 describe('BrainNode', () => {
+  beforeEach(() => {
+    // Reset mock to default (undefined = blueprint/ghost state)
+    vi.mocked(brainStore.useBrainState).mockReturnValue(undefined)
+  })
+
   it('all interactive children have nodrag class', () => {
     render(<BrainNode {...makeBrainNodeProps()} />)
 
@@ -81,5 +87,35 @@ describe('BrainNode', () => {
   it('re-renders only when its own brainId state changes, not other brains', () => {
     // BrainNode is React.memo — verify displayName set correctly
     expect(BrainNode.displayName).toBe('BrainNode')
+  })
+
+  // ─── 07-03: Ghost Architecture visual states ────────────────────────────────
+
+  it('applies opacity-20 and border-dashed when brainState is undefined (blueprint/ghost)', () => {
+    // mockUseBrainState already returns undefined by default (set in beforeEach)
+    render(<BrainNode {...makeBrainNodeProps()} />)
+
+    // The Card element should have blueprint styling classes
+    const card = document.querySelector('[data-slot="card"]') as HTMLElement | null
+    expect(card).not.toBeNull()
+    expect(card?.className).toContain('opacity-20')
+    expect(card?.className).toContain('border-dashed')
+  })
+
+  it('applies neon glow ring class when status is active', () => {
+    vi.mocked(brainStore.useBrainState).mockReturnValue({
+      id: 'brain-01',
+      status: 'active',
+      lastUpdated: Date.now(),
+    })
+
+    render(<BrainNode {...makeBrainNodeProps()} />)
+
+    const card = document.querySelector('[data-slot="card"]') as HTMLElement | null
+    expect(card).not.toBeNull()
+    // Active state: ring-2 and ring color for neon glow
+    expect(card?.className).toContain('ring-2')
+    // opacity-20 and border-dashed should NOT be present when active
+    expect(card?.className).not.toContain('opacity-20')
   })
 })
