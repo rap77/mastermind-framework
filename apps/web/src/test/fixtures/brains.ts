@@ -3,6 +3,7 @@
  */
 
 import type { BrainMetadata } from '@/types/api'
+import type { Brain } from '@/lib/api'
 
 export const MOCK_BRAINS: BrainMetadata[] = [
   {
@@ -55,3 +56,60 @@ export function createMockBrain(overrides: Partial<BrainMetadata> = {}): BrainMe
     ...overrides,
   }
 }
+
+/**
+ * Brain fixtures for component-layer tests (ClusterGroup, BentoGrid).
+ *
+ * These use the Brain type from @/lib/api which has:
+ * - id: string  (e.g. 'brain-01')
+ * - niche: 'master' | 'software' | 'marketing' | string
+ *
+ * Index map:
+ *   [0] brain-08  niche: 'universal'  → master cluster
+ *   [1] brain-01  niche: 'software'   → software cluster
+ *   [2] brain-02  niche: 'software'   → software cluster
+ *   [3] brain-03  niche: 'software'   → software cluster
+ *   [4] brain-08  niche: 'universal'  → master cluster (alias for index 0)
+ */
+export const MOCK_COMPONENT_BRAINS: Brain[] = [
+  {
+    id: 'brain-08',
+    name: 'Master Brain',
+    niche: 'universal',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
+  {
+    id: 'brain-01',
+    name: 'Product Strategy',
+    niche: 'software-development',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
+  {
+    id: 'brain-02',
+    name: 'UX Research',
+    niche: 'software-development',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
+  {
+    id: 'brain-03',
+    name: 'UI Design',
+    niche: 'software-development',
+    status: 'active',
+    uptime: 123,
+    last_called_at: '2026-03-20T15:30:00Z',
+  },
+  {
+    id: 'brain-08',
+    name: 'Master Brain',
+    niche: 'universal',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
+]
