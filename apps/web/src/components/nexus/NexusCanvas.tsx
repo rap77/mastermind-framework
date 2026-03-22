@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
 import dagre from '@dagrejs/dagre'
 import { BrainNode } from './BrainNode'
+import { HybridFlowEdge } from './HybridFlowEdge'
 import { NodeDetailPanel } from './NodeDetailPanel'
+import { CooldownFAB } from './CooldownFAB'
+import { useWSStore } from '@/stores/wsStore'
 import type { Brain } from '@/lib/api'
 
 // ─── CRITICAL: NODE_TYPES at MODULE LEVEL — NEVER inline in JSX ───────────────
@@ -17,8 +20,16 @@ const NODE_TYPES = {
   brainNode: BrainNode,
 } as const
 
+// ─── CRITICAL: EDGE_TYPES at MODULE LEVEL — same rule as NODE_TYPES ───────────
+// Inline edgeTypes in JSX causes React Flow infinite re-render loop.
+// ──────────────────────────────────────────────────────────────────────────────
+const EDGE_TYPES = {
+  hybridFlow: HybridFlowEdge,
+} as const
+
 // Export for test isolation — verifies module-level stability without rendering
 export const NODE_TYPES_EXPORT = NODE_TYPES
+export const EDGE_TYPES_EXPORT = EDGE_TYPES
 
 // Node dimensions — fixed constants, never use node.measured (Pitfall 2 from research)
 const BRAIN_NODE_W = 160
@@ -110,6 +121,9 @@ function buildBlueprintNodes(
 
 /**
  * buildBlueprintEdges — star topology: coordinator → all other brains
+ *
+ * Uses 'hybridFlow' edge type for the HybridFlowEdge neon glow state machine.
+ * EDGE_TYPES must be at module level (not inline) for React Flow stability.
  */
 function buildBlueprintEdges(blueprintBrains: Brain[]): Edge[] {
   const coordinator = blueprintBrains.find(b => b.niche === 'coordinator') ?? blueprintBrains.find(b => b.id === 'brain-08')
@@ -121,6 +135,7 @@ function buildBlueprintEdges(blueprintBrains: Brain[]): Edge[] {
       id: `edge-${coordinator.id}-${b.id}`,
       source: coordinator.id,
       target: b.id,
+      type: 'hybridFlow',
     }))
 }
 
@@ -132,13 +147,18 @@ interface NexusCanvasProps {
  * NexusCanvas — The Nexus screen's React Flow canvas
  *
  * Architecture:
- * - NODE_TYPES at module level (CRITICAL)
+ * - NODE_TYPES + EDGE_TYPES at module level (CRITICAL — prevents remount)
  * - dagre layout runs ONCE via useState initializer (never recalculated)
  * - nodes array is layout-only — brain status read from brainStore in BrainNode
+ * - HybridFlowEdge reads source brain status for neon glow state machine
  * - NodeDetailPanel (Sheet) opens on brain node click
+ * - Cooldown Mode activates on task_completed WS event (CooldownFAB visible, bg shifts)
  */
 export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
   const [selectedBrainId, setSelectedBrainId] = useState<string | null>(null)
+  // Cooldown Mode: active after task_completed WS event
+  const [cooldownMode, setCooldownMode] = useState(false)
+  const subscribe = useWSStore(state => state.subscribe)
 
   // CRITICAL: Layout runs once at mount — positions are latched
   // The initializer function form (setState(() => ...)) runs ONLY once
@@ -152,7 +172,19 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
     buildBlueprintEdges(blueprintBrains)
   )
 
+  // Subscribe to task_completed to enter Cooldown Mode
+  useEffect(() => {
+    const unsubscribe = subscribe('task_completed', () => {
+      setCooldownMode(true)
+    })
+    return unsubscribe
+  }, [subscribe])
+
   const handleClosePanel = () => setSelectedBrainId(null)
+  const handleCooldownEscape = () => setCooldownMode(false)
+
+  // Background shifts to near-black in Cooldown Mode
+  const canvasBackground = cooldownMode ? '#111113' : '#0B0C10'
 
   return (
     <div className="relative h-full w-full">
@@ -168,11 +200,15 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
           nodes={nodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
           fitView
           panOnScroll
           zoomOnScroll
           nodesDraggable={false}
-          style={{ background: '#0B0C10' }}
+          // Canvas is read-only in Cooldown Mode
+          nodesFocusable={!cooldownMode}
+          edgesFocusable={!cooldownMode}
+          style={{ background: canvasBackground, transition: 'background 0.3s ease' }}
         >
           <Background />
           <Controls />
@@ -183,6 +219,13 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
         brainId={selectedBrainId}
         blueprintBrains={blueprintBrains}
         onClose={handleClosePanel}
+      />
+
+      {/* CooldownFAB: appears on task_completed, Esc resets to Ghost Architecture */}
+      <CooldownFAB
+        visible={cooldownMode}
+        taskId={null}
+        onEscape={handleCooldownEscape}
       />
     </div>
   )
