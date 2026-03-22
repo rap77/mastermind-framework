@@ -75,10 +75,12 @@ Plans:
   4. User can click a node to view brain details without accidentally triggering drag or pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
 **Plans**: 3 plans created
 
+**Plans:** 3 plans
+
 Plans:
-- [ ] 07-01: Validate or extend `GET /api/tasks/{id}/graph` FastAPI endpoint — ensure payload matches React Flow Node/Edge types, add layout_positions field if missing
-- [ ] 07-02: Build NexusCanvas — React Flow with dagre layout (run once on mount), stable nodes array (layout-only), BrainNode custom component (React.memo, reads from brainStore via targeted selector, NodeStatusIndicator, nodrag/nopan on interactive children)
-- [ ] 07-03: Wire WebSocket illumination to DAG — update node border/glow via brainStore on WS events, flip `animated: true` on outgoing edges on brain activation
+- [ ] 07-01-PLAN.md — FastAPI graph endpoint adapter: add layout_positions field, fix edge source/target field names for React Flow compatibility
+- [ ] 07-02-PLAN.md — NexusCanvas: dagre layout (mount-once), NODE_TYPES at module level, BrainNode (React.memo + nodrag/nopan), NodeDetailPanel, NexusSkeleton, CooldownFAB, /nexus page
+- [ ] 07-03-PLAN.md — WS illumination: HybridFlowEdge state machine, brainStore historyStack + sessionInvocationCounts, Cooldown Mode, brief submission → /nexus navigation
 
 ### Phase 8: Strategy Vault, Engine Room & UX Polish
 **Goal**: Users can audit past executions with formatted brain outputs, monitor live logs with filtering, manage API keys, inspect brain YAML config, and enter Focus Mode during active execution — the war room is complete.
