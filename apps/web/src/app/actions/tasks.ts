@@ -13,7 +13,10 @@ import { cookies } from "next/headers"
 
 /** Strip HTML tags server-side (DOMPurify is browser-only). Backend does html.escape() for actual XSS prevention. */
 function stripHtml(input: string): string {
-  return input.replace(/<[^>]*>/g, "")
+  // First remove <script>...</script> blocks including their content
+  const withoutScriptBlocks = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+  // Then strip remaining HTML tags
+  return withoutScriptBlocks.replace(/<[^>]*>/g, "")
 }
 
 // FastAPI base URL (from env or default)
