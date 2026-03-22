@@ -187,9 +187,13 @@ class TestTaskGraphBE02:
         assert data["layout_positions"] is None
 
     @pytest.mark.asyncio
-    async def test_graph_edges_use_source_target_fields(self, client, auth_headers):
+    async def test_graph_edges_use_source_target_fields(
+        self, client, auth_headers, db_path
+    ):
         """Edge objects serialize with 'source' and 'target' keys — React Flow compatible."""
-        # Create task then update its flow_config directly via DB
+        import sqlite3
+
+        # Create task then patch flow_config directly in test DB
         create = await client.post(
             "/api/tasks",
             headers=auth_headers,
@@ -198,11 +202,7 @@ class TestTaskGraphBE02:
         assert create.status_code == 201
         task_id = create.json()["task_id"]
 
-        # Patch flow_config into the DB record
-        import sqlite3
-        import os
-
-        db_path = os.environ.get("MM_DB_PATH", "/tmp/mastermind_test.db")
+        # Patch flow_config into the DB record using the fixture-provided db_path
         flow_config = {
             "nodes": {
                 "brain-01": [],

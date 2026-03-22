@@ -216,13 +216,10 @@ class GraphNode(BaseModel):
 
 
 class GraphEdge(BaseModel):
-    """Edge in the execution graph."""
+    """Edge in the execution graph — React Flow compatible field names."""
 
-    from_node: str = Field(..., alias="from", description="Source brain ID")
-    to: str = Field(..., description="Target brain ID")
-
-    class Config:
-        populate_by_name = True
+    source: str = Field(..., description="Source brain ID")
+    target: str = Field(..., description="Target brain ID")
 
 
 class TaskGraphResponse(BaseModel):
@@ -232,6 +229,10 @@ class TaskGraphResponse(BaseModel):
     edges: List[GraphEdge] = Field(default_factory=list, description="Graph edges")
     max_level: int = Field(..., ge=0, description="Maximum execution level")
     max_parallelism: int = Field(..., ge=0, description="Maximum concurrent brains")
+    layout_positions: dict[str, dict[str, float]] | None = Field(
+        default=None,
+        description="Optional server-computed node positions. None = client computes dagre layout.",
+    )
 
 
 # ===== Graph Endpoint =====
@@ -277,7 +278,9 @@ async def get_task_graph(
 
     # Handle empty flow_config
     if not flow_config or not flow_config.get("nodes"):
-        return TaskGraphResponse(nodes=[], edges=[], max_level=0, max_parallelism=0)
+        return TaskGraphResponse(
+            nodes=[], edges=[], max_level=0, max_parallelism=0, layout_positions=None
+        )
 
     # Build nodes from flow_config
     nodes_raw = flow_config.get("nodes", {})
@@ -303,11 +306,11 @@ async def get_task_graph(
         for node_id, level in sorted(node_levels.items(), key=lambda x: x[1])
     ]
 
-    # Build edge list
+    # Build edge list — React Flow compatible: source/target field names
     edges = []
     for target_node, dependencies in edges_raw.items():
         for source_node in dependencies:
-            edges.append(GraphEdge(**{"from": source_node, "to": target_node}))
+            edges.append(GraphEdge(source=source_node, target=target_node))
 
     # Calculate metrics
     max_level = max(node_levels.values(), default=0)
@@ -321,5 +324,9 @@ async def get_task_graph(
     )
 
     return TaskGraphResponse(
-        nodes=nodes, edges=edges, max_level=max_level, max_parallelism=max_parallelism
+        nodes=nodes,
+        edges=edges,
+        max_level=max_level,
+        max_parallelism=max_parallelism,
+        layout_positions=None,
     )
