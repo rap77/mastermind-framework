@@ -23,7 +23,7 @@ vi.mock('next/headers', () => ({
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-import { createTask } from '../route'
+import { createTask } from '@/app/actions/tasks'
 
 describe('createTask Server Action', () => {
   beforeEach(() => {
