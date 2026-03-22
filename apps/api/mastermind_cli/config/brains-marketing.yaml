@@ -15,7 +15,7 @@ brains:
       - Pricing strategy
       - Marketing frameworks
       - Competitive analysis
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M2: Brand Identity & Design
@@ -31,7 +31,7 @@ brains:
       - Visual design systems
       - Brand guidelines
       - Rebranding
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M3: Content Strategy & Copywriting
@@ -47,7 +47,7 @@ brains:
       - Video scripting
       - Content frameworks
       - Editorial calendars
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M4: Social Media Organic
@@ -63,7 +63,7 @@ brains:
       - Twitter/X strategy
       - Community building
       - User-generated content
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M5: Social Media Paid
@@ -79,7 +79,7 @@ brains:
       - YouTube Ads
       - Creative strategy
       - Ad scaling
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M6: Search PPC
@@ -95,7 +95,7 @@ brains:
       - Landing page optimization
       - Quality score
       - Bid management
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M7: SEO Technical
@@ -111,7 +111,7 @@ brains:
       - Core Web Vitals
       - Crawlability
       - Site speed optimization
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M8: SEO Content & Link Building
@@ -127,7 +127,7 @@ brains:
       - E-E-A-T optimization
       - Local SEO
       - Keyword research
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-09 - PRP-002
 
   # M9: Email Marketing & Automation
@@ -143,7 +143,7 @@ brains:
       - Deliverability
       - List segmentation
       - Drip campaigns
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M10: Push, SMS & Retention
@@ -159,7 +159,7 @@ brains:
       - LTV optimization
       - Churn reduction
       - Customer lifecycle
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M11: Marketing Analytics & Data
@@ -175,7 +175,7 @@ brains:
       - A/B testing
       - Marketing metrics
       - ROI analysis
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M12: Conversion Rate Optimization (CRO)
@@ -191,7 +191,7 @@ brains:
       - Funnel optimization
       - Heatmap analysis
       - Conversion research
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M13: Marketing Automation & Operations
@@ -207,7 +207,7 @@ brains:
       - Lead scoring
       - CRM integration
       - Process optimization
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M14: Influencer & Partnerships
@@ -223,7 +223,7 @@ brains:
       - Strategic partnerships
       - Brand collaborations
       - Influencer vetting
-    status: active
+    status: idle
     sources_count: 11  # Updated 2026-03-12 - PRP-003
 
   # M15: Community Building & Management
@@ -239,7 +239,7 @@ brains:
       - Events and meetups
       - Advocacy programs
       - Community platforms
-    status: active
+    status: idle
     sources_count: 10  # Updated 2026-03-12 - PRP-003
 
   # M16: Growth Partner & Agency Operations (Evaluator)
@@ -255,6 +255,6 @@ brains:
       - Partnership models
       - Client retention
       - Agency operations
-    status: active
+    status: idle
     sources_count: 11  # Updated 2026-03-12 - PRP-003
     role: evaluator  # Meta-cerebro: evaluates outputs from M1-M15

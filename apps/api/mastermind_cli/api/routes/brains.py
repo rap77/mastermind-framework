@@ -24,7 +24,7 @@ router = APIRouter()
 class BrainMetadata(BaseModel):
     """Brain metadata for Command Center."""
 
-    id: int = Field(..., description="Brain ID")
+    id: str = Field(..., description="Brain ID (e.g. 'brain-01')")
     name: str = Field(..., description="Brain name")
     niche: str = Field(
         ..., description="Niche: software-development, marketing-digital, universal"
