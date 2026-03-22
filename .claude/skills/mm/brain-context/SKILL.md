@@ -1,187 +1,84 @@
 ---
 name: mm-brain-context
-description: Use when about to create a GSD roadmap, plan a GSD phase, or validate a PLAN.md in a project with mm CLI — injects expert brain knowledge at 3 critical moments before generic planning decisions are made
+description: Injects expert brain knowledge into GSD workflow at 3 critical moments. Use before creating ROADMAP.md (Moment 1), before /gsd:plan-phase (Moment 2), and after PLAN.md is created (Moment 3). Each moment follows the intermediary protocol — read codebase first, build context block, query with reality, cascade insights.
 ---
 
-# mm Brain Context — GSD Integration
-
-## Overview
-
-Injects NotebookLM brain knowledge into GSD workflow at 3 critical moments. Without this, GSD plans are informed only by web research. With this, they're informed by distilled knowledge from 86+ expert books.
-
+<essential_principles>
 **Core principle:** Brains answer WHAT and WHY. GSD answers HOW and WHEN.
 
----
+**You are the intermediary between the brains and the codebase.** Brains have 86+ books of expert knowledge but ZERO access to your code. You have both. The quality of every brain response depends entirely on the context you give it.
 
-## The 3 Moments
+**The Intermediary Protocol applies to ALL 3 moments:**
 
-### Moment 1 — Before ROADMAP.md
-**Trigger:** About to run `/gsd:new-milestone` or `gsd-roadmapper`
-**Goal:** Brains inform phase structure and priorities before phases are defined
+1. **Read before querying** — read relevant code, SUMMARY.md files, STATE.md, and BRAIN-FEED.md before writing a single query
+2. **Build a context block** — structure what exists vs. what the plan proposes vs. what might be wrong assumptions
+3. **Query with delta** — pass `[IMPLEMENTED REALITY]` + corrections of wrong assumptions the brain might make
+4. **Filter the response** — for each concern raised: grep/read code to verify if already solved, if Phase N+1, or if a real gap
+5. **Cascade real gaps** — insights that affect implementation go to domain brains in parallel, immediately, not as todos
+6. **Synthesize into artifacts** — concrete changes to CONTEXT.md, PLAN.md, or ROADMAP.md — not documentation
 
-```bash
-cd apps/api
-uv run mm orchestrate run \
-  "[milestone brief — scope, screens, tech stack, constraints]" \
-  --brains brain-02-ux-research,brain-03-ui-design,brain-04-frontend \
-  --use-mcp
-```
+**BRAIN-FEED.md is the project memory for brains.** A living document at `.planning/BRAIN-FEED.md` that accumulates implemented patterns, architectural decisions, and codebase reality across phases. Always read it before querying. Always update it after a phase completes. See `workflows/update-brain-feed.md`.
+</essential_principles>
 
-**Save output to:** `.planning/research/BRAIN-0X-CONTEXT.md` per brain
-**Tell roadmapper:** "Read `.planning/research/BRAIN-*-CONTEXT.md` files when defining phases"
+<intake>
+Which moment?
 
----
+1. **Moment 1** — About to create ROADMAP.md (before `/gsd:new-milestone`)
+2. **Moment 2** — About to plan a phase (before `/gsd:plan-phase N`)
+3. **Moment 3** — PLAN.md exists, needs Brain-07 validation before execute
+4. **Update BRAIN-FEED** — Phase just completed, update project brain feed
 
-### Moment 2 — Before `/gsd:plan-phase N`
-**Trigger:** About to plan a specific phase
-**Goal:** Domain brain informs CONTEXT.md so gsd-planner has expert context
+**Wait for response before proceeding.**
+</intake>
 
-Select brain by phase domain (table below), run with the phase goal as brief.
+<routing>
+| Response | Workflow |
+|----------|----------|
+| 1, "moment 1", "roadmap", "milestone" | `workflows/moment-1.md` |
+| 2, "moment 2", "plan phase", "context" | `workflows/moment-2.md` |
+| 3, "moment 3", "validate", "brain-07", "plan" | `workflows/moment-3.md` |
+| 4, "brain-feed", "update", "post-phase" | `workflows/update-brain-feed.md` |
 
-```bash
-uv run mm orchestrate run \
-  "[phase goal + key questions + tech constraints]" \
-  --brains [domain-brain] \
-  --use-mcp
-```
+**After reading the workflow, follow it exactly.**
+</routing>
 
-**Save output to:** `.planning/phases/XX-phase-name/CONTEXT.md`
-**Then:** Run `/gsd:plan-phase N` — planner reads CONTEXT.md automatically
+<reference_index>
+**Intermediary Protocol:** `references/intermediary-protocol.md` — how to build context blocks, filter responses, cascade insights
+**Brain Selection:** `references/brain-selection.md` — which brain for which domain, notebook IDs, context chains
+</reference_index>
 
----
+<workflows_index>
+| Workflow | Purpose |
+|----------|---------|
+| moment-1.md | Before ROADMAP — brains with project reality inform phase structure |
+| moment-2.md | Before plan-phase — domain brain with codebase context informs CONTEXT.md, cascade to related brains |
+| moment-3.md | After PLAN.md — Brain-07 validates with full code context, domain brains implement gaps |
+| update-brain-feed.md | Post-phase — distill new patterns into BRAIN-FEED.md for future queries |
+</workflows_index>
 
-### Moment 3 — After PLAN.md, Before Execute
-**Trigger:** `gsd-planner` produced PLAN.md, waiting for user approval
-**Goal:** Brain-07 (evaluator) validates the plan before execution
+<anti_patterns>
+<pitfall name="querying-without-code-context">
+❌ Querying a brain with only plan text or milestone brief
+✅ Read BRAIN-FEED.md + relevant code first. Brain gets `[IMPLEMENTED REALITY]` block.
+</pitfall>
 
-Query brain-07 **directly via MCP** (no context chaining needed):
+<pitfall name="accepting-first-response">
+❌ Taking any brain response at face value without filtering against codebase
+✅ For each concern raised: verify in code. Mark ✅ solved / 📅 deferred / 🔴 real gap.
+</pitfall>
 
-```python
-mcp__notebooklm-mcp__notebook_query(
-    notebook_id="d8de74d6-7028-44ed-b4d5-784d6a9256e6",  # brain-07
-    query=f"""
-    Project: [project name + tech stack]
-    Phase: [phase name]
-    Plan to validate:
-    {plan_md_contents}
+<pitfall name="insights-as-todos">
+❌ Noting Brain-07 insights as todos to address later
+✅ Real gaps → consult domain brains in parallel immediately → update artifacts now
+</pitfall>
 
-    Evaluate: Is this plan complete, well-sequenced, and likely to succeed?
-    Provide: approval_conditions or rejection_reasons.
-    """
-)
-```
+<pitfall name="skipping-brain-feed">
+❌ Each consultation starts from zero context
+✅ Always pass BRAIN-FEED.md content. It is the accumulated project reality.
+</pitfall>
 
-**If brain-07 approves:** Run `/gsd:execute-phase N`
-**If brain-07 rejects:** Iterate PLAN.md on rejection_reasons, re-validate
-
----
-
-## Brain Selection by Phase Domain
-
-| Phase domain | Brains to run | Context chains |
-|---|---|---|
-| UX / user flows / info architecture | `brain-02-ux-research` | — |
-| Visual design / UI / components | `brain-03-ui-design` | ← brain-02 |
-| Frontend / React / state / performance | `brain-04-frontend` | ← brain-03 |
-| Backend / API / DB / architecture | `brain-05-backend` | ← brain-01 |
-| Testing / CI/CD / DevOps / infra | `brain-06-qa-devops` | ← brain-04 + brain-05 |
-| Metrics / growth / post-launch eval | `brain-07-growth-data` | — |
-| Strategy / requirements / product | `brain-01-product-strategy` | — |
-| Plan validation (always) | `brain-07-growth-data` | — |
-
-**Multiple domains:** Run brains in chain order — context chaining activates automatically.
-Example: UI + Frontend phase → `--brains brain-03-ui-design,brain-04-frontend`
-
----
-
-## Notebook IDs (Software Dev niche)
-
-| Brain | Notebook ID |
-|---|---|
-| brain-01 Product Strategy | `f276ccb3-0bce-4069-8b55-eae8693dbe75` |
-| brain-02 UX Research | `ea006ece-00a9-4d5c-91f5-012b8b712936` |
-| brain-03 UI Design | `8d544475-6860-4cd7-9037-8549325493dd` |
-| brain-04 Frontend | `85e47142-0a65-41d9-9848-49b8b5d2db33` |
-| brain-05 Backend | `c6befbbc-b7dd-4ad0-a677-314750684208` |
-| brain-06 QA/DevOps | `74cd3a81-1350-4927-af14-c0c4fca41a8e` |
-| brain-07 Growth/Data | `d8de74d6-7028-44ed-b4d5-784d6a9256e6` |
-| brain-08 Master Interviewer | `5330e845-29dc-4219-9d7e-c1ccb4851bb3` |
-
----
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---|---|
-| Running without `--use-mcp` | Returns stub data. Always `--use-mcp` for real NotebookLM |
-| Wrong working dir | `mm` CLI lives in `apps/api/` — always `cd apps/api` first |
-| Skipping brain-07 at Moment 3 | Brain-07 is the evaluator — Moment 3 is non-negotiable |
-| Running after `/gsd:plan-phase` | Too late — brain context must exist BEFORE the planner runs |
-| Generic brief | Include tech stack, constraints, phase goal — vague = vague answer |
-
----
-
-## Setup (first time in a new project)
-
-Run these checks before using the skill in any repo:
-
-### 1. Detect mm CLI location
-
-```bash
-# Option A: global install
-which mm
-
-# Option B: local uv project
-find . -name "pyproject.toml" | xargs grep -l "mastermind" 2>/dev/null
-
-# Option C: monorepo (apps/api/ or similar)
-find . -path "*/mastermind_cli/__init__.py" 2>/dev/null
-```
-
-Use the detected path in all commands. Examples:
-- Global: `mm orchestrate run ...`
-- Local uv: `cd <mm-dir> && uv run mm orchestrate run ...`
-
-### 2. Detect brain config and notebook IDs
-
-```bash
-# Option A: .mastermind/config.yaml (standard install)
-cat .mastermind/config.yaml 2>/dev/null
-
-# Option B: brain registry (monorepo)
-find . -name "brain_registry.py" | xargs grep "notebook_id" 2>/dev/null
-
-# Option C: list brains via CLI
-mm brain list 2>/dev/null
-```
-
-**Use the notebook IDs from the project config — never from this skill.**
-The IDs in the Notebook IDs table above are Software Dev niche only.
-
-### 3. Verify prerequisites
-
-```bash
-# NotebookLM MCP running?
-# (check mcp__notebooklm-mcp tools are available in session)
-
-# GSD installed?
-ls ~/.claude/commands/gsd/ 2>/dev/null | head -3
-
-# Skill installed in project?
-grep -l "mm:brain-context\|mm-brain-context" CLAUDE.md 2>/dev/null
-```
-
-### 4. Update project CLAUDE.md if missing
-
-Add under a `## mm Brain Context` section:
-
-```markdown
-## mm Brain Context (GSD Integration)
-Before any GSD operation, check if mm:brain-context skill applies:
-- Before ROADMAP.md creation → Moment 1 (pre-roadmap brains)
-- Before /gsd:plan-phase N → Moment 2 (domain brain → CONTEXT.md)
-- After PLAN.md created → Moment 3 (brain-07 validation)
-Skill: `.claude/skills/mm/brain-context/SKILL.md`
-mm CLI: [path detected in step 1]
-Brain config: [path detected in step 2]
-```
+<pitfall name="wrong-assumptions-uncorrected">
+❌ Brain assumes "24 brains activate simultaneously" when actually 3-5 per brief
+✅ Explicitly correct wrong assumptions in the query with code evidence
+</pitfall>
+</anti_patterns>
