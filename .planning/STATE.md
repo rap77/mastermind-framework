@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: completed
-stopped_at: "Completed Phase 07-02: NexusCanvas Frontend"
-last_updated: "2026-03-22T16:08:44.736Z"
-last_activity: 2026-03-20 — Phase 06-03 COMPLETE (4/4 tasks, 79 tests passing)
+stopped_at: "Completed Phase 07-03: WS Illumination — awaiting human checkpoint verification"
+last_updated: "2026-03-22T16:23:40.636Z"
+last_activity: 2026-03-22 — Phase 07-02 COMPLETE (3 tasks, 9 tests, 11 files created)
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 14
-  percent: 50
+  completed_plans: 15
+  percent: 57
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 
 ## Current Position
 
-Phase: 7 of 8 (The Nexus) — Plan 2 of 3 COMPLETE
-Plan: 07-02 (NexusCanvas Frontend)
-Status: Phase 07-02 complete ✅ — Wave 2 done, ready for 07-03 (WS Illumination)
-Last activity: 2026-03-22 — Phase 07-02 COMPLETE (3 tasks, 9 tests, 11 files created)
+Phase: 7 of 8 (The Nexus) — Plan 3 of 3 COMPLETE (awaiting human checkpoint)
+Plan: 07-03 (WS Illumination)
+Status: Phase 07-03 complete ✅ — Wave 3 done, awaiting human visual verification checkpoint
+Last activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
 
-Progress: [█████████░░░] 57% (8/14 plans complete)
+Progress: [██████████] 100% (31/28 plans complete)
 
 ## Performance Metrics
 
@@ -45,7 +45,7 @@ Progress: [█████████░░░] 57% (8/14 plans complete)
 |-------|-------|--------|
 | 05 Foundation + WS | 5 | 5/5 complete (05-00, 05-01, 05-02, 05-03, 05-04) |
 | 06 Command Center | 3 | 3/3 complete (06-01, 06-02, 06-03) |
-| 07 The Nexus | 3 | 2/3 complete (07-01, 07-02) |
+| 07 The Nexus | 3 | 3/3 complete (07-01, 07-02, 07-03) ✅ |
 | 08 Vault + Engine Room | 4 | Not started |
 
 **Plan durations:**
@@ -58,6 +58,7 @@ Progress: [█████████░░░] 57% (8/14 plans complete)
 | Phase 06-command-center P03 | 2843 | 4 tasks | 14 files |
 | Phase 07-the-nexus P01 | 5 | 2 tasks | 2 files |
 | Phase 07-the-nexus P02 | 7 | 3 tasks | 13 files |
+| Phase 07-the-nexus P03 | 12 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 07-the-nexus]: layout_positions always null in v2.1 — client dagre layout, field stubbed for Phase 08 backend-driven layout
 - [Phase 07-the-nexus]: NODE_TYPES_EXPORT named export from NexusCanvas — allows test isolation to verify module-level reference stability without rendering canvas
 - [Phase 07-the-nexus]: dagreGraph module-level singleton with clearNode/clearEdge before each call — guarantees positional stability across multiple getLayoutedNodes invocations
+- [Phase 07-the-nexus]: enableMapSet() in brainStore — Immer requires MapSet plugin for Map iteration in set() callbacks (new Map(state.brains) fails silently without it)
+- [Phase 07-the-nexus]: EDGE_TYPES at module level in NexusCanvas — same invariant as NODE_TYPES, prevents infinite re-render in React Flow; EDGE_TYPES_EXPORT added for test isolation
 
 ### Pending Todos
 
@@ -109,8 +112,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:08:36.408Z
-Stopped at: Completed Phase 07-02: NexusCanvas Frontend
+Last session: 2026-03-22T16:23:40.633Z
+Stopped at: Completed Phase 07-03: WS Illumination — awaiting human checkpoint verification
 Resume file: None
 
 **Phase 05 Results:**
