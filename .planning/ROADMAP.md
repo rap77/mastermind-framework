@@ -4,6 +4,9 @@
 
 - ✅ **v2.0 Production Platform** — Phases 1–4 (shipped 2026-03-17)
 - 🚧 **v2.1 War Room Frontend** — Phases 5–8 (in progress)
+- 📋 **v2.2 Brain Agents** — Autonomous subagents per brain, two-level BRAIN-FEED, inter-agent coordination
+- 📋 **v3.0 Custom Workflow Framework + RAG** — Replace GSD, declarative DSL, pluggable agents, per-agent vector stores
+- 📋 **v3.1 OpenClaw Integration** — Brain agents as OpenClaw skills, omnichannel (22+ channels), voice, native apps
 
 ## Phases
 
@@ -116,4 +119,39 @@ Plans:
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-20 — Phase 06 COMPLETE (3/3), Phase 07 PENDING*
+
+### 📋 v2.2 Brain Agents (after v2.1)
+
+**Milestone Goal:** Convert brain consultations from manual skill workflows to autonomous Claude Code subagents. Each agent embeds the intermediary protocol, maintains domain-specific memory, and accumulates expertise across phases.
+
+**Evolution path:** `mm:brain-context` workflows (v2.1) → agent system prompts (v2.2). No work is thrown away.
+
+**Key changes:**
+- 7 brain subagents (`.claude/agents/brain-NN-*.md`) with built-in intermediary protocol
+- Two-level BRAIN-FEED: `BRAIN-FEED.md` (project general) + `BRAIN-FEED-NN-*.md` (per-brain domain)
+- Orchestrator dispatches agents in parallel (today: Claude follows workflows sequentially)
+- Each agent filters responses against code and updates its domain feed autonomously
+- Inter-agent coordination for cross-domain decisions (API contracts, state ownership)
+
+**Phases:** TBD — will be planned as `/gsd:new-milestone v2.2` after v2.1 ships.
+
+### 📋 v3.0 Custom Workflow Framework + RAG (future)
+
+**Milestone Goal:** Replace GSD with MasterMind's own niche-agnostic workflow framework. Keep GSD's proven patterns (goal-backward, wave parallelization, atomic commits, deviation rules). Add brain integration at every gate, declarative DSL, pluggable agents, and niche-specific flow templates. Plus per-agent RAG for persistent brain memory.
+
+**Research completed:** `.planning/research/GSD-FRAMEWORK-ANALYSIS.md` — full GSD architecture analysis (12 agents, 5 layers, strengths, limitations, 6 extension points identified).
+
+**Key differentiators vs GSD:**
+- Declarative orchestration DSL (YAML workflows instead of 300+ line bash scripts)
+- Pluggable agent registry (add agents without touching orchestrator code)
+- Brain integration layer (intermediary protocol at every workflow gate)
+- Domain-agnostic verification (pluggable anti-pattern detectors per niche)
+- Niche-specific flow templates (software dev, marketing, design, content — not just code)
+- Custom checkpoint types (brain-approval, customer-feedback, stakeholder-review)
+- Per-agent RAG (ChromaDB/Qdrant) — domain knowledge + project memory in separate collections
+- Persistent brain expertise across projects
+
+**Phases:** TBD — requires v2.2 agent infrastructure. GSD analysis provides the blueprint.
+
+---
+*Roadmap updated: 2026-03-22 — v2.2 and v3.0 milestones added (architectural vision)*
