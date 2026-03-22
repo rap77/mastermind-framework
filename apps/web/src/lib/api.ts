@@ -5,12 +5,18 @@
  * **Context:** Phase 06-02 - Command Center Bento Grid
  *
  * **Architecture:**
- * - Uses native fetch (no axios dependency)
- * - Server-side only (uses 'server-only')
+ * - Server Components call FastAPI directly with cookies
+ * - Client Components use Next.js API routes as proxies
  * - Proper error handling with typed responses
+ *
+ * **Why dual approach?**
+ * - Server Components CAN read cookies with await cookies()
+ * - But fetch() from Server Component to internal route loses cookies
+ * - Solution: Server Components call FastAPI directly, pass token manually
  */
 
 import 'server-only'
+import { cookies } from 'next/headers'
 
 /**
  * Brain data structure from API
@@ -37,20 +43,15 @@ export interface BrainsResponse {
   total: number
   page: number
   page_size: number
-  total_pages: number
-}
-
-/**
- * Get API base URL from environment
- *
- * @returns API URL (defaults to localhost:8000 for development)
- */
-function getApiUrl(): string {
-  return process.env.API_URL || 'http://localhost:8000'
 }
 
 /**
  * Fetch all brains with pagination
+ *
+ * **Architecture:** Uses Next.js route handler proxy (/api/brains)
+ * - Proxy reads httpOnly cookie and adds Authorization header
+ * - Proxies to FastAPI backend
+ * - Returns brains data to Server Component
  *
  * **N+1 Prevention:** Single query fetches ALL brain data including cluster metadata.
  * Frontend groups by niche using useMemo (no additional queries).
@@ -72,19 +73,32 @@ export async function fetchBrains(
   page: number = 1,
   pageSize: number = 24
 ): Promise<BrainsResponse> {
-  const apiUrl = getApiUrl()
+  // CRITICAL: Server Component reads cookies and calls FastAPI directly
+  const apiUrl = process.env.API_URL || 'http://localhost:8000'
   const url = `${apiUrl}/api/brains?page=${page}&page_size=${pageSize}`
+
+  // Get JWT token from httpOnly cookie
+  const cookieStore = await cookies()  // CRITICAL: await in Next.js 16
+  const token = cookieStore.get('access_token')?.value
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    // Next.js caching: cache for 30 seconds, revalidate in background
-    next: { revalidate: 30 },
+    headers,
+    next: { revalidate: 0 },  // Disable caching
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Unauthorized - Please login first')
+    }
     throw new Error(`Failed to fetch brains: ${response.status} ${response.statusText}`)
   }
 
@@ -95,6 +109,11 @@ export async function fetchBrains(
 /**
  * Fetch a single brain by ID
  *
+ * **Architecture:** Uses Next.js route handler proxy (/api/brains/[id])
+ * - Proxy reads httpOnly cookie and adds Authorization header
+ * - Proxies to FastAPI backend
+ * - Returns brain data to Server Component
+ *
  * **Note:** Used for brain detail views (Phase 07)
  *
  * @param brainId - Brain ID (e.g., 'brain-01')
@@ -102,14 +121,25 @@ export async function fetchBrains(
  * @throws Error if brain not found
  */
 export async function fetchBrain(brainId: string): Promise<Brain> {
-  const apiUrl = getApiUrl()
+  // CRITICAL: Server Component reads cookies and calls FastAPI directly
+  const apiUrl = process.env.API_URL || 'http://localhost:8000'
   const url = `${apiUrl}/api/brains/${brainId}`
+
+  // Get JWT token from httpOnly cookie
+  const cookieStore = await cookies()  // CRITICAL: await in Next.js 16
+  const token = cookieStore.get('access_token')?.value
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     next: { revalidate: 30 },
   })
 

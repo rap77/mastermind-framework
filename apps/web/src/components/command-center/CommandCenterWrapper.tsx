@@ -15,7 +15,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { BriefInputModal } from "./BriefInputModal"
-import { createTask } from "@/app/api/tasks"
+import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
 import { useWSStore } from "@/stores/wsStore"
 

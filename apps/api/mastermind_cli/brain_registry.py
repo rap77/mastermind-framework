@@ -4,6 +4,11 @@ Brain Registry - Load brain configurations from YAML.
 This module loads brain configurations from YAML and provides helper
 functions for querying brain data. It maintains backward compatibility
 with existing code that uses BRAIN_CONFIGS directly.
+
+**Multi-File Loading:**
+- Loads ALL brains*.yaml files from config directory
+- Merges software-dev, marketing, and future niches
+- Maps marketing brains (M1-M16) to numeric IDs (9-24)
 """
 
 import yaml
@@ -13,17 +18,31 @@ from typing import Any, List, Optional
 # Config directory paths
 CONFIG_DIR = Path(__file__).parent / "config"
 BRAINS_CONFIG_PATH = CONFIG_DIR / "brains.yaml"
+MARKETING_CONFIG_PATH = CONFIG_DIR / "brains-marketing.yaml"
+
+
+def _load_yaml_file(path: Path) -> dict[str, Any]:
+    """Load a single YAML file safely."""
+    if not path.exists():
+        return {}
+    with open(path) as f:
+        return yaml.safe_load(f) or {}
 
 
 def load_brain_configs() -> dict[int, dict[str, Any]]:
     """
-    Load brain configurations from YAML file.
+    Load brain configurations from ALL brains*.yaml files.
+
+    **Multi-Niche Support:**
+    - brains.yaml: Software development (1-8)
+    - brains-marketing.yaml: Marketing digital (9-24)
+    - Future: brains-{niche}.yaml for additional niches
 
     Returns:
-        Dictionary mapping brain_id to brain config.
+        Dictionary mapping numeric brain_id to brain config.
 
     Raises:
-        FileNotFoundError: If brains.yaml doesn't exist
+        FileNotFoundError: If no brain config files exist
         yaml.YAMLError: If YAML is invalid
     """
     if not BRAINS_CONFIG_PATH.exists():
@@ -32,12 +51,33 @@ def load_brain_configs() -> dict[int, dict[str, Any]]:
             f"Run 'mm framework status' to verify installation."
         )
 
-    with open(BRAINS_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
+    # Load software development brains (brains.yaml)
+    sd_config = _load_yaml_file(BRAINS_CONFIG_PATH)
+    marketing_config = _load_yaml_file(MARKETING_CONFIG_PATH)
 
-    brains = {}
-    for brain in config.get("brains", []):
-        brains[brain["id"]] = brain
+    brains: dict[int, dict[str, Any]] = {}
+
+    # Load software development brains (numeric IDs 1-8)
+    for brain in sd_config.get("brains", []):
+        brain_id = brain["id"]
+        if isinstance(brain_id, int):
+            brains[brain_id] = brain
+
+    # Load marketing brains (M1-M16 → numeric IDs 9-24)
+    marketing_offset = 8  # Start after software-dev brains
+    marketing_niche = marketing_config.get(
+        "niche", "marketing-digital"
+    )  # Get niche from top-level
+    for i, brain in enumerate(marketing_config.get("brains", []), start=1):
+        # M1 → 9, M2 → 10, ..., M16 → 24
+        numeric_id = marketing_offset + i
+        # Preserve original ID (M1, M2, etc.) as short_id
+        brain["original_id"] = brain["id"]  # e.g., "M1"
+        brain["id"] = numeric_id  # e.g., 9
+        # Set niche from top-level config if not present in brain entry
+        if "niche" not in brain:
+            brain["niche"] = marketing_niche
+        brains[numeric_id] = brain
 
     return brains
 
@@ -73,6 +113,11 @@ def get_all_brains(
     """
     Get all brains with pagination support.
 
+    **Multi-Niche Support:**
+    - Returns brains from all niches (software-dev, marketing, etc.)
+    - Consistent brain IDs: brain-01 to brain-24
+    - Niche filtering: software-development, marketing-digital, universal
+
     Args:
         page: Page number (1-indexed, default=1)
         page_size: Number of brains per page (default=24, max=100)
@@ -92,8 +137,8 @@ def get_all_brains(
     # Validate page_size (max 100 for performance)
     page_size = min(page_size, 100)
 
-    # Get all brains as list
-    all_brains = list(BRAIN_CONFIGS.values())
+    # Get all brains as list, sorted by numeric ID
+    all_brains = [BRAIN_CONFIGS[k] for k in sorted(BRAIN_CONFIGS.keys())]
 
     # Calculate pagination offset
     offset = (page - 1) * page_size
@@ -112,9 +157,13 @@ def get_all_brains(
         if status not in ["idle", "active", "error", "complete"]:
             status = "idle"
 
+        # Generate consistent brain ID for frontend (brain-01 to brain-24)
+        numeric_id = brain["id"]
+        brain_id_str = f"brain-{numeric_id:02d}"  # e.g., "brain-01", "brain-09"
+
         brain_metadata.append(
             {
-                "id": brain["id"],
+                "id": brain_id_str,  # String ID for frontend consistency
                 "name": brain["name"],
                 "niche": niche,
                 "status": status,

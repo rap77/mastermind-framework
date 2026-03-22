@@ -53,7 +53,7 @@ export const CLUSTER_CONFIGS: ClusterConfig[] = [
   {
     id: 'master',
     name: 'Master',
-    niche: 'master',
+    niche: 'universal',  // Backend uses 'universal' for master brain
     color: 'zinc',
     animation: 'steady',
     brains: ['brain-08'],
@@ -61,7 +61,7 @@ export const CLUSTER_CONFIGS: ClusterConfig[] = [
   {
     id: 'software',
     name: 'Software Development',
-    niche: 'software',
+    niche: 'software-development',  // Backend uses 'software-development'
     color: 'cyan',
     animation: 'scan',
     brains: [
@@ -77,7 +77,7 @@ export const CLUSTER_CONFIGS: ClusterConfig[] = [
   {
     id: 'marketing',
     name: 'Marketing',
-    niche: 'marketing',
+    niche: 'marketing-digital',  // Backend uses 'marketing-digital'
     color: 'purple',
     animation: 'glow',
     brains: [

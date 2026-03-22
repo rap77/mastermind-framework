@@ -17,9 +17,12 @@
  * - Frontend groups by niche using useMemo (not additional queries)
  */
 
-import { fetchBrains } from '@/lib/api'
+import { fetchBrains, type BrainsResponse } from '@/lib/api'
 import { BentoGrid } from '@/components/command-center/BentoGrid'
 import { CommandCenterWrapper } from '@/components/command-center/CommandCenterWrapper'
+
+// Force dynamic rendering (no build-time fetch to avoid ECONNREFUSED)
+export const dynamic = 'force-dynamic'
 
 /**
  * Command Center Page Component
@@ -39,18 +42,21 @@ import { CommandCenterWrapper } from '@/components/command-center/CommandCenterW
  * @returns Command Center page with Bento Grid
  */
 export default async function CommandCenterPage() {
-  /**
-   * Fetch brains server-side
-   *
-   * **Eager Loading Strategy:**
-   * - Single query fetches ALL brain data including niche field
-   * - No N+1 queries: Backend returns brains with niche pre-populated
-   * - Frontend groups by niche using useMemo (no additional queries)
-   *
-   * **Default Params:**
-   * - page=1, page_size=24 (fetches all brains in one call)
-   */
-  const brainsData = await fetchBrains(1, 24)
+  let brainsData: BrainsResponse | null = null
+
+  try {
+    brainsData = await fetchBrains(1, 24)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Failed to load brains</p>
+          <p className="text-sm text-muted-foreground">Error: {errorMessage}</p>
+        </div>
+      </div>
+    )
+  }
 
   /**
    * Handle empty state
