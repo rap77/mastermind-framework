@@ -3,12 +3,14 @@
 This module provides CRUD operations for brain orchestration tasks.
 
 Requirements: UI-06, UI-08, ARCH-03, PERF-02
+Security: OWASP A03 (XSS) - Server-side brief sanitization
 """
 
 import json
 import uuid
 from datetime import datetime
 from typing import Optional, Dict, List
+from html import escape
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -61,12 +63,18 @@ async def create_task(
 ) -> TaskResponse:
     """Create new orchestration task.
 
-    Validates brief length, calls Coordinator.orchestrate() with parallel=True,
+    Validates brief length, sanitizes input (XSS prevention),
+    calls Coordinator.orchestrate() with parallel=True,
     returns task_id and status.
 
     ARCH-03: Per-request orchestrator instances (no shared global state).
+    Security: Server-side brief sanitization (defense in depth)
     """
     task_id = str(uuid.uuid4())
+
+    # XSS Prevention: Server-side sanitization (defense in depth)
+    # escape() converts HTML entities to prevent stored XSS
+    brief_sanitized = escape(request.brief)
 
     async with DatabaseConnection(db_path) as db:
         # Create execution record
@@ -76,7 +84,7 @@ async def create_task(
             [
                 task_id,
                 request.flow or "{}",
-                request.brief,
+                brief_sanitized,
                 datetime.utcnow(),
                 "pending",
                 user_id,

@@ -68,5 +68,5 @@ export async function loginAction(prevState: { error?: string } | null, formData
     path: '/',
   })
 
-  redirect('/')
+  redirect('/command-center')
 }

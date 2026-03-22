@@ -7,6 +7,7 @@ Requirements: UI-04, PAR-08, PERF-03
 """
 
 import asyncio
+import os
 import time
 import uuid
 from collections import deque
@@ -18,8 +19,8 @@ from jose import JWTError, jwt
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.state.database import DatabaseConnection
 
-# JWT config
-SECRET_KEY = "your-secret-key-change-in-production"
+# JWT config — must match auth.py
+SECRET_KEY = os.environ.get("MM_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 
 
