@@ -78,7 +78,7 @@ Plans:
   4. User can click a node to view brain details without accidentally triggering drag or pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
 **Plans**: 3 plans created
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 07-01-PLAN.md — FastAPI graph endpoint adapter: add layout_positions field, fix edge source/target field names for React Flow compatibility
@@ -115,7 +115,7 @@ Plans:
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
 | 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
-| 7. The Nexus | v2.1 | 0/3 | Not started | - |
+| 7. The Nexus | 1/3 | In Progress|  | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---

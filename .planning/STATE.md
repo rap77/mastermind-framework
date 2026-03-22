@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: completed
-stopped_at: "Completed Phase 06-03: Brief Input Modal"
-last_updated: "2026-03-20T18:44:51.555Z"
+stopped_at: "Completed Phase 07-01: Graph Endpoint BE-02 Compatibility"
+last_updated: "2026-03-22T15:40:43.461Z"
 last_activity: 2026-03-20 — Phase 06-03 COMPLETE (4/4 tasks, 79 tests passing)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 12
+  total_plans: 11
+  completed_plans: 13
   percent: 50
 ---
 
@@ -56,6 +56,7 @@ Progress: [████████░░░░] 50% (7/14 plans complete, Phase
 | Phase 05-foundation-auth-ws P04 | 77 | 1 tasks | 1 files |
 | Phase 06 P02 | 52 | 4 tasks | 16 files |
 | Phase 06-command-center P03 | 2843 | 4 tasks | 14 files |
+| Phase 07-the-nexus P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 06]: ICE Scoring validated animations: only pulse, checkmark, shake implemented (glow, scan deferred)
 - [Phase 06]: Data-driven clustering via CLUSTER_CONFIGS array for extensibility
 - [Phase 06]: Eager Loading pattern for N+1 prevention: single query fetches all brains with niche field
+- [Phase 07-the-nexus]: GraphEdge drops from_node/alias — source/target direct fields match React Flow Edge type
+- [Phase 07-the-nexus]: layout_positions always null in v2.1 — client dagre layout, field stubbed for Phase 08 backend-driven layout
 
 ### Pending Todos
 
@@ -103,8 +106,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:34:14.009Z
-Stopped at: Completed Phase 06-03: Brief Input Modal
+Last session: 2026-03-22T15:40:43.459Z
+Stopped at: Completed Phase 07-01: Graph Endpoint BE-02 Compatibility
 Resume file: None
 
 **Phase 05 Results:**

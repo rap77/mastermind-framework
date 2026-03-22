@@ -15,7 +15,7 @@
 ### Backend Gaps
 
 - [ ] **BE-01**: User can query `GET /api/brains` and receive all 24 brains with metadata: name, niche, status, uptime, last_called_at
-- [ ] **BE-02**: User can query `GET /api/tasks/{id}/graph` and receive a React Flow compatible payload: `{ nodes[], edges[], layout_positions }` with initial node positions
+- [x] **BE-02**: User can query `GET /api/tasks/{id}/graph` and receive a React Flow compatible payload: `{ nodes[], edges[], layout_positions }` with initial node positions
 
 ### Schema Bridge
 
@@ -101,7 +101,7 @@
 | CC-01 | Phase 6 | Pending |
 | CC-02 | Phase 6 | Pending |
 | CC-03 | Phase 6 | Pending |
-| BE-02 | Phase 7 | Pending |
+| BE-02 | Phase 7 | Complete |
 | NEX-01 | Phase 7 | Pending |
 | NEX-02 | Phase 7 | Pending |
 | NEX-03 | Phase 7 | Pending |
