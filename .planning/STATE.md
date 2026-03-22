@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: completed
-stopped_at: "Completed Phase 07-01: Graph Endpoint BE-02 Compatibility"
-last_updated: "2026-03-22T15:40:43.461Z"
+stopped_at: "Completed Phase 07-02: NexusCanvas Frontend"
+last_updated: "2026-03-22T16:08:44.736Z"
 last_activity: 2026-03-20 — Phase 06-03 COMPLETE (4/4 tasks, 79 tests passing)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 11
-  completed_plans: 13
+  completed_plans: 14
   percent: 50
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 
 ## Current Position
 
-Phase: 6 of 8 (Command Center) — Plan 3 of 3 COMPLETE
-Plan: 06-03 (Brief Input Modal)
-Status: Phase 06-03 complete ✅ — Phase 06 COMPLETE, ready for Phase 07 (The Nexus)
-Last activity: 2026-03-20 — Phase 06-03 COMPLETE (4/4 tasks, 79 tests passing)
+Phase: 7 of 8 (The Nexus) — Plan 2 of 3 COMPLETE
+Plan: 07-02 (NexusCanvas Frontend)
+Status: Phase 07-02 complete ✅ — Wave 2 done, ready for 07-03 (WS Illumination)
+Last activity: 2026-03-22 — Phase 07-02 COMPLETE (3 tasks, 9 tests, 11 files created)
 
-Progress: [████████░░░░] 50% (7/14 plans complete, Phase 06 COMPLETE)
+Progress: [█████████░░░] 57% (8/14 plans complete)
 
 ## Performance Metrics
 
@@ -44,8 +44,8 @@ Progress: [████████░░░░] 50% (7/14 plans complete, Phase
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 05 Foundation + WS | 5 | 5/5 complete (05-00, 05-01, 05-02, 05-03, 05-04) |
-| 06 Command Center | 3 | 2/3 complete (06-01, 06-02) |
-| 07 The Nexus | 3 | Not started |
+| 06 Command Center | 3 | 3/3 complete (06-01, 06-02, 06-03) |
+| 07 The Nexus | 3 | 2/3 complete (07-01, 07-02) |
 | 08 Vault + Engine Room | 4 | Not started |
 
 **Plan durations:**
@@ -57,6 +57,7 @@ Progress: [████████░░░░] 50% (7/14 plans complete, Phase
 | Phase 06 P02 | 52 | 4 tasks | 16 files |
 | Phase 06-command-center P03 | 2843 | 4 tasks | 14 files |
 | Phase 07-the-nexus P01 | 5 | 2 tasks | 2 files |
+| Phase 07-the-nexus P02 | 7 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 06]: Eager Loading pattern for N+1 prevention: single query fetches all brains with niche field
 - [Phase 07-the-nexus]: GraphEdge drops from_node/alias — source/target direct fields match React Flow Edge type
 - [Phase 07-the-nexus]: layout_positions always null in v2.1 — client dagre layout, field stubbed for Phase 08 backend-driven layout
+- [Phase 07-the-nexus]: NODE_TYPES_EXPORT named export from NexusCanvas — allows test isolation to verify module-level reference stability without rendering canvas
+- [Phase 07-the-nexus]: dagreGraph module-level singleton with clearNode/clearEdge before each call — guarantees positional stability across multiple getLayoutedNodes invocations
 
 ### Pending Todos
 
@@ -106,8 +109,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-22T15:40:43.459Z
-Stopped at: Completed Phase 07-01: Graph Endpoint BE-02 Compatibility
+Last session: 2026-03-22T16:08:36.408Z
+Stopped at: Completed Phase 07-02: NexusCanvas Frontend
 Resume file: None
 
 **Phase 05 Results:**

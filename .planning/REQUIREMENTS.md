@@ -35,9 +35,9 @@
 
 ### The Nexus
 
-- [ ] **NEX-01**: User sees a DAG of brain dependencies as a React Flow graph with custom shadcn/ui Card nodes (NODE_TYPES declared at module level)
+- [x] **NEX-01**: User sees a DAG of brain dependencies as a React Flow graph with custom shadcn/ui Card nodes (NODE_TYPES declared at module level)
 - [ ] **NEX-02**: Nodes illuminate in real-time (border color, glow) as brains start, complete, or fail execution via WebSocket events
-- [ ] **NEX-03**: User can click a node to see brain details without triggering accidental drag/pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
+- [x] **NEX-03**: User can click a node to see brain details without triggering accidental drag/pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
 
 ### Strategy Vault
 
@@ -102,9 +102,9 @@
 | CC-02 | Phase 6 | Pending |
 | CC-03 | Phase 6 | Pending |
 | BE-02 | Phase 7 | Complete |
-| NEX-01 | Phase 7 | Pending |
+| NEX-01 | Phase 7 | Complete |
 | NEX-02 | Phase 7 | Pending |
-| NEX-03 | Phase 7 | Pending |
+| NEX-03 | Phase 7 | Complete |
 | SV-01 | Phase 8 | Pending |
 | SV-02 | Phase 8 | Pending |
 | ER-01 | Phase 8 | Pending |
