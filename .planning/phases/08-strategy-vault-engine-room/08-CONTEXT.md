@@ -204,6 +204,156 @@ Strategy Vault, Engine Room, and Focus Mode complete the v2.1 War Room. Users ca
 
 ---
 
+---
+
+<brain-specs>
+## Brain Expert Specifications (Moment 2 Consultation — 2026-03-23)
+
+### Backend #5: API Contracts & Performance Strategy
+
+**GraphEdge Enhancement (Phase 08-01 Critical):**
+```typescript
+// GET /api/tasks/{id}/graph
+Response {
+  nodes: [
+    { id: "master", type: "master", data: { label: "Brief" }, position: {} },
+    { id: "niche-xyz", type: "niche_cluster",
+      parentId?: undefined, // React Flow sub-graph support
+      data: { label: "Marketing", niche_id: "marketing" },
+      position: {} },
+    { id: "brain-01", type: "brain_executor",
+      parentId: "niche-xyz", // Hierarchical relationship
+      data: { niche_id: "marketing", status: "idle" },
+      position: {} }
+  ],
+  edges: [
+    { source: "master", target: "niche-xyz", data: { execution_mode: "sequential" } },
+    { source: "niche-xyz", target: "brain-01", data: { execution_mode: "parallel" } }
+  ]
+}
+```
+
+**Execution History Endpoints:**
+- `GET /api/executions/history?page=1&limit=20&sort=newest` → cursor-based pagination (avoid OFFSET degr degradation)
+- `GET /api/executions/{id}` → returns `{ graph_snapshot, brain_outputs: Map<brainId, markdownStr> }`
+- Storage: SQLite metadata (executions table) + JSONB snapshots for replay
+
+**API Key Management:**
+- `POST /api/keys` → returns key once (show-once pattern, hash on backend)
+- `GET /api/keys` → mask as `first-8 + "..." + last-4`
+- `DELETE /api/keys/{id}` → revocation via Redis allow-list (< 1ms lookup on JWT validate)
+
+**Performance Targets:**
+- Execution detail load: < 1s (eager loading JSONB, compress gzip)
+- Pagination: cursor-based (no OFFSET)
+- RAF batching: use existing brainStore pattern for 24-node snapshot renders
+- Benchmarks: 50-node DAG < 100ms initial
+
+### UX #2: Interaction Patterns & Affordances
+
+**Focus-Driven Logs (Motion Signifier):**
+- Log header transitions smoothly (deslizamiento lateral, not abrupt jump)
+- Chromatic mapping: Nicho color in DAG = log panel border/badge color
+- Isolation mode: Click DAG node → pin icon shows, auto-follow pauses, brain logs isolated
+
+**Snapshot Scrubbing (Conceptual Model):**
+- Replay "chrome" visual distinction (desaturated border or "REPLAY MODE" banner at top)
+- Scrubber with 7 max milestone points (Ley de Miller chunking)
+- Snapping behavior: scrubber "magnets" to milestone points for fast navigation
+- Log sync: video-like behavior (cursor jumps in log panel to matching timestamp)
+
+**Focus Mode (Escape Hatch Affordance):**
+- Exit button: top-right corner (Ley de Fitts — high-access area)
+- Label: "Salir [Esc]" or "Focus [F]" (signifier of keyboard shortcut)
+- Sidebar visual state: 20-30% opacity when collapsed (anti-affordance — indicates unavailable but present)
+
+### UI #3: Design Tokens & Visual Specifications
+
+**Niche Cluster Colors (Categorical Palette):**
+- Software Dev (7 nichos): `--color-niche-soft: oklch(0.6 0.18 250)` = Tailwind `bg-blue-600`
+- Marketing (16 nichos): `--color-niche-mkt: oklch(0.6 0.2 300)` = Tailwind `bg-purple-600`
+- Distinction within category: via Lucide icon + color only in nuclear icon (10% surface)
+
+**Trace-Back Impact Animation:**
+- Brain error: `bg-red-600` (`oklch(0.6 0.25 25)`) + `shadow-[0_0_20px_...]` glow
+- Animation: **pulse 0.5s** (cubic-bezier(0.4, 0, 0.2, 1) easing) for critical transitions
+- Niche border: `border-2 border-dotted border-red-500/50` (punteado reduces visual load)
+- Paused siblings: `bg-amber-500` (`oklch(0.8 0.2 80)`) — yellow/warning, not red
+
+**Ghost State (Completed Nicho):**
+- Opacity: `40%`
+- Border: `border-dashed`
+- Text: `text-muted-foreground` (4.5:1 contrast even at 40%)
+- Icon: CheckCircle2 (Lucide) + `grayscale` filter
+
+**Timeline Scrubber UI:**
+- Max 7 visible milestones before overflow
+- Compact labels by default (timestamp/version), full text on hover
+- Hitbox: min 44px (mobile accessibility)
+- Tailwind: `bg-secondary` track, `bg-primary` thumb with shadow
+
+### Frontend #4: Architecture & Performance Decisions
+
+**Sub-graphs for Niche Clusters:**
+- `NicheClusterNode` as `parentNode` (React Flow native)
+- Prevent layout thrash: use `extent: 'parent'` to restrict child movement
+- Expand/collapse: manual (user-triggered, not automatic) to reduce cognitive load
+- Animation: Framer Motion on opacity/scale only (maintain 60fps) within NicheClusterNode
+
+**Performance with 50+ Nodes:**
+- Dagre layout → **Web Worker** (keep main thread free, <100ms initial)
+- React Flow: enable `onlyRenderVisibleElements` (viewport-only rendering)
+- Memoization: React.memo strictly on BrainNode + NicheClusterNode (React 19 still needs manual optimization)
+
+**Component Hierarchy:**
+- Separate files: `BrainNode.tsx` vs `NicheClusterNode.tsx` (SRP)
+- Relationship: NicheClusterNode references children via `parentId`, not direct JSX nesting
+- Testing: behavior-based (RTL), not implementation detail
+
+**ReplayNexus (Strategy Vault):**
+- Separate component from NexusCanvas (avoid mega-component antipattern)
+- Zustand store: `useReplayStore` handles `currentSnapshotIndex` + `milestones`
+- Scrubber updates: React 19 `useTransition` for smooth interactivity (non-urgent state updates)
+
+### QA #6: Testing Strategy & Benchmarks
+
+**Performance Benchmarks:**
+- 50-node DAG load: < 100ms
+- Log filter toggle: < 50ms
+- Snapshot jump (scrubber): < 150ms
+- Focus Mode toggle: < 16ms (60fps requirement)
+
+**react-virtuoso Logs Testing:**
+- Mock 1000+ log lines, verify DOM size constant (~20-30 rows)
+- Auto-follow: verify newest line scrolls into view
+- Filter state: toggle info/warn/error, verify DOM updates without thrash
+
+**Dynamic DAG Tests:**
+- Mock WS updates (data-only), verify positions locked (no dagre re-run)
+- Sub-graph expand/collapse: atomic state change, no layout thrash
+- 50-node DAG render: E2E performance benchmark
+
+**Snapshot Scrubbing:**
+- Scrubber drag → graph snapshot jump + log panel sync (combined test)
+- 20+ milestone precision: off-by-one error detection
+- Timeline visualization clarity
+
+**Focus Mode E2E:**
+- Task start → auto-activate (sidebar collapse, logs expand)
+- [Esc] press → sidebar restores, user not re-trapped on next WS update
+- Idempotence: ensure exit-flag persists across updates
+
+**API Key CRUD (Security-First):**
+- Create: show-once, no leakage in DOM/state after close
+- Revoke: immediate removal from list + API validation
+- Fail-secure: creation failure shows nothing sensitive
+
+</brain-specs>
+
+---
+
 *Phase: 08-strategy-vault-engine-room*
 *Context gathered: 2026-03-23*
+*Brain consultation: 2026-03-23 (Brains #2, #3, #4, #5, #6 provided concrete specs)*
 *Discussed: Dynamic DAG (Progressive Niche Expansion, Trace-Back Impact, Pulse & Reveal, Snapshot Scrubbing), Live Log UX (Focus-Driven Dynamic Console), Focus Mode (Context-Aware Smart Handoff), Strategy Vault (Smart-GFM Markdown), Engine Room (API keys + YAML viewer)*
+*Status: Ready for `/gsd:plan-phase 08` — all 7 architectural decisions locked + brain specifications concrete*
