@@ -58,13 +58,28 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - [ ] **Engine Room** — Structured logs viewer, API key management, brain YAML config
 - [ ] **WebSocket Dispatcher** — Centralized WS store (Zustand), per-component event subscriptions
 
-### Deferred (v2.2+)
+### Deferred (v2.2 — Brain Agents)
 
-- Production hardening: HTTPS+nginx, rate limiting, MM_SECRET_KEY mandatory, session cleanup
+- **Specialized Brain Agents**: Convert brain consultations from manual skill workflows (mm:brain-context) to autonomous Claude Code subagents — each agent embeds the intermediary protocol, reads its domain BRAIN-FEED, queries its NotebookLM brain, filters responses against code, and accumulates domain-specific patterns
+- **Two-level BRAIN-FEED**: Split `.planning/BRAIN-FEED.md` into general project feed + per-brain domain feeds (`BRAIN-FEED-04-frontend.md`, etc.) — each agent reads both, writes only its own
+- **Inter-agent coordination**: Orchestrator passes outputs between agents when cross-domain decisions are needed (e.g., frontend + backend API contract alignment)
 - Semantic routing: replace FlowDetector keyword matching with Claude classifier
+- Production hardening: HTTPS+nginx, rate limiting, MM_SECRET_KEY mandatory, session cleanup
 - Trufflehog secret scanner in CI
 - Docker image push to registry
 - Production monitoring and alerting
+
+### Deferred (v3.0 — Custom Workflow Framework + RAG)
+
+- **MasterMind Workflow Framework**: Replace GSD workflows with niche-agnostic orchestration system. Keep GSD strengths (goal-backward, wave parallelization, atomic commits, deviation rules). Add: declarative DSL, pluggable agent registry, brain integration layer, domain-agnostic verification, niche-specific flow templates, custom checkpoint types
+- **Niche flow templates**: Pre-defined workflows for any domain (software dev, marketing campaigns, design systems, content creation) — not hardcoded to git/code/tests
+- **RAG per agent**: Each brain agent manages its own vector store partition (ChromaDB/Qdrant) — domain knowledge (books) + project memory (accumulated patterns) in separate collections
+- **Cross-brain learning**: Brains learn from each other's successful patterns via shared project BRAIN-FEED
+- **Real brain memory**: Agents persist learnings across projects — a Frontend agent that worked on 10 projects has 10 projects worth of architecture decisions
+- Auto-improvement: ML pipeline fine-tuning on successful outcomes
+- PostgreSQL + pgvector: migrate from SQLite when scale demands it
+
+> Research: `.planning/research/GSD-FRAMEWORK-ANALYSIS.md` — full GSD architecture analysis (12 agents, strengths, limitations, extension points)
 
 ### Out of Scope
 
@@ -113,15 +128,41 @@ A cognitive architecture framework for building specialized AI-powered solutions
 | **Next.js 16 over HTMX** | v2.1 needs real-time UX, component composition, TypeScript | — v2.1 in progress |
 | **React Flow over D3.js** | Better React integration, interactivity built-in, less custom code | — v2.1 in progress |
 | **Zustand WS Dispatcher** | Single connection, pub/sub by event type, avoids prop drilling | — v2.1 in progress |
+| **Skill before Agents** | v2.1 uses mm:brain-context skill (manual workflows); workflows become agent system prompts in v2.2 — builds foundation before automation | — v2.1 foundation, v2.2 agents |
+| **Two-level BRAIN-FEED** | General project feed + per-brain domain feeds — prevents context pollution, enables agent independence | — planned v2.2 |
 | **3-tier CI** | Token cost control: typecheck → tests → semantic | ✅ GitHub Actions running |
 | **Multi-stage Docker** | ~50% image size reduction | ✅ Production Docker deployed |
 
-## Vision Notes (v3.0+)
+## Vision Notes
 
-- **Shared Memory Layer**: Centralized brain memory where experiences are stored
-- **Cross-Brain Learning**: Brains learn from each other's experiences
-- **Hallucination Prevention**: RAG-based fact checking (ExperienceRecord is the foundation)
-- **Auto-Improvement**: ML pipeline fine-tuning on successful outcomes
+### v2.2 — Brain Agents (next after v2.1)
+
+The brain consultation system evolves in 3 stages:
+1. **v2.1 (current):** `mm:brain-context` skill with manual workflows → Claude follows instructions to build context, query brains, filter responses
+2. **v2.2:** Autonomous subagents per brain → intermediary protocol is native behavior, each agent accumulates domain expertise in its own BRAIN-FEED
+3. **v3.0:** Agents + RAG → each agent manages its own vector store, knowledge is persistent and searchable
+
+**Key insight (2026-03-22):** Brains (NotebookLM) are static knowledge — they never learn. The "learning" happens in the intermediary (Claude) via accumulated BRAIN-FEED context. Converting from skill to agents means the intermediary protocol becomes built-in behavior, not a workflow to read and follow. Each agent's domain BRAIN-FEED grows independently, avoiding context pollution.
+
+**Architecture:**
+```
+Orchestrator (Claude main) → dispatches Brain Agents in parallel
+  ├── Brain Agent #N reads: BRAIN-FEED.md (general) + BRAIN-FEED-NN.md (domain)
+  ├── Brain Agent #N reads: relevant code
+  ├── Brain Agent #N queries: NotebookLM brain (static knowledge)
+  ├── Brain Agent #N filters: grep each concern against codebase
+  ├── Brain Agent #N updates: BRAIN-FEED-NN.md with new patterns
+  └── Brain Agent #N returns: verified insights to orchestrator
+```
+
+**Foundation built in v2.1:** The workflow files in `mm:brain-context/workflows/` ARE the system prompts for v2.2 agents. `templates/BRAIN-FEED.md` becomes the template for both general and per-brain feeds.
+
+### v3.0 — Full RAG + Persistent Learning
+
+- **Per-agent vector stores**: Domain knowledge (books) + project memory (patterns) in separate collections
+- **Cross-brain learning**: Agents share successful patterns via project BRAIN-FEED
+- **Persistent expertise**: A Frontend agent that worked on 10 projects accumulates 10 projects worth of architecture decisions
+- **Hallucination prevention**: RAG-based fact checking against ExperienceRecord
 - **PostgreSQL + pgvector**: Migrate from SQLite + JSONB when scale demands it
 
 ---

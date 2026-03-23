@@ -4,7 +4,7 @@ services:
       context: ./apps/api
       dockerfile: ../../docker/api/Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - mastermind_data:/app/data
     environment:
@@ -23,7 +23,7 @@ services:
       context: ./apps/web
       dockerfile: ../../docker/web/Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       API_URL: http://api:8000
       MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}

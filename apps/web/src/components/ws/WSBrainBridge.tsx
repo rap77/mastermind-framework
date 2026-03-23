@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useWSStore } from '@/stores/wsStore'
 import { useBrainStore } from '@/stores/brainStore'
-import { WSMessageSchema, type BrainEvent } from '@/types/api'
+import { WSMessageSchema } from '@/types/api'
 
 /**
  * WebSocket bridge component for real-time brain updates.
@@ -18,6 +18,8 @@ export function WSBrainBridge({ taskId }: { taskId: string | null }) {
   const connect = useWSStore(state => state.connect)
   const disconnect = useWSStore(state => state.disconnect)
   const updateBrain = useBrainStore(state => state.updateBrain)
+  const pushHistorySnapshot = useBrainStore(state => state.pushHistorySnapshot)
+  const incrementInvocationCount = useBrainStore(state => state.incrementInvocationCount)
 
   // Fetch token from /api/auth/token endpoint (server-side cookie read)
   useEffect(() => {
@@ -64,10 +66,16 @@ export function WSBrainBridge({ taskId }: { taskId: string | null }) {
           status: event.status,
           lastUpdated: event.timestamp,
         })
+        // Ghost Trace: capture snapshot after each WS event (Phase 08 replay prep)
+        pushHistorySnapshot()
+        // Track per-brain activation count for BrainNode ×N display
+        if (event.status === 'active') {
+          incrementInvocationCount(event.brain_id)
+        }
       }
     })
     return unsubscribe
-  }, [subscribe, updateBrain])
+  }, [subscribe, updateBrain, pushHistorySnapshot, incrementInvocationCount])
 
   // Log error in development for debugging
   useEffect(() => {

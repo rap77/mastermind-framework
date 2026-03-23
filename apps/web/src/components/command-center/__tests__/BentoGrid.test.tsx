@@ -10,8 +10,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BentoGrid } from '../BentoGrid'
-import { MOCK_BRAINS } from '@/test/fixtures/brains'
-import type { Brain } from '@/types/api'
+import { MOCK_COMPONENT_BRAINS } from '@/test/fixtures/brains'
+import type { Brain } from '@/lib/api'
 
 // Mock ClusterGroup component (tested separately)
 vi.mock('../ClusterGroup', () => ({
@@ -31,7 +31,7 @@ describe('BentoGrid', () => {
    * Test 1: BentoGrid renders ClusterGroups from CLUSTER_CONFIGS
    */
   it('should render ClusterGroups from CLUSTER_CONFIGS', () => {
-    const brains = [MOCK_BRAINS[0], MOCK_BRAINS[1]] // brain-08 (master), brain-01 (software)
+    const brains = [MOCK_COMPONENT_BRAINS[0], MOCK_COMPONENT_BRAINS[1]] // brain-08 (universal/master), brain-01 (software-development)
 
     render(<BentoGrid brains={brains} />)
 
@@ -44,7 +44,7 @@ describe('BentoGrid', () => {
    * Test 2: Each ClusterGroup contains correct brains by niche
    */
   it('should filter brains by niche for each cluster', () => {
-    const brains = [MOCK_BRAINS[4], MOCK_BRAINS[0], MOCK_BRAINS[1]] // brain-08 (master), brain-01, brain-02 (software)
+    const brains = [MOCK_COMPONENT_BRAINS[0], MOCK_COMPONENT_BRAINS[1], MOCK_COMPONENT_BRAINS[2]] // brain-08 (universal/master), brain-01, brain-02 (software-development)
 
     render(<BentoGrid brains={brains} />)
 
@@ -61,7 +61,7 @@ describe('BentoGrid', () => {
    * Test 3: CSS Grid layout uses auto-fit with minmax
    */
   it('should use CSS Grid with auto-fit layout', () => {
-    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
+    const brains = [MOCK_COMPONENT_BRAINS[0]] // brain-08 (universal/master)
 
     const { container } = render(<BentoGrid brains={brains} />)
 
@@ -75,7 +75,7 @@ describe('BentoGrid', () => {
   it('should render new cluster when added to CLUSTER_CONFIGS', () => {
     // This test verifies extensibility - when we add a new cluster to config,
     // it should render without BentoGrid code changes
-    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
+    const brains = [MOCK_COMPONENT_BRAINS[0]] // brain-08 (universal/master)
 
     render(<BentoGrid brains={brains} />)
 
@@ -88,7 +88,7 @@ describe('BentoGrid', () => {
    * Test 5: Master cluster is visually distinct (zinc-100 theme)
    */
   it('should apply zinc theme to master cluster', () => {
-    const brains = [MOCK_BRAINS[0]] // brain-08 (master)
+    const brains = [MOCK_COMPONENT_BRAINS[0]] // brain-08 (universal/master)
 
     const { container } = render(<BentoGrid brains={brains} />)
 

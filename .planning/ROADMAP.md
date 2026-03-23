@@ -4,6 +4,9 @@
 
 - ✅ **v2.0 Production Platform** — Phases 1–4 (shipped 2026-03-17)
 - 🚧 **v2.1 War Room Frontend** — Phases 5–8 (in progress)
+- 📋 **v2.2 Brain Agents** — Autonomous subagents per brain, two-level BRAIN-FEED, inter-agent coordination
+- 📋 **v3.0 Custom Workflow Framework + RAG** — Replace GSD, declarative DSL, pluggable agents, per-agent vector stores
+- 📋 **v3.1 OpenClaw Integration** — Brain agents as OpenClaw skills, omnichannel (22+ channels), voice, native apps
 
 ## Phases
 
@@ -75,10 +78,12 @@ Plans:
   4. User can click a node to view brain details without accidentally triggering drag or pan — all interactive elements inside nodes use `nodrag nopan` CSS classes
 **Plans**: 3 plans created
 
+**Plans:** 2/3 plans executed
+
 Plans:
-- [ ] 07-01: Validate or extend `GET /api/tasks/{id}/graph` FastAPI endpoint — ensure payload matches React Flow Node/Edge types, add layout_positions field if missing
-- [ ] 07-02: Build NexusCanvas — React Flow with dagre layout (run once on mount), stable nodes array (layout-only), BrainNode custom component (React.memo, reads from brainStore via targeted selector, NodeStatusIndicator, nodrag/nopan on interactive children)
-- [ ] 07-03: Wire WebSocket illumination to DAG — update node border/glow via brainStore on WS events, flip `animated: true` on outgoing edges on brain activation
+- [ ] 07-01-PLAN.md — FastAPI graph endpoint adapter: add layout_positions field, fix edge source/target field names for React Flow compatibility
+- [ ] 07-02-PLAN.md — NexusCanvas: dagre layout (mount-once), NODE_TYPES at module level, BrainNode (React.memo + nodrag/nopan), NodeDetailPanel, NexusSkeleton, CooldownFAB, /nexus page
+- [ ] 07-03-PLAN.md — WS illumination: HybridFlowEdge state machine, brainStore historyStack + sessionInvocationCounts, Cooldown Mode, brief submission → /nexus navigation
 
 ### Phase 8: Strategy Vault, Engine Room & UX Polish
 **Goal**: Users can audit past executions with formatted brain outputs, monitor live logs with filtering, manage API keys, inspect brain YAML config, and enter Focus Mode during active execution — the war room is complete.
@@ -110,8 +115,43 @@ Plans:
 | 4. Experience Store & Production | v2.0 | 5/5 | Complete | 2026-03-14 |
 | 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
-| 7. The Nexus | v2.1 | 0/3 | Not started | - |
+| 7. The Nexus | 2/3 | In Progress|  | - |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-20 — Phase 06 COMPLETE (3/3), Phase 07 PENDING*
+
+### 📋 v2.2 Brain Agents (after v2.1)
+
+**Milestone Goal:** Convert brain consultations from manual skill workflows to autonomous Claude Code subagents. Each agent embeds the intermediary protocol, maintains domain-specific memory, and accumulates expertise across phases.
+
+**Evolution path:** `mm:brain-context` workflows (v2.1) → agent system prompts (v2.2). No work is thrown away.
+
+**Key changes:**
+- 7 brain subagents (`.claude/agents/brain-NN-*.md`) with built-in intermediary protocol
+- Two-level BRAIN-FEED: `BRAIN-FEED.md` (project general) + `BRAIN-FEED-NN-*.md` (per-brain domain)
+- Orchestrator dispatches agents in parallel (today: Claude follows workflows sequentially)
+- Each agent filters responses against code and updates its domain feed autonomously
+- Inter-agent coordination for cross-domain decisions (API contracts, state ownership)
+
+**Phases:** TBD — will be planned as `/gsd:new-milestone v2.2` after v2.1 ships.
+
+### 📋 v3.0 Custom Workflow Framework + RAG (future)
+
+**Milestone Goal:** Replace GSD with MasterMind's own niche-agnostic workflow framework. Keep GSD's proven patterns (goal-backward, wave parallelization, atomic commits, deviation rules). Add brain integration at every gate, declarative DSL, pluggable agents, and niche-specific flow templates. Plus per-agent RAG for persistent brain memory.
+
+**Research completed:** `.planning/research/GSD-FRAMEWORK-ANALYSIS.md` — full GSD architecture analysis (12 agents, 5 layers, strengths, limitations, 6 extension points identified).
+
+**Key differentiators vs GSD:**
+- Declarative orchestration DSL (YAML workflows instead of 300+ line bash scripts)
+- Pluggable agent registry (add agents without touching orchestrator code)
+- Brain integration layer (intermediary protocol at every workflow gate)
+- Domain-agnostic verification (pluggable anti-pattern detectors per niche)
+- Niche-specific flow templates (software dev, marketing, design, content — not just code)
+- Custom checkpoint types (brain-approval, customer-feedback, stakeholder-review)
+- Per-agent RAG (ChromaDB/Qdrant) — domain knowledge + project memory in separate collections
+- Persistent brain expertise across projects
+
+**Phases:** TBD — requires v2.2 agent infrastructure. GSD analysis provides the blueprint.
+
+---
+*Roadmap updated: 2026-03-22 — v2.2 and v3.0 milestones added (architectural vision)*

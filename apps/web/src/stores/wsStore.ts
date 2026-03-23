@@ -41,7 +41,7 @@ export const useWSStore = create<WSState>((set, get) => ({
 
     try {
       const ws = new WebSocket(
-        `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'}/ws/tasks/${taskId}?token=${token}`
+        `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001'}/ws/tasks/${taskId}?token=${token}`
       )
 
       ws.onopen = () => {

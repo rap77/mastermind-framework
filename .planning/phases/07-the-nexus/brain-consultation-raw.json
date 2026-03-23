@@ -1,0 +1,106 @@
+{
+  "brain-02-ux-research": {
+    "brain_id": "brain-02-ux-research",
+    "user_journeys": [
+      {
+        "step": "**[Journey 1: Real-time Monitoring]** The user enters the \"War Room\" and views the \"Ghost Architecture\" idle state. Upon a task trigger, they watch the **coordinator (brain-08)** illuminate, followed by a sequence of satellite brains lighting up via WebSocket events [1, 2]. The user observes the **Hybrid Flow** animations to track the logic progression through the dependency graph, providing **immediate feedback** on the orchestration's health [3, 4]."
+      },
+      {
+        "step": "**[Journey 2: Post-Mortem Analysis]** After the `task_completed` event, the system enters \"Cooldown Mode.\" The user uses keyboard shortcuts ([V] or [R]) to toggle through the **Ghost Trace** history stack, reviewing snapshots of specific brain states stored in the `brainStore` [5, 6]. This allows the user to bridge the **Gulf of Evaluation** by interpreting how the final state was reached without needing to restart the process [7, 8]."
+      }
+    ],
+    "pain_points": [
+      "**[Cognitive Overload in High-Concurrency]** With 24 brains emitting simultaneous events, the user may experience a \"firehose effect.\" If the **visual hierarchy** does not distinguish between primary path illumination and secondary status updates, the user will struggle to **scan** the most critical information [9, 10].",
+      "**[Ambiguous Signifiers]** If the \"niche colors\" used for animated edges are not clearly mapped to specific status meanings (e.g., data transfer vs. simple trigger), the user might experience a **mistake** in their mental model, incorrectly interpreting the orchestration flow [1, 8, 11]."
+    ],
+    "opportunities": [
+      "**[Natural Mapping of the Star Topology]** Positioning the coordinator (brain-08) as the central hub creates a **natural mapping** that matches the user's conceptual model of a \"controller and satellites\" [12, 13]. This reduces the time needed to understand the system structure [10].",
+      "**[Progressive Disclosure via Side Panel]** By using the **shadcn/ui Sheet** for live-binding to detailed brain states, the canvas remains minimalist. This follows the principle of **progressive disclosure**, keeping the main interface clean while providing deep-dive data on-demand [14, 15]."
+    ],
+    "research_methodology": "The research approach will utilize **Evaluative Research** through **Heuristic Evaluation**, specifically testing against Nielsen\u2019s principles of **Visibility of System Status** and **Error Prevention** [17, 18]. We will conduct **Guerrilla Testing** with 5 users to identify approximately 85% of usability issues related to the visualization's 60fps performance and cognitive load [19-21]. Finally, we will apply **Assumption Mapping** to ensure the \"Star Topology\" matches the target audience's mental model of AI orchestration [22].",
+    "screen_flows": [
+      {
+        "flow": "**[NexusCanvas (Idle) \u2192 NexusCanvas (Active):]** The user views the blueprint-style nodes (20% opacity); a WebSocket signal triggers a status change in the `brainStore`, causing a node to transition from \"Ghost\" to \"Illuminated\" with a **neon glow signifier** [1, 2]."
+      },
+      {
+        "flow": "**[NexusCanvas (Active) \u2192 Side Panel (Detailed):]** The user clicks a specific node; the **Side Panel** slides out (fixed-right) to show real-time WS event logs and configuration, providing **contextual help** without losing the visual state of the DAG [5, 16]."
+      }
+    ],
+    "generated_at": "2026-03-22 00:13:03.100543"
+  },
+  "brain-03-ui-design": {
+    "brain_id": "brain-03-ui-design",
+    "visual_language": "A Cyber-Blueprint War Room aesthetic that is technical, focused, and high-contrast. The mood is one of real-time orchestration, utilizing a dark mode environment to make illuminated AI \"brain\" states the primary focal point [1, 2]. The tone is professional and precise, following a \"form follows function\" philosophy where visual elements only exist to communicate data insights or state changes [3-5].",
+    "color_palette": {
+      "primary": "#64FFDA (Neon Cyan for active hub and illuminated nodes) [6]",
+      "secondary": "#8892B0 (Muted Slate for \"Ghost\" idle states and secondary edges) [7]",
+      "accent": "#FF3D00 (Vivid Red-Orange for error states and high-priority alerts) [6, 8]",
+      "background": "#0B0C10 (Deep Obsidian; avoids pure black to prevent OLED smearing) [7, 9]",
+      "text": "#E6E1E5 (High-contrast Off-White for maximum readability) [7]"
+    },
+    "typography": {
+      "heading": "Inter, 700 Bold [10, 11]",
+      "body": "Inter, 400 Regular [12]",
+      "mono": "JetBrains Mono (for Brain IDs and real-time WebSocket event logs) [10]"
+    },
+    "spacing_system": "8px Base Grid. All margins, paddings, and layout positions follow a strictly mathematical scale (4-8-16-24-32-48-64) to ensure visual harmony and eliminate layout shifts [13-15].",
+    "component_hierarchy": [
+      {
+        "name": "**NexusBrainNode",
+        "description": "** An Atomic \"Molecule\" component with five distinct states: Blueprint (dashed, 20% opacity), Active (illuminated neon glow), Error (pulsing red-orange), Cooldown (solidified), and Disabled [16-19]. It includes a non-draggable container to prevent accidental layout shifts during high-frequency WebSocket updates [Brief]."
+      },
+      {
+        "name": "**HybridFlowEdge",
+        "description": "** An animated connection component that uses \"Meaningful Motion\" to communicate data direction [3, 20]. In live mode, it features a moving neon \"data pulse\"; in Cooldown mode, it transitions to a solidified \"Data-Latched\" state with a permanent glow to show historical dependency [135, Brief]."
+      },
+      {
+        "name": "**EventSidePanel",
+        "description": "** A right-aligned fixed \"Organism\" (shadcn/ui Sheet) that live-binds to the brainStore [7, Brief]. It uses a strict visual hierarchy with larger headings for KPIs and monospaced text for raw event streams, ensuring that the most important orchestration insights are visible within 3 seconds [21-23]."
+      }
+    ],
+    "design_principles": [
+      "**Hierarchy through Illumination:** Color and glow are reserved strictly for active orchestration; idle elements remain in a grayscale \"blueprint\" mode to reduce cognitive load and highlight what matters in real-time [2, 21, 24, 25].",
+      "**Redundant State Communication:** No state is communicated by color alone. Every brain state (Active, Idle, Error) is reinforced by a combination of unique color, distinct icons, and descriptive text labels to ensure accessibility for all users [26-28].",
+      "**Motion as Communication:** Animations are restricted to 100\u2013300ms durations and must serve a functional purpose\u2014either providing feedback for a WebSocket event or orienting the user within the star topology [3, 20, 29, 30]. Every animation respects the `prefers-reduced-motion` guard to prevent physical discomfort [31, 32]."
+    ],
+    "generated_at": "2026-03-22 00:13:25.049177"
+  },
+  "brain-04-frontend": {
+    "brain_id": "brain-04-frontend",
+    "framework": "Next.js 16 (App Router) + React 19. This choice leverages React Server Components (RSC) to fetch the initial \"Ghost Architecture\" blueprint via `GET /api/brains`, minimizing client-side JS for the base state [1, 2]. React 19's optimized rendering and improved Suspense boundaries handle high-frequency WebSocket (WS) bursts without blocking the main thread [3-5].",
+    "component_hierarchy": {
+      "pages": [
+        "**The Nexus War Room**: Main viewport containing the `NexusCanvas`. It initiates the WS connection and subscribes the `brainStore` to incoming orchestration events [17].",
+        "**Brain Deep-Dive (Side Panel)**: A fixed right-side panel that live-binds to `useBrainState(id)`. It displays real-time execution logs and \"Ghost Trace\" history snapshots [8, 18]."
+      ],
+      "layout": [
+        "**NexusLayout**: Implements a global **Performance Guard**, providing a `prefers-reduced-motion` context to disable intensive neon animations for sensitive users [19-21].",
+        "**War Room Header**: A persistent HUD showing the overall orchestration health and a keyboard shortcut legend (`[Enter]`, `[V]`, `[R]`) for \"Cooldown Mode\" navigation [22]."
+      ],
+      "shared": [
+        "**NexusCanvas (@xyflow/react)**: Implements the **dagre radial layout**. To prevent layout shift, node positions are calculated once during the \"Ghost\" load and fixed (`draggable: false`). WS updates target only the `data` property of nodes via **Zustand selectors** [11, 23, 24].",
+        "**BrainNode**: A custom React Flow node. It uses **memoization** to prevent re-renders unless its specific `BrainState` in the Map changes [25, 26]. It incorporates `nodrag` and `nopan` classes on internal interactive elements to ensure canvas stability [27]."
+      ]
+    },
+    "state_management": "Zustand 5 (Client State) + TanStack Query v5 (Server State).\n- **TanStack Query** manages the initial brain configuration and \"Ghost Architecture\" loading state, providing automatic caching and synchronization [6, 7].\n- **Zustand with Immer middleware** manages the `brainStore` using a `Map<brainId, BrainState>` for **O(1) lookups**, ensuring 60fps performance during 24 simultaneous brain events [8, 9].\n- The `historyStack` for \"Ghost Trace\" is implemented as an array within Zustand, allowing power users to perform state-scrubbing via the **Side Panel** [10, 11].",
+    "styling_approach": "Tailwind 4 + shadcn/ui + CSS Custom Properties.\n- **Visual Hierarchy**: Idle nodes use `opacity-20` and `border-dashed`. Active states utilize **Tailwind 4 arbitrary values** for neon glows (e.g., `shadow-[0_0_15px_var(--brain-color)]`) [12, 13].\n- **Niche Colors**: Brain-specific themes are injected via **CSS Custom Properties** (e.g., `--brain-08-hub`), ensuring a scalable design system that supports dark mode and high-contrast accessibility [12, 14].",
+    "routing_strategy": "Next.js App Router with Dynamic Parallel Routes.\n- `app/nexus/page.tsx`: The primary \"War Room\" canvas.\n- `app/nexus/@sidepanel/[brainId]/page.tsx`: Uses **Parallel Routes** to render the **shadcn/ui Sheet** for a specific brain without unmounting the canvas, preserving the WS connection [15, 16].",
+    "performance_targets": [
+      "**Target 1: 60fps UI Responsiveness.** Achieved by batching WS updates using `requestAnimationFrame` (RAF) and moving heavy \"Ghost Trace\" history processing to a **Web Worker** if calculations exceed 16ms [26, 31, 32].",
+      "**Target 2: CLS (Cumulative Layout Shift) < 0.1.** Node positions are latched post-Dagre calculation; visual state transitions (illumination) use `transform` and `opacity` exclusively to stay on the **GPU compositor** [21, 23, 33, 34]."
+    ],
+    "build_tools": [
+      "**Vite (via Next.js Turbo)**: Provides instant HMR (Hot Module Replacement) for rapid development of complex canvas shaders and animations [28].",
+      "**ESLint (Flat Config v9)**: Enforces `exhaustive-deps` to prevent stale closures in WS event listeners and `no-explicit-any` for strict TypeScript compliance [29, 30]."
+    ],
+    "generated_at": "2026-03-22 00:13:45.589243"
+  },
+  "brain-06-qa-devops": {
+    "brain_id": "brain-06-qa-devops",
+    "testing_strategy": "Adopte un enfoque de Test Pyramid, priorizando un 70% de pruebas unitarias para la l\u00f3gica de estado, un 20% de integraci\u00f3n para el flujo de datos y un 10% de E2E para los flujos cr\u00edticos del \"war room\" [1]. La calidad debe ser una responsabilidad compartida de todo el equipo y no una fase final [2]. El objetivo principal es mantener la estabilidad t\u00e9cnica (baja tasa de fallos en cambios) sin sacrificar la velocidad de entrega, apuntando a m\u00e9tricas de rendimiento \"Elite\" (despliegues m\u00faltiples veces al d\u00eda) [3, 4]. Se implementar\u00e1 un enfoque de \"Shift-left\", integrando pruebas de seguridad y performance desde las etapas iniciales del dise\u00f1o [5, 6]. | Se utilizar\u00e1 Vitest para validar la l\u00f3gica pura del `brainStore` (Zustand) y las mutaciones realizadas con Immer. Se deben testear los selectores de Map espec\u00edficos para garantizar que no existan re-renders innecesarios que causen layout shifts [Brief]. Es cr\u00edtico probar de forma aislada la funci\u00f3n de layout radial de dagre para asegurar posiciones de nodos estables [Brief]. Use \"Seams\" (costuras) para romper dependencias complejas y permitir el testeo de la l\u00f3gica de orquestaci\u00f3n de los 24 cerebros sin efectos secundarios [7, 8]. | El foco principal ser\u00e1 el Contract Testing entre los eventos de WebSocket y el almacenamiento global del Nexus [6]. Se deben validar los puntos de integraci\u00f3n entre Zustand y React Flow, espec\u00edficamente que la \"iluminaci\u00f3n\" de los nodos se active correctamente mediante el `brainState` [Brief]. Utilice la metodolog\u00eda de los \"Three Amigos\" (PO, Dev, QA) para definir los criterios de aceptaci\u00f3n del flujo de orquestaci\u00f3n mediante ejemplos concretos [9]. Se testear\u00e1 la persistencia del `historyStack` (Ghost Trace) para asegurar que las capturas de estado por evento de WS sean \u00edntegras [Brief].\n\n**E2E_TESTING**: Utilice Playwright para automatizar los flujos de usuario de mayor valor: 1. Carga inicial de la **\"Ghost Architecture\"** desde `/api/brains`. 2. Transici\u00f3n visual en tiempo real durante la ejecuci\u00f3n (iluminaci\u00f3n de nodos y animaci\u00f3n de aristas). 3. Persistencia de datos en el **\"Cooldown Mode\"** y funcionamiento de los **shortcuts de teclado** ([Enter]/[V]/[R]) [Brief]. Se incluir\u00e1n **pruebas de regresi\u00f3n de performance** (Cuadrante 4) para verificar el mantenimiento de **60fps** bajo carga de 24 eventos simult\u00e1neos y el respeto a la guardia de `prefers-reduced-motion` [10-12].",
+    "ci_cd_pipeline": "Implemente un flujo de Trunk-Based Development, donde los desarrolladores integren sus cambios a la rama principal diariamente mediante ramas de vida corta (< 2 d\u00edas) [13, 14]. El Deployment Pipeline automatizado constar\u00e1 de:\n1.  **Stage de Commit**: Linting, SAST (an\u00e1lisis est\u00e1tico de seguridad) y pruebas unitarias [15, 16].\n2.  **Stage de Aceptaci\u00f3n**: Despliegue en un entorno ef\u00edmero, pruebas de integraci\u00f3n y E2E [15].\n3.  **Performance Check**: Pruebas de carga autom\u00e1ticas (ej. con k6) para validar latencias de renderizado de la DAG [12, 17].\nUtilice **Feature Flags** para separar el despliegue t\u00e9cnico del lanzamiento de negocio, permitiendo \"dark launches\" del Nexus [1, 18].",
+    "monitoring": "Adopte principios de Observabilidad, utilizando eventos estructurados de alta cardinalidad para rastrear cada `brainId` individualmente a trav\u00e9s de la orquestaci\u00f3n [19, 20]. Defina SLOs (Service Level Objectives) claros, como: \"El 99.9% de los eventos de WebSocket deben procesarse y renderizarse en < 16ms\" para garantizar los 60fps [11, 21]. Implemente trazabilidad distribuida para seguir el flujo desde el Coordinador (brain-08) hacia los sat\u00e9lites [22, 23]. Use notificaciones proactivas para alertar sobre estados de error en los cerebros antes de que el usuario lo reporte [24].",
+    "deployment_strategy": "La infraestructura se gestionar\u00e1 como c\u00f3digo (IaC), asegurando entornos de staging y producci\u00f3n id\u00e9nticos mediante contenedores [25, 26]. Se priorizar\u00e1n los Phoenix Servers (recrear en lugar de parchear) para evitar el \"configuration drift\" [27, 28]. El despliegue a producci\u00f3n ser\u00e1 mediante lanzamientos graduales por porcentaje (1% \u2192 10% \u2192 100%) para limitar el radio de explosi\u00f3n ante posibles fallos en la visualizaci\u00f3n en tiempo real [29]. Todo cambio en infraestructura debe pasar por el pipeline, prohibiendo cambios manuales v\u00eda SSH [30].",
+    "generated_at": "2026-03-22 00:14:07.132441"
+  }
+}

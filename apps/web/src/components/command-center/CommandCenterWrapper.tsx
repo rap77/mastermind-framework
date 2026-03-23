@@ -14,6 +14,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { BriefInputModal } from "./BriefInputModal"
 import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
@@ -35,6 +36,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const wsStore = useWSStore()
+  const router = useRouter()
 
   /**
    * Register Cmd+Enter keyboard shortcut
@@ -93,8 +95,8 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
         // Step 3: Connect WebSocket with taskId AND token
         wsStore.connect(result.taskId, access_token)
 
-        // Step 4: Close modal
-        setIsModalOpen(false)
+        // Step 4: Navigate to The Nexus to watch brains illuminate in real-time
+        router.push('/nexus')
       } catch (err) {
         console.error("Failed to submit brief:", err)
         setError("Network error: Failed to create task")

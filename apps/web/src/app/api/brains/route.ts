@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
-  const apiUrl = process.env.API_URL || 'http://localhost:8000'
+  const apiUrl = process.env.API_URL || 'http://localhost:8001'
 
   // CRITICAL: Get JWT token from httpOnly cookie
   const cookieStore = await cookies()  // CRITICAL: await in Next.js 16

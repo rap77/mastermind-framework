@@ -10,9 +10,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { ClusterGroup } from '../ClusterGroup'
-import { MOCK_BRAINS } from '@/test/fixtures/brains'
+import { MOCK_COMPONENT_BRAINS } from '@/test/fixtures/brains'
 import type { ClusterConfig } from '@/config/clusters'
-import type { Brain } from '@/types/api'
+import type { Brain } from '@/lib/api'
 
 // Mock BrainTile component (tested separately in Task 3)
 vi.mock('../BrainTile', () => ({
@@ -25,16 +25,16 @@ describe('ClusterGroup', () => {
   const mockClusterConfig: ClusterConfig = {
     id: 'software',
     name: 'Software Development',
-    niche: 'software',
+    niche: 'software-development',
     color: 'cyan',
     animation: 'scan',
     brains: ['brain-01', 'brain-02'],
   }
 
   const mockBrains: Brain[] = [
-    MOCK_BRAINS[0], // brain-08 (master)
-    MOCK_BRAINS[1], // brain-01 (software)
-    MOCK_BRAINS[2], // brain-02 (software) - using UX Research as proxy
+    MOCK_COMPONENT_BRAINS[0], // brain-08 (universal/master)
+    MOCK_COMPONENT_BRAINS[1], // brain-01 (software-development)
+    MOCK_COMPONENT_BRAINS[2], // brain-02 (software-development)
   ]
 
   /**
