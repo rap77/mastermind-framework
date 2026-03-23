@@ -53,19 +53,27 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
       >
         <CardContent className="p-2 flex flex-col gap-1">
           {/* CRITICAL: nodrag + nopan on ALL interactive elements (NEX-03) */}
-          <button
-            type="button"
-            className={cn(
-              'nodrag nopan',
-              'text-left text-xs font-semibold leading-tight truncate w-full',
-              'hover:text-primary transition-colors cursor-pointer',
-              'bg-transparent border-0 p-0'
+          <div className="flex items-center gap-1 justify-between">
+            <button
+              type="button"
+              className={cn(
+                'nodrag nopan',
+                'text-left text-xs font-semibold leading-tight truncate flex-1',
+                'hover:text-primary transition-colors cursor-pointer',
+                'bg-transparent border-0 p-0'
+              )}
+              onClick={handleSelect}
+              aria-label={nodeData.label}
+            >
+              {nodeData.label}
+            </button>
+            {/* Checkmark badge for completed tasks */}
+            {status === 'complete' && (
+              <span className="nodrag nopan text-[12px] text-[var(--color-brain-complete,#10B981)] font-bold">
+                ✓
+              </span>
             )}
-            onClick={handleSelect}
-            aria-label={nodeData.label}
-          >
-            {nodeData.label}
-          </button>
+          </div>
 
           <div className="flex items-center justify-between">
             <NodeStatusIndicator status={status} />

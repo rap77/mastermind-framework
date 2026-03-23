@@ -112,4 +112,20 @@ export const MOCK_COMPONENT_BRAINS: Brain[] = [
     uptime: 0,
     last_called_at: null,
   },
+  {
+    id: 'brain-09',
+    name: 'Growth Strategy',
+    niche: 'marketing-digital',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
+  {
+    id: 'brain-10',
+    name: 'Content Marketing',
+    niche: 'marketing-digital',
+    status: 'idle',
+    uptime: 0,
+    last_called_at: null,
+  },
 ]

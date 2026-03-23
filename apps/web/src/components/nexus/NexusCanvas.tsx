@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useBrainStore } from '@/stores/brainStore'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
 import dagre from '@dagrejs/dagre'
@@ -53,9 +54,9 @@ dagreGraph.setDefaultEdgeLabel(() => ({}))
  */
 export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
   dagreGraph.setGraph({
-    rankdir: 'TB',
-    nodesep: 60,
-    ranksep: 100,
+    rankdir: 'LR',
+    nodesep: 40,
+    ranksep: 80,
   })
 
   // Clear previous graph state to ensure stability across multiple calls
@@ -96,14 +97,19 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
 }
 
 /**
- * buildBlueprintNodes — converts API brains into React Flow nodes (Ghost Architecture)
+ * buildBlueprintNodes — converts API brains into React Flow nodes
  *
- * Status data is NOT stored in node.data — it comes from brainStore via useBrainState(id).
+ * Shows ALL brains. Status visibility handled by BrainNode:
+ * - Ghost nodes (blueprint) render dim/dashed
+ * - Active nodes render with color ring
+ *
+ * Status data comes from brainStore via useBrainState(id) in BrainNode.
  * This keeps the nodes array as layout-only (never mutated by WS events).
  */
 function buildBlueprintNodes(
   blueprintBrains: Brain[],
-  onSelect: (id: string) => void
+  onSelect: (id: string) => void,
+  _activeBrainIds: Set<string>
 ): Node[] {
   return blueprintBrains.map(brain => ({
     id: brain.id,
@@ -120,12 +126,12 @@ function buildBlueprintNodes(
 }
 
 /**
- * buildBlueprintEdges — star topology: coordinator → all other brains
+ * buildBlueprintEdges — star topology: coordinator → all brains
  *
  * Uses 'hybridFlow' edge type for the HybridFlowEdge neon glow state machine.
  * EDGE_TYPES must be at module level (not inline) for React Flow stability.
  */
-function buildBlueprintEdges(blueprintBrains: Brain[]): Edge[] {
+function buildBlueprintEdges(blueprintBrains: Brain[], visibleNodes: Node[]): Edge[] {
   const coordinator = blueprintBrains.find(b => b.niche === 'coordinator') ?? blueprintBrains.find(b => b.id === 'brain-08')
   if (!coordinator) return []
 
@@ -160,17 +166,25 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
   const [cooldownMode, setCooldownMode] = useState(false)
   const subscribe = useWSStore(state => state.subscribe)
 
-  // CRITICAL: Layout runs once at mount — positions are latched
-  // The initializer function form (setState(() => ...)) runs ONLY once
+  // Get active brain IDs from brainStore
+  const brainStates = useBrainStore(state => state.brains)
+  const activeBrainIds = new Set(
+    Array.from(brainStates.values())
+      .filter(brain => brain.status !== 'blueprint')
+      .map(brain => brain.id)
+  )
+
+  // Build nodes/edges once at mount with active brains
   const [nodes] = useState<Node[]>(() => {
-    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId)
-    const edges = buildBlueprintEdges(blueprintBrains)
+    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId, activeBrainIds)
+    const edges = buildBlueprintEdges(blueprintBrains, rawNodes)
     return getLayoutedNodes(rawNodes, edges)
   })
 
-  const [edges] = useState<Edge[]>(() =>
-    buildBlueprintEdges(blueprintBrains)
-  )
+  const [edges] = useState<Edge[]>(() => {
+    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId, activeBrainIds)
+    return buildBlueprintEdges(blueprintBrains, rawNodes)
+  })
 
   // Subscribe to task_completed to enter Cooldown Mode
   useEffect(() => {
@@ -188,11 +202,11 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
 
   return (
     <div className="relative h-full w-full">
-      {/* Canvas shrinks 30% when panel opens */}
+      {/* Canvas shrinks when panel opens (stays 85% width, panel 15%) */}
       <div
         className={
           selectedBrainId
-            ? 'h-full transition-all duration-300 w-[70%]'
+            ? 'h-full transition-all duration-300 w-[85%]'
             : 'h-full transition-all duration-300 w-full'
         }
       >
