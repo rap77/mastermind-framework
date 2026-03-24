@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: verifying
-stopped_at: "Completed 08-03: Engine Room Logs Interface"
-last_updated: "2026-03-24T04:46:58.048Z"
+stopped_at: "Completed 08-04: Focus Mode + API Key Management"
+last_updated: "2026-03-24T11:21:34.800Z"
 last_activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 16
-  completed_plans: 19
+  completed_plans: 20
   percent: 100
 ---
 
@@ -62,6 +62,7 @@ Progress: [██████████] 100% (31/28 plans complete)
 | Phase 08-strategy-vault-engine-room P01 | 14 | 7 tasks | 20 files |
 | Phase 08-strategy-vault-engine-room P02 | 12 | 7 tasks | 14 files |
 | Phase 08-strategy-vault-engine-room P03 | 11 | 8 tasks | 15 files |
+| Phase 08-strategy-vault-engine-room P04 | 26 | 7 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 08-strategy-vault-engine-room]: react-virtuoso for O(1) memory virtual scroll in Engine Room logs (overscan=10)
 - [Phase 08-strategy-vault-engine-room]: Empty filterLevels Set = show nothing (all levels toggled off = zero logs, not pass-through)
 - [Phase 08-strategy-vault-engine-room]: logFilterStore: manual JSON serialization for Set (avoids Zustand persist middleware Set issue)
+- [Phase 08-strategy-vault-engine-room]: framer-motion replaced with CSS transitions: not installed, Tailwind transition classes achieve equivalent layout shift
+- [Phase 08-strategy-vault-engine-room]: OrchestratorStore isFocusMode computed inline per action (state===running && !userOverride) — no selector middleware needed for scalar state
+- [Phase 08-strategy-vault-engine-room]: KeyCreateDialog show-once: createdKey in React state only, cleared on handleClose, never reaches localStorage
 
 ### Pending Todos
 
@@ -124,8 +128,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-24T04:46:58.046Z
-Stopped at: Completed 08-03: Engine Room Logs Interface
+Last session: 2026-03-24T11:21:34.798Z
+Stopped at: Completed 08-04: Focus Mode + API Key Management
 Resume file: None
 
 **Phase 05 Results:**

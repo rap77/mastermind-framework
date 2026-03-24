@@ -52,7 +52,7 @@
 
 ### UX
 
-- [ ] **UX-01**: User can enter Focus Mode during active execution — sidebar collapses, idle brain tiles dim, active execution elements are highlighted
+- [x] **UX-01**: User can enter Focus Mode during active execution — sidebar collapses, idle brain tiles dim, active execution elements are highlighted
 
 ## v2.2 Requirements (Deferred)
 
@@ -110,7 +110,7 @@
 | ER-01 | Phase 8 | Complete |
 | ER-02 | Phase 8 | Complete |
 | ER-03 | Phase 8 | Complete |
-| UX-01 | Phase 8 | Pending |
+| UX-01 | Phase 8 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 22 total
