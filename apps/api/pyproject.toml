@@ -21,6 +21,7 @@ dependencies = [
     "websockets>=14.0",
     "aiosqlite>=0.22.1",
     "types-python-jose>=3.5.0.20250531",
+    "slowapi>=0.1.9",
 ]
 
 [project.scripts]

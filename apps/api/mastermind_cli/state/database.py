@@ -212,6 +212,46 @@ class DatabaseConnection:
             )
             await self.conn.commit()
 
+    async def create_api_keys_v2_schema(self) -> None:
+        """Create api_keys_v2 table with Phase 08 show-once pattern.
+
+        Separate from the legacy api_keys table (which uses SHA256 + mm_ prefix).
+        This table adds:
+        - prefix: first 13 chars (mmsk_ + 8 hex) for O(1) candidate lookup
+        - suffix: last 4 chars for display
+        - revoked_at: NULL=active, non-null=revoked (soft-delete pattern)
+        - name: optional user-defined label
+
+        Key format: mmsk_ + 32 hex = 37 chars total
+        prefix = first 13 chars ("mmsk_" + 8 hex)
+        suffix = last 4 chars
+
+        Requirements: ER-02
+        """
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys_v2 (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                key_hash TEXT NOT NULL,
+                prefix TEXT NOT NULL,
+                suffix TEXT NOT NULL,
+                name TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP,
+                revoked_at TIMESTAMP
+            )
+        """)
+
+        # Index on prefix for O(1) candidate lookup during validation
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_api_keys_v2_prefix ON api_keys_v2(prefix)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_api_keys_v2_user_id ON api_keys_v2(user_id)"
+        )
+
+        await self.conn.commit()
+
     async def create_execution_history_schema(self) -> None:
         """Create execution_history table for Strategy Vault.
 
