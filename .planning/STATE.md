@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: verifying
-stopped_at: "Completed 08-01: Backend Infrastructure (Strategy Vault + Engine Room)"
-last_updated: "2026-03-24T04:11:47.172Z"
+stopped_at: "Completed 08-02: Strategy Vault Frontend"
+last_updated: "2026-03-24T04:31:28.597Z"
 last_activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 16
-  completed_plans: 17
+  completed_plans: 18
   percent: 100
 ---
 
@@ -60,6 +60,7 @@ Progress: [██████████] 100% (31/28 plans complete)
 | Phase 07-the-nexus P02 | 7 | 3 tasks | 13 files |
 | Phase 07-the-nexus P03 | 12 | 2 tasks | 7 files |
 | Phase 08-strategy-vault-engine-room P01 | 14 | 7 tasks | 20 files |
+| Phase 08-strategy-vault-engine-room P02 | 12 | 7 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,9 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 08-strategy-vault-engine-room]: INSERT OR IGNORE for execution_writer concurrency — first writer wins, 24 simultaneous brain completions handled without Redis
 - [Phase 08-strategy-vault-engine-room]: Separate api_keys_v2 table with prefix/suffix/revoked_at — avoids migrating legacy api_keys, no breaking changes
 - [Phase 08-strategy-vault-engine-room]: GraphEdge sub-graph as optional field on existing TaskGraphResponse — backward compat with Phase 07 NexusCanvas
+- [Phase 08-strategy-vault-engine-room]: smart-gfm.tsx extension (not .ts): JSX components require .tsx — OXC rejects JSX in .ts files in Vite
+- [Phase 08-strategy-vault-engine-room]: LogsPanel shows all outputs at index 0: full history visible at start of replay, filter only on active scrub
+- [Phase 08-strategy-vault-engine-room]: NotFoundError custom class for 404 detection in TanStack Query retry logic — allows 404 to redirect vs 5xx to error state
 
 ### Pending Todos
 
@@ -116,8 +120,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-24T04:11:47.170Z
-Stopped at: Completed 08-01: Backend Infrastructure (Strategy Vault + Engine Room)
+Last session: 2026-03-24T04:31:28.594Z
+Stopped at: Completed 08-02: Strategy Vault Frontend
 Resume file: None
 
 **Phase 05 Results:**
