@@ -14,7 +14,7 @@
 
 ### Backend Gaps
 
-- [ ] **BE-01**: User can query `GET /api/brains` and receive all 24 brains with metadata: name, niche, status, uptime, last_called_at
+- [x] **BE-01**: User can query `GET /api/brains` and receive all 24 brains with metadata: name, niche, status, uptime, last_called_at
 - [x] **BE-02**: User can query `GET /api/tasks/{id}/graph` and receive a React Flow compatible payload: `{ nodes[], edges[], layout_positions }` with initial node positions
 
 ### Schema Bridge
@@ -29,9 +29,9 @@
 
 ### Command Center
 
-- [ ] **CC-01**: User can submit a brief via cmdk modal with multi-line textarea and Cmd+Enter shortcut — full-screen modal style (not single-line command palette)
-- [ ] **CC-02**: User sees all 24 brain tiles in a Magic UI Bento Grid with live status (idle / active / complete / error) fed from WebSocket events
-- [ ] **CC-03**: Brain tiles animate visually when receiving WebSocket status events (pulse on active, checkmark on complete, red on error)
+- [x] **CC-01**: User can submit a brief via cmdk modal with multi-line textarea and Cmd+Enter shortcut — full-screen modal style (not single-line command palette)
+- [x] **CC-02**: User sees all 24 brain tiles in a Magic UI Bento Grid with live status (idle / active / complete / error) fed from WebSocket events
+- [x] **CC-03**: Brain tiles animate visually when receiving WebSocket status events (pulse on active, checkmark on complete, red on error)
 
 ### The Nexus
 
@@ -97,10 +97,10 @@
 | WS-01 | Phase 5 | Complete |
 | WS-02 | Phase 5 | Complete |
 | WS-03 | Phase 5 | Complete |
-| BE-01 | Phase 6 | Pending |
-| CC-01 | Phase 6 | Pending |
-| CC-02 | Phase 6 | Pending |
-| CC-03 | Phase 6 | Pending |
+| BE-01 | Phase 6 | Complete |
+| CC-01 | Phase 6 | Complete |
+| CC-02 | Phase 6 | Complete |
+| CC-03 | Phase 6 | Complete |
 | BE-02 | Phase 7 | Complete |
 | NEX-01 | Phase 7 | Complete |
 | NEX-02 | Phase 7 | Complete |
@@ -119,4 +119,4 @@
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 — traceability populated after roadmap creation*
+*Last updated: 2026-03-24 — BE-01, CC-01, CC-02, CC-03 marcados completos (implementados en Phase 06, checkboxes no actualizados en su momento)*
