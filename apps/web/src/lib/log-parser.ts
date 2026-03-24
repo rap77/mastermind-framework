@@ -88,7 +88,8 @@ export function parseLogLine(event: WS_LogEvent): LogLine | null {
 
 /**
  * Filter logs by selected levels.
- * If levels Set is empty, returns all logs.
+ * Pass-through: if levels Set is empty, returns all logs (no filter applied).
+ * Note: LiveLogPanel guards separately to return [] when no levels are active in the UI.
  */
 export function filterLogsByLevel(logs: LogLine[], levels: Set<string>): LogLine[] {
   if (levels.size === 0) return logs

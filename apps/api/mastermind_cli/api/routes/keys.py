@@ -25,11 +25,11 @@ Requirements: ER-02
 
 import secrets
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -170,7 +170,9 @@ async def list_keys(
 
 
 @router.post("", response_model=CreateKeyResponse, status_code=201)
+@_limiter.limit("60/minute")
 async def create_key(
+    request: Request,
     request_body: CreateKeyRequest,
     user_id: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
@@ -210,7 +212,7 @@ async def create_key(
                 prefix,
                 suffix,
                 request_body.name,
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
             ],
         )
         await db.conn.commit()
@@ -262,7 +264,7 @@ async def revoke_key(
         # Soft-delete: set revoked_at
         await db.conn.execute(
             "UPDATE api_keys_v2 SET revoked_at = ? WHERE id = ?",
-            [datetime.utcnow().isoformat(), key_id],
+            [datetime.now(timezone.utc).isoformat(), key_id],
         )
         await db.conn.commit()
 
@@ -315,7 +317,7 @@ async def validate_api_key_v2(
         try:
             await db.conn.execute(
                 "UPDATE api_keys_v2 SET last_used_at = ? WHERE id = ?",
-                [datetime.utcnow().isoformat(), key_id],
+                [datetime.now(timezone.utc).isoformat(), key_id],
             )
             await db.conn.commit()
         except Exception:

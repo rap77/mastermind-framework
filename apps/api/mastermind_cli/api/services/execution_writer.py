@@ -15,7 +15,7 @@ Requirements: SV-01, SV-02
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from mastermind_cli.state.database import DatabaseConnection
@@ -169,7 +169,7 @@ async def write_execution(
                     status if status in {"success", "error", "running"} else "success",
                     duration_ms,
                     brain_count,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     json.dumps(milestones),
                     json.dumps(brain_outputs),
                     json.dumps(graph_snapshot),

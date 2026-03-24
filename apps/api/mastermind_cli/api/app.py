@@ -8,7 +8,7 @@ Requirements: UI-01, UI-07
 import hashlib
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -16,11 +16,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes import auth, tasks, brains
 from mastermind_cli.api.routes.executions import router as executions_router
-from mastermind_cli.api.routes.keys import router as keys_router
+from mastermind_cli.api.routes.keys import (
+    router as keys_router,
+    _limiter as keys_limiter,
+)
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.state.database import DatabaseConnection
 
@@ -43,6 +48,10 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
+
+    # Register rate limiter (Brain #7 gap B — prevent bcrypt DoS via x-api-key spam)
+    app.state.limiter = keys_limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Configure CORS with explicit origins (Pitfall 7: wildcard + credentials is invalid)
     allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -87,7 +96,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
                         request.method,
                         request_hash,
                         response.status_code,
-                        datetime.utcnow(),
+                        datetime.now(timezone.utc),
                     ],
                 )
                 await db.conn.commit()
