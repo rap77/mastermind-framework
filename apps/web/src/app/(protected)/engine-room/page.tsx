@@ -17,6 +17,7 @@
 
 import { useState } from 'react'
 import { LiveLogPanel } from '@/components/engine-room/LiveLogPanel'
+import { APIKeyManager } from '@/components/engine-room/APIKeyManager'
 
 // ─── Tab types ───────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export default function EngineRoomPage() {
           {activeTab === 'logs' && <LiveLogPanel />}
         </div>
 
-        {/* Config tab — Placeholder for Phase 08-04 */}
+        {/* Config tab — API key management */}
         <div
           id="tabpanel-config"
           role="tabpanel"
@@ -93,13 +94,14 @@ export default function EngineRoomPage() {
           className="h-full overflow-auto"
         >
           {activeTab === 'config' && (
-            <div className="space-y-8 p-6">
-              <div>
-                <h2 className="text-xl font-bold mb-2">Configuration</h2>
-                <p className="text-sm text-muted-foreground">
-                  API key management and brain configuration coming in Phase 08-04.
+            <div className="p-6 max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold">Configuration</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage API keys for external integrations.
                 </p>
               </div>
+              <APIKeyManager />
             </div>
           )}
         </div>
