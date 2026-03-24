@@ -212,6 +212,56 @@ class DatabaseConnection:
             )
             await self.conn.commit()
 
+    async def create_execution_history_schema(self) -> None:
+        """Create execution_history table for Strategy Vault.
+
+        Separate from the executions table (which represents tasks/runs).
+        execution_history stores the completed output of each execution
+        with JSONB-equivalent columns (stored as JSON text in SQLite).
+
+        Schema (Phase 08 - SV-01, SV-02):
+            - id: UUID primary key
+            - task_id: FK to executions table (unique - one per task)
+            - brief: First 100 chars of brief text
+            - status: success/error/running
+            - duration_ms: Total execution time
+            - brain_count: Number of brains that participated
+            - created_at: ISO timestamp
+            - milestones_json: JSON array of SnapshotMilestone objects
+            - brain_outputs_json: JSON dict {brain_id: BrainOutput}
+            - graph_snapshot_json: JSON DAG state for replay
+
+        Concurrency:
+            UNIQUE constraint on task_id enables INSERT ... ON CONFLICT DO NOTHING
+            (first writer wins - handles 24 brains completing simultaneously)
+        """
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS execution_history (
+                id TEXT PRIMARY KEY,
+                task_id TEXT UNIQUE NOT NULL,
+                brief TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'running',
+                duration_ms INTEGER NOT NULL DEFAULT 0,
+                brain_count INTEGER NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                milestones_json TEXT NOT NULL DEFAULT '[]',
+                brain_outputs_json TEXT NOT NULL DEFAULT '{}',
+                graph_snapshot_json TEXT NOT NULL DEFAULT '{}'
+            )
+        """)
+
+        # Indexes for Strategy Vault queries
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_execution_history_task_id "
+            "ON execution_history(task_id)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_execution_history_created_at "
+            "ON execution_history(created_at DESC)"
+        )
+
+        await self.conn.commit()
+
     async def create_experience_schema(self) -> None:
         """Create experience_records table for full-fidelity execution logging.
 

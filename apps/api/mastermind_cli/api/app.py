@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes import auth, tasks, brains
+from mastermind_cli.api.routes.executions import router as executions_router
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.state.database import DatabaseConnection
 
@@ -105,6 +106,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
     app.include_router(brains.router, prefix="/api", tags=["Brains"])
+    app.include_router(executions_router, prefix="/api/executions", tags=["Executions"])
     app.include_router(websocket_router, tags=["WebSocket"])
 
     # Serve dashboard HTML
@@ -125,6 +127,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         async with DatabaseConnection(db_path) as db:
             await db.create_task_schema()
             await db.create_auth_schema()
+            await db.create_execution_history_schema()
 
     return app
 
