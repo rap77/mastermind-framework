@@ -41,18 +41,18 @@
 
 ### Strategy Vault
 
-- [ ] **SV-01**: User can view a list of past executions with status, brief text, duration, and brain count
-- [ ] **SV-02**: User can select an execution and view formatted Markdown output from each participating brain
+- [x] **SV-01**: User can view a list of past executions with status, brief text, duration, and brain count
+- [x] **SV-02**: User can select an execution and view formatted Markdown output from each participating brain
 
 ### Engine Room
 
-- [ ] **ER-01**: User can view live structured logs with virtual scrolling, level filtering (info/warn/error), and auto-follow — powered by react-logviewer connected to WebSocket
-- [ ] **ER-02**: User can manage API keys for Claude/Gemini: view masked keys, create new, revoke existing
-- [ ] **ER-03**: User can view the YAML configuration of any brain and copy it to clipboard
+- [x] **ER-01**: User can view live structured logs with virtual scrolling, level filtering (info/warn/error), and auto-follow — powered by react-logviewer connected to WebSocket
+- [x] **ER-02**: User can manage API keys for Claude/Gemini: view masked keys, create new, revoke existing
+- [x] **ER-03**: User can view the YAML configuration of any brain and copy it to clipboard
 
 ### UX
 
-- [ ] **UX-01**: User can enter Focus Mode during active execution — sidebar collapses, idle brain tiles dim, active execution elements are highlighted
+- [x] **UX-01**: User can enter Focus Mode during active execution — sidebar collapses, idle brain tiles dim, active execution elements are highlighted
 
 ## v2.2 Requirements (Deferred)
 
@@ -105,12 +105,12 @@
 | NEX-01 | Phase 7 | Complete |
 | NEX-02 | Phase 7 | Complete |
 | NEX-03 | Phase 7 | Complete |
-| SV-01 | Phase 8 | Pending |
-| SV-02 | Phase 8 | Pending |
-| ER-01 | Phase 8 | Pending |
-| ER-02 | Phase 8 | Pending |
-| ER-03 | Phase 8 | Pending |
-| UX-01 | Phase 8 | Pending |
+| SV-01 | Phase 8 | Complete |
+| SV-02 | Phase 8 | Complete |
+| ER-01 | Phase 8 | Complete |
+| ER-02 | Phase 8 | Complete |
+| ER-03 | Phase 8 | Complete |
+| UX-01 | Phase 8 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 22 total

@@ -4,6 +4,7 @@ import type { NodeProps } from '@xyflow/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { NodeStatusIndicator } from './NodeStatusIndicator'
 import { useBrainState } from '@/stores/brainStore'
+import { useOrchestratorStore } from '@/stores/orchestratorStore'
 import { cn } from '@/lib/utils'
 
 export interface BrainNodeData {
@@ -28,6 +29,11 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
 
   const isGhost = brainState === undefined
   const status = isGhost ? 'blueprint' : brainState.status
+  const isFocusMode = useOrchestratorStore((s) => s.isFocusMode)
+
+  // In Focus Mode: idle brains dim to 30% opacity (active/complete/error remain full)
+  const isIdleInFocusMode =
+    isFocusMode && !isGhost && (status === 'idle' || status === 'blueprint')
 
   const handleSelect = () => {
     nodeData.onSelect(id)
@@ -44,7 +50,9 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
           'w-[160px] transition-all duration-200',
           isGhost
             ? 'border-dashed opacity-20'
-            : 'border-solid opacity-100',
+            : isIdleInFocusMode
+              ? 'border-solid opacity-30'
+              : 'border-solid opacity-100',
           status === 'active' && 'ring-2 ring-[var(--color-brain-active,#64FFDA)]',
           status === 'error' && 'ring-2 ring-[var(--color-brain-error,#EF4444)]',
           status === 'complete' && 'ring-2 ring-[var(--color-brain-complete,#10B981)]',

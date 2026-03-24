@@ -10,7 +10,7 @@ Requirements: UI-02, UI-03, UI-07
 
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -46,7 +46,7 @@ REFRESH_TOKEN_EXPIRY_HOURS = 24
 
 def create_access_token(user_id: str) -> str:
     """Create JWT access token."""
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
     payload = {
         "sub": user_id,
         "exp": expire,
@@ -58,7 +58,7 @@ def create_access_token(user_id: str) -> str:
 
 def create_refresh_token(user_id: str) -> str:
     """Create JWT refresh token."""
-    expire = datetime.utcnow() + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS)
+    expire = datetime.now(timezone.utc) + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS)
     payload = {
         "sub": user_id,
         "exp": expire,
@@ -126,7 +126,16 @@ async def get_current_user_any(
     except JWTError:
         pass
 
-    # Try API key
+    # Try new bcrypt API key (mmsk_ prefix — api_keys_v2 table)
+    if token.startswith("mmsk_"):
+        from mastermind_cli.api.routes.keys import validate_api_key_v2
+
+        mmsk_user_id = await validate_api_key_v2(token, db_path)
+        if mmsk_user_id is not None:
+            request.state.user_id = mmsk_user_id
+            return mmsk_user_id
+
+    # Try legacy API key (mm_ prefix — api_keys table, SHA-256)
     if token.startswith("mm_"):
         async with DatabaseConnection(db_path) as db:
             cursor = await db.conn.execute(
@@ -138,7 +147,7 @@ async def get_current_user_any(
                 # Update last_used
                 await db.conn.execute(
                     "UPDATE api_keys SET last_used = ? WHERE key_hash = ?",
-                    [datetime.utcnow(), hash_token(token)],
+                    [datetime.now(timezone.utc), hash_token(token)],
                 )
                 await db.conn.commit()
                 request.state.user_id = row[0]
@@ -186,8 +195,9 @@ async def login(
                 session_id,
                 user_id,
                 hash_token(refresh_token),
-                datetime.utcnow(),
-                datetime.utcnow() + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
+                datetime.now(timezone.utc),
+                datetime.now(timezone.utc)
+                + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
             ],
         )
         await db.conn.commit()
@@ -247,8 +257,9 @@ async def refresh(
                 new_session_id,
                 user_id,
                 hash_token(new_refresh_token),
-                datetime.utcnow(),
-                datetime.utcnow() + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
+                datetime.now(timezone.utc),
+                datetime.now(timezone.utc)
+                + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
                 rotation_count + 1,
             ],
         )
@@ -286,7 +297,7 @@ async def create_api_key(
                 user_id,
                 hash_token(plaintext_key),
                 request.name,
-                datetime.utcnow(),
+                datetime.now(timezone.utc),
             ],
         )
         await db.conn.commit()
@@ -295,7 +306,7 @@ async def create_api_key(
         id=api_key_id,
         name=request.name,
         key=plaintext_key,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 

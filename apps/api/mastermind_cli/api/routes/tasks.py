@@ -9,14 +9,15 @@ Security: OWASP A03 (XSS) - Server-side brief sanitization
 import json
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, List
 from html import escape
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import get_current_user_any
+from mastermind_cli.api.services.graph_builder import build_niche_clustered_graph
 from mastermind_cli.state.database import DatabaseConnection
 
 # Router
@@ -220,10 +221,21 @@ class GraphEdge(BaseModel):
 
     source: str = Field(..., description="Source brain ID")
     target: str = Field(..., description="Target brain ID")
+    data: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Edge metadata (e.g. execution_mode for Phase 08 sub-graphs)",
+    )
 
 
 class TaskGraphResponse(BaseModel):
-    """Task graph response with nodes and edges."""
+    """Task graph response with nodes and edges.
+
+    Phase 08 enhancement: optional `subgraph` field with niche-clustered
+    DAG structure (parentId, execution_mode). When present, frontend can
+    render the enhanced React Flow graph with niche container nodes.
+    Backward compat: nodes/edges/max_level/max_parallelism/layout_positions
+    remain unchanged for existing Phase 07 NexusCanvas.
+    """
 
     nodes: List[GraphNode] = Field(default_factory=list, description="Graph nodes")
     edges: List[GraphEdge] = Field(default_factory=list, description="Graph edges")
@@ -232,6 +244,11 @@ class TaskGraphResponse(BaseModel):
     layout_positions: dict[str, dict[str, float]] | None = Field(
         default=None,
         description="Optional server-computed node positions. None = client computes dagre layout.",
+    )
+    subgraph: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Phase 08: niche-clustered DAG with parentId + execution_mode."
+        " None when no brains have executed.",
     )
 
 
@@ -246,22 +263,26 @@ async def get_task_graph(
 ) -> TaskGraphResponse:
     """Get task execution graph for visualization.
 
-    Returns node/edge structure for D3.js rendering.
+    Returns node/edge structure for React Flow rendering.
+    Phase 08 enhancement: also returns `subgraph` with niche-clustered
+    DAG when `brain_execution_log` data is available in flow_config.
+
     Nodes are ordered by execution level (topological sort).
 
     Performance: Completes in <100ms (PERF-02 requirement).
+    Backward compat: nodes/edges/max_level/max_parallelism unchanged.
     """
     async with DatabaseConnection(db_path) as db:
-        # Fetch execution record
+        # Fetch execution record (also get brief for subgraph master node)
         cursor = await db.conn.execute(
-            "SELECT flow_config, status FROM executions WHERE id = ? AND user_id = ?",
+            "SELECT flow_config, status, brief FROM executions WHERE id = ? AND user_id = ?",
             [task_id, user_id],
         )
         row = await cursor.fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        flow_config_json, task_status = row
+        flow_config_json, task_status, brief = row
 
     # Parse flow_config
     try:
@@ -276,10 +297,28 @@ async def get_task_graph(
     except json.JSONDecodeError:
         flow_config = {}
 
-    # Handle empty flow_config
+    # ===== Phase 08: Build niche-clustered subgraph =====
+    # brain_execution_log is populated by execution_writer when task completes
+    brain_execution_log: list[dict[str, Any]] = flow_config.get(
+        "brain_execution_log", []
+    )
+    subgraph: dict[str, Any] | None = None
+    if brain_execution_log:
+        subgraph = build_niche_clustered_graph(
+            task_id=task_id,
+            brief=brief or "",
+            brains=brain_execution_log,
+        )
+
+    # Handle empty flow_config (Phase 07 backward compat)
     if not flow_config or not flow_config.get("nodes"):
         return TaskGraphResponse(
-            nodes=[], edges=[], max_level=0, max_parallelism=0, layout_positions=None
+            nodes=[],
+            edges=[],
+            max_level=0,
+            max_parallelism=0,
+            layout_positions=None,
+            subgraph=subgraph,
         )
 
     # Build nodes from flow_config
@@ -329,4 +368,5 @@ async def get_task_graph(
         max_level=max_level,
         max_parallelism=max_parallelism,
         layout_positions=None,
+        subgraph=subgraph,
     )

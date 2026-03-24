@@ -10,7 +10,7 @@
 | 4 | Frontend | `85e47142-0a65-41d9-9848-49b8b5d2db33` | Architecture, performance, state | Abramov, Markbåge |
 | 5 | Backend | `c6befbbc-b7dd-4ad0-a677-314750684208` | APIs, data modeling, infra | Fowler, Evans |
 | 6 | QA/DevOps | `74cd3a81-1350-4927-af14-c0c4fca41a8e` | Testing strategy, CI/CD, reliability | Humble, Majors |
-| 7 | Growth/Data (Evaluator) | `d8de74d6-7028-44ed-b4d4-784d6a9256e6` | Validation, systems thinking, metrics | Balfour, Kohavi, Munger |
+| 7 | Growth/Data (Evaluator) | `d8de74d6-7028-44ed-b4d5-784d6a9256e6` | Validation, systems thinking, metrics | Balfour, Kohavi, Munger |
 
 > Brain #8 (Master Interviewer) — notebook_id: `5330e845-29dc-4219-9d7e-c1ccb4851bb3` — for discovery sessions only.
 

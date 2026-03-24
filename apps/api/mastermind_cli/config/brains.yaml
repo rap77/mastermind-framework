@@ -20,7 +20,7 @@ brains:
       - Value proposition
       - Monetization
       - Product strategy
-    status: idle
+    status: active
 
   - id: 2
     niche: "software-development"
@@ -34,7 +34,7 @@ brains:
       - Interview techniques
       - User insights
       - Research methods
-    status: idle
+    status: active
 
   - id: 3
     niche: "software-development"
@@ -48,7 +48,7 @@ brains:
       - Component patterns
       - Typography
       - Color theory
-    status: idle
+    status: active
 
   - id: 4
     niche: "software-development"
@@ -62,7 +62,7 @@ brains:
       - Next.js
       - State management
       - Component design
-    status: idle
+    status: active
 
   - id: 5
     niche: "software-development"
@@ -76,7 +76,7 @@ brains:
       - Database design
       - Services architecture
       - Authentication
-    status: idle
+    status: active
 
   - id: 6
     niche: "software-development"
@@ -90,7 +90,7 @@ brains:
       - CI/CD
       - Reliability
       - Operations
-    status: idle
+    status: active
 
   - id: 7
     niche: "software-development"
@@ -104,7 +104,7 @@ brains:
       - Data analysis
       - Optimization
       - Evaluation
-    status: idle
+    status: active
 
   # Universal Niche (cross-domain brains)
   - id: 8
@@ -121,5 +121,5 @@ brains:
       - Facilitation techniques
       - Socratic questioning
       - Discovery
-    status: idle
+    status: active
     sources_count: 10

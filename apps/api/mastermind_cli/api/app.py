@@ -8,7 +8,7 @@ Requirements: UI-01, UI-07
 import hashlib
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -16,9 +16,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes import auth, tasks, brains
+from mastermind_cli.api.routes.executions import router as executions_router
+from mastermind_cli.api.routes.keys import (
+    router as keys_router,
+    _limiter as keys_limiter,
+)
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.state.database import DatabaseConnection
 
@@ -41,6 +48,10 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
+
+    # Register rate limiter (Brain #7 gap B — prevent bcrypt DoS via x-api-key spam)
+    app.state.limiter = keys_limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Configure CORS with explicit origins (Pitfall 7: wildcard + credentials is invalid)
     allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -85,7 +96,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
                         request.method,
                         request_hash,
                         response.status_code,
-                        datetime.utcnow(),
+                        datetime.now(timezone.utc),
                     ],
                 )
                 await db.conn.commit()
@@ -105,6 +116,8 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
     app.include_router(brains.router, prefix="/api", tags=["Brains"])
+    app.include_router(executions_router, prefix="/api/executions", tags=["Executions"])
+    app.include_router(keys_router, prefix="/api/keys", tags=["API Keys"])
     app.include_router(websocket_router, tags=["WebSocket"])
 
     # Serve dashboard HTML
@@ -125,6 +138,8 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         async with DatabaseConnection(db_path) as db:
             await db.create_task_schema()
             await db.create_auth_schema()
+            await db.create_execution_history_schema()
+            await db.create_api_keys_v2_schema()
 
     return app
 

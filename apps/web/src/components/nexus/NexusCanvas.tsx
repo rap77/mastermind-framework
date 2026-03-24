@@ -10,6 +10,7 @@ import { HybridFlowEdge } from './HybridFlowEdge'
 import { NodeDetailPanel } from './NodeDetailPanel'
 import { CooldownFAB } from './CooldownFAB'
 import { useWSStore } from '@/stores/wsStore'
+import { useOrchestratorStore } from '@/stores/orchestratorStore'
 import type { Brain } from '@/lib/api'
 
 // ─── CRITICAL: NODE_TYPES at MODULE LEVEL — NEVER inline in JSX ───────────────
@@ -186,13 +187,15 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
     return buildBlueprintEdges(blueprintBrains, rawNodes)
   })
 
-  // Subscribe to task_completed to enter Cooldown Mode
+  // Subscribe to task_completed: enter Cooldown Mode + exit Focus Mode
+  const completeTask = useOrchestratorStore(state => state.completeTask)
   useEffect(() => {
     const unsubscribe = subscribe('task_completed', () => {
       setCooldownMode(true)
+      completeTask()
     })
     return unsubscribe
-  }, [subscribe])
+  }, [subscribe, completeTask])
 
   const handleClosePanel = () => setSelectedBrainId(null)
   const handleCooldownEscape = () => setCooldownMode(false)

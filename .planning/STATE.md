@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
-status: completed
-stopped_at: "Completed Phase 07-03: WS Illumination — awaiting human checkpoint verification"
-last_updated: "2026-03-22T16:23:40.636Z"
-last_activity: 2026-03-22 — Phase 07-02 COMPLETE (3 tasks, 9 tests, 11 files created)
+status: verifying
+stopped_at: "Completed 08-05: Integration Tests — Phase 08 COMPLETE, v2.1 COMPLETE"
+last_updated: "2026-03-24T12:17:23.046Z"
+last_activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 15
-  percent: 57
+  completed_phases: 4
+  total_plans: 16
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State
@@ -59,6 +59,11 @@ Progress: [██████████] 100% (31/28 plans complete)
 | Phase 07-the-nexus P01 | 5 | 2 tasks | 2 files |
 | Phase 07-the-nexus P02 | 7 | 3 tasks | 13 files |
 | Phase 07-the-nexus P03 | 12 | 2 tasks | 7 files |
+| Phase 08-strategy-vault-engine-room P01 | 14 | 7 tasks | 20 files |
+| Phase 08-strategy-vault-engine-room P02 | 12 | 7 tasks | 14 files |
+| Phase 08-strategy-vault-engine-room P03 | 11 | 8 tasks | 15 files |
+| Phase 08-strategy-vault-engine-room P04 | 26 | 7 tasks | 15 files |
+| Phase 08-strategy-vault-engine-room P05 | 12 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -97,6 +102,20 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 07-the-nexus]: dagreGraph module-level singleton with clearNode/clearEdge before each call — guarantees positional stability across multiple getLayoutedNodes invocations
 - [Phase 07-the-nexus]: enableMapSet() in brainStore — Immer requires MapSet plugin for Map iteration in set() callbacks (new Map(state.brains) fails silently without it)
 - [Phase 07-the-nexus]: EDGE_TYPES at module level in NexusCanvas — same invariant as NODE_TYPES, prevents infinite re-render in React Flow; EDGE_TYPES_EXPORT added for test isolation
+- [Phase 08-strategy-vault-engine-room]: INSERT OR IGNORE for execution_writer concurrency — first writer wins, 24 simultaneous brain completions handled without Redis
+- [Phase 08-strategy-vault-engine-room]: Separate api_keys_v2 table with prefix/suffix/revoked_at — avoids migrating legacy api_keys, no breaking changes
+- [Phase 08-strategy-vault-engine-room]: GraphEdge sub-graph as optional field on existing TaskGraphResponse — backward compat with Phase 07 NexusCanvas
+- [Phase 08-strategy-vault-engine-room]: smart-gfm.tsx extension (not .ts): JSX components require .tsx — OXC rejects JSX in .ts files in Vite
+- [Phase 08-strategy-vault-engine-room]: LogsPanel shows all outputs at index 0: full history visible at start of replay, filter only on active scrub
+- [Phase 08-strategy-vault-engine-room]: NotFoundError custom class for 404 detection in TanStack Query retry logic — allows 404 to redirect vs 5xx to error state
+- [Phase 08-strategy-vault-engine-room]: react-virtuoso for O(1) memory virtual scroll in Engine Room logs (overscan=10)
+- [Phase 08-strategy-vault-engine-room]: Empty filterLevels Set = show nothing (all levels toggled off = zero logs, not pass-through)
+- [Phase 08-strategy-vault-engine-room]: logFilterStore: manual JSON serialization for Set (avoids Zustand persist middleware Set issue)
+- [Phase 08-strategy-vault-engine-room]: framer-motion replaced with CSS transitions: not installed, Tailwind transition classes achieve equivalent layout shift
+- [Phase 08-strategy-vault-engine-room]: OrchestratorStore isFocusMode computed inline per action (state===running && !userOverride) — no selector middleware needed for scalar state
+- [Phase 08-strategy-vault-engine-room]: KeyCreateDialog show-once: createdKey in React state only, cleared on handleClose, never reaches localStorage
+- [Phase 08-strategy-vault-engine-room]: Phase08Integration uses store-level integration (not full app mount) — avoids Next.js router complexity in jsdom while verifying real store interactions
+- [Phase 08-strategy-vault-engine-room]: useBrainStore.setState() direct override in tests — RAF batching makes updateBrain() non-deterministic in test environment
 
 ### Pending Todos
 
@@ -112,8 +131,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:23:40.633Z
-Stopped at: Completed Phase 07-03: WS Illumination — awaiting human checkpoint verification
+Last session: 2026-03-24T11:37:52.487Z
+Stopped at: Completed 08-05: Integration Tests — Phase 08 COMPLETE, v2.1 COMPLETE
 Resume file: None
 
 **Phase 05 Results:**

@@ -19,6 +19,7 @@ import { BriefInputModal } from "./BriefInputModal"
 import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
 import { useWSStore } from "@/stores/wsStore"
+import { useOrchestratorStore } from "@/stores/orchestratorStore"
 
 /**
  * Command Center Wrapper Component
@@ -37,6 +38,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
   const [error, setError] = useState<string | null>(null)
   const wsStore = useWSStore()
   const router = useRouter()
+  const startTask = useOrchestratorStore((s) => s.startTask)
 
   /**
    * Register Cmd+Enter keyboard shortcut
@@ -95,7 +97,10 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
         // Step 3: Connect WebSocket with taskId AND token
         wsStore.connect(result.taskId, access_token)
 
-        // Step 4: Navigate to The Nexus to watch brains illuminate in real-time
+        // Step 4: Activate orchestrator task → triggers Focus Mode
+        startTask(result.taskId, brief)
+
+        // Step 5: Navigate to The Nexus to watch brains illuminate in real-time
         router.push('/nexus')
       } catch (err) {
         console.error("Failed to submit brief:", err)
