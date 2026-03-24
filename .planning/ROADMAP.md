@@ -116,7 +116,7 @@ Plans:
 | 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
 | 7. The Nexus | 2/3 | In Progress|  | - |
-| 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 0/4 | Not started | - |
+| 8. Strategy Vault, Engine Room & UX Polish | 2/5 | In Progress|  | - |
 
 ---
 
