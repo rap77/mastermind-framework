@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
 status: verifying
-stopped_at: "Completed 08-02: Strategy Vault Frontend"
-last_updated: "2026-03-24T04:31:28.597Z"
+stopped_at: "Completed 08-03: Engine Room Logs Interface"
+last_updated: "2026-03-24T04:46:58.048Z"
 last_activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 16
-  completed_plans: 18
+  completed_plans: 19
   percent: 100
 ---
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100% (31/28 plans complete)
 | Phase 07-the-nexus P03 | 12 | 2 tasks | 7 files |
 | Phase 08-strategy-vault-engine-room P01 | 14 | 7 tasks | 20 files |
 | Phase 08-strategy-vault-engine-room P02 | 12 | 7 tasks | 14 files |
+| Phase 08-strategy-vault-engine-room P03 | 11 | 8 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Key v2.1 architecture decisions (full log in PROJECT.md):
 - [Phase 08-strategy-vault-engine-room]: smart-gfm.tsx extension (not .ts): JSX components require .tsx — OXC rejects JSX in .ts files in Vite
 - [Phase 08-strategy-vault-engine-room]: LogsPanel shows all outputs at index 0: full history visible at start of replay, filter only on active scrub
 - [Phase 08-strategy-vault-engine-room]: NotFoundError custom class for 404 detection in TanStack Query retry logic — allows 404 to redirect vs 5xx to error state
+- [Phase 08-strategy-vault-engine-room]: react-virtuoso for O(1) memory virtual scroll in Engine Room logs (overscan=10)
+- [Phase 08-strategy-vault-engine-room]: Empty filterLevels Set = show nothing (all levels toggled off = zero logs, not pass-through)
+- [Phase 08-strategy-vault-engine-room]: logFilterStore: manual JSON serialization for Set (avoids Zustand persist middleware Set issue)
 
 ### Pending Todos
 
@@ -120,8 +124,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-24T04:31:28.594Z
-Stopped at: Completed 08-02: Strategy Vault Frontend
+Last session: 2026-03-24T04:46:58.046Z
+Stopped at: Completed 08-03: Engine Room Logs Interface
 Resume file: None
 
 **Phase 05 Results:**

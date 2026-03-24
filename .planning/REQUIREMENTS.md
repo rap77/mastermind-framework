@@ -46,7 +46,7 @@
 
 ### Engine Room
 
-- [ ] **ER-01**: User can view live structured logs with virtual scrolling, level filtering (info/warn/error), and auto-follow — powered by react-logviewer connected to WebSocket
+- [x] **ER-01**: User can view live structured logs with virtual scrolling, level filtering (info/warn/error), and auto-follow — powered by react-logviewer connected to WebSocket
 - [x] **ER-02**: User can manage API keys for Claude/Gemini: view masked keys, create new, revoke existing
 - [x] **ER-03**: User can view the YAML configuration of any brain and copy it to clipboard
 
@@ -107,7 +107,7 @@
 | NEX-03 | Phase 7 | Complete |
 | SV-01 | Phase 8 | Complete |
 | SV-02 | Phase 8 | Complete |
-| ER-01 | Phase 8 | Pending |
+| ER-01 | Phase 8 | Complete |
 | ER-02 | Phase 8 | Complete |
 | ER-03 | Phase 8 | Complete |
 | UX-01 | Phase 8 | Pending |
