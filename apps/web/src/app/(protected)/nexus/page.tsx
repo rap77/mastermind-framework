@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { fetchBrains } from '@/lib/api'
 import { NexusCanvas } from '@/components/nexus/NexusCanvas'
 import { NexusSkeleton } from '@/components/nexus/NexusSkeleton'
+import { NexusPage } from '@/components/nexus/NexusPage'
 
 // Force dynamic rendering — no build-time fetch (avoids ECONNREFUSED)
 export const dynamic = 'force-dynamic'
@@ -48,12 +49,14 @@ async function NexusCanvasLoader() {
   return <NexusCanvas blueprintBrains={brainsData.brains} />
 }
 
-export default function NexusPage() {
+export default function NexusRoute() {
   return (
-    <div className="h-screen w-full">
-      <Suspense fallback={<NexusSkeleton />}>
-        <NexusCanvasLoader />
-      </Suspense>
-    </div>
+    <NexusPage
+      canvas={
+        <Suspense fallback={<NexusSkeleton />}>
+          <NexusCanvasLoader />
+        </Suspense>
+      }
+    />
   )
 }

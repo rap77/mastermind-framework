@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -7,7 +8,9 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
 import { NodeStatusIndicator } from './NodeStatusIndicator'
+import { BrainYAMLViewer } from '@/components/engine-room/BrainYAMLViewer'
 import { useBrainState } from '@/stores/brainStore'
 import type { Brain } from '@/lib/api'
 
@@ -34,6 +37,7 @@ export function NodeDetailPanel({
 }: NodeDetailPanelProps) {
   const brain = blueprintBrains.find(b => b.id === brainId) ?? null
   const brainState = useBrainState(brainId ?? '')
+  const [yamlViewerOpen, setYamlViewerOpen] = useState(false)
 
   const isOpen = brainId !== null
 
@@ -82,7 +86,23 @@ export function NodeDetailPanel({
                   )}
                 </div>
               </div>
+
+              {/* View YAML config */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setYamlViewerOpen(true)}
+                className="w-full"
+              >
+                View YAML Config
+              </Button>
             </div>
+
+            <BrainYAMLViewer
+              brainId={brain.id}
+              open={yamlViewerOpen}
+              onOpenChange={setYamlViewerOpen}
+            />
           </>
         ) : (
           <div className="p-4 text-sm text-muted-foreground">
