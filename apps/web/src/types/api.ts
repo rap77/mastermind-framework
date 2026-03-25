@@ -17,12 +17,13 @@ export const TokenResponseSchema = z.object({
 
 // Matches mastermind_cli/api/routes/brains.py BrainMetadata
 export const BrainMetadataSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string(),
   niche: z.enum(['software-development', 'marketing-digital', 'universal']),
   status: z.enum(['idle', 'active', 'error', 'complete']),
   uptime: z.number(),
   last_called_at: z.string().nullable(),
+  description: z.string().optional(),
 })
 
 // Matches mastermind_cli/api/routes/brains.py PaginatedBrainsResponse

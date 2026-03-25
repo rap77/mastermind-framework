@@ -7,6 +7,9 @@ import * as brainStore from '@/stores/brainStore'
 // Mock brainStore — isolate from Zustand; individual tests override via vi.mocked
 vi.mock('@/stores/brainStore', () => ({
   useBrainState: vi.fn().mockReturnValue(undefined),
+  useBrainStore: vi.fn().mockImplementation((selector: (s: { sessionInvocationCounts: Map<string, number> }) => unknown) =>
+    selector({ sessionInvocationCounts: new Map() })
+  ),
 }))
 
 // Mock ReactFlow hooks used inside nodes

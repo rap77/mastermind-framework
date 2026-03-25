@@ -41,11 +41,13 @@ export function WSBrainBridge({ taskId }: { taskId: string | null }) {
     fetchToken()
   }, [])
 
-  // Connect to WS when taskId and token are available
+  // Connect to WS when taskId and token are available.
+  // CRITICAL: only disconnect on cleanup if WE initiated the connection.
+  // If taskId is null, we never connected — calling disconnect() would kill
+  // a connection started by CommandCenterWrapper (race condition).
   useEffect(() => {
-    if (taskId && token) {
-      connect(taskId, token)
-    }
+    if (!taskId || !token) return
+    connect(taskId, token)
     return () => disconnect()
   }, [taskId, token, connect, disconnect])
 

@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { NodeStatusIndicator } from './NodeStatusIndicator'
-import { useBrainState } from '@/stores/brainStore'
+import { useBrainState, useBrainStore } from '@/stores/brainStore'
 import { useOrchestratorStore } from '@/stores/orchestratorStore'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +26,7 @@ export interface BrainNodeData {
 const BrainNodeComponent = ({ id, data }: NodeProps) => {
   const nodeData = data as unknown as BrainNodeData
   const brainState = useBrainState(id)
+  const invocations = useBrainStore((s) => s.sessionInvocationCounts.get(id) ?? 0)
 
   const isGhost = brainState === undefined
   const status = isGhost ? 'blueprint' : brainState.status
@@ -85,9 +86,8 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
 
           <div className="flex items-center justify-between">
             <NodeStatusIndicator status={status} />
-            {/* Session invocation count — placeholder until Plan 07-03 */}
             <span className="text-[10px] text-muted-foreground tabular-nums">
-              ×0
+              ×{invocations}
             </span>
           </div>
         </CardContent>

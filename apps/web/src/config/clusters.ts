@@ -23,7 +23,7 @@ export interface ClusterConfig {
   name: string
 
   /** Niche identifier for filtering brains */
-  niche: 'master' | 'software' | 'marketing' | string
+  niche: 'software-development' | 'marketing-digital' | 'universal'
 
   /** Tailwind color for cluster theme (e.g., 'zinc', 'cyan', 'purple') */
   color: string
