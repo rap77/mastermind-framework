@@ -71,7 +71,7 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
 
   // Register nodes with their fixed dimensions
   for (const node of nodes) {
-    const isCoordinator = node.id === 'brain-08' || (node.data as { niche?: string }).niche === 'coordinator'
+    const isCoordinator = node.id === 'brain-08' || (node.data as { niche?: string }).niche === 'universal'
     const w = isCoordinator ? COORDINATOR_W : BRAIN_NODE_W
     const h = isCoordinator ? COORDINATOR_H : BRAIN_NODE_H
     dagreGraph.setNode(node.id, { width: w, height: h })
@@ -121,8 +121,8 @@ function buildBlueprintNodes(
       onSelect,
     },
     position: { x: 0, y: 0 },
-    width: brain.niche === 'coordinator' ? COORDINATOR_W : BRAIN_NODE_W,
-    height: brain.niche === 'coordinator' ? COORDINATOR_H : BRAIN_NODE_H,
+    width: brain.niche === 'universal' ? COORDINATOR_W : BRAIN_NODE_W,
+    height: brain.niche === 'universal' ? COORDINATOR_H : BRAIN_NODE_H,
   }))
 }
 
@@ -133,7 +133,7 @@ function buildBlueprintNodes(
  * EDGE_TYPES must be at module level (not inline) for React Flow stability.
  */
 function buildBlueprintEdges(blueprintBrains: Brain[], visibleNodes: Node[]): Edge[] {
-  const coordinator = blueprintBrains.find(b => b.niche === 'coordinator') ?? blueprintBrains.find(b => b.id === 'brain-08')
+  const coordinator = blueprintBrains.find(b => b.niche === 'universal') ?? blueprintBrains.find(b => b.id === 'brain-08')
   if (!coordinator) return []
 
   return blueprintBrains

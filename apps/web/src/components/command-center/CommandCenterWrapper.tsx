@@ -109,7 +109,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
         setIsSubmitting(false)
       }
     },
-    [wsStore]
+    [wsStore, startTask, router]
   )
 
   /**

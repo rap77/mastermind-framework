@@ -17,6 +17,7 @@
 
 import 'server-only'
 import { cookies } from 'next/headers'
+import { PaginatedBrainsResponseSchema } from '@/types/api'
 
 /**
  * Brain data structure from API
@@ -26,7 +27,7 @@ import { cookies } from 'next/headers'
 export interface Brain {
   id: string
   name: string
-  niche: 'master' | 'software' | 'marketing' | string
+  niche: 'software-development' | 'marketing-digital' | 'universal'
   status: 'idle' | 'active' | 'complete' | 'error'
   uptime: number
   last_called_at: string | null
@@ -102,7 +103,8 @@ export async function fetchBrains(
     throw new Error(`Failed to fetch brains: ${response.status} ${response.statusText}`)
   }
 
-  const data: BrainsResponse = await response.json()
+  const raw = await response.json()
+  const data = PaginatedBrainsResponseSchema.parse(raw)
   return data
 }
 
