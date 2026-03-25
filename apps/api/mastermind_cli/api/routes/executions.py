@@ -184,21 +184,28 @@ async def get_execution_history(
 
             if cursor_record:
                 cursor_ts = cursor_record[0]
-                comparison = ">" if sort_asc else "<"
+                # Composite (created_at, id) comparison — avoids skipping records
+                # with identical timestamps (race condition with concurrent writes)
+                if sort_asc:
+                    where = "(created_at > ? OR (created_at = ? AND id > ?))"
+                else:
+                    where = "(created_at < ? OR (created_at = ? AND id < ?))"
                 sql = f"""
                     SELECT id, task_id, brief, status, duration_ms, brain_count, created_at
                     FROM execution_history
-                    WHERE created_at {comparison} ?
-                    ORDER BY created_at {sort_direction}
+                    WHERE {where}
+                    ORDER BY created_at {sort_direction}, id {sort_direction}
                     LIMIT ?
                 """
-                cursor_result = await db.conn.execute(sql, [cursor_ts, limit + 1])
+                cursor_result = await db.conn.execute(
+                    sql, [cursor_ts, cursor_ts, cursor_id, limit + 1]
+                )
             else:
                 # Cursor ID not found in DB → reset to beginning
                 sql = f"""
                     SELECT id, task_id, brief, status, duration_ms, brain_count, created_at
                     FROM execution_history
-                    ORDER BY created_at {sort_direction}
+                    ORDER BY created_at {sort_direction}, id {sort_direction}
                     LIMIT ?
                 """
                 cursor_result = await db.conn.execute(sql, [limit + 1])
@@ -207,7 +214,7 @@ async def get_execution_history(
             sql = f"""
                 SELECT id, task_id, brief, status, duration_ms, brain_count, created_at
                 FROM execution_history
-                ORDER BY created_at {sort_direction}
+                ORDER BY created_at {sort_direction}, id {sort_direction}
                 LIMIT ?
             """
             cursor_result = await db.conn.execute(sql, [limit + 1])
