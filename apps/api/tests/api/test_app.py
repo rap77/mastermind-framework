@@ -24,11 +24,11 @@ def test_routes_registered(app):
 
 
 def test_cors_configuration(sync_client):
-    """CORS middleware allows all origins."""
+    """CORS middleware allows configured origins (explicit list, not wildcard)."""
     response = sync_client.options(
         "/",
         headers={
-            "Origin": "http://example.com",
+            "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "GET",
         },
     )
