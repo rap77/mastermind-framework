@@ -94,33 +94,44 @@ def install() -> None:
     help="Reinstall even if already installed",
 )
 @click.option(
-    "--uvx",
+    "--local",
+    "install_local",
     is_flag=True,
-    help="Use uvx for installation (experimental)",
+    default=False,
+    help="Install into the current project's .claude/ only (default: installs globally into ~/.claude/)",
 )
 def init(
     brains: str,
     config: Optional[str],
     framework_path: Optional[str],
     force: bool,
-    uvx: bool,
+    install_local: bool,
 ) -> None:
     """
-    Install MasterMind Framework in the current project.
+    Install MasterMind Framework globally (default) or per-project (--local).
 
-    This creates:
-    - .mastermind/ directory with project-specific config
-    - .mastermind-active activation file
-    - .claude/commands/mm/ symlinks to framework commands (mm namespace)
-    - .claude/hooks/mm/ symlinks to framework hooks
-    - .claude/agents/mm/ symlinks to framework agents
+    Global install (default):
+    - Skills (mm:brain-context, etc.) → ~/.claude/skills/mm/
+    - Slash commands (/mm:ask-*) → ~/.claude/commands/mm/
+    - Hooks → ~/.claude/hooks/mm/
+    - Available in ALL projects automatically
+
+    Local install (--local):
+    - Same assets copied to ./.claude/ in the current project only
+
+    In both cases, .mastermind/config.yaml is created in the current project.
 
     Example:
-        mastermind install init
+        mastermind install init                          # global (recommended)
+        mastermind install init --local                  # current project only
         mastermind install init --brains #1,#4,#7
         mastermind install init --framework-path ~/projects/mastermind
     """
     project_path = Path.cwd()
+    global_claude_dir = Path.home() / ".claude"
+
+    # Target dir for Claude assets: global or local
+    target_claude_dir = project_path / ".claude" if install_local else global_claude_dir
 
     # Detect or use provided framework path
     if framework_path:
@@ -143,7 +154,7 @@ def init(
         )
         raise click.Abort()
 
-    # Check if already installed
+    # Check if already installed (project-level activation file)
     active_file = project_path / ".mastermind-active"
     if active_file.exists() and not force:
         console.print(
@@ -167,27 +178,30 @@ def init(
             )
             raise click.Abort()
 
+    install_mode = "local (project only)" if install_local else "global (~/.claude/)"
+
     # Installation progress
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Installing MasterMind Framework...", total=None)
+        task = progress.add_task(
+            f"Installing MasterMind Framework [{install_mode}]...", total=None
+        )
 
-        # 1. Create .mastermind directory
+        # 1. Create .mastermind directory (always in current project)
         progress.update(task, description="Creating .mastermind directory...")
         mastermind_dir = project_path / ".mastermind"
         mastermind_dir.mkdir(exist_ok=True)
 
-        # 2. Create config.yaml
+        # 2. Create config.yaml (always in current project)
         progress.update(task, description="Creating project config...")
         config_file = mastermind_dir / "config.yaml"
 
         if config and Path(config).exists():
             shutil.copy(Path(config), config_file)
         else:
-            # Generate default config using yaml.dump to avoid special char issues
             active_brains = brain_ids if brain_ids else list(registry.keys())
             config_data = {
                 "project": {
@@ -197,6 +211,7 @@ def init(
                 "framework": {
                     "version": "1.0.0",
                     "path": str(framework_root),
+                    "install_mode": "local" if install_local else "global",
                 },
                 "brains": {
                     brain_id.lstrip("#"): {
@@ -219,100 +234,95 @@ def init(
                     allow_unicode=True,
                 )
             )
-
             config_content += """# Usage Notes
 # - Brains are queried via NotebookLM MCP
-# - Use /mm: commands in Claude Code (e.g., /mm:ask-product, /mm:project-audit)
+# - Use /mm: commands in Claude Code (e.g., /mm:ask-product, /mm:brain-context)
 # - All commands use mm namespace to avoid conflicts
-# - See .claude/README.md for complete command reference
+# - Skills (mm:brain-context) available in all projects if globally installed
 """
             config_file.write_text(config_content)
 
-        # 3. Create .claude directories with namespace structure
-        progress.update(task, description="Setting up Claude integration...")
-        claude_dir = project_path / ".claude"
-        claude_hooks = claude_dir / "hooks" / "mm"
-        claude_commands = claude_dir / "commands" / "mm"
-        claude_agents = claude_dir / "agents" / "mm"
+        # 3. Install Claude assets (global or local target)
+        progress.update(
+            task,
+            description=f"Installing Claude assets into {target_claude_dir}...",
+        )
+        target_hooks = target_claude_dir / "hooks" / "mm"
+        target_commands = target_claude_dir / "commands" / "mm"
+        target_skills = target_claude_dir / "skills" / "mm"
+        target_agents = target_claude_dir / "agents" / "mm"
 
-        claude_hooks.mkdir(parents=True, exist_ok=True)
-        claude_commands.mkdir(parents=True, exist_ok=True)
-        claude_agents.mkdir(parents=True, exist_ok=True)
+        target_hooks.mkdir(parents=True, exist_ok=True)
+        target_commands.mkdir(parents=True, exist_ok=True)
+        target_skills.mkdir(parents=True, exist_ok=True)
+        target_agents.mkdir(parents=True, exist_ok=True)
 
-        # 4. Copy/symlink resources from framework with namespace structure
         framework_claude = framework_root / ".claude"
         framework_hooks = framework_claude / "hooks" / "mm"
         framework_commands = framework_claude / "commands" / "mm"
+        framework_skills_mm = framework_claude / "skills" / "mm"
         framework_agents = framework_claude / "agents" / "mm"
-        framework_skills = framework_claude / "skills"  # Legacy support
 
-        # Commands (mm namespace)
+        def _sync(src: Path, dest: Path, recursive: bool = False) -> None:
+            """Copy or symlink src to dest. Replaces if exists."""
+            if dest.exists() or dest.is_symlink():
+                if dest.is_symlink() or dest.is_file():
+                    dest.unlink()
+                else:
+                    shutil.rmtree(dest)
+            if recursive:
+                try:
+                    dest.symlink_to(src)
+                except (OSError, NotImplementedError):
+                    shutil.copytree(src, dest)
+            else:
+                try:
+                    dest.symlink_to(src)
+                except (OSError, NotImplementedError):
+                    shutil.copy2(src, dest)
+
+        # Slash commands (flat .md files)
         if framework_commands.exists():
             for cmd_file in framework_commands.glob("*.md"):
-                dest = claude_commands / cmd_file.name
-                if dest.exists() or dest.is_symlink():
-                    dest.unlink()
-                try:
-                    dest.symlink_to(cmd_file)
-                except (OSError, NotImplementedError):
-                    shutil.copy2(cmd_file, dest)
+                _sync(cmd_file, target_commands / cmd_file.name)
 
-        # Hooks (mm namespace)
+        # Hooks (flat files)
         if framework_hooks.exists():
             for hook_file in framework_hooks.glob("*"):
-                if hook_file.name.startswith("."):
-                    continue
-                dest = claude_hooks / hook_file.name
-                if dest.exists() or dest.is_symlink():
-                    dest.unlink()
-                try:
-                    dest.symlink_to(hook_file)
-                except (OSError, NotImplementedError):
-                    shutil.copy2(hook_file, dest)
+                if not hook_file.name.startswith("."):
+                    _sync(hook_file, target_hooks / hook_file.name)
 
-        # Agents (mm namespace)
+        # Skills 2.0 (directory-based — symlink entire skill dir)
+        if framework_skills_mm.exists():
+            for skill_dir in framework_skills_mm.iterdir():
+                if skill_dir.is_dir() and not skill_dir.name.startswith("."):
+                    _sync(skill_dir, target_skills / skill_dir.name, recursive=True)
+
+        # Agents (directory-based — symlink entire agent dir or file)
         if framework_agents.exists():
-            for agent_file in framework_agents.glob("*"):
-                if agent_file.name.startswith("."):
-                    continue
-                dest = claude_agents / agent_file.name
-                if dest.exists() or dest.is_symlink():
-                    dest.unlink()
-                try:
-                    dest.symlink_to(agent_file)
-                except (OSError, NotImplementedError):
-                    shutil.copy2(agent_file, dest)
+            for agent_item in framework_agents.iterdir():
+                if not agent_item.name.startswith("."):
+                    recursive = agent_item.is_dir()
+                    _sync(
+                        agent_item,
+                        target_agents / agent_item.name,
+                        recursive=recursive,
+                    )
 
-        # Legacy: Support old skills folder (copy to commands/mm/)
-        if framework_skills.exists():
-            for skill_file in framework_skills.glob("mastermind-*.md"):
-                dest = claude_commands / skill_file.name
-                if not dest.exists():
-                    try:
-                        dest.symlink_to(skill_file)
-                    except (OSError, NotImplementedError):
-                        shutil.copy2(skill_file, dest)
-
-        # 5. Create activation file
+        # 4. Create activation file (always in current project)
         progress.update(task, description="Creating activation file...")
-        active_content = f"""# MasterMind Framework Activation
-# This file activates MasterMind in this project
-
-framework_path={framework_root}
-version=1.0.0
-brains={','.join(active_brains) if brain_ids else 'all'}
-installed_by=mastermind install init
-"""
-
-        # Add uvx info if used
-        if uvx:
-            active_content += "install_method=uvx\n"
-        else:
-            active_content += "install_method=standard\n"
-
+        active_content = (
+            "# MasterMind Framework Activation\n"
+            "# This file marks this project as MasterMind-enabled\n\n"
+            f"framework_path={framework_root}\n"
+            f"version=1.0.0\n"
+            f"brains={','.join(active_brains) if brain_ids else 'all'}\n"
+            f"install_mode={'local' if install_local else 'global'}\n"
+            "installed_by=mastermind install init\n"
+        )
         active_file.write_text(active_content)
 
-        # 6. Update README
+        # 5. Update README (project-level only)
         progress.update(task, description="Updating documentation...")
         readme = project_path / "README.md"
         if readme.exists():
@@ -340,13 +350,15 @@ All commands use the `/mm:` namespace:
 - `/mm:ask-growth` - Growth/Data (evaluation & metrics)
 - `/mm:ask-all` - All 7 brains as a team
 
-**Project Management:**
-- `/mm:project-audit` - Complete 7-brain project analysis
-- `/mm:audit` - Quick project audit
+**GSD Workflow Integration:**
+- `mm:brain-context 1` - Before /gsd:new-milestone (ROADMAP context)
+- `mm:brain-context 2` - Before /gsd:plan-phase (phase context)
+- `mm:brain-context 3` - After PLAN.md, Brain-07 validation
+- `mm:brain-context feed` - Post-phase BRAIN-FEED update
 
-**PRDs & Specs:**
+**Project Management:**
+- `/mm:project-health-check` - Complete 7-brain project analysis
 - `/mm:lite-prd-generator` - Generate PRD from rough idea
-- `/mm:prd-clarifier` - Refine and clarify PRD
 
 Run `mastermind install status` for more information.
 """
@@ -355,20 +367,28 @@ Run `mastermind install status` for more information.
         progress.update(task, description="✓ Installation complete!")
 
     # Success message
+    scope_line = (
+        f"[cyan]Scope:[/cyan] Global — available in ALL projects\n"
+        f"[dim]Assets installed to: {target_claude_dir}[/dim]"
+        if not install_local
+        else f"[cyan]Scope:[/cyan] Local — this project only\n"
+        f"[dim]Assets installed to: {target_claude_dir}[/dim]"
+    )
     console.print(
         Panel.fit(
             f"[green bold]✓ MasterMind Framework installed successfully![/green bold]\n\n"
             f"[cyan]Project:[/cyan] {project_path.name}\n"
             f"[cyan]Framework:[/cyan] {framework_root}\n"
-            f"[cyan]Active brains:[/cyan] {len(active_brains) if brain_ids else 7}\n\n"
+            f"[cyan]Active brains:[/cyan] {len(active_brains) if brain_ids else 7}\n"
+            f"{scope_line}\n\n"
             f"[yellow]Next steps:[/yellow]\n"
-            f"  1. Restart Claude Code in this project\n"
+            f"  1. Restart Claude Code (or open any project)\n"
             f"  2. Use [cyan]/mm:ask-product[/cyan] to consult the Product brain\n"
-            f"  3. Use [cyan]/mm:project-audit[/cyan] for full 7-brain analysis\n"
+            f"  3. Use [cyan]mm:brain-context 2[/cyan] before /gsd:plan-phase\n"
             f"  4. Run [cyan]mastermind install status[/cyan] to verify\n\n"
-            f"[dim]Configuration: .mastermind/config.yaml[/dim]\n"
-            f"[dim]Commands: .claude/commands/mm/*.md[/dim]\n"
-            f"[dim]All commands use /mm: namespace[/dim]",
+            f"[dim]Config: .mastermind/config.yaml[/dim]\n"
+            f"[dim]Skills: ~/.claude/skills/mm/ (brain-context, brain-persistence)[/dim]\n"
+            f"[dim]Commands: ~/.claude/commands/mm/ (/mm:ask-*, /mm:project-health-check)[/dim]",
             title="Installation Complete",
             border_style="green",
         )

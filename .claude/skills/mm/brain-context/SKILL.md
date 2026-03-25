@@ -1,6 +1,10 @@
 ---
 name: mm-brain-context
 description: Injects expert brain knowledge into GSD workflow at 3 critical moments. Use before creating ROADMAP.md (Moment 1), before /gsd:plan-phase (Moment 2), and after PLAN.md is created (Moment 3). Each moment follows the intermediary protocol — read codebase first, build context block, query with reality, cascade insights.
+argument-hint: [1|2|3|feed]
+disable-model-invocation: true
+effort: high
+allowed-tools: Read, Bash, Grep, Glob
 ---
 
 <essential_principles>
@@ -34,17 +38,17 @@ Which moment?
 <routing>
 | Response | Workflow |
 |----------|----------|
-| 1, "moment 1", "roadmap", "milestone" | `workflows/moment-1.md` |
-| 2, "moment 2", "plan phase", "context" | `workflows/moment-2.md` |
-| 3, "moment 3", "validate", "brain-07", "plan" | `workflows/moment-3.md` |
-| 4, "brain-feed", "update", "post-phase" | `workflows/update-brain-feed.md` |
+| 1, "moment 1", "roadmap", "milestone" | `${CLAUDE_SKILL_DIR}/workflows/moment-1.md` |
+| 2, "moment 2", "plan phase", "context" | `${CLAUDE_SKILL_DIR}/workflows/moment-2.md` |
+| 3, "moment 3", "validate", "brain-07", "plan" | `${CLAUDE_SKILL_DIR}/workflows/moment-3.md` |
+| 4, "brain-feed", "update", "post-phase" | `${CLAUDE_SKILL_DIR}/workflows/update-brain-feed.md` |
 
 **After reading the workflow, follow it exactly.**
 </routing>
 
 <reference_index>
-**Intermediary Protocol:** `references/intermediary-protocol.md` — how to build context blocks, filter responses, cascade insights
-**Brain Selection:** `references/brain-selection.md` — which brain for which domain, notebook IDs, context chains
+**Intermediary Protocol:** `${CLAUDE_SKILL_DIR}/references/intermediary-protocol.md` — how to build context blocks, filter responses, cascade insights
+**Brain Selection:** `${CLAUDE_SKILL_DIR}/references/brain-selection.md` — which brain for which domain, notebook IDs, context chains
 </reference_index>
 
 <workflows_index>
