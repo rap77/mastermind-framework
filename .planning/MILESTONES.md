@@ -1,5 +1,14 @@
 # Milestones
 
+## v2.1 War Room Frontend (Shipped: 2026-03-25)
+
+**Phases completed:** 4 phases, 16 plans, 13 tasks
+
+**Key accomplishments:**
+- Fixed Immer mutation error by moving all state mutations inside set() callbacks with mutable draft
+
+---
+
 ## v2.0 — Production Platform
 
 **Shipped:** 2026-03-17

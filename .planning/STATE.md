@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: War Room Frontend
-status: verifying
-stopped_at: "Completed 08-05: Integration Tests — Phase 08 COMPLETE, v2.1 COMPLETE"
-last_updated: "2026-03-24T12:17:23.046Z"
-last_activity: 2026-03-22 — Phase 07-03 COMPLETE (2 tasks, 21 tests, 7 files modified)
+status: complete
+stopped_at: "v2.1 ARCHIVED — milestone complete, ready for /gsd:new-milestone v2.2"
+last_updated: "2026-03-25T00:00:00.000Z"
+last_activity: 2026-03-25 — v2.1 milestone archived, tagged, RETROSPECTIVE.md created
 progress:
   total_phases: 4
   completed_phases: 4

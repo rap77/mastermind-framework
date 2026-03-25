@@ -2,34 +2,27 @@
 
 ## What This Is
 
-A cognitive architecture framework for building specialized AI-powered solutions using expert "brains" — distilled knowledge from world-class geniuses organized by niche. v2.0 shipped a production-ready platform: parallel brain execution, full type safety, and a FastAPI web dashboard with JWT auth, WebSocket real-time updates, and Experience Store for v3.0 ML foundations.
+A cognitive architecture framework for building specialized AI-powered solutions using expert "brains" — distilled knowledge from world-class experts organized by niche. v2.1 shipped a real-time "war room" frontend: Next.js 16 + React 19 + TypeScript + Tailwind 4 with 4 production screens (Command Center, The Nexus, Strategy Vault, Engine Room), JWT auth, WebSocket live orchestration, and 982 tests passing.
 
 ## Core Value
 
-**Expert AI collaboration that scales.** Multiple specialized brains working in parallel on complex problems — faster, safer, and more reliably than any single brain alone. 4.65x speedup validated, 467 tests passing, production-hardened with CI/CD and Docker.
+**Expert AI collaboration that scales.** Multiple specialized brains working in parallel on complex problems — faster, safer, and more reliably than any single brain alone. Now with a real-time visual war room for operators to orchestrate and monitor 24 AI brains across 4 purpose-built screens.
 
-## Current Milestone: v2.1 War Room Frontend
+## Current State (v2.1 — shipped 2026-03-25)
 
-**Goal:** Replace the Alpine.js/HTMX dashboard with a Next.js 16 production frontend — a real-time "war room" for orchestrating AI brains visually.
-
-**Target features:**
-- Command Center: brief input (Raycast-style) + Bento Grid showing live status of all 24 brains
-- The Nexus: real-time DAG visualization with React Flow (replaces D3.js)
-- Strategy Vault: results and generated outputs management
-- Engine Room: structured logs, API key management, brain YAML config
-- WebSocket Dispatcher: centralized WS connection via Zustand store (single connection, per-component subscriptions)
-
-## Current State (v2.0.0 → v2.1 in progress)
-
-- **Python:** 14,275 LOC across `apps/api/mastermind_cli/`
+- **Python:** ~14,500 LOC across `apps/api/mastermind_cli/`
+- **TypeScript:** ~15,800 LOC across `apps/web/src/`
 - **Brains:** 24 active (7 Software Dev + 16 Marketing + 1 Master Interviewer)
-- **Tests:** 292 unit tests passing (apps/api), 0 failed
+- **Tests:** 575 backend (pytest) + 407 frontend (vitest) = 982 total, 0 failures
+- **Frontend:** Next.js 16 + React 19 + Tailwind 4 + shadcn/ui + Magic UI + React Flow (@xyflow/react v12) + Zustand 5
+- **4 Screens:** Command Center, The Nexus (DAG), Strategy Vault, Engine Room
+- **Auth:** JWT (30min) + refresh rotation (24h) + httpOnly cookies (CVE-2025-29927 mitigated)
+- **DB:** SQLite WAL mode, aiosqlite, cursor pagination with composite (created_at, id) key
+- **API Keys:** api_keys_v2 table, prefix/suffix/revoked_at, show-once creation
+- **Monorepo:** apps/api/ (Python FastAPI) + apps/web/ (Next.js 16)
 - **CI:** 3-tier pipeline (typecheck → tests → semantic) on GitHub Actions
 - **Docker:** Multi-stage build, `docker compose up -d` → api:8000, web:3000
-- **Auth:** JWT (30min) + refresh rotation (24h), API Keys for CLI access
-- **DB:** SQLite WAL mode, aiosqlite, 0.39ms status queries
-- **Monorepo:** apps/api/ (Python FastAPI) + apps/web/ (Next.js 16 placeholder)
-- **Tag:** v2.0.0 on `master`
+- **Tag:** v2.1 on `master`
 
 ## Requirements
 
@@ -48,38 +41,28 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - ✓ **Backward Compatibility** (BC-01 through BC-05) — 24 brains, v1.3.0 CLI intact — v2.0
 - ✓ **Performance** (PERF-01 through PERF-04) — 4.65x speedup, 0.39ms queries — v2.0
 - ✓ **Testing** (TEST-01 through TEST-05) — 467 tests, mypy CI, E2E web UI — v2.0
+- ✓ **Frontend Foundation** (FND-01 through FND-04, SB-01) — Next.js 16, JWT auth gate, Zod schema bridge — v2.1
+- ✓ **WebSocket Infrastructure** (WS-01 through WS-03) — Zustand singleton, RAF batching, Map<brainId> selectors — v2.1
+- ✓ **Command Center** (BE-01, CC-01, CC-02, CC-03) — Bento Grid 24 tiles, brief modal, WS live status — v2.1
+- ✓ **The Nexus** (BE-02, NEX-01, NEX-02, NEX-03) — React Flow DAG, dagre layout, WS illumination — v2.1
+- ✓ **Strategy Vault** (SV-01, SV-02) — Execution history, detail view, Markdown rendering, timeline scrubber — v2.1
+- ✓ **Engine Room** (ER-01, ER-02, ER-03) — Virtual scroll logs, API key CRUD, brain YAML viewer — v2.1
+- ✓ **UX Polish** (UX-01) — Focus Mode auto-activate, sidebar collapse, idle dimming, Esc exit — v2.1
 
-### Active (v2.1 — War Room Frontend)
+### Active (v2.2 — Brain Agents)
 
-- [ ] **Frontend foundation** — Next.js 16 + React 19 + TypeScript + Tailwind 4 initialized in apps/web/
-- [ ] **Command Center** — Brief input (Raycast-style) + Magic UI Bento Grid with live brain status
-- [ ] **The Nexus** — Real-time DAG with React Flow, nodes illuminate on brain_step_completed events
-- [ ] **Strategy Vault** — Results and generated outputs display
-- [ ] **Engine Room** — Structured logs viewer, API key management, brain YAML config
-- [ ] **WebSocket Dispatcher** — Centralized WS store (Zustand), per-component event subscriptions
-
-### Deferred (v2.2 — Brain Agents)
-
-- **Specialized Brain Agents**: Convert brain consultations from manual skill workflows (mm:brain-context) to autonomous Claude Code subagents — each agent embeds the intermediary protocol, reads its domain BRAIN-FEED, queries its NotebookLM brain, filters responses against code, and accumulates domain-specific patterns
-- **Two-level BRAIN-FEED**: Split `.planning/BRAIN-FEED.md` into general project feed + per-brain domain feeds (`BRAIN-FEED-04-frontend.md`, etc.) — each agent reads both, writes only its own
-- **Inter-agent coordination**: Orchestrator passes outputs between agents when cross-domain decisions are needed (e.g., frontend + backend API contract alignment)
-- Semantic routing: replace FlowDetector keyword matching with Claude classifier
-- Production hardening: HTTPS+nginx, rate limiting, MM_SECRET_KEY mandatory, session cleanup
-- Trufflehog secret scanner in CI
-- Docker image push to registry
-- Production monitoring and alerting
+- [ ] **7 Brain Subagents** — `.claude/agents/brain-NN-*.md` with built-in intermediary protocol, convert `mm:brain-context` skill workflows to autonomous agent system prompts
+- [ ] **Two-level BRAIN-FEED** — Split `.planning/BRAIN-FEED.md` into general project feed + per-brain domain feeds (`BRAIN-FEED-04-frontend.md`, etc.) — each agent reads both, writes only its own
+- [ ] **Parallel agent dispatch** — Orchestrator dispatches multiple brain agents simultaneously (today: sequential skill workflows)
+- [ ] **Inter-agent coordination** — Cross-domain decisions (e.g., frontend + backend API contract) passed between agents via structured YAML protocol
+- [ ] **Domain expertise accumulation** — Each agent's BRAIN-FEED grows with project patterns, avoiding context pollution across brains
 
 ### Deferred (v3.0 — Custom Workflow Framework + RAG)
 
 - **MasterMind Workflow Framework**: Replace GSD workflows with niche-agnostic orchestration system. Keep GSD strengths (goal-backward, wave parallelization, atomic commits, deviation rules). Add: declarative DSL, pluggable agent registry, brain integration layer, domain-agnostic verification, niche-specific flow templates, custom checkpoint types
-- **Niche flow templates**: Pre-defined workflows for any domain (software dev, marketing campaigns, design systems, content creation) — not hardcoded to git/code/tests
 - **RAG per agent**: Each brain agent manages its own vector store partition (ChromaDB/Qdrant) — domain knowledge (books) + project memory (accumulated patterns) in separate collections
 - **Cross-brain learning**: Brains learn from each other's successful patterns via shared project BRAIN-FEED
-- **Real brain memory**: Agents persist learnings across projects — a Frontend agent that worked on 10 projects has 10 projects worth of architecture decisions
-- Auto-improvement: ML pipeline fine-tuning on successful outcomes
-- PostgreSQL + pgvector: migrate from SQLite when scale demands it
-
-> Research: `.planning/research/GSD-FRAMEWORK-ANALYSIS.md` — full GSD architecture analysis (12 agents, strengths, limitations, extension points)
+- **PostgreSQL + pgvector**: Migrate from SQLite when scale demands it
 
 ### Out of Scope
 
@@ -92,24 +75,15 @@ A cognitive architecture framework for building specialized AI-powered solutions
 
 ## Context
 
-**Stack:** Python 3.14 (uv), FastAPI, aiosqlite, Pydantic v2, mypy strict, pytest, Docker, GitHub Actions
+**Stack:** Python 3.14 (uv), FastAPI, aiosqlite, Pydantic v2, mypy strict, pytest + Next.js 16, React 19, TypeScript, Tailwind 4, Zustand 5, TanStack Query v5, React Flow (@xyflow/react v12), Docker, GitHub Actions
 
-**Architecture decisions:**
-- StatelessCoordinator (Pure Function Architecture): per-request instances, no shared state
-- JWT + refresh rotation: stateless, API-friendly, jti for collision prevention
-- SQLite WAL over PostgreSQL: no infrastructure dependency for single-host
-- sentence-transformers (local): no API cost, runs in CI for semantic regression tests
-- HTMX/Alpine.js over React: no build step, SSR-friendly (v2.0 — replaced in v2.1)
-- **Next.js 16 + React 19** for v2.1 frontend: Server Components for data, Client Components for real-time
-- **React Flow** for DAG visualization: replaces D3.js — better React integration, built-in interactivity
-- **Zustand** for WebSocket dispatcher: single WS connection shared across all components
-- **shadcn/ui + Magic UI**: shadcn for structure, Magic UI for animated "wow" moments (Bento Grid)
-
-**Technical debt carried into v2.1:**
+**Technical debt carried into v2.2:**
 - SECRET_KEY hardcoded (TODO: load from ENV_VAR)
 - YAML export implementation incomplete
 - 3 coordinator tests with timestamp comparison flakiness (non-critical)
 - `--parallel` flag missing in `orchestrate run` CLI
+- WSBrainBridge disconnect() may race with CommandCenterWrapper WS in edge cases
+- NexusCanvas uses static star topology (real DAG from BE is proxied but not rendered)
 
 ## Key Decisions
 
@@ -125,24 +99,31 @@ A cognitive architecture framework for building specialized AI-powered solutions
 | **StatelessCoordinator** | Pure Function Architecture → multi-user safe, simpler | ✅ Per-request instances, no race conditions |
 | **JWT + refresh rotation** | Stateless, API + web compatible, replay prevention | ✅ UAT: refresh rotation tested 12/12 |
 | **HTMX over React** | No build step, SSR-friendly, sufficient for v2.0 dashboard | ✅ Shipped — functional dashboard |
-| **Next.js 16 over HTMX** | v2.1 needs real-time UX, component composition, TypeScript | — v2.1 in progress |
-| **React Flow over D3.js** | Better React integration, interactivity built-in, less custom code | — v2.1 in progress |
-| **Zustand WS Dispatcher** | Single connection, pub/sub by event type, avoids prop drilling | — v2.1 in progress |
-| **Skill before Agents** | v2.1 uses mm:brain-context skill (manual workflows); workflows become agent system prompts in v2.2 — builds foundation before automation | — v2.1 foundation, v2.2 agents |
-| **Two-level BRAIN-FEED** | General project feed + per-brain domain feeds — prevents context pollution, enables agent independence | — planned v2.2 |
+| **Next.js 16 over HTMX** | v2.1 needs real-time UX, component composition, TypeScript | ✅ Shipped — 4 production screens |
+| **React Flow over D3.js** | Better React integration, interactivity built-in, less custom code | ✅ The Nexus DAG working |
+| **Zustand WS Dispatcher** | Single connection, pub/sub by event type, avoids prop drilling | ✅ RAF batching, 60fps at 24-brain burst |
+| **React Flow CSS in @layer base** | Tailwind 4 silently breaks handles/edges if imported from tsx | ✅ Required pattern documented |
+| **Immer MapSet plugin** | `enableMapSet()` required for Map iteration in Immer set() callbacks | ✅ Documented, prevents silent failures |
+| **RAF batching in brainStore** | Queues 24 concurrent events, drains before paint frame | ✅ 60fps maintained during brain burst |
+| **CVE-2025-29927 mitigation** | JWT verification at Server Components + Route Handlers (not only middleware) | ✅ Dual-layer verification implemented |
+| **INSERT OR IGNORE concurrency** | 24 simultaneous brain completions handled without Redis/Celery | ✅ First writer wins, no duplicates |
+| **Cursor pagination (created_at, id)** | Composite key prevents race conditions in concurrent writes | ✅ No duplicated entries |
+| **api_keys_v2 table** | Avoids migrating legacy api_keys, no breaking changes | ✅ Prefix/suffix/revoked_at fields |
+| **Skill before Agents** | v2.1 uses mm:brain-context skill (manual workflows); workflows become agent system prompts in v2.2 | ✅ Foundation built, v2.2 ready |
+| **Two-level BRAIN-FEED** | General project feed + per-brain domain feeds — prevents context pollution, enables agent independence | 📋 Planned v2.2 |
 | **3-tier CI** | Token cost control: typecheck → tests → semantic | ✅ GitHub Actions running |
 | **Multi-stage Docker** | ~50% image size reduction | ✅ Production Docker deployed |
 
 ## Vision Notes
 
-### v2.2 — Brain Agents (next after v2.1)
+### v2.2 — Brain Agents (next)
 
 The brain consultation system evolves in 3 stages:
-1. **v2.1 (current):** `mm:brain-context` skill with manual workflows → Claude follows instructions to build context, query brains, filter responses
+1. **v2.1 (shipped):** `mm:brain-context` skill with manual workflows → Claude follows instructions to build context, query brains, filter responses
 2. **v2.2:** Autonomous subagents per brain → intermediary protocol is native behavior, each agent accumulates domain expertise in its own BRAIN-FEED
 3. **v3.0:** Agents + RAG → each agent manages its own vector store, knowledge is persistent and searchable
 
-**Key insight (2026-03-22):** Brains (NotebookLM) are static knowledge — they never learn. The "learning" happens in the intermediary (Claude) via accumulated BRAIN-FEED context. Converting from skill to agents means the intermediary protocol becomes built-in behavior, not a workflow to read and follow. Each agent's domain BRAIN-FEED grows independently, avoiding context pollution.
+**Key insight (2026-03-22):** Brains (NotebookLM) are static knowledge — they never learn. The "learning" happens in the intermediary (Claude) via accumulated BRAIN-FEED context. Converting from skill to agents means the intermediary protocol becomes built-in behavior, not a workflow to read and follow.
 
 **Architecture:**
 ```
@@ -155,15 +136,12 @@ Orchestrator (Claude main) → dispatches Brain Agents in parallel
   └── Brain Agent #N returns: verified insights to orchestrator
 ```
 
-**Foundation built in v2.1:** The workflow files in `mm:brain-context/workflows/` ARE the system prompts for v2.2 agents. `templates/BRAIN-FEED.md` becomes the template for both general and per-brain feeds.
-
 ### v3.0 — Full RAG + Persistent Learning
 
 - **Per-agent vector stores**: Domain knowledge (books) + project memory (patterns) in separate collections
 - **Cross-brain learning**: Agents share successful patterns via project BRAIN-FEED
 - **Persistent expertise**: A Frontend agent that worked on 10 projects accumulates 10 projects worth of architecture decisions
-- **Hallucination prevention**: RAG-based fact checking against ExperienceRecord
 - **PostgreSQL + pgvector**: Migrate from SQLite + JSONB when scale demands it
 
 ---
-*Last updated: 2026-03-18 after v2.1 milestone started*
+*Last updated: 2026-03-25 after v2.1 milestone*
