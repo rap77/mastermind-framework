@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core growth/evaluation question from
 2. Build query with project context
-3. Query Growth/Data brain via MCP: notebook_id = "d8de74d6-7028-44ed-b4d4-784d6a9256e6"
+3. Query Growth/Data brain via MCP: notebook_id = "d8de74d6-7028-44ed-b4d5-784d6a9256e6"
 4. Present the brain's response with metrics and evaluation insights
 </process>
 
