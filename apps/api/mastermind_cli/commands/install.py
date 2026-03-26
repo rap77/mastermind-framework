@@ -17,33 +17,45 @@ logger = logging.getLogger(__name__)
 
 
 def get_framework_root() -> Optional[Path]:
-    """Get the MasterMind Framework root directory."""
+    """Get the MasterMind Framework root directory.
+
+    Detection order:
+    1. MASTERMIND_FRAMEWORK_PATH env var (highest priority)
+    2. Walk up from the module path looking for the framework marker file
+       (works for any install structure: editable, monorepo, distributed)
+    3. Known fallback locations
+    """
+    MARKER = "docs/design/00-PRD-MasterMind-Framework.md"
+
     try:
+        # 1. Env var override
+        mastermind_env = os.environ.get("MASTERMIND_FRAMEWORK_PATH")
+        if mastermind_env:
+            return Path(mastermind_env)
+
         from mastermind_cli import __file__ as module_file
 
         module_path = Path(module_file).resolve()
-        # Go up from mastermind_cli/ to framework root
-        # Structure: tools/mastermind-cli/mastermind_cli/
-        if "tools/mastermind-cli" in module_path.parts:
-            idx = module_path.parts.index("tools")
-            return Path(*module_path.parts[:idx])
-        # If installed via pip/uv, find the package location
-        if "site-packages" in module_path.parts:
-            # Installed globally - need to find the actual framework
-            # Try to detect via environment or use a known location
-            mastermind_env = os.environ.get("MASTERMIND_FRAMEWORK_PATH")
-            if mastermind_env:
-                return Path(mastermind_env)
-            # Try common locations
-            for candidate in [
-                Path.home() / "proy" / "mastermind",
-                Path.home() / "projects" / "mastermind",
-                Path.home() / "mastermind",
-            ]:
-                if (
-                    candidate / "docs" / "design" / "00-PRD-MasterMind-Framework.md"
-                ).exists():
-                    return candidate
+
+        # 2. Walk up from module path (handles monorepo, editable, distributed)
+        candidate = module_path.parent
+        for _ in range(10):
+            if (candidate / MARKER).exists():
+                return candidate
+            if candidate == candidate.parent:
+                break
+            candidate = candidate.parent
+
+        # 3. Known fallback locations
+        for fallback in [
+            Path.home() / ".mastermind-framework",
+            Path.home() / "proy" / "mastermind",
+            Path.home() / "projects" / "mastermind",
+            Path.home() / "mastermind",
+        ]:
+            if (fallback / MARKER).exists():
+                return fallback
+
         return None
     except (ImportError, OSError, ValueError) as e:
         logger.warning("Could not determine framework root: %s", e)
