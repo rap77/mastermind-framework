@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: War Room Frontend
-status: complete
-stopped_at: "v2.1 ARCHIVED — milestone complete, ready for /gsd:new-milestone v2.2"
-last_updated: "2026-03-25T00:00:00.000Z"
-last_activity: 2026-03-25 — v2.1 milestone archived, tagged, RETROSPECTIVE.md created
+milestone: v2.2
+milestone_name: Brain Agents
+status: planning
+stopped_at: "REQUIREMENTS.md written (11 reqs), PROJECT.md updated — ready for /gsd:new-milestone v2.2"
+last_updated: "2026-03-27T00:00:00.000Z"
+last_activity: 2026-03-27 — REQUIREMENTS.md created, PROJECT.md active section updated with REQ-IDs
 progress:
   total_phases: 4
   completed_phases: 4
@@ -131,8 +131,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Session resumed — v2.1 ARCHIVED, framework portability fixes applied, ready for /gsd:new-milestone v2.2
+Last session: 2026-03-27
+Stopped at: REQUIREMENTS.md written, PROJECT.md + STATE.md updated for v2.2 — next: commit + /gsd:new-milestone v2.2
 Resume file: None
 
 **Phase 05 Results:**
