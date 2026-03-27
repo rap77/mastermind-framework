@@ -7,7 +7,7 @@ import type { Brain } from '@/lib/api'
 
 export const MOCK_BRAINS: BrainMetadata[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Product Strategy',
     niche: 'software-development',
     status: 'idle',
@@ -15,7 +15,7 @@ export const MOCK_BRAINS: BrainMetadata[] = [
     last_called_at: null,
   },
   {
-    id: 2,
+    id: '2',
     name: 'UX Research',
     niche: 'software-development',
     status: 'idle',
@@ -23,7 +23,7 @@ export const MOCK_BRAINS: BrainMetadata[] = [
     last_called_at: null,
   },
   {
-    id: 3,
+    id: '3',
     name: 'UI Design',
     niche: 'software-development',
     status: 'active',
@@ -31,7 +31,7 @@ export const MOCK_BRAINS: BrainMetadata[] = [
     last_called_at: '2026-03-20T15:30:00Z',
   },
   {
-    id: 4,
+    id: '4',
     name: 'Frontend',
     niche: 'software-development',
     status: 'complete',
@@ -40,14 +40,14 @@ export const MOCK_BRAINS: BrainMetadata[] = [
   },
 ]
 
-export const MOCK_BRAIN_BY_ID: Record<number, BrainMetadata> = MOCK_BRAINS.reduce(
+export const MOCK_BRAIN_BY_ID: Record<string, BrainMetadata> = MOCK_BRAINS.reduce(
   (acc, brain) => ({ ...acc, [brain.id]: brain }),
   {}
 )
 
 export function createMockBrain(overrides: Partial<BrainMetadata> = {}): BrainMetadata {
   return {
-    id: 1,
+    id: '1',
     name: 'Test Brain',
     niche: 'software-development',
     status: 'idle',

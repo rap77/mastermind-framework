@@ -131,8 +131,8 @@ None for v2.1 yet. v2.0 known items:
 
 ## Session Continuity
 
-Last session: 2026-03-24T11:37:52.487Z
-Stopped at: Completed 08-05: Integration Tests — Phase 08 COMPLETE, v2.1 COMPLETE
+Last session: 2026-03-26
+Stopped at: Session resumed — v2.1 ARCHIVED, framework portability fixes applied, ready for /gsd:new-milestone v2.2
 Resume file: None
 
 **Phase 05 Results:**

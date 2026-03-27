@@ -84,6 +84,10 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - `--parallel` flag missing in `orchestrate run` CLI
 - WSBrainBridge disconnect() may race with CommandCenterWrapper WS in edge cases
 - NexusCanvas uses static star topology (real DAG from BE is proxied but not rendered)
+- **Pyright 156 errors in test files** — all in `/tests/`, zero in production `mastermind_cli/`. Introduced in monorepo restructure (commit f4d1315). Were incorrectly assumed pre-existing.
+- **uptime/last_called_at hardcoded** — `brain_registry.py:170-171` always returns `uptime: 0.0` and `last_called_at: null`. Visible as "0 uptime" in Command Center UI. Requires tracking from execution history table.
+- **prefers-reduced-motion guard missing** — `BrainTile.tsx:159` has TODO for accessibility guard. Planned for Phase 08 Task 4 but not implemented. Severity: low.
+- **WebSocket metrics stubs** — `websocket-metrics.ts` lines 91, 112, 132 have TODO for Prometheus/Datadog integration. Severity: low (observability, not functional).
 
 ## Key Decisions
 
