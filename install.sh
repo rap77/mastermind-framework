@@ -208,7 +208,54 @@ else
     fi
 fi
 
-# Step 8: Verify installation
+# Step 8: Install Claude Code slash commands
+print_step "Installing Claude Code slash commands..."
+
+CLAUDE_COMMANDS_DIR="${HOME}/.claude/commands/mm"
+REPO_COMMANDS_DIR="${INSTALL_DIR}/claude-commands/mm"
+
+if [ -d "$REPO_COMMANDS_DIR" ]; then
+    mkdir -p "$CLAUDE_COMMANDS_DIR"
+    INSTALLED_COUNT=0
+    SKIPPED_COUNT=0
+
+    for cmd_file in "$REPO_COMMANDS_DIR"/*.md; do
+        [ -f "$cmd_file" ] || continue
+        cmd_name=$(basename "$cmd_file")
+        target="$CLAUDE_COMMANDS_DIR/$cmd_name"
+
+        if [ -f "$target" ]; then
+            # Update if content differs
+            if ! diff -q "$cmd_file" "$target" > /dev/null 2>&1; then
+                cp "$cmd_file" "$target"
+                INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
+            else
+                SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+            fi
+        else
+            cp "$cmd_file" "$target"
+            INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
+        fi
+    done
+
+    if [ $INSTALLED_COUNT -gt 0 ]; then
+        print_success "Claude Code commands installed/updated: $INSTALLED_COUNT (skipped unchanged: $SKIPPED_COUNT)"
+    else
+        print_success "Claude Code commands already up to date ($SKIPPED_COUNT files)"
+    fi
+
+    echo ""
+    echo -e "${CYAN}Available slash commands in Claude Code:${NC}"
+    for cmd_file in "$REPO_COMMANDS_DIR"/*.md; do
+        [ -f "$cmd_file" ] || continue
+        cmd_name=$(basename "$cmd_file" .md)
+        echo "  ${GREEN}/mm:${cmd_name}${NC}"
+    done
+else
+    print_warning "No claude-commands/ directory found in repository — skipping Claude Code integration"
+fi
+
+# Step 9: Verify installation
 if command_exists mm; then
     print_success "Installation complete!"
     echo ""

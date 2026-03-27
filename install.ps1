@@ -155,7 +155,54 @@ if (Test-CommandExists "mm") {
     Write-Warning "Restart PowerShell to apply PATH changes"
 }
 
-# Step 7: Verify installation
+# Step 7: Install Claude Code slash commands
+Write-Step "Installing Claude Code slash commands..."
+
+$ClaudeCommandsDir = "$env:USERPROFILE\.claude\commands\mm"
+$RepoCommandsDir = "$INSTALL_DIR\claude-commands\mm"
+
+if (Test-Path $RepoCommandsDir) {
+    if (-not (Test-Path $ClaudeCommandsDir)) {
+        New-Item -ItemType Directory -Path $ClaudeCommandsDir -Force | Out-Null
+    }
+
+    $installedCount = 0
+    $skippedCount = 0
+
+    Get-ChildItem -Path $RepoCommandsDir -Filter "*.md" | ForEach-Object {
+        $target = Join-Path $ClaudeCommandsDir $_.Name
+        if (Test-Path $target) {
+            $sourceHash = (Get-FileHash $_.FullName).Hash
+            $targetHash = (Get-FileHash $target).Hash
+            if ($sourceHash -ne $targetHash) {
+                Copy-Item $_.FullName $target -Force
+                $installedCount++
+            } else {
+                $skippedCount++
+            }
+        } else {
+            Copy-Item $_.FullName $target -Force
+            $installedCount++
+        }
+    }
+
+    if ($installedCount -gt 0) {
+        Write-Success "Claude Code commands installed/updated: $installedCount (skipped unchanged: $skippedCount)"
+    } else {
+        Write-Success "Claude Code commands already up to date ($skippedCount files)"
+    }
+
+    Write-Output ""
+    Write-ColorOutput Cyan "Available slash commands in Claude Code:"
+    Get-ChildItem -Path $RepoCommandsDir -Filter "*.md" | ForEach-Object {
+        $cmdName = $_.BaseName
+        Write-Output "  /mm:$cmdName"
+    }
+} else {
+    Write-Warning "No claude-commands\ directory found in repository — skipping Claude Code integration"
+}
+
+# Step 8: Verify installation
 Write-Output ""
 Write-Success "Installation complete!"
 Write-Output ""

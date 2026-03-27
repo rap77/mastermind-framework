@@ -145,24 +145,75 @@ For each real gap addressed:
 
 ---
 
-## Step 7 — Request Second Opinion (If Needed)
+## Step 7 — Iteration Loop (Max 3)
 
-If Brain-07 raised concerns that you addressed via code changes (APPROVED_WITH_CONDITIONS):
+Brain-07 raised concerns or returned APPROVED_WITH_CONDITIONS? Iterate until full approval.
 
-Query Brain-07 again with:
+**Track iteration state** before each re-query:
+
 ```
-[ORIGINAL CONTEXT BLOCK]
-
-[CHANGES MADE]
-Gap 1: [description] → Fixed in Plan NN-02, Task 2:
-  - [what was added to acceptance criteria]
-  - [code change or pattern added]
-
-Gap 2: [description] → Fixed in Plan NN-03, Task 1:
-  - [specific change]
-
-Request: Confirm gaps are addressed. Approve or flag remaining issues.
+Iteración: [N] de 3
+Verdict anterior: [REJECTED_REVISE / APPROVED_WITH_CONDITIONS]
+Gaps resueltos: [list of what was fixed]
+Gaps pendientes: [list of what's still open]
 ```
+
+Re-query Brain-07 with the delta — not the full context again:
+
+```
+[ORIGINAL CONTEXT BLOCK — same as first query]
+
+[CAMBIOS REALIZADOS en iteración N]
+Gap 1: [descripción] → Resuelto en Plan NN-02, Task 2:
+  - [qué se agregó a acceptance criteria]
+  - [patrón o cambio de código]
+
+Gap 2: [descripción] → Resuelto en Plan NN-03, Task 1:
+  - [cambio específico]
+
+[GAPS PENDIENTES — si los hay]
+- [gap X]: [por qué no se resolvió / está fuera de scope]
+
+Request: Confirmar gaps resueltos. Aprobar o señalar issues restantes.
+Verdict esperado: APPROVED o APPROVED_WITH_CONDITIONS con lista vacía.
+```
+
+**Loop decision table:**
+
+| Verdict | Iteración | Acción |
+|---------|-----------|--------|
+| APPROVED | cualquiera | ✅ Proceder a `/gsd:execute-phase N` |
+| APPROVED_WITH_CONDITIONS | 1 o 2 | Resolver conditions → re-iterar |
+| REJECTED_REVISE | 1 o 2 | Revisar gaps → cascade domain brains → re-iterar |
+| cualquier verdict | 3 | Escalar a humano (ver abajo) |
+
+---
+
+## Escalation (Después de 3 Iteraciones Sin APPROVED)
+
+Si Brain-07 no retorna APPROVED después de 3 iteraciones, detener y presentar:
+
+```
+⚠️  Brain #7 no aprobó después de 3 iteraciones.
+
+Gaps no resueltos:
+- [gap 1]: [por qué no pudo resolverse]
+- [gap 2]: [por qué no pudo resolverse]
+
+Historial de iteraciones:
+  Iter 1: [verdict] — [summary de cambios]
+  Iter 2: [verdict] — [summary de cambios]
+  Iter 3: [verdict] — [summary de cambios]
+
+Decisión requerida:
+  A) Continuar de todas formas (aceptar el riesgo conscientemente)
+  B) Revisar el scope del plan manualmente antes de ejecutar
+  C) Simplificar el plan, reducir scope, re-iterar desde cero
+
+¿Qué querés hacer?
+```
+
+**No ejecutar `/gsd:execute-phase` hasta recibir decisión del humano.**
 
 ---
 
@@ -174,5 +225,6 @@ Request: Confirm gaps are addressed. Approve or flag remaining issues.
 - [ ] Each concern filtered (✅ / 📅 / 🔴)
 - [ ] Real gaps cascaded to domain brains
 - [ ] PLAN.md files updated with gap fixes
-- [ ] Brain-07 verdict: APPROVED or APPROVED_WITH_CONDITIONS resolved
+- [ ] Brain-07 verdict: **APPROVED** (no conditions) — loop complete
+- [ ] OR: Human decision received after 3 iterations without APPROVED
 - [ ] Ready for `/gsd:execute-phase N`
