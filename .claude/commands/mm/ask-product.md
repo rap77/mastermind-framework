@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core product question from
 2. Build query with project context (name, tech stack, current phase)
-3. Query Product Strategy brain via MCP: notebook_id = "f276ccb3-0bce-4069-8b55-eae8693dbe75"
+3. Read notebook_id from config.yaml: brains['1'].notebook_id — query Product Strategy brain via MCP with that id
 4. Present the brain's response clearly with key insights
 </process>
 

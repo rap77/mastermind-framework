@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core design question from
 2. Build query with project context
-3. Query UI Design brain via MCP: notebook_id = "8d544475-6860-4cd7-9037-8549325493dd"
+3. Read notebook_id from config.yaml: brains['3'].notebook_id — query UI Design brain via MCP with that id
 4. Present the brain's response with visual design recommendations
 </process>
 

@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core frontend question from
 2. Build query with project context (tech stack if known)
-3. Query Frontend brain via MCP: notebook_id = "85e47142-0a65-41d9-9848-49b8b5d2db33"
+3. Read notebook_id from config.yaml: brains['4'].notebook_id — query Frontend brain via MCP with that id
 4. Present the brain's response with architecture recommendations
 </process>
 

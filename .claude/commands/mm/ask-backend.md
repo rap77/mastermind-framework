@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core backend question from
 2. Build query with project context
-3. Query Backend brain via MCP: notebook_id = "c6befbbc-b7dd-4ad0-a677-314750684208"
+3. Read notebook_id from config.yaml: brains['5'].notebook_id — query Backend brain via MCP with that id
 4. Present the brain's response with architecture recommendations
 </process>
 

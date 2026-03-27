@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core UX question from
 2. Build query with project context
-3. Query UX Research brain via MCP: notebook_id = "ea006ece-00a9-4d5c-91f5-012b8b712936"
+3. Read notebook_id from config.yaml: brains['2'].notebook_id — query UX Research brain via MCP with that id
 4. Present the brain's response with research-based insights
 </process>
 

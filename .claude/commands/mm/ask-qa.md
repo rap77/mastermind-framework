@@ -17,7 +17,7 @@ Config: @ .mastermind/config.yaml
 <process>
 1. Identify the core QA/DevOps question from
 2. Build query with project context
-3. Query QA/DevOps brain via MCP: notebook_id = "74cd3a81-1350-4927-af14-c0c4fca41a8e"
+3. Read notebook_id from config.yaml: brains['6'].notebook_id — query QA/DevOps brain via MCP with that id
 4. Present the brain's response with testing and operations recommendations
 </process>
 
