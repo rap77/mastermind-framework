@@ -164,8 +164,8 @@ export function sanitizeHtml(html: string): string {
 
   // DOMPurify is available (installed in package.json)
   try {
-    // Dynamic require to avoid SSR import
-    const DOMPurify = require('dompurify') as typeof import('dompurify')
+    // Dynamic require to avoid SSR import — .default for CJS interop
+    const { default: DOMPurify } = require('dompurify') as typeof import('dompurify')
     return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })
   } catch {
     // DOMPurify unavailable in test environment — return as-is

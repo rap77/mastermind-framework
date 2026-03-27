@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useBrainStore } from '@/stores/brainStore'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
 import dagre from '@dagrejs/dagre'
@@ -110,7 +109,6 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
 function buildBlueprintNodes(
   blueprintBrains: Brain[],
   onSelect: (id: string) => void,
-  _activeBrainIds: Set<string>
 ): Node[] {
   return blueprintBrains.map(brain => ({
     id: brain.id,
@@ -167,23 +165,15 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
   const [cooldownMode, setCooldownMode] = useState(false)
   const subscribe = useWSStore(state => state.subscribe)
 
-  // Get active brain IDs from brainStore
-  const brainStates = useBrainStore(state => state.brains)
-  const activeBrainIds = new Set(
-    Array.from(brainStates.values())
-      .filter(brain => brain.status !== 'blueprint')
-      .map(brain => brain.id)
-  )
-
-  // Build nodes/edges once at mount with active brains
+  // Build nodes/edges once at mount — status rendering handled by BrainNode via brainStore
   const [nodes] = useState<Node[]>(() => {
-    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId, activeBrainIds)
+    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId)
     const edges = buildBlueprintEdges(blueprintBrains, rawNodes)
     return getLayoutedNodes(rawNodes, edges)
   })
 
   const [edges] = useState<Edge[]>(() => {
-    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId, activeBrainIds)
+    const rawNodes = buildBlueprintNodes(blueprintBrains, setSelectedBrainId)
     return buildBlueprintEdges(blueprintBrains, rawNodes)
   })
 
