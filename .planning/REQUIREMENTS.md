@@ -103,3 +103,21 @@ The `mm:brain-context` slash command (created 2026-03-27, commit 862c4a0) gets u
 - Cross-brain machine learning (v3.0)
 - PostgreSQL migration (v3.0)
 - OpenClaw integration (v3.1)
+
+---
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| BASE-01 | Phase 09 | Pending |
+| BASE-02 | Phase 09 | Pending |
+| AGT-01 | Phase 09 | Pending |
+| AGT-02 | Phase 09 | Pending |
+| AGT-03 | Phase 09 | Pending |
+| FEED-02 | Phase 09 | Pending |
+| FEED-03 | Phase 09 | Pending |
+| FEED-01 | Phase 10 | Pending |
+| AGT-04 | Phase 11 | Pending |
+| DISP-01 | Phase 12 | Pending |
+| DISP-02 | Phase 12 | Pending |
