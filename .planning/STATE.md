@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Brain Agents
-status: ready_to_plan
-stopped_at: "ROADMAP.md written — 4 phases (09-12), 11/11 requirements mapped — ready for /gsd:plan-phase 09"
-last_updated: "2026-03-27T00:00:00.000Z"
-last_activity: 2026-03-27 — v2.2 roadmap created, phases 09-12 defined, coverage validated
+status: in_progress
+stopped_at: "09-01-PLAN.md complete — 6 baseline files committed, BASE-01/BASE-02 done"
+last_updated: "2026-03-28T01:05:11Z"
+last_activity: 2026-03-28 — Phase 09 Plan 01 complete, tests/baselines/ created (6 files)
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 1
+  completed_plans: 1
+  percent: 5
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 09 of 12 (Baselines + Agent Authoring)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-27 — ROADMAP.md created, 4 phases derived from 11 requirements
+Plan: 1 complete (baselines authored)
+Status: In progress
+Last activity: 2026-03-28 — Plan 09-01 complete, tests/baselines/ created (schema + 5 records)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 5%
 
 ## Performance Metrics
 
@@ -67,14 +67,21 @@ Key v2.2 architecture decisions (full log in PROJECT.md):
 - ✓ DECIDED: agents reference brain-selection.md for notebook IDs (not embedded) — decoupled, no re-edit of 7 files if IDs change
 - Verify: MCP tool inheritance to dispatched subagents (first smoke test in Phase 11)
 
+### Decisions (Plan 09-01)
+
+- [09-01 baseline]: All manual T1 values (210-270s) below 300s profitability threshold — agent ROI comes from T1 reduction margin, not rescuing unprofitable workflows
+- [09-01 baseline]: Baseline 05 scored delta_velocity=4 (adversarial, multi-brain) — IntersectionObserver + @xyflow/react v12 nodeInternals was an unprompted Senior insight from Brain #4
+- [09-01 cascade]: Structured output required in agent system prompts — cascade re-run in baseline 04 (imprecise language → Brain #7 error) proves free-text prose causes information leaks
+- [09-01 testing]: Backend suite pre-existing failure: `uv run pytest apps/api/` from root fails with ModuleNotFoundError; must be run as `cd apps/api && uv run pytest` (575 passing)
+
 ### Blockers/Concerns
 
-None at roadmap stage.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-27
-Stopped at: ROADMAP.md written — 4 phases (09-12), 11/11 requirements mapped
+Last session: 2026-03-28
+Stopped at: 09-01-PLAN.md complete — tests/baselines/ created, BASE-01/BASE-02 requirements met
 Resume file: None
 
-Next command: `/gsd:plan-phase 09`
+Next command: `/gsd:plan-phase 09` (Plan 02 — agent authoring)

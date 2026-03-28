@@ -110,8 +110,8 @@ The `mm:brain-context` slash command (created 2026-03-27, commit 862c4a0) gets u
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BASE-01 | Phase 09 | Pending |
-| BASE-02 | Phase 09 | Pending |
+| BASE-01 | Phase 09 | Complete |
+| BASE-02 | Phase 09 | Complete |
 | AGT-01 | Phase 09 | Pending |
 | AGT-02 | Phase 09 | Pending |
 | AGT-03 | Phase 09 | Pending |
