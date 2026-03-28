@@ -147,6 +147,100 @@ Agents read notebook IDs from `.claude/skills/mm/brain-context/references/brain-
 
 </code_context>
 
+<brain_synthesis>
+## Brain Consultation — Momento 2 (2026-03-27)
+
+### Brain #1 (Product Strategy — Cagan, Torres, Doerr)
+
+#### Baseline Execution Protocol — Frozen Context Block
+Each baseline must include an immutable product context block BEFORE the ticket query. Without it, the brain "hallucinates" priorities.
+
+Required fields in every baseline:
+- **Vision (3-5 años)**: What the system aims to be long-term (from PROJECT.md)
+- **Strategic Intent**: Current milestone goal (e.g., "Autonomous brain agents that accumulate domain knowledge")
+- **Outcome Metrics**: Measurable success criteria (e.g., "agent executes protocol in <20% human T1 time")
+
+> Rationale: Only the ticket should vary between baselines. The product context is the control variable.
+
+#### T1 Profitability Threshold
+**T1 < 5 minutes** = agent is profitable. If context setup takes longer, the agent won't be faster than the manual skill.
+Add to `baseline-schema.md`: flag baselines where T1 > 5min as "agent-unprofitable" — these become automation candidates.
+
+#### Baseline Validity Split
+- **2 retrospectives = Precision** — tests if brain reproduces decisions we know were correct (from Phase 07/08)
+- **3 adversarials = Resilience** — ground truth is "adherence to system principles", not market outcomes
+  - Valid adversarial rejection = brain refuses a build-trap recommendation by citing Lean principles, not generic hesitation
+
+#### Phase 09 Success Metric (from Brain #1)
+> "The Success Outcome of Phase 09 is not 'having the agents' — it's that Delta-Velocity demonstrates the agent executes the protocol in <20% of the human's time."
+Add to ROADMAP.md success criteria for Phase 09.
+
+#### criteria.md for Brain #1 — Rating 3 vs 4
+
+| Attribute | Rating 3 (Peer) | Rating 4 (Senior) |
+|-----------|-----------------|-------------------|
+| **Focus** | Solution space — suggests logical features | Opportunity space — frames problem as user pain |
+| **Risks** | "We should validate" (generic) | Explicitly names 4 Risks: Value, Usability, Feasibility, Viability |
+| **Metrics** | Vanity metrics or outputs (ship X) | Outcome KRs — measurable behavior changes |
+| **Systems** | Linear thinking (A causes B) | Identifies Feedback Loops + second-order effects |
+| **Decision** | Waiter mode — takes orders, organizes them | Synthesizer — questions "why now", proposes experiments |
+
+**Auto-reject (Rating 1-2):** Any response that proposes a date-fixed feature roadmap without demand validation = Build Trap. Automatic <3.
+
+---
+
+### Brain #6 (QA/DevOps — Humble, Majors, Feathers)
+
+#### baseline-schema.md — Required Fields
+Minimum fields for post-migration comparability (Characterization Testing approach):
+
+```markdown
+context_id: <git commit hash of repo at baseline time>
+brain_feed_snapshot: [list of .md and code files given to brain as context]
+input_prompt_raw: <exact prompt or instruction given>
+cognitive_trace:
+  T1_setup_seconds: <int>        # Context gathering time — profitability gate
+  T2_ai_latency_seconds: <int>   # Model response wait
+  T3_review_seconds: <int>       # Human validation + filtering time
+delta_velocity_score: <1-5>
+characterization_diff: |         # What the brain said vs. what the code actually does
+  Expected: ...
+  Observed: ...
+human_intervention_log:          # Corrections human made to prevent breaking 575-test suite
+  - gap: <description>
+    correction: <what human had to add/change>
+```
+
+> `context_id` using `git rev-parse HEAD` at time of baseline — allows exact reproduction post-migration.
+
+#### warnings.md — 4 Concrete BRAIN-FEED Poisoning Patterns
+
+These patterns go into each brain's `warnings.md` as rejection rules:
+
+1. **Stack Hallucination** — brain suggests library not in root `uv.lock` or `pnpm-lock.yaml`
+   - Rule: `PROHIBITED: Suggesting external dependencies not declared in the root lockfile.`
+
+2. **Toil-Inducer** — suggests manual steps (direct DB changes, SSH, manual file edits) instead of code
+   - Rule: `ANTI-PATTERN: Any recommendation requiring manual production access is an architecture failure.`
+
+3. **Security Bypass** — suggests hardcoded credentials, plain-text secrets, or disabled auth in any context including test examples
+   - Rule: `BLOCKER: Never suggest hardcoded credentials, not even in test examples.`
+
+4. **Legacy Drift** — ignores existing tests in `tests/integration/` or `tests/api/`, proposes changes that break existing contracts
+   - Rule: `PROHIBITED: Proposals that invalidate existing test contracts without explicit migration plan.`
+
+#### Oracle Pattern for Adversarial Smoke Tests (Phase 11 preview)
+A rejection is valid ONLY if the agent cites the specific source of the constraint:
+
+```
+Rejected: [Specific library/pattern] violates Stack Lock.
+Source: global-protocol.md > Stack Hard-Lock | brain-NN-domain/warnings.md > [pattern name]
+```
+
+Generic rejections ("I don't think that's a good idea") = **Rating 2 max** — no citation = no proof of identity.
+
+</brain_synthesis>
+
 <deferred>
 ## Deferred Ideas
 
@@ -160,3 +254,4 @@ Agents read notebook IDs from `.claude/skills/mm/brain-context/references/brain-
 
 *Phase: 09-baselines-agent-authoring*
 *Context gathered: 2026-03-27*
+*Brain consultation (Momento 2): 2026-03-27 — Brain #1 + Brain #6*
