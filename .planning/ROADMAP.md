@@ -87,7 +87,12 @@ Plans:
 3. The global BRAIN-FEED.md contains zero entries that belong to a single brain's domain (validated by manual review)
 4. Feed file paths in all 7 agent system prompts from Phase 09 exactly match the filenames created in this phase
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Verification scripts (Wave 0) + Engineering Niche feeds (#4 Frontend + #5 Backend + #6 QA) + smoke test
+- [ ] 10-02-PLAN.md — Strategy Niche feeds (#1 Product + #2 UX + #3 UI + #7 Growth) + Brain #8 validation
+- [ ] 10-03-PLAN.md — Global BRAIN-FEED.md cleanup + purity linter pass + human verification
 
 ---
 
