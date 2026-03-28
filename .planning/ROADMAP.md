@@ -56,13 +56,20 @@ See full details: `.planning/milestones/v2.1-ROADMAP.md`
 **Requirements**: BASE-01, BASE-02, AGT-01, AGT-02, AGT-03, FEED-02, FEED-03
 
 **Success Criteria** (what must be TRUE):
-1. `docs/baselines/consultation-baseline-01..05.md` exist with timestamps that predate any `.claude/agents/` file — the git history proves measurement before migration
-2. Each baseline record includes all 4 metrics from BASE-02 schema (time-per-consultation, gap-count, re-consultation-count, quality-rating 1-5)
-3. `.claude/agents/mm/brain-NN-*.md` exists for all 7 brains — each file's system prompt reads both feeds before querying NotebookLM (FEED-02 embedded), writes only to its own domain feed (FEED-03 embedded), and includes [CORRECTED ASSUMPTIONS] for the specific locked stack
-4. Each brain has a corresponding `evaluation-criteria.md` with a concrete, domain-specific quality gate (not generic "is it relevant?")
-5. Each brain has a corresponding `anti-patterns.md` with rejection cases drawn from real past BRAIN-FEED poisoning examples
+1. `tests/baselines/baseline-01..05.md` exist with git timestamps that predate any `.claude/agents/mm/` file — the git history proves measurement before migration
+2. Each baseline record includes the full BASE-02 schema: context_id, brain_feed_snapshot, cognitive_trace (T1/T2/T3), delta_velocity_score (1-5), characterization_diff, human_intervention_log
+3. `.claude/agents/mm/brain-NN-domain/brain-NN-domain.md` exists for all 7 brains — each file's system prompt reads both feeds before querying NotebookLM (FEED-02), writes only to its own domain feed (FEED-03), and includes domain-specific [CORRECTED ASSUMPTIONS]
+4. Each brain has a `criteria.md` with observable Rating 3 vs Rating 4 distinction (not generic quality statement)
+5. Each brain has a `warnings.md` with all 4 universal poisoning patterns + domain-specific rejections
+6. Agent executes protocol in <20% of human T1 time (T1 < 300s = profitable threshold from Brain #1)
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Baseline schema + 5 baseline records (tests/baselines/)
+- [ ] 09-02-PLAN.md — global-protocol.md + Brain Bundles #1 (Product) + #2 (UX)
+- [ ] 09-03-PLAN.md — Brain Bundles #3 (UI Design) + #4 (Frontend)
+- [ ] 09-04-PLAN.md — Brain Bundles #5 (Backend) + #6 (QA) + #7 (Evaluator)
 
 ---
 
@@ -132,10 +139,10 @@ See full details: `.planning/milestones/v2.1-ROADMAP.md`
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
 | 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
-| 9. Baselines + Agent Authoring | v2.2 | 0/TBD | Not started | - |
+| 9. Baselines + Agent Authoring | v2.2 | 0/4 | Not started | - |
 | 10. BRAIN-FEED Split | v2.2 | 0/TBD | Not started | - |
 | 11. Smoke Tests | v2.2 | 0/TBD | Not started | - |
 | 12. Parallel Dispatch + Command Update | v2.2 | 0/TBD | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-27 — v2.2 phases 09-12 added*
+*Roadmap updated: 2026-03-28 — Phase 09 planned (4 plans, 3 waves)*
