@@ -1,10 +1,11 @@
 ---
 phase: 09
 slug: baselines-agent-authoring
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: compliant
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-28
+audited: 2026-03-28
 ---
 
 # Phase 09 — Validation Strategy
@@ -38,20 +39,20 @@ created: 2026-03-28
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 09-W0-schema | W0 | 0 | BASE-02 | structural | `grep -c "context_id\|T1_setup_seconds\|delta_velocity_score" tests/baselines/baseline-schema.md` (expect >= 3) | ❌ W0 | ⬜ pending |
-| 09-W0-b1 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-01*.md` | ❌ W0 | ⬜ pending |
-| 09-W0-b2 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-02*.md` | ❌ W0 | ⬜ pending |
-| 09-W0-b3 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-03*.md` | ❌ W0 | ⬜ pending |
-| 09-W0-b4 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-04*.md` | ❌ W0 | ⬜ pending |
-| 09-W0-b5 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-05*.md` | ❌ W0 | ⬜ pending |
-| 09-W0-count | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-0*.md \| wc -l` (expect 5) | ❌ W0 | ⬜ pending |
-| 09-W1-protocol | W1 | 1 | AGT-01 | structural | `ls .claude/agents/mm/global-protocol.md` | ❌ W1 | ⬜ pending |
-| 09-W1-agents | W1+ | 1 | AGT-01 | structural | `find .claude/agents/mm -name "brain-0*.md" \| wc -l` (expect 7) | ❌ W1 | ⬜ pending |
-| 09-W1-criteria | W1+ | 1 | AGT-02 | structural | `find .claude/agents/mm -name "criteria.md" \| wc -l` (expect 7) | ❌ W1 | ⬜ pending |
-| 09-W1-warnings | W1+ | 1 | AGT-03 | structural | `find .claude/agents/mm -name "warnings.md" \| wc -l` (expect 7) | ❌ W1 | ⬜ pending |
-| 09-W1-feed2 | W1+ | 1 | FEED-02 | structural | `grep -l "BRAIN-FEED.md" .claude/agents/mm/brain-*/brain-*.md \| wc -l` (expect 7) | ❌ W1 | ⬜ pending |
-| 09-W1-feed3 | W1+ | 1 | FEED-03 | structural | `grep -l "BRAIN-FEED-.*-" .claude/agents/mm/brain-*/brain-*.md \| wc -l` (expect 7) | ❌ W1 | ⬜ pending |
-| 09-timestamp | ALL | gate | BASE-01 | git | `git log --diff-filter=A --name-only --format="" -- "tests/baselines/*.md" ".claude/agents/mm/**/*.md"` (baselines first) | manual | ⬜ pending |
+| 09-W0-schema | W0 | 0 | BASE-02 | structural | `grep -c "context_id\|T1_setup_seconds\|delta_velocity_score" tests/baselines/baseline-schema.md` (expect >= 3) | ✅ | ✅ green |
+| 09-W0-b1 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-01*.md` | ✅ | ✅ green |
+| 09-W0-b2 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-02*.md` | ✅ | ✅ green |
+| 09-W0-b3 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-03*.md` | ✅ | ✅ green |
+| 09-W0-b4 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-04*.md` | ✅ | ✅ green |
+| 09-W0-b5 | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-05*.md` | ✅ | ✅ green |
+| 09-W0-count | W0 | 0 | BASE-01 | structural | `ls tests/baselines/baseline-0*.md \| wc -l` (expect 5) → got 5 | ✅ | ✅ green |
+| 09-W1-protocol | W1 | 1 | AGT-01 | structural | `ls .claude/agents/mm/global-protocol.md` | ✅ | ✅ green |
+| 09-W1-agents | W1+ | 1 | AGT-01 | structural | `find .claude/agents/mm -name "brain-0*.md" \| wc -l` (expect 7) → got 7 | ✅ | ✅ green |
+| 09-W1-criteria | W1+ | 1 | AGT-02 | structural | `find .claude/agents/mm -name "criteria.md" \| wc -l` (expect 7) → got 7 | ✅ | ✅ green |
+| 09-W1-warnings | W1+ | 1 | AGT-03 | structural | `find .claude/agents/mm -name "warnings.md" \| wc -l` (expect 7) → got 7 | ✅ | ✅ green |
+| 09-W1-feed2 | W1+ | 1 | FEED-02 | structural | `grep -l "BRAIN-FEED.md" .claude/agents/mm/brain-*/brain-*.md \| wc -l` (expect 7) → got 7 | ✅ | ✅ green |
+| 09-W1-feed3 | W1+ | 1 | FEED-03 | structural | `grep -l "BRAIN-FEED-.*-" .claude/agents/mm/brain-*/brain-*.md \| wc -l` (expect 7) → got 7 | ✅ | ✅ green |
+| 09-timestamp | ALL | gate | BASE-01 | git | baselines 20:56+21:01 predate agents 21:21+ — verified 2026-03-28 | manual ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -84,11 +85,22 @@ created: 2026-03-28
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s (structural), < 120s (regression)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s (structural), < 120s (regression)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** 2026-03-28
+
+---
+
+## Validation Audit 2026-03-28
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+| All checks | ✅ 13/13 green |
