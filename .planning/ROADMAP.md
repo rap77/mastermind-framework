@@ -139,7 +139,7 @@ Plans:
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
 | 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
-| 9. Baselines + Agent Authoring | 1/4 | In Progress|  | - |
+| 9. Baselines + Agent Authoring | 3/4 | In Progress|  | - |
 | 10. BRAIN-FEED Split | v2.2 | 0/TBD | Not started | - |
 | 11. Smoke Tests | v2.2 | 0/TBD | Not started | - |
 | 12. Parallel Dispatch + Command Update | v2.2 | 0/TBD | Not started | - |

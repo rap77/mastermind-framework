@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Brain Agents
 status: executing
-stopped_at: "09-02-PLAN.md complete — global-protocol.md + Brain Bundles #1 and #2 committed"
-last_updated: "2026-03-28T01:34:26.473Z"
-last_activity: 2026-03-28 — Plan 09-01 complete, tests/baselines/ created (schema + 5 records)
+stopped_at: "09-04-PLAN.md complete — Brain Bundles #5 (Backend), #6 (QA/DevOps), #7 (Growth/Data Evaluator) authored"
+last_updated: "2026-03-28T02:30:00.000Z"
+last_activity: 2026-03-28 — Plan 09-04 complete, 9 files created (brains #5 #6 #7 bundles)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 5
+  completed_plans: 4
+  percent: 10
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 09 of 12 (Baselines + Agent Authoring)
-Plan: 1 complete (baselines authored)
+Plan: 4 complete (09-01 baselines, 09-02 global+brains #1+#2, 09-03 brains #3+#4, 09-04 brains #5+#6+#7)
 Status: In progress
-Last activity: 2026-03-28 — Plan 09-01 complete, tests/baselines/ created (schema + 5 records)
+Last activity: 2026-03-28 — Plan 09-04 complete, Brain Bundles #5 #6 #7 authored (9 files)
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [██░░░░░░░░] 10%
 
 ## Performance Metrics
 
@@ -65,6 +65,9 @@ Key v2.2 architecture decisions (full log in PROJECT.md):
 - [Phase 09-02]: global-protocol.md is a reference document (not system prompt) — agents read and obey it, no inline duplication
 - [Phase 09-02]: 6-step protocol embedded as first-person identity ('Before I form any opinion...') not step-list checklist
 - [Phase 09-02]: Output Format section added to both agents — prevents free-text prose causing information leaks (lesson from baseline 04)
+- [Phase 09-04]: Brain #7 dispatch constraint wording locked — 'ALWAYS dispatched AFTER domain brains (#1-#6) complete. If no domain context, request from orchestrator before evaluating.'
+- [Phase 09-04]: Brain #7 uses [CROSS-DOMAIN REALITY] block (not [IMPLEMENTED REALITY]) — synthesizes domain agent outputs from orchestrator context
+- [Phase 09-04]: Brain #7 warnings.md has Domain Misfire + False Approval as primary anti-patterns — evaluator identity enforced at criteria level
 
 ### Pending Todos
 
@@ -84,8 +87,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T01:34:26.471Z
-Stopped at: 09-02-PLAN.md complete — global-protocol.md + Brain Bundles #1 and #2 committed
+Last session: 2026-03-28T02:30:00.000Z
+Stopped at: 09-04-PLAN.md complete — Brain Bundles #5 (Backend), #6 (QA/DevOps), #7 (Growth/Data Evaluator) committed
 Resume file: None
 
-Next command: `/gsd:plan-phase 09` (Plan 02 — agent authoring)
+Next command: Phase 09 complete when 09-03 also completes — then `/gsd:plan-phase 10` (BRAIN-FEED Split)
