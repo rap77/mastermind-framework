@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Brain Agents
-status: in_progress
-stopped_at: "09-01-PLAN.md complete — 6 baseline files committed, BASE-01/BASE-02 done"
-last_updated: "2026-03-28T01:05:11Z"
-last_activity: 2026-03-28 — Phase 09 Plan 01 complete, tests/baselines/ created (6 files)
+status: executing
+stopped_at: "09-02-PLAN.md complete — global-protocol.md + Brain Bundles #1 and #2 committed"
+last_updated: "2026-03-28T01:34:26.473Z"
+last_activity: 2026-03-28 — Plan 09-01 complete, tests/baselines/ created (schema + 5 records)
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 4
+  completed_plans: 2
   percent: 5
 ---
 
@@ -47,6 +47,7 @@ Progress: [█░░░░░░░░░] 5%
 | 10 BRAIN-FEED Split | TBD | Not started |
 | 11 Smoke Tests | TBD | Not started |
 | 12 Parallel Dispatch + Command Update | TBD | Not started |
+| Phase 09 P02 | 25 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,9 @@ Key v2.2 architecture decisions (full log in PROJECT.md):
 - [v2.2 design]: Global BRAIN-FEED.md is read-only for agents — only orchestrator writes post-synthesis
 - [v2.2 risk]: MCP tool inheritance to subagents is MEDIUM confidence — verify on first AGT-04 smoke test
 - [v2.2 risk]: Notebook ID embedding vs brain-selection.md reference — decide before Phase 09 authoring
+- [Phase 09-02]: global-protocol.md is a reference document (not system prompt) — agents read and obey it, no inline duplication
+- [Phase 09-02]: 6-step protocol embedded as first-person identity ('Before I form any opinion...') not step-list checklist
+- [Phase 09-02]: Output Format section added to both agents — prevents free-text prose causing information leaks (lesson from baseline 04)
 
 ### Pending Todos
 
@@ -80,8 +84,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28
-Stopped at: 09-01-PLAN.md complete — tests/baselines/ created, BASE-01/BASE-02 requirements met
+Last session: 2026-03-28T01:34:26.471Z
+Stopped at: 09-02-PLAN.md complete — global-protocol.md + Brain Bundles #1 and #2 committed
 Resume file: None
 
 Next command: `/gsd:plan-phase 09` (Plan 02 — agent authoring)
