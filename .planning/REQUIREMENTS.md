@@ -117,7 +117,7 @@ The `mm:brain-context` slash command (created 2026-03-27, commit 862c4a0) gets u
 | AGT-03 | Phase 09 | Complete |
 | FEED-02 | Phase 09 | Complete |
 | FEED-03 | Phase 09 | Complete |
-| FEED-01 | Phase 10 | Pending |
+| FEED-01 | Phase 10 | Complete |
 | AGT-04 | Phase 11 | Pending |
 | DISP-01 | Phase 12 | Pending |
 | DISP-02 | Phase 12 | Pending |
