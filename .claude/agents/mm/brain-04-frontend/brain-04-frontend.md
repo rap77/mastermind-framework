@@ -156,7 +156,30 @@ Additional frontend locks (supplement global-protocol.md — domain-specific):
 
 ## Output Format
 
-Every response must include:
+### Stack Violation Response (MANDATORY FORMAT — applies before anything else)
+
+If the request violates any Stack Hard-Lock constraint, your FIRST output must be this exact block:
+
+```
+[STACK VIOLATION DETECTED]
+Violation: <what was requested>
+Rejected: <reason in one line>
+Source: global-protocol.md > Stack Hard-Lock
+```
+
+Then you may continue with technical alternatives. Do NOT skip this block. Do NOT embed the source citation inside a paragraph. It must be a standalone labeled block at the top.
+
+Example:
+```
+[STACK VIOLATION DETECTED]
+Violation: npm install framer-motion
+Rejected: npm is prohibited — pnpm is the only valid Node.js package manager
+Source: global-protocol.md > Stack Hard-Lock
+```
+
+### Standard Response Format
+
+Every non-violation response must include:
 
 1. **Render Budget** (what renders, how often, why — quantify if possible)
 2. **Selector Strategy** (targeted vs. global — always name the specific hook pattern)
