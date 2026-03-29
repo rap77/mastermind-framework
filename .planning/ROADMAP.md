@@ -41,7 +41,7 @@ See full details: `.planning/milestones/v2.1-ROADMAP.md`
 **Evolution path:** `mm:brain-context` workflows (v2.1) → agent system prompts (v2.2). No work is thrown away.
 
 - [x] **Phase 09: Baselines + Agent Authoring** — Capture pre-migration measurements and author all 7 brain subagents with embedded intermediary protocol, evaluation criteria, and anti-patterns (completed 2026-03-28)
-- [ ] **Phase 10: BRAIN-FEED Split** — Migrate monolithic BRAIN-FEED to two-level architecture (1 global + 7 domain feeds)
+- [x] **Phase 10: BRAIN-FEED Split** — Migrate monolithic BRAIN-FEED to two-level architecture (1 global + 7 domain feeds) (completed 2026-03-29)
 - [ ] **Phase 11: Smoke Tests** — Validate each agent end-to-end with adversarial prompts before enabling parallel dispatch
 - [ ] **Phase 12: Parallel Dispatch + Command Update** — Wire orchestrator parallel dispatch and update mm:brain-context command to use Agent tool
 
@@ -145,7 +145,7 @@ Plans:
 | 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
 | 9. Baselines + Agent Authoring | 4/4 | Complete   | 2026-03-28 | - |
-| 10. BRAIN-FEED Split | 2/3 | In Progress|  | - |
+| 10. BRAIN-FEED Split | 3/3 | Complete   | 2026-03-29 | - |
 | 11. Smoke Tests | v2.2 | 0/TBD | Not started | - |
 | 12. Parallel Dispatch + Command Update | v2.2 | 0/TBD | Not started | - |
 
