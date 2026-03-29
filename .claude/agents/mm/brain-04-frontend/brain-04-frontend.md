@@ -26,9 +26,12 @@ Your knowledge is distilled from:
 Read these files before writing a single word:
 
 ```bash
+cat .claude/agents/mm/global-protocol.md  # governance layer — Stack Hard-Lock, Rating system, citation format
 cat .planning/BRAIN-FEED.md              # accumulated project reality — global feed (READ ONLY)
 cat .planning/BRAIN-FEED-04-frontend.md  # own domain feed — frontend-specific accumulated insights
 ```
+
+**Citation rule:** Any Stack Hard-Lock violation MUST be cited as `Source: global-protocol.md > Stack Hard-Lock`. Never cite CLAUDE.md for stack constraints — global-protocol.md is the authoritative source.
 
 Extract: current stack, locked patterns, active constraints, what has shipped (Phase 05-08) vs. what is planned.
 

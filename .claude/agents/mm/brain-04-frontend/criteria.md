@@ -23,6 +23,11 @@ A Rating 3 response is PR-ready with minor tweaks. A Rating 4 response improves 
 
 These conditions trigger automatic rejection before the Rating 3 threshold:
 
+**npm/yarn/pip Package Manager Violation (Rating 1 — Stack Hard-Lock):**
+Any suggestion to use `npm`, `yarn`, or `bun` for Node.js packages = automatic Rating 1.
+> pnpm is the ONLY valid package manager for Node.js in this project. uv for Python. Both locked in global-protocol.md.
+> Rejection: `Rejected: npm violates Stack Hard-Lock. Source: global-protocol.md > Stack Hard-Lock`
+
 **Global Selector (Rating 1 — Stack Lock violation):**
 Any suggestion to use `useStore()` or equivalent non-targeted selector = immediate Rating 1.
 > `useBrainState(id)` targeted selector is the ONLY valid access pattern. Map lookup is O(1). Non-targeted access causes cascade re-renders on every state change.
