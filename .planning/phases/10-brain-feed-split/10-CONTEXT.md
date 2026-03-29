@@ -202,6 +202,89 @@ The 3 original anchors are INSUFFICIENT. Brain #2 would give generic SaaS dashbo
 - 12-column grid ❌ not explicitly found in Command Center — aspirational pattern
 - Atomic Design levels ❌ not explicitly enforced — aspirational pattern
 
+### Product Strategy Feed Architecture (Brain #1)
+
+**Roadmap Anchors (v2.x Current State — Maturity Filter):**
+- v2.2 = Brain Agents activo. Cualquier feature nueva debe pasar por la arquitectura de agentes, no ser un script aislado.
+- 4 fases de v2 completadas — sistema maduro. Sugerir EVOLUCIONES, no revoluciones.
+- Horizon visible: v3.0 = Custom Framework, v3.1 = OpenClaw. Filtrar libs externas que bloqueen esa migración.
+- 575 backend tests = activo. Cambio estructural requiere advertencia de ruptura de contrato de tests.
+
+**ICP Hard Constraint (Single-User — Builder IS the User):**
+- Solo un usuario: Rafael. Prohibido sugerir RBAC complejo, comentarios multi-user, flujos de aprobación.
+- Zero onboarding: el usuario construyó el sistema, ya lo conoce.
+- UI de alta densidad: no espacios en blanco innecesarios ni botones "para principiantes".
+- Feature válida solo si reduce T1 O aumenta Delta-Velocity.
+
+**ROI Metric — T1 Reduction primario:**
+- T1 = tiempo desde idea hasta código ejecutable.
+- T1 > 300s = agente-unprofitable = descartar feature.
+- Filtro binario: "¿Me ahorrás tiempo? Si no, no te construyo."
+
+**Anti-patterns (Generic SaaS — bloqueo total):**
+- Prohibido: feature flags, A/B testing, NPS surveys, trial flows, multi-tenant auth, SEO optimization, email marketing, onboarding tours, guided tours.
+- Razón: Mastermind es un arma de ingeniería, no un producto de consumo.
+- Sustituto para cada patrón bloqueado: Delta-Velocity Benchmarking (vs. A/B), local host auth (vs. multi-tenant), keyboard shortcuts (vs. tooltips).
+
+### QA/DevOps Feed Architecture (Brain #6)
+
+**Environment State (Hybrid-Bridge — Full Infra Aware):**
+- Runtime Mapping: código en `//wsl$/Ubuntu/home/...`, permisos de ejecución pueden chocar con filesystem Windows.
+- Network Topology: Docker Desktop corre en VM separada — port mapping entre apps/api (8000) y apps/web (3000) debe ser explícito en docker-compose.yml.
+- Resource Awareness: Acer Predator tiene potencia para múltiples contenedores, pero monitorear vmmem RAM.
+- Cross-OS constraints: `uv` desde apps/api/, `pnpm` desde apps/web/ — paths absolutos, nunca root execution.
+
+**Test Regressions (Baseline Anchors + Delta Threshold):**
+- Health Baseline: 575 backend / 407 frontend (instalación limpia post-Windows 11 reset).
+- Delta Tolerance para Environment Flakiness: Timeout + Connection failures < 2% desde baseline = `wsl --shutdown` o reiniciar Docker, NO tocar código.
+- Hard Failure: errores de Assertion (lógica) = protocolo de corrección de bugs, tolerancia cero.
+- Hybrid rule: Delta threshold se aplica solo a categoría Infraestructura; Lógica tiene tolerancia 0%.
+
+**Deployment Protocol (Exit Codes + Smoke Test — 3 pasos obligatorios):**
+1. `docker compose up -d` → assert exit 0
+2. `curl -f localhost:8000/health` (Backend) + `curl -f localhost:3000` (Frontend) → assert 200
+3. Scan últimas 20 líneas de logs buscando `Traceback` o `Error` ignorado por el proceso principal
+- Regla: "Never assume success without HTTP 200 from the service."
+- Solo si 3/3 pasos pasan → Brain #6 marca deploy como "Verified Successful".
+
+**Toxic Tooling Block (Anti-patterns — rechazo incondicional):**
+| Categoría | Acción Prohibida | Herramienta Correcta |
+|-----------|-----------------|---------------------|
+| Python | `pip install` | `uv add` |
+| Node.js | `npm install` / `yarn` | `pnpm install` |
+| Testing | `pytest .` (root) | `cd apps/api && uv run pytest` |
+| Seguridad | `sudo` sin justificación de infra | Solicitar permiso explícito |
+
+### Growth/Data Feed Architecture (Brain #7)
+
+**Token Efficiency Metric (Context Window Consumption Ratio):**
+- Baseline X = tokens promedio cargados por agente con GLOBAL-FEED monolítico.
+- Post-Split Y = tokens promedio por agente con DOMAIN-FEED + GLOBAL-PURIFIED.
+- Success threshold: Ratio Y/X < 0.7 (reducción ≥ 30% del ruido de contexto).
+- Brain #7 mide este ratio en cada smoke test de Fase 11. Si ratio ≥ 0.7 → "Global Feed sigue con grasa técnica, el split fue insuficiente."
+
+**Velocity Trends (Micro + Macro en paralelo):**
+- **T1 Trend por brain (Micro — Termómetro):** Track T1 individual por brain fase a fase. T1 de Brain #4 subiendo 70s+ → feed de Frontend saturado → refactorizar .md. Baselines documentadas en Fase 09 (T1 210-270s, todos < 300s).
+- **Delta-Velocity por milestone (Macro — Brújula):** DV promedio del sistema por milestone completo. Si DV baja en v2.2 vs v2.1 → la arquitectura de agentes añade más burocracia que valor.
+- **Correlación válida:** T1 sube + DV sube = trade-off aceptable (IA piensa más pero código de mayor calidad).
+- Para Fase 10 específicamente: foco en T1 Trend por brain (validar que el split aislamiento funcionó).
+
+**Regression Protocol (Diagnose-before-escalate):**
+1. **Detección:** monitoreo T1 y DV en tiempo real, transparente.
+2. **Diagnóstico:** clasificar causa — ¿sube T1 en todos los agentes? (ruido WSL2) vs ¿solo en uno? (feed saturado).
+3. **Mitigación:** 2 ciclos de auto-limpieza de feeds/ajuste de prompt. Notificar "Optimización en curso".
+4. **Escalación:** si persiste tras 2 intentos → informe de diagnóstico completo + sugerencia técnica → Rafael decide.
+- Filtrar outliers: ignorar picos aislados < 3 interacciones (evita falsos positivos de procesos background Windows).
+
+**Hard Stop Thresholds (Non-Negotiable):**
+| Estado | Umbral | Acción |
+|--------|--------|--------|
+| Óptimo | T1 < 120s | Flujo continuo |
+| Warning | 120s < T1 < 300s | Auto-limpieza background |
+| CRÍTICO | T1 > 300s OR DV < 1 | Abortar plan + intervención arquitecto |
+- DV < 1 = inversión negativa = se pierde más tiempo corrigiendo al agente que escribiendo a mano.
+- Hard stop congela Fase 11 hasta que el diagnóstico resuelva el cuello de botella.
+
 </brain_enrichment>
 
 <deferred>
@@ -216,4 +299,4 @@ The 3 original anchors are INSUFFICIENT. Brain #2 would give generic SaaS dashbo
 ---
 
 *Phase: 10-brain-feed-split*
-*Context gathered: 2026-03-28 (enriched: Brain #1+#6 discuss-phase, Brain #4+#5 first pass, Brain #2+#3 second pass — all 7 domain feeds covered)*
+*Context gathered: 2026-03-28 (enriched: Brain #4+#5 first pass, Brain #2+#3 second pass, Brain #1+#6+#7 third pass — all 7 domain feeds fully specified with architecture, anti-patterns, and metrics)*
