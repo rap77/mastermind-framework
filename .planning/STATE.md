@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Brain Agents
-status: completed
-stopped_at: Completed 10-03-PLAN.md — Global BRAIN-FEED.md cleanup + purity verification. Phase 10 complete.
-last_updated: "2026-03-29T03:29:52.458Z"
-last_activity: 2026-03-29 — Global BRAIN-FEED.md cleaned (19 bullets), all 3 scripts green, two-level architecture operational
+status: "4 plans created, gsd-plan-checker passed — awaiting Brain #7 approval"
+stopped_at: Completed 11-01-PLAN.md — Wave 0 scaffolding done
+last_updated: "2026-03-29T16:32:43.197Z"
+last_activity: 2026-03-29 — 4 PLAN.md created + BRAIN-FEED.md distilled. Session paused at 81% context.
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 50
+  total_plans: 11
+  completed_plans: 8
+  percent: 63
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 
 ## Current Position
 
-Phase: 10 of 12 (BRAIN-FEED Split) — COMPLETE
-Plan: 10-03 complete — Phase 10 done, Phase 11 next
-Status: Phase 10 complete — 3/3 plans done
-Last activity: 2026-03-29 — Global BRAIN-FEED.md cleaned (19 bullets), all 3 scripts green, two-level architecture operational
+Phase: 11 of 12 (Smoke Tests) — IN PROGRESS
+Plan: 1 of 4 — Wave 0 scaffolding complete
+Status: 11-01 executed, Sentinel Script + synthetic baselines created. Ready for 11-02.
+Last activity: 2026-03-29 — 11-01 executed (2 min). Wave 0 artifacts delivered.
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Phase Status
 
@@ -59,6 +59,7 @@ Progress: [█████░░░░░] 50%
 | Phase 10-brain-feed-split P01 | 3 | 3 tasks | 6 files |
 | Phase 10 P02 | 2 | 2 tasks | 4 files |
 | Phase 10 P03 | 1 min | 2 tasks | 1 files |
+| Phase 11-smoke-tests P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Progress: [█████░░░░░] 50%
 - [10-02 feed]: SYNC pointer [BF-02-001] unidirectional — Brain #3 UI gets pointer to Brain #2 UX ICE threshold, owner file stays clean
 - [10-03 cleanup]: KNOWN_DELETIONS=2 applied in strict mode — Phase 10 self-referential notes deleted (not migrated), conservation law holds at 19 original entries
 - [10-03 cleanup]: Global feed 19 bullets < 20 target — Stack table, Brain Agent Architecture, Delta-Velocity, Implemented Features preserved
+- [11-01 sentinel]: Sentinel Script uses git stash/diff protocol — anchored regex `^\.planning/BRAIN-FEED\.md$` prevents false matches on domain feeds, no-diff is a PASS for adversarial rejections
+- [11-01 synthetic]: Synthetic baselines use exactly ONE anomaly each — T1-400s for Brain #7 Hard Stop detection, PROSE for Structured Output Violation detection
 
 ### Phase 09 Highlights
 
@@ -134,8 +137,8 @@ None. Planning complete, ready to execute.
 
 ## Session Continuity
 
-Last session: 2026-03-29T02:50:15.308Z
-Stopped at: Completed 10-03-PLAN.md — Global BRAIN-FEED.md cleanup + purity verification. Phase 10 complete.
+Last session: 2026-03-29T16:32:43.194Z
+Stopped at: Completed 11-01-PLAN.md — Wave 0 scaffolding done
 Resume file: None
 
-Next command: `/gsd:execute-phase 10` (or run waves manually with --wave flag)
+Next command: `/clear` → `/mm:brain-context 3` → override auto-detect to phase 11 → query Brain #7 → `/gsd:execute-phase 11`
