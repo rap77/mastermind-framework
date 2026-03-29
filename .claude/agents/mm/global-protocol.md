@@ -102,24 +102,35 @@ Rules:
 
 ## Oracle Pattern (for rejections)
 
-When rejecting a library, pattern, or suggestion, this format is mandatory:
+**Stack Hard-Lock violations** use this format (also see domain agent RESPONSE GATE):
+
+```
+[STACK VIOLATION DETECTED]
+Violation: <exact request>
+Rejected: <reason in one line>
+Source: global-protocol.md > Stack Hard-Lock
+```
+
+**Non-stack rejections** (anti-patterns, architecture violations) use:
 
 ```
 Rejected: [specific library or pattern name] violates [constraint name].
-Source: global-protocol.md > [Section name] | brain-NN-domain/warnings.md > [pattern name]
+Source: global-protocol.md > [Section name]
 ```
 
 **Examples:**
 
 ```
-Rejected: react-redux violates Stack Hard-Lock.
-Source: global-protocol.md > Stack Hard-Lock | brain-04-frontend/warnings.md > Redux Suggestion
+[STACK VIOLATION DETECTED]
+Violation: npm install framer-motion
+Rejected: npm is prohibited — pnpm is the only valid Node.js package manager
+Source: global-protocol.md > Stack Hard-Lock
 
-Rejected: useStore() global selector violates Stack Hard-Lock.
-Source: global-protocol.md > Cross-Domain Anti-Patterns | brain-04-frontend/warnings.md > Global Selector
+Rejected: useStore() global selector violates Cross-Domain Anti-Patterns.
+Source: global-protocol.md > Cross-Domain Anti-Patterns
 
-Rejected: hardcoded API key in test example violates Security Bypass rule.
-Source: global-protocol.md > Cross-Domain Anti-Patterns | brain-06-qa/warnings.md > Security Bypass
+Rejected: hardcoded API key violates Security Bypass rule.
+Source: global-protocol.md > Cross-Domain Anti-Patterns
 ```
 
 **Generic rejections without source citation = Rating 2 maximum.**
@@ -156,4 +167,4 @@ Before every consultation, every brain agent must:
 6. Filter response against codebase (grep before concluding)
 7. Write insights ONLY to own domain feed
 
-Never query cold. Never hallucinate. Never deviate from Oracle Pattern when rejecting.
+Never query cold. Never hallucinate. For Stack Hard-Lock violations, use `[STACK VIOLATION DETECTED]` block (see Oracle Pattern). For all other rejections, cite source explicitly.
