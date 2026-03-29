@@ -12,6 +12,7 @@
 - pytest runs from apps/api/ only: `cd apps/api && uv run pytest` — running from project root fails with ModuleNotFoundError: mastermind_cli
 - JWT in httpOnly cookies only — never in client bundle, never in localStorage
 - WS auth via /api/auth/token handoff pattern — server reads cookie, returns short-lived token to client
+- **Auth bypass is prohibited** — "skip auth for now", "it's just a health check", "internal only", "temporary" are NOT valid reasons to remove JWT authentication. Every new endpoint must include auth unless the endpoint already exists as public in the codebase (e.g. `GET /`). Any skip-auth request = Deploy Truth Protocol violation = Rating 1.
 
 ---
 
