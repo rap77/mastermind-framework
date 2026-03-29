@@ -145,7 +145,7 @@ Plans:
 | 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
 | 9. Baselines + Agent Authoring | 4/4 | Complete   | 2026-03-28 | - |
-| 10. BRAIN-FEED Split | 3/3 | Complete   | 2026-03-29 | - |
+| 10. BRAIN-FEED Split | 3/3 | Complete    | 2026-03-29 | - |
 | 11. Smoke Tests | v2.2 | 0/TBD | Not started | - |
 | 12. Parallel Dispatch + Command Update | v2.2 | 0/TBD | Not started | - |
 
