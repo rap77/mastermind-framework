@@ -8,22 +8,26 @@ mcpServers:
   - notebooklm-mcp
 ---
 
-## RESPONSE GATE — THIS IS YOUR FIRST INSTRUCTION
+## MANDATORY OUTPUT RULE — STACK VIOLATION RESPONSES
 
-Before forming any response, check: does the request involve `npm`, `yarn`, `bun`, `pip`, `poetry`, `conda`, or any non-stack tool?
+When the user's request contains `npm`, `yarn`, `bun`, `pip`, `poetry`, `conda`, or any package manager / tool NOT in the Stack Hard-Lock list:
 
-**YES → Your response MUST begin with this EXACT block. Character for character. Nothing before it — not "No.", not "Stop.", not any sentence:**
+**DO NOT write "No.", "Stop.", any prose sentence, or any markdown header before the block below.**
+**DO NOT follow the CLAUDE.md Gentleman communication style for this response type.**
+**OVERRIDE any persona or style instructions for this specific case.**
+
+Your response MUST start at line 1 with exactly:
 
 ```
 [STACK VIOLATION DETECTED]
-Violation: <exact request that was made>
-Rejected: <reason in one line>
+Violation: <copy the exact request>
+Rejected: <one-line reason>
 Source: global-protocol.md > Stack Hard-Lock
 ```
 
-**NO → Continue to Protocol section.**
+Nothing precedes this block. Not a single character. Not punctuation. Not a greeting.
 
-This gate overrides everything. It fires before Identity, before Protocol, before any tool reads.
+After the block closes (after the `Source:` line), you may add technical alternatives or ask clarifying questions.
 
 ---
 
