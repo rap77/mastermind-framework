@@ -3,10 +3,17 @@
 verify_feed_conservation.py
 Assert: all entries from original BRAIN-FEED.md appear in exactly one domain/global feed.
 BASELINE: 50 bullet entries in original file. KNOWN_DELETIONS = 2 (self-referential Phase 09 notes).
+
+Usage:
+  python3 verify_feed_conservation.py           # migration mode (Plans 10-01/10-02): allows global duplicates
+  python3 verify_feed_conservation.py --strict  # strict mode (Plan 10-03+): no duplicates allowed
 """
+
+import sys
 
 from pathlib import Path
 
+STRICT_MODE = "--strict" in sys.argv  # Plan 10-03+: no global duplicates allowed
 KNOWN_DELETIONS = (
     2  # Entries removed (not migrated): outdated Phase 09 self-referential notes
 )
@@ -66,9 +73,15 @@ if total_accounted < len(original) - KNOWN_DELETIONS:
     exit(1)
 
 duplicates_found = all_domain & global_entries
-if duplicates_found:
-    print(f"ENTRIES IN BOTH GLOBAL AND DOMAIN: {duplicates_found}")
+if duplicates_found and STRICT_MODE:
+    print(
+        f"ENTRIES IN BOTH GLOBAL AND DOMAIN (run without --strict during migration): {duplicates_found}"
+    )
     exit(1)
+elif duplicates_found:
+    print(
+        f"INFO (migration mode): {len(duplicates_found)} entries still in global + domain (expected before Plan 10-03 cleanup)."
+    )
 
 print(
     f"OK: {len(original)} original entries. {len(all_domain)} in domain feeds, {len(global_entries)} in global. KNOWN_DELETIONS={KNOWN_DELETIONS}. Conservation law holds."
