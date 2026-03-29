@@ -4,7 +4,7 @@
 > Two-level architecture: this global feed (cross-domain) + 7 domain feeds (BRAIN-FEED-NN-domain.md).
 > Global feed: product decisions, UX decisions, milestones affecting ALL 7 brains equally. Zero technical entries.
 > Domain feeds: see .planning/BRAIN-FEED-NN-domain.md for each brain's domain-specific patterns.
-> Last updated: 2026-03-28 after Phase 10 (BRAIN-FEED Split)
+> Last updated: 2026-03-29 after Phase 10 (BRAIN-FEED Split) — feed distillation complete
 
 ---
 
@@ -66,6 +66,8 @@ Prevents brains from suggesting what's already built:
 | Engine Room (Phase 08) | `apps/web/src/app/engine-room/` | Phase 08 — see git history |
 | Brain Agent Bundles | `.claude/agents/mm/` | 7 brain bundles × 3 files + global-protocol.md (22 files) |
 | Baseline anchors | `tests/baselines/` | baseline-schema.md + 5 pre-migration measurement records |
+| Domain Feed Files | `.planning/BRAIN-FEED-NN-domain.md` (7 files) | One per brain (#1–#7). Global feed = cross-domain only |
+| Feed Verification Scripts | `.planning/verify_feed_*.py` (3 scripts) | conservation law, path existence, global purity — do not recreate |
 
 ---
 
@@ -77,10 +79,18 @@ Hard limits that brains must respect:
 - **Brain #7 dispatch order** — ALWAYS after domain brains complete, never concurrent
 - **No notebook IDs in agent files** — decouple via `brain-selection.md`, prevents 7-file re-edit when IDs change
 - **Structured output required in all brain agent responses** — free-text prose causes information leaks across multi-brain chains (proven in baseline 04: cascade re-run added 50s to T3)
+- **Domain feeds are READ-ONLY for agents** — agents consume feeds, never write. Any modification = CRITICAL FAIL. Cross-domain insight → add `[PROPOSAL: GLOBAL]` tag in own domain feed, never edit another feed directly
 
 ---
 
 ## Phase Learnings
+
+### Phase 10 — BRAIN-FEED Split
+Key discoveries:
+- **Two-level architecture sealed**: global = product/UX/milestone cross-domain ONLY (19 bullets, < 20 target). All technical content lives in domain feeds. If a brain suggests adding technical entries to global — reject.
+- **SYNC pointer format**: `[SYNC: BF-NN-ID]` — unidirectional cross-reference. Owner file is the authority; receiving file gets the pointer, never a backlink. Format: `[SYNC: BF-05-001]` = Brain #5 owns it, Brain #4 just references it.
+- **Hormozi filter for Strategic Anchors**: valid anchor = increases success probability OR reduces effort for the consuming brain. Brain #8 in meta-evaluator mode applies this filter. If an anchor fails both criteria — reject.
+- **Append-only feed updates**: never delete existing entries in domain feeds. Prepend new sections above existing content. Canary check: verify previous entries still present after any update.
 
 ### Phase 09 — Baselines + Agent Authoring
 Key discoveries:
@@ -98,3 +108,4 @@ Key discoveries:
 | Free-text prose in brain output | Information leak across multi-brain chain — Brain #7 receives garbage | Structured Output Format section in every agent |
 | Notebook IDs hardcoded in agent files | Re-edit 7 files when IDs change | Reference `brain-selection.md` as single source of truth |
 | Brain #7 dispatched in parallel with domain brains | Evaluates without seeing domain outputs — useless | Always dispatch AFTER domain brains complete |
+| Agent modifying a domain feed file | Corrupts conservation law — verification scripts will fail | Read-only consumption; cross-domain insights → `[PROPOSAL: GLOBAL]` tag only |
