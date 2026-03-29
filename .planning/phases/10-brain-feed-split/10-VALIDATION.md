@@ -1,89 +1,60 @@
-# Phase 10 — Brain #7 Validation Result
-
-**Date:** 2026-03-28
-**Moment:** 3 — After PLAN.md, before execute
-**Brain:** #7 (Growth/Data) — Systems Thinking & Evaluation
-**Notebook:** d8de74d6-7028-44ed-b4d5-784d6a9256e6
-**Conversation ID:** 85ccb4ec-8933-40f1-9c11-d65bd00c3b17
-
+---
+phase: 10
+slug: brain-feed-split
+status: compliant
+nyquist_compliant: true
+audited: 2026-03-29
 ---
 
-## Final Verdict
+# Phase 10 — Nyquist Validation
 
-**APPROVED** ✅
+## Test Infrastructure
 
-Conditions list: Empty (all gaps resolved in iteration 1)
+| Framework | Config | Command |
+|-----------|--------|---------|
+| Python scripts | `.planning/verify_*.py` | `uv run python .planning/verify_feed_conservation.py --strict` |
+| Python scripts | `.planning/verify_*.py` | `uv run python .planning/verify_feed_paths.py` |
+| Python scripts | `.planning/verify_*.py` | `uv run python .planning/verify_global_purity.py` |
 
----
+## Per-Task Map
 
-## Iteration History
+| Task | Requirement | Test File | Status |
+|------|-------------|-----------|--------|
+| 10-01 T1: Verification scripts | FEED-01 | `verify_feed_conservation.py` | ✓ COVERED |
+| 10-01 T2: Engineering feeds (#4/#5/#6) | FEED-01 | `verify_feed_paths.py` | ✓ COVERED |
+| 10-01 T3: Smoke test | FEED-01 | `verify_feed_conservation.py --strict` | ✓ COVERED |
+| 10-02 T1: Brain #8 validation | FEED-01 | (reasoning step — manual) | MANUAL |
+| 10-02 T2: Strategy feeds (#1/#2/#3/#7) | FEED-01 | `verify_feed_paths.py` (7/7 exits 0) | ✓ COVERED |
+| 10-03 T1: Global cleanup | FEED-01 | `verify_global_purity.py` + `--strict` | ✓ COVERED |
+| 10-03 T2: Human verification | FEED-01 | All 3 scripts green | ✓ COVERED |
 
-### Iteration 1 — APPROVED_WITH_CONDITIONS → Iteration
+## Verification Run (2026-03-29)
 
-**Concerns raised (3):**
-
-1. **Planning Fallacy in 10-01:** Smoke test lacks quantitative success criteria
-2. **Systems Thinking risk:** 10-02 depends on 10-01 scripts that might partition data (misunderstanding)
-3. **Omission Bias in 10-03:** No pre-mortem for context loss scenario
-
-### Iteration 2 — APPROVED
-
-**Clarifications provided:**
-- Scripts in 10-01 are VERIFICATION only (conservation, paths, purity) — NOT partitioning
-- Partition is MANUAL via classification table in `<interfaces>`
-- `depends_on: ["10-01"]` only ensures verification scripts exist before creating feeds
-
-**Gaps resolved (2):**
-
-1. ✅ **Plan 10-01 Task 3** — Updated with quantitative criteria:
-   - `verify_feed_conservation.py` exits 0 (100% bullet preservation)
-   - SYNC pointers detected: `grep -c "[SYNC: BF-" .planning/BRAIN-FEED-0*.md` returns 5+
-   - All 3 Engineering brains (#4, #5, #6) documented with PASS/FAIL
-
-2. ✅ **Plan 10-03 Task 1** — Added pre-mortem section:
-   - Scenario: Split causes Brain #7 to lose critical cross-domain context
-   - Prevention: "Would Brain #1 need this? Would Brain #7 need this?" test before deletion
-   - Working backwards from failure mode
-
----
-
-## Key Insights from Brain #7
-
-**Models Applied:**
-- Planning Fallacy (subestimation de tiempos)
-- Omission Bias (falta de protocolo de rollback)
-- Systems Thinking (feedback loops entre planes)
-- Inversion (pre-mortem: "¿qué garantiza el fracaso?")
-- Margin of Safety (verificación antes de proceeding)
-
-**Critical Patterns:**
-- Verify scripts are load-bearing (conservation law, path existence, purity)
-- Manual classification requires expert judgment — not automation
-- Quantitative criteria transform subjective validation into precision measurement
-- Pre-mortem prevents second-order effects in complex system changes
-
----
-
-## Changes Made to Plans
-
-| Plan | Task | Change |
-|------|------|--------|
-| 10-01 | Task 3 | Added quantitative success criteria to `<done>` section |
-| 10-03 | Task 1 | Added `<premortem>` exercise before cleanup action |
-
----
-
-## Ready to Execute
-
-All 3 plans verified and approved by Brain #7. Proceed with:
-
-```bash
-/gsd:execute-phase 10
+```
+verify_feed_conservation.py --strict → OK: 19 original entries. 73 in domain feeds, 19 in global. KNOWN_DELETIONS=2. Conservation law holds.
+verify_feed_paths.py                 → OK: 7 feed file references — all paths exist.
+verify_global_purity.py              → PASS (silent — zero domain vocabulary)
+Global feed bullets: 19 (< 20 target) ✓
 ```
 
-Or execute waves individually:
-```bash
-/gsd:execute-phase 10 --wave 1  # Engineering Niche
-/gsd:execute-phase 10 --wave 2  # Strategy Niche
-/gsd:execute-phase 10 --wave 3  # Global consolidation
-```
+## Manual-Only
+
+| Item | Reason |
+|------|--------|
+| Brain #8 validation (anchors quality) | Requires NotebookLM query — Phase 11 smoke tests validate end-to-end |
+
+## Sign-Off
+
+**Nyquist compliant:** ✓ — All automated requirements covered by verification scripts.
+**Manual items:** 1 (Brain #8 anchor quality — scoped to Phase 11 smoke tests).
+**FEED-01:** SATISFIED.
+
+---
+
+## Brain #7 Plan Validation (Momento 3 — pre-execute)
+
+*Original validation record preserved below for traceability.*
+
+**Date:** 2026-03-28 | **Verdict:** APPROVED ✅ (2 iterations)
+**Gaps resolved:** Quantitative smoke test criteria (10-01 T3) + Pre-mortem added (10-03 T1)
+**Models applied:** Planning Fallacy, Omission Bias, Systems Thinking, Inversion, Margin of Safety
