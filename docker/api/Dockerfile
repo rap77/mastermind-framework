@@ -36,9 +36,9 @@ USER mastermind
 ENV MM_DB_PATH=/app/data/mastermind.db
 ENV PATH="/app/.venv/bin:$PATH"
 
-EXPOSE 8000
+EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD uv run mastermind-cli --version || exit 1
 
-CMD ["uvicorn", "mastermind_cli.api.app:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "mastermind_cli.api.app:get_app", "--factory", "--host", "0.0.0.0", "--port", "8001"]
