@@ -153,7 +153,7 @@ Plans:
 | 9. Baselines + Agent Authoring | v2.2 | 4/4 | ✅ Complete | 2026-03-28 |
 | 10. BRAIN-FEED Split | v2.2 | 3/3 | ✅ Complete | 2026-03-29 |
 | 11. Smoke Tests | v2.2 | TBD | In Progress | - |
-| 12. Parallel Dispatch + Command Update | v2.2 | 0/4 | Not started | - |
+| 12. Parallel Dispatch + Command Update | 2/4 | In Progress|  | - |
 
 ---
 *Roadmap updated: 2026-03-30 — Phase 12 planned (4 plans, 3 waves)*
