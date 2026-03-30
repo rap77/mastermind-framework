@@ -43,7 +43,7 @@ See full details: `.planning/milestones/v2.1-ROADMAP.md`
 - [x] **Phase 09: Baselines + Agent Authoring** — Capture pre-migration measurements and author all 7 brain subagents with embedded intermediary protocol, evaluation criteria, and anti-patterns (completed 2026-03-28)
 - [x] **Phase 10: BRAIN-FEED Split** — Migrate monolithic BRAIN-FEED to two-level architecture (1 global + 7 domain feeds) (completed 2026-03-29)
 - [ ] **Phase 11: Smoke Tests** — Validate each agent end-to-end with adversarial prompts before enabling parallel dispatch
-- [ ] **Phase 12: Parallel Dispatch + Command Update** — Wire orchestrator parallel dispatch and update mm:brain-context command to use Agent tool
+- [x] **Phase 12: Parallel Dispatch + Command Update** — Wire orchestrator parallel dispatch and update mm:brain-context command to use Agent tool (completed 2026-03-30)
 
 ## Phase Details
 
@@ -153,7 +153,7 @@ Plans:
 | 9. Baselines + Agent Authoring | v2.2 | 4/4 | ✅ Complete | 2026-03-28 |
 | 10. BRAIN-FEED Split | v2.2 | 3/3 | ✅ Complete | 2026-03-29 |
 | 11. Smoke Tests | v2.2 | TBD | In Progress | - |
-| 12. Parallel Dispatch + Command Update | 2/4 | In Progress|  | - |
+| 12. Parallel Dispatch + Command Update | 4/4 | Complete   | 2026-03-30 | - |
 
 ---
 *Roadmap updated: 2026-03-30 — Phase 12 planned (4 plans, 3 waves)*
