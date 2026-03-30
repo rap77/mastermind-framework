@@ -4,6 +4,8 @@
 
 **Goal:** Domain brains inject expert knowledge into the CONTEXT.md **before** tasks and acceptance criteria are written. The plan should reflect expert decisions, not discover them mid-execution.
 
+**Architecture post-Phase 12:** Parallel Agent dispatch replaces manual MCP. All 6 domain brains fire simultaneously. Brain #7 evaluates after. Total time ≈ Max(T_brain_1..6) + T_brain_7 (~90-110s).
+
 ---
 
 ## Step 1 — Read Everything First
@@ -78,65 +80,102 @@ Examples for Frontend brain:
 
 ---
 
-## Step 5 — Query Brains in Parallel
+## Step 5 — Phase A: SYNC Tag Resolution (Pre-Dispatch)
 
-Use MCP directly for speed. Same `[IMPLEMENTED REALITY]` block to all brains. Different `[WHAT I NEED]`.
+Before dispatching any agent, resolve SYNC tags inline.
 
-```python
-# Example for a frontend-heavy phase:
+**SYNC tag format:** `[SYNC: BF-NN-ID]` — points to a section in `BRAIN-FEED-NN-domain.md`.
 
-# Brain #2 UX (ea006ece-00a9-4d5c-91f5-012b8b712936)
-query_ux = """
-[IMPLEMENTED REALITY]
-...
+For each domain brain that will be dispatched:
+1. Read that brain's domain feed (`.planning/BRAIN-FEED-NN-domain.md`)
+2. Scan for `[SYNC: BF-NN-ID]` tags using pattern `\[SYNC:\s+BF-(\d{2})-(\w+)\]`
+3. For each tag found:
+   a. Open the OWNER feed: `.planning/BRAIN-FEED-{NN}-{domain}.md` (NN from the tag)
+   b. Extract ONLY the referenced section (search for the section ID in the owner feed)
+   c. Store as: `"INJECTED FROM BRAIN-FEED-{NN}: [extracted text]"`
+4. If a referenced section is NOT found in the owner feed: log a visible warning and continue without injection. Never block dispatch.
 
-[CORRECTED ASSUMPTIONS]
-...
+**Cross-talk rule (CRITICAL):** Each brain's prompt gets ONLY its own SYNC fragments. Brain #4's prompt gets BF-05 fragments only. Brain #1's prompt gets NO fragments unless it has its own SYNC tags. Build a per-brain injection map — zero cross-agent leakage.
 
-[WHAT I NEED]
-This phase builds [component/feature].
-User flow: [describe user journey]
-Specific UX questions:
-1. [Concrete interaction decision]
-2. [State feedback — what user sees during X]
-3. [Edge cases — what happens when Y fails]
-No generic UX theory. Specific decisions for this component.
-"""
-
-# Brain #3 UI (8d544475-6860-4cd7-9037-8549325493dd)
-query_ui = """
-[IMPLEMENTED REALITY]
-...
-
-[WHAT I NEED]
-Visual design decisions for [component]:
-1. State differentiation: [active/idle/error/complete] — how to visually distinguish them?
-   Note: 8% of users are colorblind — never rely on color alone.
-2. Animation: which states warrant animation? What duration? Tailwind 4 classes?
-3. Accessibility: WCAG requirements for this type of component?
-Give me CSS tokens, class names, Lucide icon names — not theory.
-"""
-
-# Brain #4 Frontend (85e47142-0a65-41d9-9848-49b8b5d2db33)
-query_fe = """
-[IMPLEMENTED REALITY]
-...
-
-[CORRECTED ASSUMPTIONS]
-...
-
-[WHAT I NEED]
-Architecture decisions for [component]:
-1. Component hierarchy: what's the right split?
-2. State: what lives in Zustand vs local state vs TanStack Query?
-3. Performance: any 60fps concerns given [specific interaction]?
-4. Testing: what's the hardest part to test here?
-Specific to Next.js 16 App Router + React 19 + @xyflow/react v12.
-```
+Known SYNC tags as of Phase 10:
+- Brain #4 Frontend: 4 tags → all point to `BRAIN-FEED-05-backend.md`
+- All other brains: 0 SYNC tags (no injection needed)
 
 ---
 
-## Step 6 — Filter Each Response
+## Step 6 — Phase B: Parallel Domain Dispatch
+
+**Dispatch all 6 domain brains SIMULTANEOUSLY in a SINGLE orchestrator message.**
+
+Use the `Task` tool (Agent dispatch) for each brain. All 6 calls in one response. Do NOT dispatch Brain #7 yet.
+
+```
+Agents to dispatch simultaneously (one message):
+- brain-01-product — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [user question] + [WHAT I NEED: product/strategy perspective]
+- brain-02-ux      — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [user question] + [WHAT I NEED: UX perspective]
+- brain-03-ui      — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [user question] + [WHAT I NEED: visual/design perspective]
+- brain-04-frontend — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [INJECTED FROM BRAIN-FEED-05: resolved BF-05 fragments] + [user question] + [WHAT I NEED: frontend architecture perspective]
+- brain-05-backend  — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [user question] + [WHAT I NEED: backend/API perspective]
+- brain-06-qa       — prompt: [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [user question] + [WHAT I NEED: QA/testing/reliability perspective]
+```
+
+Wait for ALL 6 to return before proceeding to Phase C.
+
+**Acceptance signal:** Claude Code UI shows multiple simultaneous "thinking" indicators (not one-at-a-time sequential).
+
+**Anti-pattern:** Dispatching Brain #1, getting response, then Brain #2. Total time would equal Sum instead of Max. This is WRONG. Total time target: < 120s (≈ Max(T_1..6) + T_7).
+
+---
+
+## Step 7 — Phase C: Brain #7 Barrier (Only After Phase B Completes)
+
+Only after ALL 6 domain agents have returned their outputs, dispatch `brain-07-growth`:
+
+```
+[CROSS-DOMAIN CONTEXT — paste actual outputs from Phase B]
+Brain #1 Product Strategy output:
+[paste brain-01-product return value]
+
+Brain #2 UX Research output:
+[paste brain-02-ux return value]
+
+Brain #3 UI Design output:
+[paste brain-03-ui return value]
+
+Brain #4 Frontend output:
+[paste brain-04-frontend return value]
+
+Brain #5 Backend output:
+[paste brain-05-backend return value]
+
+Brain #6 QA/DevOps output:
+[paste brain-06-qa return value]
+
+[ANTI-MEDIOCRE CONSTRAINT]
+Do NOT reconcile contradictions. Name the conflict. Pick the strongest expert position.
+Mediocre synthesis is worse than no synthesis.
+If Brain #4 and Brain #5 disagree on an API contract: name the disagreement and pick the technically stronger position. Do not average.
+
+[WHAT I NEED]
+Evaluate these 6 domain outputs using your Systems Thinker lens. Return your standard 5-section output:
+1. Domain Summary — what each brain produced (brief, 1 line each)
+2. Second-Order Effects — what the combined plan will cause downstream
+3. Systemic Metric — specific SLI/OKR that would detect if the consensus is going wrong
+4. Cascade Risk — which dependency, if it fails, causes the most damage
+5. Verdict — APPROVED | APPROVED_WITH_CONDITIONS | REJECTED_REVISE
+   If conditions: list them specifically (which plan, which task, what must change)
+
+Global Rating (0-100): overall health of this dispatch
+Brain Alerts: any domain agent output that looks like Rating 1 or 2 (corrupted/generic)
+Delta-Velocity vs Phase 09 baselines (target 3.5-4.5)
+Human-review flags: cross-domain patterns worth adding to global BRAIN-FEED.md (flag only — do NOT write)
+```
+
+Brain #7 fires AFTER Phase B. Never in the same message as domain agents.
+
+---
+
+## Step 8 — Filter Each Response
 
 For every recommendation:
 
@@ -156,7 +195,7 @@ grep "NODE_TYPES" apps/web/src/components/  # Is the pattern followed?
 
 ---
 
-## Step 7 — Synthesize into CONTEXT.md
+## Step 9 — Synthesize into CONTEXT.md
 
 Write `.planning/phases/NN-name/NN-CONTEXT.md`:
 
@@ -194,9 +233,13 @@ Write `.planning/phases/NN-name/NN-CONTEXT.md`:
 
 ## Done When
 
-- [ ] BRAIN-FEED.md read before querying
+- [ ] BRAIN-FEED.md + all domain feeds read before dispatch
 - [ ] Code relevant to phase read
-- [ ] All domain brains queried with [IMPLEMENTED REALITY] block
+- [ ] Phase A: SYNC tags detected and resolved per-brain (Brain #4 gets BF-05 fragments only)
+- [ ] Phase B: All 6 domain brains dispatched in ONE orchestrator message
+- [ ] Phase B: All 6 returns received before Phase C begins
+- [ ] Phase C: brain-07-growth dispatched with 6 domain outputs as context
+- [ ] Brain #7 verdict received (APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE)
 - [ ] Each insight verified against codebase (✅ / 📅 / 🔴)
 - [ ] CONTEXT.md written with concrete implementation decisions
 - [ ] `/gsd:plan-phase N` will now produce plans that reflect expert knowledge

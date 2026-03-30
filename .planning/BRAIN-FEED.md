@@ -1,8 +1,10 @@
-# BRAIN-FEED — MasterMind Framework v2.1
+# BRAIN-FEED — MasterMind Framework v2.2
 
 > Living document. Updated after each completed phase.
-> Always pass this to brains before querying. It is the accumulated codebase reality.
-> Last updated: 2026-03-22 after Phase 06
+> Two-level architecture: this global feed (cross-domain) + 7 domain feeds (BRAIN-FEED-NN-domain.md).
+> Global feed: product decisions, UX decisions, milestones affecting ALL 7 brains equally. Zero technical entries.
+> Domain feeds: see .planning/BRAIN-FEED-NN-domain.md for each brain's domain-specific patterns.
+> Last updated: 2026-03-29 after Phase 10 (BRAIN-FEED Split) — feed distillation complete
 
 ---
 
@@ -29,28 +31,20 @@
 
 Patterns proven in production that brains must know:
 
-### State Management
-- `Map<brainId, BrainState>` in Zustand — O(1) lookups, Immer for immutable updates
-- `useBrainState(id)` targeted selector — prevents cascade re-renders (not `useStore()`)
-- RAF batching in `brainStore` (not WS handler) — queues burst events, drains before paint
-- WS is a module singleton (`wsDispatcher`) — lazy init inside `connect()` action, `typeof window` guard
+### Brain Agent Architecture (v2.2)
+- Brain Bundle = 3-file directory: `brain-NN-domain.md` + `criteria.md` + `warnings.md` — never combine into one file
+- `model: inherit` + `mcpServers: notebooklm-mcp` required in all brain agent frontmatter
+- `global-protocol.md` is the governance layer — agents read it, never duplicate its constraints inline
+- No notebook IDs in agent files — `brain-selection.md` is the single source of truth
+- Brain #7 dispatched AFTER domain brains (#1-#6) always — never in parallel, never without domain context
+- Brain #7 uses `[CROSS-DOMAIN REALITY]` block — synthesizes domain outputs, NOT codebase state
 
-### React Flow
-- `NODE_TYPES` declared at **module level** (never inline in JSX) — prevents infinite re-render loop
-- `EDGE_TYPES` same rule
-- dagre layout runs **once** via `useState` initializer — never recalculate on WS updates
-- nodes array is layout-only — brain state comes from `brainStore` directly
-- React Flow CSS in `globals.css @layer base` — Tailwind 4 silently breaks handles otherwise
-
-### Auth & Security
-- JWT verified at Server Components + Route Handlers (not only `proxy.ts`) — CVE-2025-29927 mitigation
-- httpOnly cookie storage — XSS defense (not localStorage)
-- WS token handoff via `/api/auth/token` endpoint — server-side cookie read, token not in client bundle
-- DOMPurify + `html.escape` backend — defense in depth for XSS
-
-### API
-- TanStack Query Eager Loading — single query fetches all 24 brains (N+1 prevention)
-- Pagination from day one: `page`, `page_size` (default 24, max 100) — Margin of Safety
+### Delta-Velocity Measurement
+- Scale: 1=Wrong / 2=Junior / 3=Peer / 4=Senior / 5=Principal
+- T1 Profitability Threshold: T1 > 300s = agent-unprofitable (manual is already losing money)
+- Pre-migration manual T1 baseline: 210-270s — all profitable, agents reduce margin further
+- Frozen Context Block = control variable — same product context, different ticket per baseline
+- Measurement anchor commit: `bcfb93803e7ca5ca1c6b99c554fd190c77196f5a` — Phase 11 A/B comparison target
 
 ---
 
@@ -67,6 +61,13 @@ Prevents brains from suggesting what's already built:
 | GET /api/brains | `apps/api/.../routes/brains.py` | JWT, pagination, IDOR protection |
 | POST /api/tasks | `apps/web/src/app/api/tasks/route.ts` | Creates task, returns taskId |
 | Command Center | `apps/web/src/app/command-center/` | BentoGrid, BrainTile, BriefInputModal |
+| The Nexus (Phase 07) | `apps/web/src/app/nexus/` | NexusCanvas, BrainNode, React Flow DAG |
+| Strategy Vault (Phase 08) | `apps/web/src/app/strategy-vault/` | Phase 08 — see git history |
+| Engine Room (Phase 08) | `apps/web/src/app/engine-room/` | Phase 08 — see git history |
+| Brain Agent Bundles | `.claude/agents/mm/` | 7 brain bundles × 3 files + global-protocol.md (22 files) |
+| Baseline anchors | `tests/baselines/` | baseline-schema.md + 5 pre-migration measurement records |
+| Domain Feed Files | `.planning/BRAIN-FEED-NN-domain.md` (7 files) | One per brain (#1–#7). Global feed = cross-domain only |
+| Feed Verification Scripts | `.planning/verify_feed_*.py` (3 scripts) | conservation law, path existence, global purity — do not recreate |
 
 ---
 
@@ -74,29 +75,29 @@ Prevents brains from suggesting what's already built:
 
 Hard limits that brains must respect:
 
-- **React Compiler: DISABLED** — double-memoization conflicts with `React.memo` on React Flow nodes
-- **No inline NODE_TYPES** — always module level, no exceptions
-- **No layout recalculation on WS events** — positions are locked after dagre runs
-- **WS updates touch only `data` prop of nodes** — never positions, never topology
 - **No `npm` or `pip`** — pnpm for Node, uv for Python
+- **Brain #7 dispatch order** — ALWAYS after domain brains complete, never concurrent
+- **No notebook IDs in agent files** — decouple via `brain-selection.md`, prevents 7-file re-edit when IDs change
+- **Structured output required in all brain agent responses** — free-text prose causes information leaks across multi-brain chains (proven in baseline 04: cascade re-run added 50s to T3)
+- **Domain feeds are READ-ONLY for agents** — agents consume feeds, never write. Any modification = CRITICAL FAIL. Cross-domain insight → add `[PROPOSAL: GLOBAL]` tag in own domain feed, never edit another feed directly
 
 ---
 
 ## Phase Learnings
 
-### Phase 05 — Foundation, Auth & WS Infrastructure
+### Phase 10 — BRAIN-FEED Split
 Key discoveries:
-- Vitest over Jest — ESM-native, better Next.js 16 integration
-- `cookies()` is async in Next.js 16 — `await cookies()` required
-- React Flow CSS in `@layer base` — without this, edge handles break silently
-- Zustand RAF batching prevents dropped frames when 24 brains fire simultaneously
+- **Two-level architecture sealed**: global = product/UX/milestone cross-domain ONLY (19 bullets, < 20 target). All technical content lives in domain feeds. If a brain suggests adding technical entries to global — reject.
+- **SYNC pointer format**: `[SYNC: BF-NN-ID]` — unidirectional cross-reference. Owner file is the authority; receiving file gets the pointer, never a backlink. Format: `[SYNC: BF-05-001]` = Brain #5 owns it, Brain #4 just references it.
+- **Hormozi filter for Strategic Anchors**: valid anchor = increases success probability OR reduces effort for the consuming brain. Brain #8 in meta-evaluator mode applies this filter. If an anchor fails both criteria — reject.
+- **Append-only feed updates**: never delete existing entries in domain feeds. Prepend new sections above existing content. Canary check: verify previous entries still present after any update.
 
-### Phase 06 — Command Center
+### Phase 09 — Baselines + Agent Authoring
 Key discoveries:
-- ICE Scoring prevents over-engineering — only implement animations with ICE ≥ 15
-- `CLUSTER_CONFIGS` data-driven array — add niches without touching component code
-- `websocket-metrics.ts` with `WS_SLOS` — define guardrail metrics before implementing
-- TanStack Query `staleTime: 30s` — brains config is stable data, no refetch on focus
+- **Brain Bundle invariant**: 3 files per domain, persona opens verbatim first, 6-step protocol as identity (first-person, not step-list). Deviating from this produces checklists agents optionally follow instead of how they think.
+- **`[CORRECTED ASSUMPTIONS]` twice rule**: embed once in protocol section, again in "Always Include" block — redundancy is intentional, prevents the block from being skipped under cognitive load
+- **Output Format section is non-negotiable**: without it, free-text prose from domain brains causes cascade errors in Brain #7 (proven: baseline 04 T3 elevated 50s due to re-run caused by imprecise language)
+- **Brain #7 `[CROSS-DOMAIN REALITY]` distinction**: it synthesizes domain agent outputs from orchestrator context — it does NOT independently query feeds or re-read codebase state
 
 ---
 
@@ -104,10 +105,7 @@ Key discoveries:
 
 | Pattern | Why rejected | What we use instead |
 |---------|--------------|---------------------|
-| `useStore()` for brain state | Re-renders ALL consumers on ANY brain update | `useBrainState(id)` targeted selector |
-| WS reconnect on every render | Creates duplicate connections | Module singleton with ref counting |
-| `jwt.verify()` from jsonwebtoken | Not Edge Runtime compatible | `jose` library |
-| `localStorage` for JWT | XSS attack vector | httpOnly cookie |
-| Inline `NODE_TYPES` in JSX | Infinite re-render loop in React Flow | Module-level constant |
-| Recalculate dagre on data update | 60fps violation, layout thrash | Lock positions after first dagre run |
-| `tailwind.config.js` | No CSS-only config support in v4 | `@theme` in globals.css |
+| Free-text prose in brain output | Information leak across multi-brain chain — Brain #7 receives garbage | Structured Output Format section in every agent |
+| Notebook IDs hardcoded in agent files | Re-edit 7 files when IDs change | Reference `brain-selection.md` as single source of truth |
+| Brain #7 dispatched in parallel with domain brains | Evaluates without seeing domain outputs — useless | Always dispatch AFTER domain brains complete |
+| Agent modifying a domain feed file | Corrupts conservation law — verification scripts will fail | Read-only consumption; cross-domain insights → `[PROPOSAL: GLOBAL]` tag only |

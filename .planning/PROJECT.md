@@ -51,11 +51,19 @@ A cognitive architecture framework for building specialized AI-powered solutions
 
 ### Active (v2.2 — Brain Agents)
 
-- [ ] **7 Brain Subagents** — `.claude/agents/brain-NN-*.md` with built-in intermediary protocol, convert `mm:brain-context` skill workflows to autonomous agent system prompts
-- [ ] **Two-level BRAIN-FEED** — Split `.planning/BRAIN-FEED.md` into general project feed + per-brain domain feeds (`BRAIN-FEED-04-frontend.md`, etc.) — each agent reads both, writes only its own
-- [ ] **Parallel agent dispatch** — Orchestrator dispatches multiple brain agents simultaneously (today: sequential skill workflows)
-- [ ] **Inter-agent coordination** — Cross-domain decisions (e.g., frontend + backend API contract) passed between agents via structured YAML protocol
-- [ ] **Domain expertise accumulation** — Each agent's BRAIN-FEED grows with project patterns, avoiding context pollution across brains
+- [ ] **AGT-01** — `.claude/agents/brain-NN-*.md` with embedded intermediary protocol (7 files)
+- [ ] **AGT-02** — `evaluation-criteria.md` per brain — defines what a "good response" looks like
+- [ ] **AGT-03** — `anti-patterns.md` per brain — what NOT to include in BRAIN-FEED (manual curation; auto-pruning → v2.3)
+- [ ] **AGT-04** — All 7 brain subagents functional (smoke test end-to-end)
+- [ ] **FEED-01** — BRAIN-FEED split: `BRAIN-FEED.md` (global) + `BRAIN-FEED-NN-domain.md` (per-brain, 7 files)
+- [ ] **FEED-02** — Each agent reads both feeds (global + own domain) before querying NotebookLM
+- [ ] **FEED-03** — Each agent writes only to its own domain feed (no cross-domain pollution)
+- [ ] **BASE-01** — 5 manual consultation baselines documented before agent migration
+- [ ] **BASE-02** — Metric schema defined: time/consultation, gap-count, re-consultations, quality-rating
+- [ ] **DISP-01** — Orchestrator dispatches brain agents in parallel (Agent tool, not sequential skill steps)
+- [ ] **DISP-02** — `mm:brain-context` updated to dispatch agents vs manual MCP workflows
+
+Full requirements: `.planning/REQUIREMENTS.md`
 
 ### Deferred (v3.0 — Custom Workflow Framework + RAG)
 

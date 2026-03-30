@@ -1,970 +1,451 @@
 # Architecture Research
 
-**Domain:** Next.js 16 frontend integrating with existing FastAPI backend (War Room v2.1)
-**Researched:** 2026-03-18
-**Confidence:** HIGH
+**Domain:** Claude Code subagents integrating with existing mm:brain-context skill-based workflow
+**Researched:** 2026-03-27
+**Confidence:** HIGH (based on existing codebase, REQUIREMENTS.md, skill files, and established Claude Code agent patterns)
 
 ---
 
 ## Context
 
-This document supersedes the v2.0 architecture research. The backend (apps/api/) is complete and
-stable. This research addresses the six specific integration questions for the v2.1 Next.js frontend:
+This document answers the v2.2 key architectural question: how does the orchestrator dispatch brain agents in parallel, what does the handoff look like, and how does each agent write back to its BRAIN-FEED without polluting other agents' feeds?
 
-1. JWT auth flow with httpOnly cookies
-2. Single WebSocket connection shared across navigation
-3. Zustand store shape for WebSocket + brain state
-4. React Flow custom nodes and the Server/Client boundary
-5. API calls strategy (server vs client, CORS)
-6. Build order for fastest feedback loop
+This is a brownfield addition to a functioning system. The mm:brain-context skill (manual workflows) becomes the agent system prompts — no work thrown away, execution model changes.
 
 ---
 
-## Critical Next.js 16 Breaking Change: middleware → proxy
+## System Overview: Before vs After
 
-**IMPORTANT:** Next.js 16 deprecated `middleware.ts`. Route protection now lives in `proxy.ts`.
+### v2.1 (current) — Sequential manual skill execution
 
 ```
-middleware.ts  →  proxy.ts
-export function middleware()  →  export function proxy()
+User: /mm:brain-context
+          ↓
+Orchestrator (Claude main)
+  reads: SKILL.md → moment-1.md workflow
+  reads: BRAIN-FEED.md (single file)
+  reads: codebase files
+  builds: [IMPLEMENTED REALITY] context block
+  queries: Brain #1 NotebookLM (MCP call)
+  queries: Brain #7 NotebookLM (MCP call, after #1)
+  filters: each concern against grep/code
+  writes: .planning/research/BRAIN-NN-CONTEXT.md
+  (orchestrator does all the work)
 ```
 
-The proxy runtime is **Node.js only** (not edge). The `jose` library must be used for JWT
-verification (not `jsonwebtoken`, which is Node-only and breaks edge). Since we are now on Node.js
-runtime anyway, `jsonwebtoken` works too — but `jose` is the safer cross-version choice.
+### v2.2 (target) — Parallel autonomous agent dispatch
 
-Cookies API is now **fully async**. `cookies()` must be awaited everywhere (breaking change from v15).
+```
+User: /mm:brain-context
+          ↓
+Orchestrator (Claude main)
+  reads: PROJECT.md + STATE.md
+  determines: which brains are needed (brain-selection.md rules)
+  dispatches (parallel, Agent tool):
+    ├── Brain Agent #1 (product)  → returns: verified insights
+    ├── Brain Agent #4 (frontend) → returns: verified insights
+    └── Brain Agent #7 (growth)   → returns: verdict + gaps
+  waits: all agents complete
+  synthesizes: insights into CONTEXT.md / ROADMAP.md / PLAN.md
+  (orchestrator directs; agents do the specialized work)
+```
+
+The key shift: the orchestrator stops being a manual workflow executor and becomes a director. Each brain agent is a self-contained specialist that knows its own domain, reads its own feeds, queries its own notebook, and returns verified insights.
 
 ---
 
-## System Overview
+## Full System Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Browser (Next.js 16)                      │
-├──────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│  │proxy.ts     │  │ Server       │  │ Client Components        │ │
-│  │(route guard)│  │ Components   │  │ "use client"             │ │
-│  │             │  │ (data fetch) │  │ - WS events              │ │
-│  │cookie check │  │ no WS/store  │  │ - React Flow             │ │
-│  └──────┬──────┘  └──────┬───────┘  └────────────┬─────────────┘ │
-│         │                │                       │               │
-│         │          server-side fetch             │               │
-│         │         (Authorization header)         │               │
-│         │                │                       │               │
-│  ┌──────┴──────────────── ┴────────────────── ──┘│               │
-│  │              Zustand Store (Client-side)      │               │
-│  │  wsStore: connection + event subscriptions   │               │
-│  │  brainStore: nodes map (brain_id → state)    │               │
-│  │  authStore: access_token (memory only)       │               │
-│  └───────────────────────┬──────────────────────┘               │
-└──────────────────────────┼───────────────────────────────────────┘
-                           │ WebSocket ws://localhost:8000/ws/tasks/{task_id}?token=...
-                           │ REST   http://localhost:8000/api/...
-┌──────────────────────────▼───────────────────────────────────────┐
-│              FastAPI Backend (apps/api/ — UNCHANGED)             │
-├──────────────────────────────────────────────────────────────────┤
-│  POST /api/auth/login    → { access_token, refresh_token }       │
-│  POST /api/auth/refresh  → { access_token, refresh_token }       │
-│  POST /api/tasks         → { task_id, status }                   │
-│  GET  /api/tasks         → task list                             │
-│  GET  /api/tasks/{id}/graph → nodes[], edges[]                   │
-│  WS   /ws/tasks/{id}?token=... → brain events                    │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 1. JWT Auth Flow: httpOnly Cookies + proxy.ts
-
-### Decision: Dual-Token Storage Strategy
-
-Store tokens in httpOnly cookies, never in localStorage or Zustand state.
-
-**Why httpOnly cookies:**
-- XSS protection: client-side JS cannot read the token
-- `proxy.ts` can read them synchronously for route protection
-- Survives page refresh without re-auth
-
-**Why NOT memory-only tokens for access_token:**
-- Lost on navigation/refresh
-- Forces re-auth on every page load
-
-**Why NOT localStorage:**
-- Accessible to XSS attacks
-- Violates security best practices for JWTs
-
-### Cookie Layout
-
-```
-access_token   httpOnly, SameSite=Lax, Path=/
-refresh_token  httpOnly, SameSite=Lax, Path=/api/auth/refresh
-```
-
-Setting `Path=/api/auth/refresh` for the refresh token means it is only sent to the refresh
-endpoint, reducing attack surface.
-
-### Token Flow
-
-```
-Login (Server Action)
-  → POST /api/auth/login → { access_token, refresh_token }
-  → Set-Cookie: access_token (httpOnly, 30min)
-  → Set-Cookie: refresh_token (httpOnly, 24h, Path=/api/auth/refresh)
-  → redirect('/command-center')
-
-proxy.ts (every protected route)
-  → const cookies = await cookies()
-  → const token = cookies.get('access_token')
-  → if (!token) redirect('/login')
-  → verify token with jose (JWTS_HS256)
-  → if expired → attempt refresh via internal fetch
-  → if refresh fails → redirect('/login')
-
-Server Components (data fetch)
-  → const cookies = await cookies()
-  → fetch(`${API_URL}/api/tasks`, {
-      headers: { Authorization: `Bearer ${cookies.get('access_token')}` }
-    })
-
-WebSocket (Client Component)
-  → token cannot be read from httpOnly cookie in client JS
-  → SOLUTION: route handler GET /api/token-hint returns token for WS use only
-  → OR: pass token as prop from Server Component to Client Component
-  → RECOMMENDED: pass access_token as prop from Server layout to WS context provider
-```
-
-### Implementation: proxy.ts (replaces middleware.ts)
-
-```typescript
-// apps/web/proxy.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
-
-const SECRET = new TextEncoder().encode(
-  process.env.MM_SECRET_KEY ?? "change-me-in-production"
-);
-
-const PROTECTED = ["/command-center", "/nexus", "/vault", "/engine-room"];
-
-export async function proxy(request: NextRequest) {
-  const isProtected = PROTECTED.some((p) =>
-    request.nextUrl.pathname.startsWith(p)
-  );
-
-  if (!isProtected) return NextResponse.next();
-
-  const token = request.cookies.get("access_token")?.value;
-
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  try {
-    await jwtVerify(token, SECRET);
-    return NextResponse.next();
-  } catch {
-    // Token expired — attempt refresh via internal API call
-    const refreshToken = request.cookies.get("refresh_token")?.value;
-    if (!refreshToken) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      }
-    );
-
-    if (!response.ok) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    const { access_token, refresh_token } = await response.json();
-    const nextResponse = NextResponse.next();
-    nextResponse.cookies.set("access_token", access_token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 30, // 30 min
-    });
-    nextResponse.cookies.set("refresh_token", refresh_token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/api/auth/refresh",
-      maxAge: 60 * 60 * 24, // 24h
-    });
-    return nextResponse;
-  }
-}
-
-export const config = {
-  matcher: ["/command-center/:path*", "/nexus/:path*", "/vault/:path*", "/engine-room/:path*"],
-};
-```
-
-### Token Handoff for WebSocket
-
-The access_token in httpOnly cookies is invisible to client JS. The WS endpoint requires a token
-query param. Solution: pass the token from the Server Component layout as a prop.
-
-```typescript
-// app/(protected)/layout.tsx — Server Component
-import { cookies } from "next/headers";
-import { WSProvider } from "@/components/ws-provider";
-
-export default async function ProtectedLayout({ children }) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value ?? "";
-
-  return (
-    <WSProvider token={token}>
-      {children}
-    </WSProvider>
-  );
-}
-```
-
-This is the cleanest solution: no Route Handler needed, token flows from server to client in a
-single React tree pass. The `WSProvider` is a Client Component that initializes the Zustand store.
-
----
-
-## 2. WebSocket: Single Connection Across Navigation
-
-### Problem
-
-Client Components are re-mounted on navigation. A naive `useEffect(() => new WebSocket(...))` in a
-component creates a new connection every time the user navigates between screens, multiplying
-connections.
-
-### Solution: Module-Level Singleton + Zustand Store Lifecycle
-
-The WebSocket connection is managed at **module scope** inside the Zustand store, not inside a
-React component. The store persists across renders and navigation because Zustand stores are module
-singletons.
-
-```typescript
-// apps/web/src/stores/ws-store.ts
-import { create } from "zustand";
-
-type BrainEvent =
-  | { type: "brain_step_started"; brain_id: string; brain_name: string; task_id: string }
-  | { type: "brain_step_completed"; brain_id: string; output: string; duration_ms: number }
-  | { type: "brain_step_failed"; brain_id: string; error: string }
-  | { type: "execution_complete"; task_id: string; total_duration_ms: number };
-
-interface WSStore {
-  socket: WebSocket | null;
-  taskId: string | null;
-  token: string | null;
-  status: "disconnected" | "connecting" | "connected" | "error";
-  connect: (taskId: string, token: string) => void;
-  disconnect: () => void;
-  // Event subscribers by type
-  listeners: Map<string, Set<(event: BrainEvent) => void>>;
-  subscribe: (type: BrainEvent["type"], fn: (event: BrainEvent) => void) => () => void;
-}
-
-export const useWSStore = create<WSStore>((set, get) => ({
-  socket: null,
-  taskId: null,
-  token: null,
-  status: "disconnected",
-  listeners: new Map(),
-
-  connect: (taskId, token) => {
-    const { socket, taskId: currentTask } = get();
-
-    // Reuse connection if same task is already connected
-    if (socket && currentTask === taskId && socket.readyState === WebSocket.OPEN) {
-      return;
-    }
-
-    // Close previous connection
-    if (socket) {
-      socket.close();
-    }
-
-    set({ status: "connecting", taskId, token });
-
-    const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WS_URL}/ws/tasks/${taskId}?token=${token}`
-    );
-
-    ws.onopen = () => set({ socket: ws, status: "connected" });
-    ws.onclose = () => set({ socket: null, status: "disconnected" });
-    ws.onerror = () => set({ socket: null, status: "error" });
-
-    ws.onmessage = (event) => {
-      const data: BrainEvent = JSON.parse(event.data);
-      const listeners = get().listeners.get(data.type);
-      if (listeners) {
-        listeners.forEach((fn) => fn(data));
-      }
-    };
-  },
-
-  disconnect: () => {
-    const { socket } = get();
-    if (socket) socket.close();
-    set({ socket: null, status: "disconnected", taskId: null });
-  },
-
-  subscribe: (type, fn) => {
-    const { listeners } = get();
-    if (!listeners.has(type)) listeners.set(type, new Set());
-    listeners.get(type)!.add(fn);
-
-    // Return unsubscribe function
-    return () => {
-      listeners.get(type)?.delete(fn);
-    };
-  },
-}));
-```
-
-### Why this works across navigation
-
-Zustand store is module-level. When the user navigates from `/nexus` to `/command-center`, React
-unmounts the Nexus components but the store module stays in memory. The `socket` reference is
-preserved. New components subscribe to events from the existing connection.
-
-### WSProvider (Client Component — wraps protected layout)
-
-```typescript
-// apps/web/src/components/ws-provider.tsx
-"use client";
-import { useEffect } from "react";
-import { useWSStore } from "@/stores/ws-store";
-
-interface WSProviderProps {
-  token: string;
-  children: React.ReactNode;
-}
-
-export function WSProvider({ token, children }: WSProviderProps) {
-  const setToken = useWSStore((s) => s.token);
-
-  // Store token so components can initiate WS connections
-  useEffect(() => {
-    useWSStore.setState({ token });
-  }, [token]);
-
-  return <>{children}</>;
-}
+┌────────────────────────────────────────────────────────────────────┐
+│                     ORCHESTRATOR LAYER                             │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  Orchestrator (Claude main)                                  │  │
+│  │  - Detects moment (auto or explicit)                         │  │
+│  │  - Selects which brains to dispatch (brain-selection.md)     │  │
+│  │  - Dispatches Agent tool calls (parallel)                    │  │
+│  │  - Synthesizes results into GSD artifacts                    │  │
+│  └──────────────────────┬───────────────────────────────────────┘  │
+└─────────────────────────┼──────────────────────────────────────────┘
+                          │  Agent tool (parallel dispatch)
+         ┌────────────────┼─────────────────────┐
+         ↓                ↓                     ↓
+┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+│  Brain Agent   │ │  Brain Agent   │ │  Brain Agent   │
+│  #1 product    │ │  #4 frontend   │ │  #7 growth     │
+│                │ │                │ │                │
+│  1. read feeds │ │  1. read feeds │ │  1. read feeds │
+│  2. read code  │ │  2. read code  │ │  2. read code  │
+│  3. build ctx  │ │  3. build ctx  │ │  3. build ctx  │
+│  4. MCP query  │ │  4. MCP query  │ │  4. MCP query  │
+│  5. filter     │ │  5. filter     │ │  5. filter     │
+│  6. write feed │ │  6. write feed │ │  6. write feed │
+│  7. return     │ │  7. return     │ │  7. return     │
+│     insights   │ │     insights   │ │     verdict    │
+└────────┬───────┘ └────────┬───────┘ └────────┬───────┘
+         │                  │                  │
+         ↓                  ↓                  ↓
+┌────────────────┐ ┌────────────────┐ ┌────────────────────────────┐
+│ BRAIN-FEED.md  │ │ BRAIN-FEED.md  │ │ BRAIN-FEED.md              │
+│ (global read)  │ │ (global read)  │ │ (global read)              │
+│ BRAIN-FEED-    │ │ BRAIN-FEED-    │ │ BRAIN-FEED-                │
+│ 01-product.md  │ │ 04-frontend.md │ │ 07-growth.md               │
+│ (own write)    │ │ (own write)    │ │ (own write)                │
+└────────────────┘ └────────────────┘ └────────────────────────────┘
 ```
 
 ---
 
-## 3. Zustand Store Architecture
+## Component Inventory
 
-### Three stores, each with a single responsibility
+### New Components (v2.2 builds these)
+
+| Component | Path | Purpose | AGT/FEED req |
+|-----------|------|---------|------------|
+| Brain Agent #1 file | `.claude/agents/brain-01-product.md` | Subagent system prompt — product strategy specialist | AGT-01 |
+| Brain Agent #2 file | `.claude/agents/brain-02-ux.md` | Subagent system prompt — UX research specialist | AGT-01 |
+| Brain Agent #3 file | `.claude/agents/brain-03-ui.md` | Subagent system prompt — UI design specialist | AGT-01 |
+| Brain Agent #4 file | `.claude/agents/brain-04-frontend.md` | Subagent system prompt — frontend architecture specialist | AGT-01 |
+| Brain Agent #5 file | `.claude/agents/brain-05-backend.md` | Subagent system prompt — backend/API specialist | AGT-01 |
+| Brain Agent #6 file | `.claude/agents/brain-06-qa.md` | Subagent system prompt — QA/DevOps specialist | AGT-01 |
+| Brain Agent #7 file | `.claude/agents/brain-07-growth.md` | Subagent system prompt — growth/evaluator specialist | AGT-01 |
+| Evaluation criteria #1 | `.claude/agents/criteria/brain-01-evaluation.md` | What "good" looks like for product insights | AGT-02 |
+| Evaluation criteria #2-7 | `.claude/agents/criteria/brain-NN-evaluation.md` | Same, per domain | AGT-02 |
+| Anti-patterns #1 | `.claude/agents/anti-patterns/brain-01-anti-patterns.md` | What NOT to write to BRAIN-FEED-01 | AGT-03 |
+| Anti-patterns #2-7 | `.claude/agents/anti-patterns/brain-NN-anti-patterns.md` | Same, per domain | AGT-03 |
+| BRAIN-FEED-01 | `.planning/BRAIN-FEED-01-product.md` | Domain feed — product strategy patterns | FEED-01 |
+| BRAIN-FEED-02 | `.planning/BRAIN-FEED-02-ux.md` | Domain feed — UX patterns | FEED-01 |
+| BRAIN-FEED-03 | `.planning/BRAIN-FEED-03-ui.md` | Domain feed — UI design patterns | FEED-01 |
+| BRAIN-FEED-04 | `.planning/BRAIN-FEED-04-frontend.md` | Domain feed — frontend architecture patterns | FEED-01 |
+| BRAIN-FEED-05 | `.planning/BRAIN-FEED-05-backend.md` | Domain feed — backend/API patterns | FEED-01 |
+| BRAIN-FEED-06 | `.planning/BRAIN-FEED-06-qa.md` | Domain feed — QA/DevOps patterns | FEED-01 |
+| BRAIN-FEED-07 | `.planning/BRAIN-FEED-07-growth.md` | Domain feed — growth/evaluator patterns | FEED-01 |
+| Baselines 1-5 | `docs/baselines/consultation-baseline-NN.md` | Manual consultation records before migration | BASE-01 |
+| Metric schema | `docs/baselines/metric-schema.md` | Measurement framework | BASE-02 |
+
+### Modified Components (v2.2 changes these)
+
+| Component | Current Path | What Changes | DISP req |
+|-----------|-------------|-------------|----------|
+| mm:brain-context command | `claude-commands/mm/brain-context.md` | Replace manual MCP workflow execution with Agent tool dispatch | DISP-02 |
+| BRAIN-FEED.md (global) | `.planning/BRAIN-FEED.md` | Migrates domain-specific content to per-brain feeds; retains only cross-domain patterns | FEED-01 |
+
+### Unchanged Components (v2.2 does not touch these)
+
+| Component | Path | Why Untouched |
+|-----------|------|--------------|
+| SKILL.md + workflows | `~/.claude/skills/mm/brain-context/` | Orchestrator reads these; skill behavior moves INTO agent system prompts |
+| Python brain modules | `apps/api/mastermind_cli/brains/` | Separate runtime; agents use MCP directly, not Python CLI |
+| NotebookLM notebooks | (7 notebook IDs in brain-selection.md) | Static knowledge; agent queries them via `mcp__notebooklm-mcp__notebook_query` |
+| STATE.md / ROADMAP.md | `.planning/` | Produced by GSD orchestrator; agents inform but don't write these |
+
+---
+
+## Agent System Prompt Structure
+
+Each `.claude/agents/brain-NN-domain.md` file embeds the intermediary protocol as native behavior — not as instructions to follow, but as the agent's built-in workflow. This is the key architectural insight: what the orchestrator was reading from SKILL.md and following manually, the agent does autonomously.
 
 ```
-useWSStore       — WebSocket lifecycle + event pub/sub
-useBrainStore    — Brain states (updated by WS events)
-useAuthStore     — Token in memory for WS (NOT cookies, those are server-only)
-```
+---
+name: brain-01-product
+description: Product Strategy brain — consults NotebookLM notebook for expert product advice grounded in MasterMind codebase reality
+---
 
-### useBrainStore: The Re-render Prevention Store
+## Identity
 
-This is the most performance-critical store. With 24 brains, we must NOT store all nodes in a
-single array — updating one brain would re-render all 24 node components.
+You are Brain #1 (Product Strategy). Your NotebookLM notebook contains distilled knowledge
+from Cagan, Torres, Ries, Doerr, and others. You are called by the MasterMind orchestrator
+when product strategy insight is needed.
 
-**Key insight:** Store brains as a `Map<brain_id, BrainState>` and use Immer for surgical updates.
-Each React Flow node reads ONLY its own state via a targeted selector.
+## Protocol (ALWAYS follow — no exceptions)
 
-```typescript
-// apps/web/src/stores/brain-store.ts
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
+### Step 1 — Read feeds before anything else
+[read BRAIN-FEED.md — global context]
+[read BRAIN-FEED-01-product.md — own domain accumulated patterns]
 
-export type BrainStatus = "idle" | "pending" | "running" | "completed" | "failed";
+### Step 2 — Read codebase context
+[read files specified in the task prompt]
 
-export interface BrainState {
-  brainId: string;
-  brainName: string;
-  status: BrainStatus;
-  output: string | null;
-  error: string | null;
-  durationMs: number | null;
-  startedAt: number | null;
-}
+### Step 3 — Build [IMPLEMENTED REALITY] block
+[structure what exists vs what's being planned vs wrong assumptions to correct]
 
-interface BrainStore {
-  brains: Map<string, BrainState>;
-  activeTaskId: string | null;
-  setActiveTask: (taskId: string, initialNodes: { id: string; label: string }[]) => void;
-  handleBrainStarted: (brainId: string, brainName: string, taskId: string) => void;
-  handleBrainCompleted: (brainId: string, output: string, durationMs: number) => void;
-  handleBrainFailed: (brainId: string, error: string) => void;
-  resetTask: () => void;
-}
+### Step 4 — Query NotebookLM
+notebook_id: f276ccb3-0bce-4069-8b55-eae8693dbe75
+[mcp__notebooklm-mcp__notebook_query with context block]
 
-export const useBrainStore = create<BrainStore>()(
-  immer((set) => ({
-    brains: new Map(),
-    activeTaskId: null,
+### Step 5 — Filter response
+[for each concern: grep to verify if already solved / deferred / real gap]
 
-    setActiveTask: (taskId, initialNodes) =>
-      set((state) => {
-        state.activeTaskId = taskId;
-        state.brains = new Map(
-          initialNodes.map((n) => [
-            n.id,
-            {
-              brainId: n.id,
-              brainName: n.label,
-              status: "pending",
-              output: null,
-              error: null,
-              durationMs: null,
-              startedAt: null,
-            },
-          ])
-        );
-      }),
+### Step 6 — Update BRAIN-FEED-01-product.md
+[append new patterns that are NOT already in the feed]
+[do NOT write to BRAIN-FEED.md — that is orchestrator territory]
 
-    handleBrainStarted: (brainId, brainName, taskId) =>
-      set((state) => {
-        const brain = state.brains.get(brainId);
-        if (brain) {
-          brain.status = "running";
-          brain.startedAt = Date.now();
-        }
-      }),
+### Step 7 — Return verified insights
+[structured return: verified gaps, pattern references, confidence level]
 
-    handleBrainCompleted: (brainId, output, durationMs) =>
-      set((state) => {
-        const brain = state.brains.get(brainId);
-        if (brain) {
-          brain.status = "completed";
-          brain.output = output;
-          brain.durationMs = durationMs;
-        }
-      }),
+## Evaluation Criteria
+[reference or inline from brain-01-evaluation.md]
 
-    handleBrainFailed: (brainId, error) =>
-      set((state) => {
-        const brain = state.brains.get(brainId);
-        if (brain) {
-          brain.status = "failed";
-          brain.error = error;
-        }
-      }),
-
-    resetTask: () =>
-      set((state) => {
-        state.brains = new Map();
-        state.activeTaskId = null;
-      }),
-  }))
-);
-
-// Targeted selector — component ONLY re-renders when its own brain changes
-export const useBrainState = (brainId: string) =>
-  useBrainStore((s) => s.brains.get(brainId));
-```
-
-### WS Event → Brain Store Bridge
-
-This bridge component lives once at the app level. It subscribes to WS events and dispatches to
-the brain store. It has NO render output.
-
-```typescript
-// apps/web/src/components/ws-brain-bridge.tsx
-"use client";
-import { useEffect } from "react";
-import { useWSStore } from "@/stores/ws-store";
-import { useBrainStore } from "@/stores/brain-store";
-
-export function WSBrainBridge() {
-  const subscribe = useWSStore((s) => s.subscribe);
-  const { handleBrainStarted, handleBrainCompleted, handleBrainFailed } = useBrainStore();
-
-  useEffect(() => {
-    const unsubs = [
-      subscribe("brain_step_started", (e) => {
-        if (e.type === "brain_step_started") {
-          handleBrainStarted(e.brain_id, e.brain_name, e.task_id);
-        }
-      }),
-      subscribe("brain_step_completed", (e) => {
-        if (e.type === "brain_step_completed") {
-          handleBrainCompleted(e.brain_id, e.output, e.duration_ms);
-        }
-      }),
-      subscribe("brain_step_failed", (e) => {
-        if (e.type === "brain_step_failed") {
-          handleBrainFailed(e.brain_id, e.error);
-        }
-      }),
-    ];
-    return () => unsubs.forEach((u) => u());
-  }, [subscribe, handleBrainStarted, handleBrainCompleted, handleBrainFailed]);
-
-  return null;
-}
+## Anti-Patterns (NEVER write these to BRAIN-FEED-01)
+[reference or inline from brain-01-anti-patterns.md]
 ```
 
 ---
 
-## 4. React Flow: Server/Client Boundary + Node Re-render Prevention
+## Data Flow: Parallel Dispatch
 
-### Boundary Rule
-
-React Flow is entirely a Client Component concern. No React Flow import belongs in a Server
-Component. The pattern is:
+### Orchestrator side (mm:brain-context command)
 
 ```
-Server Component (page.tsx)
-  → fetch /api/tasks/{id}/graph  (nodes[], edges[])
-  → pass nodes/edges as props to NexusCanvas (Client Component)
-
-NexusCanvas ("use client")
-  → initializes React Flow with nodes from props
-  → hands off state management to useBrainStore for live updates
+1. Read STATE.md → determine moment (1/2/3/feed)
+2. Read brain-selection.md rules → select which brains for this moment/phase type
+3. Build dispatch prompt per brain:
+   - task description
+   - which files to read (codebase context)
+   - what question to answer
+   - which moment this is
+4. Dispatch Agent tool calls (all selected brains simultaneously)
+5. Await all results
+6. Synthesize into GSD artifact (ROADMAP / CONTEXT.md / PLAN.md update)
 ```
 
-### Preventing 23-node cascade re-renders
+### Agent side (brain-NN.md system prompt)
 
-The critical mistake is passing WS state through React Flow's `nodes` array. When one brain
-changes, React Flow would re-compute and re-render all nodes.
-
-**Correct pattern: stable node data + external state lookup in each node**
-
-```typescript
-// The nodes array passed to ReactFlow NEVER changes (position/layout only)
-// Brain state comes from useBrainStore inside each node component
-
-// ✅ CORRECT: Custom node reads its own state from store
-// apps/web/src/components/brain-node.tsx
-"use client";
-import { memo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { useBrainState } from "@/stores/brain-store";
-import { cn } from "@/lib/utils";
-
-const STATUS_COLORS: Record<string, string> = {
-  idle: "border-slate-600 bg-slate-900",
-  pending: "border-slate-500 bg-slate-800",
-  running: "border-blue-500 bg-blue-950 animate-pulse",
-  completed: "border-emerald-500 bg-emerald-950",
-  failed: "border-red-500 bg-red-950",
-};
-
-function BrainNodeComponent({ id, data }: NodeProps) {
-  // Targeted selector — only re-renders when THIS brain's state changes
-  const brainState = useBrainState(id);
-  const status = brainState?.status ?? "idle";
-
-  return (
-    <div className={cn("rounded-lg border-2 px-4 py-3 min-w-[140px]", STATUS_COLORS[status])}>
-      <Handle type="target" position={Position.Top} />
-      <p className="text-xs font-medium text-white truncate">{data.label as string}</p>
-      <p className="text-xs text-slate-400 capitalize">{status}</p>
-      {brainState?.durationMs && (
-        <p className="text-xs text-slate-500">{brainState.durationMs}ms</p>
-      )}
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  );
-}
-
-// React.memo prevents re-render when PARENT re-renders
-// The store selector handles re-render when brain state changes
-export const BrainNode = memo(BrainNodeComponent);
+```
+1. Read BRAIN-FEED.md (global — for cross-domain context)
+2. Read BRAIN-FEED-NN-domain.md (own — for accumulated domain patterns)
+3. Read codebase files from task prompt
+4. Build [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] block
+5. Call mcp__notebooklm-mcp__notebook_query with context block
+6. Filter: grep each concern → mark ✅ / 📅 / 🔴
+7. Append new patterns to BRAIN-FEED-NN-domain.md (NOT global feed)
+8. Return structured response to orchestrator
 ```
 
-```typescript
-// ❌ WRONG: Passing ws state through node data
-const nodes = brains.map(b => ({
-  id: b.id,
-  data: { status: b.status }  // This triggers full node array replacement → all nodes re-render
-}));
+### Isolation guarantee
+
+The BRAIN-FEED isolation is enforced by contract in the agent system prompt: each agent is explicitly instructed to write only to its own domain feed. The global BRAIN-FEED.md is write-protected from agents — only the orchestrator (after cross-domain synthesis) or human can update it. This is not a technical lock (no filesystem permissions), it is a behavioral contract baked into every agent's identity section.
+
+---
+
+## Recommended File Structure
+
 ```
+.claude/
+├── agents/
+│   ├── brain-01-product.md         # Agent system prompt
+│   ├── brain-02-ux.md
+│   ├── brain-03-ui.md
+│   ├── brain-04-frontend.md
+│   ├── brain-05-backend.md
+│   ├── brain-06-qa.md
+│   ├── brain-07-growth.md          # Evaluator — same pattern, different criteria
+│   ├── criteria/
+│   │   ├── brain-01-evaluation.md  # "Good response" standard for product
+│   │   ├── brain-02-evaluation.md
+│   │   └── ...
+│   └── anti-patterns/
+│       ├── brain-01-anti-patterns.md   # What NOT to BRAIN-FEED
+│       ├── brain-02-anti-patterns.md
+│       └── ...
+│
+.planning/
+├── BRAIN-FEED.md                   # Global — cross-domain, human + orchestrator writes only
+├── BRAIN-FEED-01-product.md        # Domain — product strategy agent writes here
+├── BRAIN-FEED-02-ux.md
+├── BRAIN-FEED-03-ui.md
+├── BRAIN-FEED-04-frontend.md
+├── BRAIN-FEED-05-backend.md
+├── BRAIN-FEED-06-qa.md
+├── BRAIN-FEED-07-growth.md
+│
+docs/
+└── baselines/
+    ├── metric-schema.md            # Measurement framework (BASE-02)
+    ├── consultation-baseline-01.md # Manual consultation records (BASE-01)
+    ├── consultation-baseline-02.md
+    ├── consultation-baseline-03.md
+    ├── consultation-baseline-04.md
+    └── consultation-baseline-05.md
 
-### NexusCanvas Client Component
-
-```typescript
-// apps/web/src/components/nexus-canvas.tsx
-"use client";
-import { useMemo } from "react";
-import { ReactFlow, Background, Controls, type Node, type Edge } from "@xyflow/react";
-import { BrainNode } from "./brain-node";
-import "@xyflow/react/dist/style.css";
-
-// Declared OUTSIDE component — prevents new reference on every render
-const NODE_TYPES = { brainNode: BrainNode };
-
-interface NexusCanvasProps {
-  initialNodes: Node[];
-  initialEdges: Edge[];
-}
-
-export function NexusCanvas({ initialNodes, initialEdges }: NexusCanvasProps) {
-  // Layout-only nodes — these NEVER change after mount
-  // State comes from useBrainStore inside each node
-  const nodes = useMemo(
-    () => initialNodes.map((n) => ({ ...n, type: "brainNode" })),
-    [initialNodes]  // Only recomputes if layout changes (navigation to new task)
-  );
-
-  return (
-    <div className="h-full w-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={initialEdges}
-        nodeTypes={NODE_TYPES}
-        fitView
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-    </div>
-  );
-}
+claude-commands/mm/
+└── brain-context.md                # Updated: dispatches agents instead of manual workflow
 ```
 
 ---
 
-## 5. API Calls: Server vs Client, CORS
+## Build Order: Dependency-Driven Sequence
 
-### CORS: Already Configured
-
-The FastAPI backend has `CORSMiddleware` with `allow_origins=["*"]`. No CORS changes needed in
-the backend for development. For production, tighten to `allow_origins=["http://localhost:3000"]`
-or the production domain.
-
-### Server-side fetch (Server Components)
-
-Use for: initial page data, task lists, brain configs, anything that benefits from SSR or caching.
-
-```typescript
-// apps/web/src/lib/api.ts
-import { cookies } from "next/headers";
-import "server-only";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
-
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-    // No cache by default — dashboard is real-time
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${path}`);
-  }
-
-  return res.json();
-}
-```
-
-### Client-side fetch (Client Components)
-
-Use for: mutations triggered by user interaction (create task, cancel task), cases where the result
-must update UI without navigation.
-
-```typescript
-// apps/web/src/lib/client-api.ts — Client-safe API utility
-// Does NOT use cookies() — reads token from WSStore which holds it in memory
-
-export async function clientFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  // Token was passed from Server Component → WSProvider → stored in wsStore
-  const token = useWSStore.getState().token;
-
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-  });
-
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-```
-
-### When to use Server vs Client fetch
-
-| Use case | Approach | Why |
-|----------|----------|-----|
-| Initial task list on page load | Server Component + `apiFetch` | SSR, faster initial paint |
-| Task graph for Nexus | Server Component + `apiFetch` | Data available before hydration |
-| Create task (form submit) | Server Action | Progressive enhancement |
-| Cancel running task (button) | Client Component + `clientFetch` | Immediate UI feedback |
-| Poll task status | NOT needed | WebSocket handles real-time updates |
-
----
-
-## 6. Build Order: Fastest Feedback Loop
-
-Build in this order because each screen validates the next layer's foundation.
-
-### Screen 1: Login (authentication plumbing)
-
-**Why first:** Every other screen depends on auth. Building login first validates the entire
-auth flow: cookie setting, proxy.ts route protection, token handoff to WSProvider.
-
-- Server Action for form submission
-- `POST /api/auth/login` → set httpOnly cookies
-- proxy.ts redirect validation
-- If login works → auth architecture is correct
-
-### Screen 2: Command Center (brief input + brain grid)
-
-**Why second:** Exercises REST API (brain list, task creation) and the WS connection initiation.
-The Bento Grid with 24 brain cards validates the `useBrainStore` and `useBrainState` selectors.
-No React Flow complexity yet.
-
-- `GET /api/brains` (need to verify this endpoint exists — see gaps below)
-- `POST /api/tasks` → get task_id → open WS
-- WS events → useBrainStore updates → BrainCard components update individually
-- Validates re-render prevention before Nexus complexity
-
-### Screen 3: The Nexus (React Flow DAG)
-
-**Why third:** Depends on task_id from Command Center and WS infrastructure from Screen 2.
-Build after WS → BrainStore pipeline is proven correct.
-
-- `GET /api/tasks/{id}/graph` → nodes[], edges[]
-- ReactFlow with custom BrainNode components
-- BrainNode reads from useBrainStore (already working from Screen 2)
-- Test: launch task in Command Center, switch to Nexus → nodes illuminate
-
-### Screen 4: Strategy Vault + Engine Room
-
-**Why last:** Read-only views of data already in the API. Lowest risk, no new integration
-patterns. Build after the complex screens prove the infrastructure.
-
----
-
-## Recommended Project Structure
+The 4 requirement groups have hard dependencies. Build order must respect them:
 
 ```
-apps/web/
-├── proxy.ts                    # Route protection (NOT middleware.ts — Next.js 16)
-├── next.config.ts
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx          # Root layout (fonts, global styles)
-│   │   ├── (auth)/
-│   │   │   └── login/
-│   │   │       └── page.tsx    # Server Component — login form
-│   │   └── (protected)/
-│   │       ├── layout.tsx      # Server Component — fetches token, wraps WSProvider
-│   │       ├── command-center/
-│   │       │   └── page.tsx    # Server Component — fetches brain list
-│   │       ├── nexus/
-│   │       │   └── page.tsx    # Server Component — fetches task graph
-│   │       ├── vault/
-│   │       │   └── page.tsx
-│   │       └── engine-room/
-│   │           └── page.tsx
-│   ├── actions/
-│   │   ├── auth.ts             # "use server" — login, logout, refresh
-│   │   └── tasks.ts            # "use server" — create task, cancel task
-│   ├── components/
-│   │   ├── ws-provider.tsx     # "use client" — initializes token in wsStore
-│   │   ├── ws-brain-bridge.tsx # "use client" — routes WS events to brainStore
-│   │   ├── brain-node.tsx      # "use client" — React Flow custom node
-│   │   ├── nexus-canvas.tsx    # "use client" — React Flow canvas
-│   │   ├── brain-card.tsx      # "use client" — Bento Grid brain card
-│   │   └── command-input.tsx   # "use client" — Raycast-style input
-│   ├── stores/
-│   │   ├── ws-store.ts         # WebSocket lifecycle + pub/sub
-│   │   └── brain-store.ts      # Brain states map + Immer updates
-│   └── lib/
-│       ├── api.ts              # "server-only" — server-side fetch with cookies
-│       ├── client-api.ts       # Client-side fetch with token from wsStore
-│       └── utils.ts            # cn() and other utilities
+BASE (can start immediately — no deps)
+  └─→ BASE-01: Document 5 manual baselines (uses existing mm:brain-context skill)
+  └─→ BASE-02: Define metric schema (informed by BASE-01 data)
+
+AGT (parallel with BASE, no deps on BASE)
+  └─→ AGT-01: Write 7 brain agent files
+      AGT-02 can start immediately (parallel with AGT-01)
+      AGT-03 can start immediately (parallel with AGT-01)
+  └─→ AGT-04: Smoke test (REQUIRES AGT-01 + AGT-02 + AGT-03 complete)
+
+FEED (requires knowing what content goes where — logically after AGT-01 draft)
+  └─→ FEED-01: Split BRAIN-FEED.md (safe to do before AGT is complete)
+  └─→ FEED-02: Baked into AGT-01 system prompts (done when AGT-01 is done)
+  └─→ FEED-03: Baked into AGT-01 system prompts (done when AGT-01 is done)
+
+DISP (requires AGT complete — can't dispatch agents that don't exist)
+  └─→ DISP-01: Orchestrator parallel dispatch (REQUIRES AGT-04 passing smoke test)
+  └─→ DISP-02: Update mm:brain-context command (REQUIRES DISP-01 working)
 ```
+
+### Recommended phase breakdown
+
+**Phase 1: BASE + AGT-01/02/03 (parallel work)**
+- Document baselines using existing skill (BASE-01, BASE-02)
+- Draft all 7 agent files with embedded intermediary protocol (AGT-01)
+- Write evaluation criteria per domain (AGT-02)
+- Write anti-patterns per domain (AGT-03)
+- These can proceed in parallel — no cross-dependency
+
+**Phase 2: FEED**
+- Split monolithic BRAIN-FEED.md (FEED-01)
+- FEED-02 and FEED-03 are embedded in agent system prompts — done as part of AGT-01
+
+**Phase 3: AGT-04 smoke test**
+- Test each agent end-to-end against the split feeds
+- Validates AGT + FEED working together before dispatch layer
+
+**Phase 4: DISP**
+- Implement parallel dispatch in orchestrator (DISP-01)
+- Update mm:brain-context command (DISP-02)
+- Integration test against validated agents
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Token Waterfall (Server → Client)
+### Pattern 1: Agent as Embedded Protocol
 
-**What:** httpOnly cookie token flows from Server Component → Client Component prop → Zustand
-store. No client JS ever reads cookies directly.
+**What:** The intermediary protocol (6-step: read, build context, correct assumptions, query, filter, cascade) is not a workflow the agent follows from a file — it is the agent's intrinsic behavior defined in its system prompt identity section.
 
-**When to use:** Any time a Client Component needs auth credentials (WS, client-side API calls).
+**When to use:** Always. Every brain agent file must embed the full protocol, not reference it.
 
-**Trade-offs:**
-- Safe against XSS (cookies not accessible to JS)
-- Token is briefly visible in React component tree (in memory only, not DOM)
-- Requires Server Component wrapping the Client Component — always true with App Router layouts
+**Why:** When the protocol is a reference (`@ ~/.claude/skills/...`), the orchestrator must read and follow it manually — that is v2.1 behavior. In v2.2, the agent IS the protocol. The orchestrator dispatches and directs; the agent executes the protocol autonomously.
 
-### Pattern 2: Map-Based Brain Store with Immer
+**Trade-offs:** Agent files are larger (protocol is duplicated across 7 files). This is the correct trade-off — cohesion over DRY for behavioral correctness.
 
-**What:** Store brains as `Map<string, BrainState>` with Immer middleware. Update individual
-entries without touching others. Each node component uses a targeted selector.
+### Pattern 2: Feed Isolation via Behavioral Contract
 
-**When to use:** Any time you have N independent entities that receive independent real-time
-updates. Anti-pattern is an array with spread replacement.
+**What:** Each agent writes only to its own domain BRAIN-FEED. No technical lock enforces this — the constraint is in the agent's identity definition ("you write ONLY to BRAIN-FEED-NN-domain.md").
 
-**Trade-offs:**
-- Zero cascade re-renders when one brain updates
-- Immer enables direct mutation syntax (safer for Maps)
-- Map is not JSON-serializable (no persist middleware on this store)
+**When to use:** Every agent system prompt must include explicit write-scope instructions. Omitting this creates cross-domain pollution risk.
 
-### Pattern 3: WS Pub/Sub Inside Zustand
+**Why:** Cross-domain pollution is the primary failure mode for multi-agent knowledge systems. If Brain #7 (growth) writes a frontend performance pattern into BRAIN-FEED.md (global), Brain #4 (frontend) will get conflicting signals from a non-specialist. Isolation preserves signal quality per domain.
 
-**What:** The WS `onmessage` handler dispatches to a Map of typed listeners. Components/bridges
-subscribe and unsubscribe in useEffect. Store manages the WebSocket lifecycle.
+**Detection:** If a brain agent ever proposes to write to BRAIN-FEED.md directly, that is a violation. Only the orchestrator updates the global feed, after explicit cross-domain synthesis.
 
-**When to use:** Multiple components need different WS event types without prop drilling or context
-re-renders.
+### Pattern 3: Structured Return from Agent to Orchestrator
 
-**Trade-offs:**
-- Decouples WS from React tree (no re-render on every event)
-- Subscribers self-manage (unsubscribe on unmount)
-- Debugging requires Redux DevTools or console inspection
+**What:** Each agent returns a structured response with: verified insights (categorized ✅/📅/🔴), any new patterns added to its domain feed, and confidence level.
 
-### Pattern 4: Stable Node Array + External State in Custom Nodes
+**When to use:** Brain #7 additionally returns a verdict (APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE) for Moment 3.
 
-**What:** React Flow's `nodes` array contains ONLY layout data (id, position, type). Live state
-comes from useBrainStore inside each custom node component via targeted selector.
+**Why:** The orchestrator cannot synthesize free-form prose from 4 parallel agents efficiently. Structure enables the orchestrator to merge results and update artifacts without re-reading the agents' full outputs.
 
-**When to use:** React Flow graphs with real-time node state updates.
-
-**Trade-offs:**
-- Eliminates the single biggest React Flow performance pitfall
-- Custom node must be wrapped in `React.memo` and declared outside parent component
-- NODE_TYPES object must be declared outside the parent component (prevents new reference)
-
----
-
-## Data Flow
-
-### Happy Path: User submits brief → brains execute → Nexus illuminates
-
+**Example return format:**
 ```
-1. User types brief → Command Center input
-2. Server Action: POST /api/tasks → { task_id: "abc123" }
-3. Client Component: useWSStore.connect("abc123", token)
-4. WS open: ws://localhost:8000/ws/tasks/abc123?token=...
-5. useBrainStore.setActiveTask("abc123", initialNodes)
-6. WSBrainBridge subscriptions active
+BRAIN-NN RESPONSE
+Domain: [domain]
+NotebookLM query answered: YES
 
-7. WS event: brain_step_started { brain_id: "brain-01" }
-   → WSBrainBridge → handleBrainStarted("brain-01", ...)
-   → Immer updates brains.get("brain-01").status = "running"
-   → ONLY brain-01 BrainCard/BrainNode re-renders (targeted selector)
+VERIFIED INSIGHTS:
+✅ [concern] — already in codebase at [path]
+📅 [concern] — defer to v2.3 (out of scope)
+🔴 [gap] — [specific actionable recommendation]
 
-8. WS event: brain_step_completed { brain_id: "brain-01", output, duration_ms }
-   → handleBrainCompleted → status = "completed"
-   → brain-01 node turns green
+BRAIN-FEED UPDATE: [pattern name] added to BRAIN-FEED-NN-domain.md
+  Content: [1-2 line description of what was added]
 
-9. WS event: execution_complete
-   → useWSStore.disconnect()
+CONFIDENCE: HIGH / MEDIUM / LOW + reason
 ```
 
-### Auth Refresh Flow
+### Pattern 4: Baseline-Before-Migration
 
-```
-1. proxy.ts intercepts request
-2. jwtVerify(access_token) → throws (expired)
-3. POST /api/auth/refresh with refresh_token cookie
-4. New tokens received → set new cookies in response
-5. Request continues → no user interruption
-```
+**What:** Before DISP-01 (parallel agent dispatch), collect 5 manual consultation baselines using the current skill workflow. Define metric schema (BASE-02) before collecting baselines (BASE-01) so measurements are comparable.
+
+**When to use:** Any time a manual-to-agent migration is planned. This is BASE-01 and BASE-02.
+
+**Why:** Without baseline, "agents are better" is a claim without evidence. Brain #7 (growth) would flag this as confirmation bias. The metric schema must be defined before collecting baselines, not after — otherwise you fit the schema to the data you already have.
 
 ---
 
 ## Integration Points
 
-### New vs Modified
+### Agent → NotebookLM (MCP)
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `apps/api/` | **UNCHANGED** | All endpoints already exist and work |
-| `apps/web/proxy.ts` | **NEW** | Replaces middleware.ts — route protection |
-| `apps/web/src/stores/ws-store.ts` | **NEW** | WS lifecycle + pub/sub |
-| `apps/web/src/stores/brain-store.ts` | **NEW** | Brain states with Immer |
-| `apps/web/src/components/ws-brain-bridge.tsx` | **NEW** | Bridges WS events to brain store |
-| `apps/web/src/components/brain-node.tsx` | **NEW** | React Flow custom node |
-| `apps/web/src/actions/auth.ts` | **NEW** | Server Actions for login/logout |
-| `apps/web/src/lib/api.ts` | **NEW** | Server-only fetch utility |
-| `docker-compose.yml` | **UNCHANGED** | web:3000 already configured |
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Brain Agent → NotebookLM | `mcp__notebooklm-mcp__notebook_query(notebook_id, query)` | Each agent has its own hardcoded notebook_id in its system prompt |
+| Notebook IDs | Embedded in agent file | Do NOT reference brain-selection.md from agent — embed directly for agent self-sufficiency |
 
-### Backend Endpoints Required
+### Agent → BRAIN-FEED files (filesystem)
 
-| Endpoint | Status | Notes |
-|----------|--------|-------|
-| `POST /api/auth/login` | Exists | Returns `access_token` + `refresh_token` |
-| `POST /api/auth/refresh` | Exists | Rotation implemented |
-| `POST /api/tasks` | Exists | Returns `task_id` |
-| `GET /api/tasks` | Exists | Pagination supported |
-| `GET /api/tasks/{id}/graph` | Exists | Returns `nodes[]`, `edges[]` |
-| `WS /ws/tasks/{id}?token=` | Exists | Throttled 300ms, Ghost Mode buffer |
-| `GET /api/brains` | **MISSING** | Need to verify — Command Center needs brain list |
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Brain Agent → Own domain feed | Write tool (append pattern to BRAIN-FEED-NN.md) | Agent writes ONLY to its own file |
+| Brain Agent → Global feed | READ only | Global feed is write-protected by behavioral contract |
+| Orchestrator → Global feed | Write tool (post-synthesis) | Orchestrator updates global feed after cross-domain synthesis |
 
-**Gap:** The `/api/brains` endpoint is not in the existing routes. The Command Center Bento Grid
-needs to list all 24 brains with their current status. This endpoint must be added to the API
-before Screen 2 can be completed.
+### Orchestrator → Agent (Agent tool)
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Orchestrator dispatches | `Agent(agent="brain-NN-domain", prompt="...")` | Prompt includes: which moment, which files to read, what question |
+| Agent returns | Structured text response | Orchestrator parses the structured return to update GSD artifacts |
+
+### mm:brain-context command → Orchestrator
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Command → Orchestrator | Shell detection output + moment confirmation | Unchanged from v2.1; only the execution block changes |
+| Command execution block | v2.1: `@ ~/.claude/skills/mm/brain-context/SKILL.md` | v2.2: dispatch Agent tool calls directly |
 
 ---
 
-## Anti-Patterns to Avoid
+## Anti-Patterns
 
-### Anti-Pattern 1: middleware.ts (Next.js 15 pattern)
+### Anti-Pattern 1: Agent Reads Protocol from External File
 
-**What people do:** Create `middleware.ts` from tutorials written before Next.js 16.
-**Why it's wrong:** Deprecated in Next.js 16. Renamed to `proxy.ts`, function renamed to `proxy()`.
-The `edge` runtime is NOT supported in proxy. Code will still run (backward compat) but emits
-deprecation warnings and the runtime constraint differs.
-**Do this instead:** Use `proxy.ts` from day one.
+**What people do:** Write a thin agent file that says "read the SKILL.md and follow the intermediary protocol."
 
-### Anti-Pattern 2: Token in localStorage
+**Why it's wrong:** The agent then becomes the v2.1 orchestrator — manually reading and following a workflow. This defeats the purpose of the migration. Agents ARE the protocol, they don't follow it from a file.
 
-**What people do:** Store JWT in `localStorage` for easy client-side access.
-**Why it's wrong:** XSS vulnerable. Any injected script reads the token.
-**Do this instead:** httpOnly cookies + token waterfall from Server Component layout.
+**Do this instead:** Embed the full 6-step intermediary protocol directly in the agent's system prompt. Yes, it is duplicated across 7 files. That is correct.
 
-### Anti-Pattern 3: Full Node Array Replacement on WS Event
+### Anti-Pattern 2: Agent Writes to Global BRAIN-FEED
 
-**What people do:** `setNodes(nodes.map(n => n.id === updated.id ? {...n, data: newData} : n))`
-**Why it's wrong:** Returns new array reference → React Flow reconciles all 24 nodes → 24
-re-renders per WS event. At 300ms throttle and 24 parallel brains = potentially 80 re-renders
-per second.
-**Do this instead:** External store with Map + targeted selector per node. React Flow's node array
-is layout-only and never changes after initial render.
+**What people do:** Agent discovers a cross-domain pattern and writes it to BRAIN-FEED.md (thinking "this is important for everyone").
 
-### Anti-Pattern 4: useEffect WebSocket in a Component
+**Why it's wrong:** The global feed should only contain validated cross-domain insights after orchestrator synthesis. An agent writing directly bypasses validation and creates pollution with domain-specific signals labeled as cross-domain.
 
-**What people do:** `useEffect(() => { const ws = new WebSocket(...) }, [taskId])`
-**Why it's wrong:** Creates new connection on every component mount. Navigation to another screen
-and back = new connection. Parallel subscriptions from different components = multiple connections.
-**Do this instead:** Module-level singleton in Zustand store. `connect()` is idempotent — checks
-if same task is already connected before opening new socket.
+**Do this instead:** Agent writes to its domain feed. Orchestrator, after collecting all agent results, synthesizes cross-domain patterns and updates the global feed.
 
-### Anti-Pattern 5: useWSStore() without selector
+### Anti-Pattern 3: Dispatch Before Smoke Test
 
-**What people do:** `const wsStore = useWSStore()` (selects entire store)
-**Why it's wrong:** Component re-renders on ANY store change, including `onmessage` firing for
-every WS packet.
-**Do this instead:** `const connect = useWSStore((s) => s.connect)` — select only what you need.
-For multiple fields: `useShallow`.
+**What people do:** Write the parallel dispatch (DISP-01) before running AGT-04 smoke tests per agent.
+
+**Why it's wrong:** If 3 out of 7 agents have broken MCP calls or wrong notebook IDs, parallel dispatch silently produces empty/wrong results. The error is harder to diagnose in a parallel context than in isolation.
+
+**Do this instead:** Smoke test each agent individually (AGT-04) before wiring parallel dispatch. Confirm each agent: reads feeds, queries NotebookLM, filters, writes domain feed, returns structured response.
+
+### Anti-Pattern 4: Baseline After Migration
+
+**What people do:** Start using agents, notice they seem better, then decide to document "what things were like before" from memory.
+
+**Why it's wrong:** Memory of pre-migration pain is unreliable and biased toward justifying the change. The baseline must be documented before migration to be valid.
+
+**Do this instead:** Document 5 real manual consultations using the existing skill workflow (BASE-01) before touching any agent or dispatch code. This is why BASE is first in the build order.
 
 ---
 
@@ -972,51 +453,23 @@ For multiple fields: `useShallow`.
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| Single user (v2.1) | Current design — sufficient. SQLite WAL, single WS per task. |
-| 5-10 concurrent users | No changes needed. FastAPI async handles concurrent WS connections. |
-| 50+ users | Replace SQLite with PostgreSQL. Add WS reconnection with exponential backoff. |
-| Production hardening | nginx reverse proxy (eliminates CORS), HTTPS, rate limiting (v2.2 scope). |
-
----
-
-## Open Gaps
-
-1. **`GET /api/brains` endpoint:** The Command Center Bento Grid needs to list all 24 brains. This
-   endpoint does not exist in the current API. The `brain_registry.py` file likely has the data;
-   a new route must expose it.
-
-2. **WS reconnection strategy:** The current WS store has no exponential backoff on disconnect.
-   For v2.1 this is acceptable (local dev, no flaky network). For production (v2.2), implement
-   reconnection with max retries.
-
-3. **Token expiry during active WS session:** If the access_token expires while a WS connection
-   is open, the next REST call will 401. The client needs a silent refresh hook. Acceptable to
-   defer to v2.2 since tokens last 30 minutes and tasks typically complete faster.
-
-4. **React Compiler stability:** Next.js 16 includes React Compiler (stable) but disabled by
-   default. Custom React Flow nodes wrapped in `React.memo` PLUS React Compiler = double
-   memoization. Enable React Compiler only after verifying no conflicts with `@xyflow/react`.
+| 7 brains (v2.2 scope) | Behavioral contract isolation is sufficient. No technical enforcement needed. |
+| 24+ brains (future niches) | Consider a BRAIN-FEED registry file that lists all domain feeds by niche. Global feed becomes per-niche global. |
+| Multiple simultaneous orchestrators | Agent write isolation becomes critical — concurrent writes to same BRAIN-FEED-NN.md would need append-with-timestamp convention or file locking. |
 
 ---
 
 ## Sources
 
-**HIGH confidence (official documentation):**
-- [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16) — proxy.ts, async cookies, Turbopack default
-- [React Flow state management](https://reactflow.dev/learn/advanced-use/state-management) — Zustand integration pattern
-- [React Flow performance](https://reactflow.dev/learn/advanced-use/performance) — React.memo requirement, node re-render prevention
-- [Zustand 5 patterns](https://github.com/pmndrs/zustand) — useShallow, immer middleware, module singleton
-
-**MEDIUM confidence (verified against official + multiple sources):**
-- JWT httpOnly cookie pattern for Next.js App Router — multiple 2026 sources consistent
-- Zustand singleton for WS (module-level store survives navigation) — verified via zustand discussions
-- Token waterfall (Server Component → Client Component prop) — official App Router patterns
-
-**LOW confidence (single source or inference):**
-- React Compiler + React.memo interaction with React Flow nodes — needs validation during build
+- `.planning/PROJECT.md` — v2.2 architecture vision, key decisions table, component list
+- `.planning/REQUIREMENTS.md` — 11 requirements across AGT/FEED/BASE/DISP groups with acceptance criteria
+- `claude-commands/mm/brain-context.md` — existing command structure being evolved
+- `~/.claude/skills/mm/brain-context/SKILL.md` — intermediary protocol that becomes agent native behavior
+- `~/.claude/skills/mm/brain-context/workflows/moment-1.md`, `moment-3.md` — workflow detail that maps to agent steps
+- `~/.claude/skills/mm/brain-context/references/brain-selection.md` — notebook IDs, dispatch rules, cascade rules
+- `~/.claude/skills/mm/brain-context/references/intermediary-protocol.md` — 6-step protocol to embed in agents
+- `.planning/BRAIN-FEED.md` — current monolithic feed structure being split
 
 ---
-
-*Architecture research for: MasterMind Framework v2.1 — Next.js 16 War Room Frontend*
-*Researched: 2026-03-18*
-*Confidence: HIGH*
+*Architecture research for: v2.2 Brain Agents — Claude Code subagent dispatch for MasterMind Framework*
+*Researched: 2026-03-27*

@@ -26,10 +26,8 @@ result: pass
 
 ### 4. CLI Validation — Invalid Params Show Clear Error
 expected: Run `uv run mastermind orchestrate --brief "x" 2>&1` (brief too short, min_length=10). Should show a clear Pydantic validation error message with field name and constraint — NOT a Python traceback/crash
-result: issue
-reported: "MM_API_KEY=test uv run mastermind orchestrate run 'x' → raw Python traceback. validate_api_key raises uncaught ValidationError (APIKey key min_length=37). No friendly error shown."
-severity: major
-mitigated: 2026-03-20 — Now shows friendly error: "❌ Error: Invalid API key\nYour MM_API_KEY is not valid. Generate a new key:\n  mm auth create-key\nAborted!"
+result: pass
+note: Initially reported as issue (raw traceback). Fixed 2026-03-20 — now shows friendly error: "❌ Error: Invalid API key\nYour MM_API_KEY is not valid. Generate a new key:\n  mm auth create-key\nAborted!"
 
 ### 5. Runtime Validation Tests
 expected: Run `uv run pytest tests/integration/test_cli_coordinator.py tests/unit/test_coordinator_validation.py tests/unit/test_error_messages.py tests/integration/test_mcp_wrapper.py -v` — 21 tests passing
@@ -38,23 +36,11 @@ result: pass
 ## Summary
 
 total: 5
-passed: 4
-issues: 1
+passed: 5
+issues: 0
 pending: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "CLI muestra mensaje de error claro (sin traceback) cuando los parámetros son inválidos"
-  status: failed
-  reason: "User reported: MM_API_KEY=test uv run mastermind orchestrate run 'x' → raw Python traceback. validate_api_key raises uncaught ValidationError (APIKey key min_length=37). No friendly error shown."
-  severity: major
-  test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
-
-## Gaps
-
-[none yet]
+[none]

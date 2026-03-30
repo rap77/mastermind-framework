@@ -1,24 +1,23 @@
-# Feature Research: MasterMind War Room Frontend (v2.1)
+# Feature Research: v2.2 Brain Agents
 
-**Domain:** Real-time AI orchestration dashboard — "War Room" for parallel brain execution
-**Researched:** 2026-03-19
-**Confidence:** HIGH (verified with React Flow docs, Magic UI source, multiple current sources)
+**Domain:** Claude Code subagent specialization — autonomous brain consultation system
+**Researched:** 2026-03-27
+**Confidence:** HIGH (based on mm:brain-context skill source, REQUIREMENTS.md, PROJECT.md, and direct analysis of the existing manual workflow that agents will replace)
 
 ---
 
-## Context: What Already Exists (Do Not Re-Build)
+## Context: What v2.1 Built (Do Not Re-Build)
 
-The backend is production-ready. These are DONE:
+The `mm:brain-context` skill and its 4 workflows are the **manual baseline** v2.2 automates. Every agent system prompt is a direct evolution of the workflow it replaces:
 
-| Backend Capability | Status | Notes |
-|-------------------|--------|-------|
-| FastAPI + JWT auth + refresh rotation | DONE | Token expiry 30min, refresh 24h |
-| WebSocket server | DONE | Events: `brain_step_started`, `brain_step_completed`, `execution_finished` |
-| 24 brains parallel execution (4.65x speedup) | DONE | DAG via asyncio.TaskGroup |
-| Execution tracking + brain outputs in SQLite WAL | DONE | 0.39ms status queries |
-| REST API for orchestration, history, config | DONE | FastAPI, Pydantic v2 |
+| Manual Workflow | What It Does | Becomes |
+|----------------|-------------|---------|
+| `moment-1.md` | Read reality → build context block → query Brain #1 + #7 → filter → synthesize into ROADMAP input | DISP-01: orchestrator dispatches Brain-01 + Brain-07 agents in parallel |
+| `moment-2.md` | Select domain brains → build [IMPLEMENTED REALITY] → query all in parallel → filter → write CONTEXT.md | DISP-02: mm:brain-context dispatches domain brain agents via Agent tool |
+| `moment-3.md` | Build full context → query Brain #7 → filter → cascade real gaps → iterate max 3 → update PLAN.md | Brain-07 agent validates plan natively, 3-iteration loop built in |
+| `update-brain-feed.md` | Read phase artifacts → extract patterns → distill into BRAIN-FEED.md | Agent writes own domain feed after consultation; no external trigger needed |
 
-Frontend replaces Alpine.js/HTMX dashboard. All data comes from the existing API.
+**Key insight from PROJECT.md:** "Brains (NotebookLM) are static knowledge — they never learn. The 'learning' happens in the intermediary (Claude) via accumulated BRAIN-FEED context." The agent IS the intermediary. The skill workflow becomes the agent's native behavior.
 
 ---
 
@@ -26,280 +25,110 @@ Frontend replaces Alpine.js/HTMX dashboard. All data comes from the existing API
 
 ### Table Stakes (Users Expect These)
 
-Features that, if missing, make the product feel broken or unfinished.
+Features that, if missing, make the agent system feel broken or indistinguishable from the manual workflow.
 
-| Feature | Why Expected | Complexity | Backend Dependency |
-|---------|--------------|------------|--------------------|
-| Brief textarea with submit button | Users need to initiate executions | LOW | `POST /api/orchestrate` |
-| Brain status tiles (pending/active/complete/error) | Can't use a war room without status visibility | MEDIUM | WebSocket `brain_step_*` events |
-| DAG nodes change appearance on state change | If nodes don't react to events, graph is useless | MEDIUM | WebSocket + React Flow `setNodes` |
-| Strategy Vault — list past executions + view outputs | Users need to retrieve brain outputs | LOW | `GET /api/executions` |
-| Engine Room — live log stream | Operators expect logs for debugging | MEDIUM | WebSocket log events |
-| Single WebSocket connection (not per-component) | Multiple connections to same WS endpoint will fail at scale | MEDIUM | Zustand store pattern |
-| Auth gate (login → JWT in localStorage) | Backend requires JWT; frontend without auth = 401 everywhere | LOW | `POST /api/auth/login` |
-| Error state handling per brain tile | Silent failures are unacceptable | LOW | `brain_step_failed` event |
-| Responsive layout (≥768px) | War rooms are used on varied screens | LOW | CSS only |
-| Dark mode | Developer tools universally dark-themed | LOW | Tailwind `dark:` variant |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Embedded intermediary protocol in each agent system prompt | Without it, agents query NotebookLM cold — same failure mode the skill's `querying-without-code-context` pitfall documents | MEDIUM | 6 steps: read BRAIN-FEED → build [IMPLEMENTED REALITY] → build [CORRECTED ASSUMPTIONS] → query with delta → filter each concern → cascade real gaps. Not optional shorthand |
+| Read BRAIN-FEED.md (global) before querying | The skill enforces this as step 1 with explicit anti-pattern: "Each consultation starts from zero context = WRONG". Without this, the agent starts blind every time | LOW | Each agent system prompt must include explicit read instruction for `.planning/BRAIN-FEED.md` before any query |
+| Read domain BRAIN-FEED-NN.md before querying | The per-brain split is the entire point of FEED-01. If agents skip their domain feed, accumulated domain expertise is inaccessible | LOW | Separate from global feed — agent reads both, not one |
+| Write only to own domain feed after consultation | Without this boundary, agents contaminate each other's domain knowledge. A Frontend agent writing to the Backend feed is BRAIN-FEED poisoning | LOW | Agents must NOT touch `.planning/BRAIN-FEED.md` (global) or other domains' feeds |
+| Codebase verification before returning insights | The skill step 5 "FILTER the response" is non-negotiable. An agent that returns unverified NotebookLM output is worse than useless — it pollutes planning with hallucinated gaps | HIGH | Agent must grep/read code for every concern before marking it ✅ / 📅 / 🔴 |
+| Domain-specific [CORRECTED ASSUMPTIONS] | Brain #4 (Frontend) makes predictably wrong assumptions about React Compiler, inline NODE_TYPES, etc. Brain #5 (Backend) makes wrong assumptions about FastAPI setup. Each agent needs pre-baked corrections from the domain's known error patterns | MEDIUM | Not generic. Each agent's system prompt lists the 3-5 assumptions its specific brain reliably gets wrong |
+| Smoke test end-to-end for each agent (AGT-04) | If an agent can't complete the 6-step protocol against a real phase, it's not done. "Files exist" is not acceptance | MEDIUM | One real consultation per agent, not a format check |
 
-### Differentiators (Competitive Advantage)
+### Differentiators (What Makes Agents Better Than the Manual Skill)
 
-Features that make this "war room" feel alive vs. a generic dashboard.
+Features that create measurable improvement over the `mm:brain-context` skill workflow. If an agent can't demonstrably beat the manual workflow on at least one dimension, there was no point shipping v2.2.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Bento Grid with live pulse animations on active brains | Spatial layout makes 24 brains scannable at a glance; pulse signals "this is happening" | MEDIUM | Magic UI BentoGrid + CSS `animate-pulse` per status |
-| React Flow nodes illuminate on WS events | Visual causality — watching the DAG execute in real-time is the core "wow" | HIGH | `NodeStatusIndicator` from `@xyflow/react`, Zustand bridge |
-| Raycast-style command input (full-screen overlay, keyboard-first) | Feels intentional, not a form; matches how power users work | MEDIUM | `cmdk` or shadcn Command + textarea expansion |
-| Progressive AI output rendering (token streaming, not page load) | Perceived speed: watching a brain "think" is more engaging than waiting | HIGH | Server-Sent Events or WS streaming + `streamdown` or `react-markdown` with memoization |
-| Brain status badge coloring in Bento Grid matches DAG node state | Visual consistency = users trust the UI faster | LOW | Single source of truth in Zustand, both screens subscribe |
-| Strategy Vault — diff view between two executions | Agencies need to compare "this brief vs last brief" | HIGH | Custom diff component |
-| Engine Room — filter logs by brain name + level | 24 brains generate noise; filtering by brain reduces cognitive load | MEDIUM | Client-side filter against `brain_name` in log payload |
-| Time-to-first-output metric visible in Command Center | Shows value immediately: "Brain #1 responded in 1.2s" | LOW | Timestamp delta from execution_started to first brain_step_completed |
+| Parallel dispatch from orchestrator (DISP-01) | Manual workflow runs brains sequentially — Brain #2 then #3 then #4 takes ~15 min. Parallel dispatch runs all domain brains simultaneously. Time savings compounds per phase | MEDIUM | Orchestrator uses Claude's Agent tool with multiple parallel invocations. Brain #7 still runs last (it validates the others) |
+| Accumulated domain expertise per brain (FEED-01 + FEED-02) | Manual BRAIN-FEED is flat and global — all 7 brains read the same context soup. Per-brain feeds let Brain #4 (Frontend) accumulate React patterns across 10 phases without Backend noise polluting it | MEDIUM | Quality of context blocks improves phase over phase. The "first consultation = ground truth" problem disappears after 3-4 phases |
+| evaluation-criteria.md per domain (AGT-02) | Manual filtering depends entirely on the operator's judgment: "is this a real gap or generic advice?". With explicit criteria, the agent filters consistently. Brain #3 (UI) knows exactly what a "good visual design recommendation" looks like vs. generic theory | MEDIUM | 7 files — one per domain. Defines specific quality gates: "must reference specific CSS tokens, not principles", "must reference specific Lucide icon names", etc. |
+| anti-patterns.md per domain (AGT-03) | Manual BRAIN-FEED has an anti-patterns section but it's codebase-focused (tried and rejected). Per-brain anti-patterns are domain knowledge: what types of NotebookLM responses should NEVER enter the BRAIN-FEED | MEDIUM | Manual curation only in v2.2. Agent reads anti-patterns.md before writing to BRAIN-FEED. Prevents poisoning at the source |
+| Baseline measurement (BASE-01 + BASE-02) | Without baselines, "agents are better" is a belief, not a fact. 5 documented consultations create the comparison point for time, gap quality, and re-consultation count | LOW | 5 consultations documented before migration. Metric schema: time-per-consultation, gap-count, re-consultation-count, quality-rating 1-5 |
+| BRAIN-FEED self-update after each consultation | Manual workflow: operator runs `mm:brain-context feed` explicitly post-phase. Agent workflow: agent updates domain feed automatically as part of every consultation. Nothing falls through the cracks | LOW | Write instruction is built into agent system prompt at step 6 |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| One WebSocket connection per component | "Simplest" to implement in each component | N connections to FastAPI WS endpoint; state desync between components; reconnect storms | Zustand WS Dispatcher: single connection, per-component `subscribe(eventType, cb)` |
-| Polling as WebSocket fallback | "What if WS disconnects?" | Adds 10x server load, defeats real-time purpose, creates stale-state UX | Exponential backoff reconnection in Zustand store; 3 retries then show "reconnecting…" banner |
-| D3.js for DAG (keep from v2.0) | Already familiar, why switch? | Zero React integration — all imperative DOM; state sync nightmare with React; React Flow exists | React Flow — built for React, NodeStatusIndicator built-in, Zustand integration documented |
-| Infinite scroll in Strategy Vault | "Show all executions" | Executions are large (24 brain outputs each); infinite scroll = unbounded memory | Pagination (20 per page) + search by date/brief text |
-| Editable YAML in browser with no validation | "Let me edit brain configs in-place" | Invalid YAML silently breaks brains; users won't know until execution fails | Monaco editor + YAML schema validation, save blocked on parse error |
-| Auto-refresh entire page on WS disconnect | "At least something happens" | Kills in-flight animations, loses form state, terrible UX | Reconnect indicator banner only; page state preserved |
-| SSE for everything (abandon WebSocket) | "SSE is simpler for streaming" | Backend already uses WS; switching means rewriting FastAPI handlers | Keep WS for bidirectional control events; SSE only if adding server-push streaming of brain outputs specifically |
-| Tabs per brain in Strategy Vault | "See each brain's output in its own tab" | 24 tabs is unusable tab-soup | Accordion/collapsible sections within single execution view |
-
----
-
-## Screen-Specific Feature Analysis
-
-### Screen 1: Command Center
-
-**Purpose:** Brief submission + live status overview of all 24 brains.
-
-**Table Stakes:**
-- Textarea with ≥3 lines visible, grow-on-type behavior
-- Submit triggers `POST /api/orchestrate` with brief text
-- Disable submit during active execution (prevent double-submission)
-- Bento Grid showing all 24 brains with name + current status
-
-**UX Pattern — Raycast-style Command Input:**
-
-The `cmdk` library (shadcn Command wrapper) provides keyboard-first modal overlay. For a "brief" (multi-line, freeform text), the correct pattern is NOT a command palette — those are for single-line actions. The correct pattern is:
-
-1. **Command palette to OPEN the brief modal** — `⌘K` / `Ctrl+K` opens full-screen overlay
-2. **Inside the modal: textarea** — auto-focused, `Cmd+Enter` submits, `Escape` closes
-3. **Context selector above textarea** — choose niche (Software Dev / Marketing) before submitting
-
-This matches Linear's issue creation (command to open, structured form inside) and avoids the anti-pattern of trying to submit a paragraph via a search-style input.
-
-**Differentiator:** Add "brain group pre-selection" — toggle which of the 24 brains to include before submitting. Checkbox grid in the command modal. Medium complexity, high value for agencies running partial flows.
-
-**Bento Grid — Magic UI vs custom CSS Grid:**
-
-Magic UI BentoGrid (`magicui.design/docs/components/bento-grid`) is a React component built on CSS Grid under the hood, with Framer Motion animations included. The tradeoffs:
-
-| Criterion | Magic UI BentoGrid | Custom CSS Grid |
-|-----------|-------------------|-----------------|
-| Setup time | 5 minutes (copy-paste) | 2-4 hours (layout logic) |
-| Animations | Included (hover, scale, glow) | Write from scratch |
-| Tile sizing | Predefined `col-span` variants | Full control |
-| Bundle size | ~15KB (Framer Motion already in stack) | ~0KB extra |
-| Customization | Props-based, limited | Total control |
-| Status-reactive styling | Requires wrapping with custom logic | First-class CSS var |
-| `className` injection | Yes (className prop per item) | N/A |
-
-**Recommendation: Use Magic UI BentoGrid** as the structural shell, inject Tailwind status classes (`border-blue-500 animate-pulse` for active, `border-green-500` for complete, etc.) via the `className` prop per brain tile. Framer Motion is already in the stack (React Flow uses it). Zero extra bundle cost.
-
-**Brain tile content:**
-- Brain name (truncated at 20 chars)
-- Status badge (pending/active/complete/error) with color
-- Execution time (if complete)
-- Output preview (first 80 chars of output, truncated)
-- Click → opens Strategy Vault filtered to that brain's last output
-
-### Screen 2: The Nexus (DAG Visualization)
-
-**Purpose:** Real-time directed acyclic graph showing brain execution flow, nodes illuminate as events arrive.
-
-**React Flow Patterns for Real-Time Node State:**
-
-React Flow's recommended architecture for real-time updates uses **Zustand as the shared state bridge** (documented officially at `reactflow.dev/learn/advanced-use/state-management`). The pattern:
-
-```
-WebSocket event → Zustand store action → React Flow re-reads nodes from store
-```
-
-Critical constraint from React Flow docs: **you must create a new node object (spread) to trigger re-renders** — mutating node data in place does NOT work.
-
-**Node state machine for brains:**
-
-| State | Visual | CSS | Animation |
-|-------|--------|-----|-----------|
-| `pending` | Grey border, muted text | `opacity-50` | None |
-| `active` | Blue border, bright text | `border-blue-400` | `NodeStatusIndicator` with `status="loading"` (spinning border) |
-| `complete` | Green border, checkmark icon | `border-green-400` | Brief scale pulse on transition (Framer Motion `animate={{ scale: [1, 1.05, 1] }}`) |
-| `error` | Red border, X icon | `border-red-400` | `NodeStatusIndicator` with `status="error"` |
-
-`NodeStatusIndicator` is a built-in React Flow UI component (`@xyflow/react`) that wraps custom nodes and handles the `loading`/`success`/`error`/`initial` states with built-in border-spin animation. Use it — don't build this manually.
-
-**Edge animation on activation:**
-
-When a brain completes, its outgoing edges to dependent brains should animate (dashed animated stroke). React Flow supports `animated: true` on edges, which renders a CSS `stroke-dashoffset` animation. Flip `animated` to `true` in the Zustand store when `brain_step_completed` fires for the source node.
-
-**Layout:**
-
-24 nodes is a medium-size DAG. Use React Flow's `dagre` layout algorithm (`@dagrejs/dagre` + `reactflow-dagre-layout`). Run layout once on mount, don't re-layout on status changes (only data changes, not positions).
-
-**Performance note:** With 24 nodes and frequent WS updates, use `useStore` selector to only re-render the specific node that changed, not the entire graph. The Zustand + React Flow pattern handles this correctly when using `updateNodeData()` from React Flow's internal API (added in React Flow 12).
-
-### Screen 3: Strategy Vault
-
-**Purpose:** Browse execution history, view brain outputs.
-
-**Patterns for progressive/streamed AI output display:**
-
-Outputs are stored in SQLite (not streamed to the Vault — the Vault shows completed results). However, if brain outputs are long (they often are), the display pattern matters.
-
-**Pattern: Accordion + Markdown rendering with memoization**
-
-Each brain output is stored as text (likely Markdown). Use:
-1. `react-markdown` with memoization (Vercel AI SDK cookbook pattern) — prevents re-render cascade when parent updates
-2. `rehype-highlight` for code blocks inside outputs
-3. Collapsible accordion per brain (24 brains = don't show all at once)
-4. Copy-to-clipboard per brain output (one button, no friction)
-
-**If outputs stream during execution (future WS enhancement):**
-Use `streamdown` (Vercel's open-source, `github.com/vercel/streamdown`) — handles incomplete markdown tokens without visual glitches. Drop-in replacement for `react-markdown`. Handles unterminated code blocks, partial links, etc.
-
-**Execution list view:**
-- Sort by date DESC (most recent first)
-- Show: brief text (truncated 100 chars), timestamp, total brains, execution time, status
-- Filter: by niche, by date range, by status
-- Search: full-text on brief content (client-side filtering is fine for <1000 executions)
-- Pagination: 20 per page — do NOT use infinite scroll (brain outputs are large)
-
-**Diff view (differentiator, defer to v2.1.1):**
-Compare two execution results side-by-side. Use `diff` npm package + custom rendering. Medium complexity, high agency value. Defer to after core Vault is working.
-
-### Screen 4: Engine Room
-
-**Purpose:** Structured log viewer, API key management, brain YAML config.
-
-**Log Viewer Pattern — Virtual Scrolling:**
-
-For a real-time log stream from 24 parallel brains, logs can accumulate fast (thousands of entries per execution). Virtual scrolling is mandatory, not optional.
-
-**Library recommendation: `react-logviewer` (melloware fork of react-lazylog)**
-
-- Virtual scrolling via `react-virtualized` under the hood
-- Loads logs from WebSocket natively (`websocket` prop)
-- ANSI color support (brain logs may use `rich` output from Python)
-- Follow mode (auto-scroll to bottom as new logs arrive)
-- Search/filter built-in
-- Copy line on click
-- GitHub: `melloware/react-logviewer`, actively maintained as of 2025
-
-**Why not TanStack Virtual with custom implementation:**
-TanStack Virtual is more flexible but requires building the entire log rendering pipeline manually (line parsing, ANSI coloring, follow mode, search). `react-logviewer` has all of this. Use the library.
-
-**Log level color conventions (match Python `logging` module):**
-
-| Level | Color | Tailwind Class |
-|-------|-------|----------------|
-| DEBUG | Grey | `text-slate-400` |
-| INFO | White | `text-slate-100` |
-| WARNING | Yellow | `text-yellow-400` |
-| ERROR | Red | `text-red-400` |
-| CRITICAL | Red bold | `text-red-500 font-bold` |
-| BRAIN_START | Blue | `text-blue-400` |
-| BRAIN_COMPLETE | Green | `text-green-400` |
-
-**Filter controls (must-have):**
-- Level filter (checkbox: DEBUG/INFO/WARNING/ERROR)
-- Brain name filter (dropdown, multi-select)
-- Clear logs button (local only — doesn't delete from backend)
-- Download logs as `.txt`
-
-**API Key Management:**
-- List API keys with masked display (`sk-...xxxx`)
-- Create new key (modal, label required)
-- Revoke key (confirmation dialog)
-- Never show full key after creation (show once, then mask)
-- Backend dependency: `GET/POST/DELETE /api/keys` — verify this exists in v2.0 API
-
-**Brain YAML Config:**
-- Read-only list of brain YAML files with Monaco editor viewer
-- Edit mode: Monaco with YAML language support (`monaco-editor` + `@monaco-editor/react`)
-- Validate on change: parse YAML client-side (use `yaml` npm package), block save if invalid
-- Save triggers `PUT /api/brains/{brain_id}/config`
+| Auto-pruning BRAIN-FEED entries (removing stale ones) | "The feed will grow forever" / "Old patterns become outdated" | v2.2 has no validation mechanism to know what's stale vs. intentionally kept. Wrong pruning removes hard-won invariants like "React Compiler: DISABLED". Over-engineering for a problem that doesn't exist yet in v2.2 scope | Manual curation (AGT-03 anti-patterns.md). Operator decides what to remove. Auto-pruning is a v2.3 problem after observing feed growth in practice |
+| YAML inter-agent coordination protocol | "Agents should communicate structured data with each other" | Adds coordination overhead before validating whether agents even produce better results than manual workflow. The value is in better consultations, not in a prettier handoff format | Agents write to BRAIN-FEED files that other agents and the orchestrator read directly. No YAML wrapper. v2.3 after v2.2 validates the baseline |
+| Brain agent managing its own vector store | "Each brain should have persistent RAG, not just BRAIN-FEED" | v3.0 feature requiring ChromaDB/Qdrant + embeddings infrastructure. Building this in v2.2 is 3 months of infrastructure work before any agent consultation improvement is validated | BRAIN-FEED.md files are the persistence layer. Markdown files are portable and transparent. RAG comes after BRAIN-FEED pattern is proven across 10+ phases |
+| One mega-agent that calls all 7 brains | "Why dispatch 7 agents when 1 can do it all?" | Defeats the specialization purpose. Domain agents carry domain-specific [CORRECTED ASSUMPTIONS] and evaluation-criteria that are mutually contradictory. Frontend and Backend agents correct opposite assumptions. A merged agent dilutes all of them | Orchestrator dispatches specialized agents in parallel. Specialization is the entire design rationale |
+| Agents replacing the operator entirely | "Full automation — agent decides which brains to consult" | mm:brain-context has 3 explicit moments. Moment selection (which brains, for which phase, at which moment) requires human judgment about the development context. Agents are the execution layer, not the routing layer | Operator triggers dispatch (DISP-02 updates mm:brain-context to use agents). Agents execute the consultation protocol; humans decide when and for what |
+| Streaming agent outputs to the War Room frontend | "Watch agents think in real-time in the UI" | The War Room is for brain execution (NotebookLM queries), not for GSD workflow agents. Conflates two different agent paradigms. Adds frontend complexity for no user value | CONTEXT.md files are the output artifact. Operator reads them before planning. No UI plumbing needed in v2.2 |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[WebSocket Dispatcher (Zustand)]
-    ├──required by──> [Command Center — live brain tiles]
-    ├──required by──> [The Nexus — node illumination]
-    └──required by──> [Engine Room — live log stream]
+[BRAIN-FEED split (FEED-01)]
+    └──required by──> [Per-brain feed reads (FEED-02)]
+                          └──required by──> [Agent system prompts (AGT-01)]
+                                                └──required by──> [Parallel dispatch (DISP-01)]
 
-[Auth (JWT in Zustand/localStorage)]
-    └──required by──> ALL screens (401 without it)
+[evaluation-criteria.md per brain (AGT-02)]
+    └──required by──> [Agent filtering step — consistent quality gate]
+                          └──required by──> [Anti-BRAIN-FEED-poisoning]
 
-[Command Center — brief submission]
-    └──enables──> [The Nexus — execution to visualize]
-                      └──enables──> [Strategy Vault — execution to view]
+[anti-patterns.md per brain (AGT-03)]
+    └──required by──> [Agent BRAIN-FEED write step — prevents poisoning at source]
 
-[React Flow + dagre layout]
-    └──requires──> [Execution DAG shape from API]
-                      (GET /api/executions/{id}/dag or inferred from brain dependencies)
+[5 manual baselines (BASE-01)]
+    └──required by──> [Metric schema (BASE-02)]
+                          └──required by──> [Post-migration comparison]
 
-[Strategy Vault — output rendering]
-    └──requires──> [GET /api/executions/{id} with brain outputs]
+[AGT-01 through AGT-04 (all 7 agents functional)]
+    └──required by──> [DISP-01 — orchestrator dispatch]
+                          └──required by──> [DISP-02 — mm:brain-context update]
 
-[Engine Room — YAML editor]
-    └──requires──> [GET/PUT /api/brains/{id}/config — verify in FastAPI backend]
+[FEED-03 (write isolation)]
+    └──prevents──> [Cross-domain BRAIN-FEED contamination]
 ```
 
 ### Dependency Notes
 
-- **WebSocket Dispatcher must be built first** — 3 of 4 screens depend on it. If built per-component, refactoring cost is high.
-- **Auth before any screen** — Every API call needs JWT. Build login page + token storage before building screens.
-- **The Nexus requires knowing the DAG shape** — The frontend needs the brain dependency graph structure. Verify `GET /api/executions/{id}/dag` or equivalent exists in the FastAPI backend. If not, this needs a new endpoint.
-- **Strategy Vault has no WS dependency** — It reads completed data from REST. Can be built offline from the WS work.
+- **FEED-01 must come before AGT-01:** Agent system prompts need the feed file paths to exist. Writing agents that reference `BRAIN-FEED-04-frontend.md` before the file structure is created = broken agents from day one.
+- **BASE-01 must come before full agent migration:** You cannot compare agent quality to manual quality without the manual baseline. Sequence: document 5 consultations manually → define metric schema → migrate to agents → measure.
+- **AGT-02 and AGT-03 are independent but both block AGT-04:** Smoke tests (AGT-04) validate the full consultation loop including filtering (AGT-02) and feed write behavior (AGT-03). Can't smoke test without the criteria files.
+- **DISP-02 depends on DISP-01:** mm:brain-context command update assumes parallel dispatch infrastructure is proven working. Update the command last, not first.
+- **Brain-07 agent is a special dependency:** Brain-07 (Evaluator) validates the outputs of the other 6 agents. Its system prompt must include the 3-iteration loop from moment-3.md. It always runs after domain agents, not in parallel. This ordering constraint belongs in the orchestrator dispatch logic.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v2.1 core)
+### Launch With (v2.2 — all 11 requirements)
 
-Minimum viable "war room" — must validate the concept end-to-end.
+v2.2 is a tightly scoped milestone. All 11 requirements are load-bearing. There is no "minimum" smaller than the full spec — partial agent migration leaves you with a hybrid manual/agent system that's harder to maintain than either pure approach.
 
-- [ ] **Auth gate** — Login page, JWT in Zustand, axios interceptor for token refresh
-- [ ] **WebSocket Dispatcher** — Zustand store, single connection, `subscribe(event, cb)` API, reconnect logic
-- [ ] **Command Center** — Bento Grid with 24 brain tiles + status colors + command input modal
-- [ ] **The Nexus** — React Flow DAG, nodes change state on WS events via `NodeStatusIndicator`
-- [ ] **Strategy Vault** — Execution list + individual execution view with accordion brain outputs
-- [ ] **Engine Room (logs only)** — `react-logviewer` wired to WS log events, filter by level
+- [ ] **FEED-01** — BRAIN-FEED split (global + 7 per-brain files). Existing content migrated. Required before any agents work.
+- [ ] **AGT-01** — 7 `.claude/agents/brain-NN-*.md` files with embedded intermediary protocol. The 6-step protocol is native behavior, not a workflow to follow.
+- [ ] **AGT-02** — 7 `evaluation-criteria.md` files. One per brain domain. Defines what filters each agent applies before writing to its feed.
+- [ ] **AGT-03** — 7 `anti-patterns.md` files. One per brain domain. Prevents known failure modes from entering BRAIN-FEED.
+- [ ] **FEED-02** — Both feed reads in every agent system prompt (global + domain). Must be step 1 of the 6-step protocol.
+- [ ] **FEED-03** — Write isolation enforced. Each agent writes only to its domain feed. Explicit in system prompt.
+- [ ] **BASE-01** — 5 documented manual consultation baselines. Time-box: do 5 real consultations in the next phase cycle, document them with the metric schema.
+- [ ] **BASE-02** — Metric schema defined and applied to BASE-01 baselines. Four metrics: time/consultation, gap-count, re-consultations, quality-rating 1-5.
+- [ ] **AGT-04** — Smoke test: each agent dispatched, reads feeds, queries its NotebookLM brain, filters, returns verified insights. Manual end-to-end per agent.
+- [ ] **DISP-01** — Orchestrator dispatches brain agents in parallel using Agent tool. Brain-07 last.
+- [ ] **DISP-02** — mm:brain-context slash command updated to dispatch agents instead of running manual MCP workflows.
 
-### Add After Validation (v2.1.x)
+### Add After Validation (v2.2.x)
 
-Features to add once core is working and used.
+- [ ] **Drift detection** — Detect when BRAIN-FEED entries reference code paths that no longer exist. Trigger: operator notices stale entries during manual review.
+- [ ] **BRAIN-FEED compaction** — When feed grows past a threshold (e.g., 100 entries), distill into summary entries. Trigger: agent consultation time noticeably increases due to feed length.
 
-- [ ] **Engine Room — API key management** — List/create/revoke keys UI
-- [ ] **Engine Room — YAML editor** — Monaco + YAML validation, save to API
-- [ ] **Brain group pre-selection in Command modal** — Choose which brains to include
-- [ ] **Execution diff view in Strategy Vault** — Compare two runs
+### Future Consideration (v2.3+)
 
-### Future Consideration (v2.2+)
-
-- [ ] **Execution replay** — Step through a past execution in the DAG (time-travel)
-- [ ] **Brain analytics** — Which brains are slowest, error rates, token usage
-- [ ] **Custom Bento Grid layout** — Drag-resize tiles, persist layout to localStorage
-- [ ] **Collaborative viewing** — Multiple users watching same execution (read-only)
-- [ ] **SSE streaming of brain outputs** — Watch brain write its output token-by-token during execution
+- [ ] **YAML inter-agent coordination** — Structured handoff format between agents and orchestrator. Defer until agent consultation quality is validated.
+- [ ] **Auto-pruning BRAIN-FEED** — Automatic removal of stale entries. Requires observing feed evolution across 10+ phases first.
+- [ ] **Cross-brain learning** — Agents learn from each other's successful patterns via shared project BRAIN-FEED. Requires understanding which patterns are domain-specific vs. universal.
+- [ ] **RAG per agent** — Each agent manages its own vector store partition (ChromaDB/Qdrant). v3.0 after BRAIN-FEED.md pattern is proven across multiple project cycles.
 
 ---
 
@@ -307,82 +136,124 @@ Features to add once core is working and used.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Auth gate | HIGH (blocking) | LOW | P1 |
-| WebSocket Dispatcher (Zustand) | HIGH (enabling) | MEDIUM | P1 |
-| Command Center — Bento Grid | HIGH (first impression) | MEDIUM | P1 |
-| Command Center — brief submission | HIGH (core loop) | LOW | P1 |
-| The Nexus — DAG with node states | HIGH (the "wow") | HIGH | P1 |
-| Strategy Vault — execution list | HIGH (users need outputs) | LOW | P1 |
-| Strategy Vault — output view | HIGH (core value) | MEDIUM | P1 |
-| Engine Room — log viewer | MEDIUM (debugging) | MEDIUM | P1 |
-| Edge animation on brain activation | MEDIUM (polish) | LOW | P2 |
-| Engine Room — API keys | MEDIUM (operations) | LOW | P2 |
-| Engine Room — YAML editor | MEDIUM (config) | MEDIUM | P2 |
-| Brain pre-selection in command modal | MEDIUM (power users) | MEDIUM | P2 |
-| Execution diff view | MEDIUM (agency use case) | HIGH | P3 |
-| Execution replay / time-travel | LOW (nice to have) | HIGH | P3 |
-| Brain analytics | LOW (premature) | HIGH | P3 |
+| FEED-01 — BRAIN-FEED split | HIGH (enables everything else) | LOW | P1 |
+| AGT-01 — 7 agent system prompts | HIGH (core capability) | HIGH | P1 |
+| FEED-02 — Both feeds read in agents | HIGH (prevents zero-context queries) | LOW | P1 |
+| FEED-03 — Write isolation | HIGH (prevents BRAIN-FEED poisoning) | LOW | P1 |
+| AGT-02 — evaluation-criteria.md x7 | HIGH (filters noise from feed) | MEDIUM | P1 |
+| AGT-03 — anti-patterns.md x7 | HIGH (prevents poisoning at source) | MEDIUM | P1 |
+| AGT-04 — Smoke tests x7 | HIGH (validates agents actually work) | MEDIUM | P1 |
+| DISP-01 — Parallel dispatch | HIGH (the core time savings) | MEDIUM | P1 |
+| DISP-02 — mm:brain-context update | MEDIUM (operator interface improvement) | LOW | P1 |
+| BASE-01 — 5 manual baselines | MEDIUM (measurement foundation) | LOW | P1 |
+| BASE-02 — Metric schema | MEDIUM (comparison framework) | LOW | P1 |
+| Auto-pruning BRAIN-FEED | LOW (v2.2 feeds are small) | HIGH | P3 |
+| YAML inter-agent protocol | LOW (file reads are sufficient) | HIGH | P3 |
+
+**Priority key:**
+- P1: Must have for v2.2 launch
+- P2: Should have, add when possible
+- P3: Nice to have, future consideration
 
 ---
 
-## Competitor Feature Analysis
+## Agent System Prompt — Required Behavior Patterns
 
-Comparing against tools users compare to MasterMind visually.
+This section documents what MUST be in every brain agent's system prompt (AGT-01). These are not suggestions — they are the behavior patterns from the manual skill that made consultation quality high.
 
-| Feature | LangSmith Studio | Prefect UI | Airflow UI | Our War Room |
-|---------|-----------------|------------|------------|--------------|
-| Command input modal | ❌ None | ❌ None | ❌ None | ✅ Raycast-style cmdk |
-| Bento Grid status tiles | ❌ List view | ❌ List view | ❌ Table | ✅ Magic UI animated tiles |
-| DAG node illumination on events | ✅ State coloring | ✅ State coloring | ✅ State coloring | ✅ + animation (NodeStatusIndicator) |
-| Real-time log stream | ✅ Yes | ✅ Yes | ⚠️ Polling | ✅ react-logviewer + WS |
-| Brain output Markdown rendering | ✅ Yes | ❌ No | ❌ No | ✅ react-markdown + memoization |
-| Domain-specific brain vocabulary | ❌ Generic tasks | ❌ Generic flows | ❌ Generic tasks | ✅ "Cerebros", briefs, niches |
+### Pattern 1: Read Before Query (Table Stakes)
 
-**Key differentiator:** The command center + bento grid combination is unique to this product. Workflow orchestration tools universally use table/list views. The spatial bento layout with real-time status illumination is the visual identity of the war room.
+Every agent must read in this exact order before querying NotebookLM:
+1. `.planning/BRAIN-FEED.md` (global project reality)
+2. `.planning/BRAIN-FEED-NN-domain.md` (own domain accumulated patterns)
+3. Relevant code files for the current phase domain
+
+What happens without this: agent queries with zero context → brain gives generic advice → all 5 anti-patterns from the skill trigger simultaneously. This is the most important behavior pattern.
+
+### Pattern 2: [IMPLEMENTED REALITY] Block Construction
+
+The query to NotebookLM must contain a structured block summarizing what actually exists in the codebase. Not what's planned. Not what's in the ROADMAP. Only implemented reality.
+
+From intermediary-protocol.md: "Include only what's actually implemented. Not what's planned." Agents that include planned features in [IMPLEMENTED REALITY] get recommendations that treat planned features as constraints — causing the brain to avoid suggesting things the codebase doesn't actually have.
+
+### Pattern 3: [CORRECTED ASSUMPTIONS] Per Domain
+
+Each domain brain makes predictably wrong assumptions. These must be pre-baked into the agent system prompt, not computed at query time. Examples by domain:
+
+- **Brain #4 Frontend:** React Compiler available? NO — DISABLED. NODE_TYPES inline? NO — module-level always. dagre recalculates on WS updates? NO — runs once.
+- **Brain #5 Backend:** Redis/Celery required for async? NO — asyncio.TaskGroup sufficient. PostgreSQL required? NO — SQLite WAL mode.
+- **Brain #7 Evaluator:** 24 brains activate simultaneously? NO — 3-5 per brief typically.
+
+### Pattern 4: Filter Before Writing to BRAIN-FEED
+
+Every insight the brain returns must be verified against the codebase before it enters any feed file. The tri-state classification is non-negotiable:
+- ✅ already solved → skip, do not write
+- 📅 Phase N+1 → write as deferred, not as gap
+- 🔴 real gap → write as insight, cascade to planning
+
+Writing unfiltered NotebookLM output to BRAIN-FEED is the fastest path to a poisoned feed. The anti-pattern from the skill: "accepting first response without filtering against codebase."
+
+### Pattern 5: Brain-07 Always Last, Never Parallel
+
+Brain-07 (Evaluator/Growth) validates the outputs of other agents. It cannot run in parallel with domain agents because it needs their CONTEXT.md outputs as input. The orchestrator dispatch logic must enforce this sequencing:
+
+```
+Dispatch domain agents in parallel (Brain #1, #2, #3, #4, #5, #6)
+Wait for all to complete
+Dispatch Brain-07 with all CONTEXT.md outputs
+```
+
+### Pattern 6: 3-Iteration Loop for Brain-07
+
+The Brain-07 agent system prompt must include the iteration loop from moment-3.md:
+- Verdict: APPROVED → signal complete to orchestrator
+- Verdict: APPROVED_WITH_CONDITIONS → fix conditions in PLAN.md, re-query (max 3 iterations)
+- Verdict: REJECTED_REVISE → cascade to domain agents, re-query
+- After 3 iterations without APPROVED → escalate to human
+
+This loop must be native behavior in the Brain-07 agent system prompt. Without it, the evaluator becomes a one-shot reviewer with no mechanism to verify fixes.
 
 ---
 
-## Technical Complexity Notes by Screen
+## What Makes Brain Agents Better Than Manual Skill
 
-### Screen complexity ranking (highest → lowest effort)
+The downstream consumer question: "what makes a brain agent better than a manual skill workflow?"
 
-1. **The Nexus** (HIGH) — React Flow + Zustand bridge + WS events + DAG layout algorithm + edge animation. Most moving parts.
-2. **WebSocket Dispatcher** (MEDIUM-HIGH) — Singleton Zustand store, reconnect logic, typed event subscriptions, cleanup on unmount. Foundation for 3 screens.
-3. **Command Center** (MEDIUM) — Bento Grid layout with 24 dynamic tiles, status subscriptions per tile, command modal with cmdk.
-4. **Engine Room** (MEDIUM) — react-logviewer WS integration, filter controls, Monaco editor for YAML (two independent sub-features).
-5. **Strategy Vault** (LOW-MEDIUM) — Mostly data fetching + Markdown rendering. No real-time. Simplest screen.
+The manual `mm:brain-context` skill requires the operator to:
+1. Know which workflow file to follow (moment-1, moment-2, moment-3, update-brain-feed)
+2. Remember to read BRAIN-FEED before querying (easy to skip under time pressure)
+3. Execute the 6-step protocol correctly every time (human error accumulates)
+4. Decide which concerns are real gaps vs. generic advice (judgment call, inconsistent)
+5. Run brains sequentially (15-30 min for 4-5 brains in moment-2)
+6. Manually trigger BRAIN-FEED updates post-phase (often forgotten)
 
-### The Nexus — known implementation pitfalls
+The agent system handles 2, 3, 4, 5, and 6 automatically. The operator only decides 1 (when and which brains to dispatch), which is the judgment that belongs to humans anyway.
 
-- **Simultaneous node updates cause freezes** — React Flow issue #4779. Fix: batch WS events in Zustand, apply in single `setNodes` call, not one call per event.
-- **dagre layout must run once, not on every update** — Re-running layout resets positions; users lose context. Run on mount only, preserve positions on state changes.
-- **React Flow internal `updateNodeData` vs manual `setNodes`** — In React Flow 12+, use `updateNodeData(id, data)` from `useReactFlow()` for partial updates. Faster than full `setNodes` map on every event.
-
-### WebSocket Dispatcher — known pitfalls
-
-- **Connection race on mount** — Multiple components mounting simultaneously all try to connect. Use a module-level singleton pattern in Zustand (connection created once, reused).
-- **Stale closure in event handlers** — WS `onmessage` captures stale Zustand state. Fix: use `useStore.getState()` directly inside handlers, not `state` from `set`.
-- **Cleanup on page unload vs component unmount** — Don't close the WS connection on component unmount (other components need it). Only close on explicit logout or `beforeunload`.
+Measurable improvements:
+- **Time:** Sequential → parallel (Moment 2 drops from ~20min to ~5min for 4 brains)
+- **Consistency:** Protocol is native behavior, not instructions to follow (zero skip rate)
+- **BRAIN-FEED freshness:** Self-updating after every consultation (not post-phase only)
+- **Filter quality:** evaluation-criteria.md makes quality judgment explicit and repeatable
 
 ---
 
 ## Sources
 
-- [React Flow State Management docs](https://reactflow.dev/learn/advanced-use/state-management) — Zustand bridge pattern, HIGH confidence
-- [React Flow Node Status Indicator](https://reactflow.dev/ui/components/node-status-indicator) — Built-in status states (loading/success/error/initial), HIGH confidence
-- [React Flow updateNodeData issue #4779](https://github.com/xyflow/xyflow/issues/4779) — Simultaneous update freeze, MEDIUM confidence (GitHub issue, not resolved docs)
-- [Magic UI Bento Grid](https://magicui.design/docs/components/bento-grid) — Component structure and props, HIGH confidence
-- [Bento Grids for AI Dashboards — Baltech](https://baltech.in/blog/bento-grids-for-ai-dashboards/) — Tile hierarchy patterns, MEDIUM confidence
-- [Vercel Streamdown](https://github.com/vercel/streamdown) — Streaming Markdown renderer, HIGH confidence
-- [react-logviewer (melloware)](https://github.com/melloware/react-logviewer) — Log viewer with WS + ANSI, HIGH confidence
-- [TanStack Virtual comparison](https://borstch.com/blog/development/comparing-tanstack-virtual-with-react-window-which-one-should-you-choose) — Virtualization library comparison, MEDIUM confidence
-- [shadcn Command component](https://ui.shadcn.com/docs/components/radix/command) — cmdk integration, HIGH confidence
-- [Vercel AI SDK — Markdown chatbot with memoization](https://ai-sdk.dev/cookbook/next/markdown-chatbot-with-memoization) — Memoized Markdown rendering pattern, HIGH confidence
-- [Command Palette UX patterns](https://uxpatterns.dev/patterns/advanced/command-palette) — Command palette design principles, MEDIUM confidence
-- [LangGraph Studio visualization](https://mem0.ai/blog/visual-ai-agent-debugging-langgraph-studio) — Competitor DAG visualization patterns, MEDIUM confidence
+- `.claude/skills/mm/brain-context/SKILL.md` — Current manual skill, the baseline being automated
+- `.claude/skills/mm/brain-context/workflows/moment-1.md` — Moment 1 workflow → agent Moment 1 behavior
+- `.claude/skills/mm/brain-context/workflows/moment-2.md` — Moment 2 workflow → domain agent behavior
+- `.claude/skills/mm/brain-context/workflows/moment-3.md` — Moment 3 workflow → Brain-07 agent behavior
+- `.claude/skills/mm/brain-context/workflows/update-brain-feed.md` — Feed update → agent self-update behavior
+- `.claude/skills/mm/brain-context/references/intermediary-protocol.md` — 6-step protocol to embed in agent prompts
+- `.claude/skills/mm/brain-context/references/brain-selection.md` — Brain IDs, notebook IDs, cascade rules
+- `.planning/REQUIREMENTS.md` — 11 requirements for v2.2 (AGT-01..04, FEED-01..03, BASE-01..02, DISP-01..02)
+- `.planning/PROJECT.md` — Key insight: "intermediary protocol becomes built-in behavior, not a workflow to read and follow"
+- `.planning/BRAIN-FEED.md` — Current monolithic feed, content to be migrated in FEED-01
+
+**Confidence basis:** All findings derived directly from existing codebase artifacts (skill files, workflows, references) and approved requirements. No external verification needed — the manual workflow IS the specification for agent behavior.
 
 ---
 
-*Feature research for: MasterMind War Room Frontend (v2.1)*
-*Researched: 2026-03-19*
-*Confidence: HIGH — all major claims verified against official documentation or current sources*
+*Feature research for: v2.2 Brain Agents — Claude Code subagent specialization*
+*Researched: 2026-03-27*
+*Confidence: HIGH — all claims derived from existing skill source files and approved REQUIREMENTS.md*
