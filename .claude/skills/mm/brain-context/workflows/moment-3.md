@@ -72,17 +72,20 @@ Give a verdict: APPROVED, APPROVED_WITH_CONDITIONS, or REJECTED_REVISE.
 
 ---
 
-## Step 3 — Query Brain #7
+## Step 3 — Dispatch brain-07-growth via Agent
 
-```python
-mcp__notebooklm-mcp__notebook_query(
-    notebook_id="d8de74d6-7028-44ed-b4d5-784d6a9256e6",
-    query="[Full context block from Step 2]"
-)
+Dispatch `brain-07-growth` using the Task tool (Agent dispatch). Pass the full context block from Step 2 as the agent prompt.
 
-# Or via CLI:
-# uv run python -m mastermind_cli brain ask 7 "..." --use-mcp
 ```
+Task(
+    subagent_type="brain-07-growth",
+    prompt="[Full context block from Step 2 — same content previously passed to MCP]"
+)
+```
+
+The agent reads its own feeds, applies the intermediary protocol, and returns the structured 5-section output (Domain Summary + Second-Order Effects + Systemic Metric + Cascade Risk + Verdict).
+
+Note: Brain #7 already has the dispatch constraint in its system prompt — it will request domain brain outputs if they are not provided. For Moment 3 (plan validation), the PLAN SUMMARY in the context block serves as the "domain outputs" Brain #7 evaluates. This is correct — Moment 3 evaluates plans, not live agent outputs.
 
 ---
 
