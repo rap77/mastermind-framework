@@ -65,7 +65,10 @@ if [[ "$CHECK_MODE" == "--check" ]]; then
     mcp-elimination)
       # Static check: confirm no MCP steps remain in command/skill files
       echo "CHECK mcp-elimination: Scanning for residual mcp__notebooklm-mcp__ steps..."
-      VIOLATIONS=$(grep -r "mcp__notebooklm-mcp__notebook_query" .claude/commands/mm/ .claude/skills/mm/ 2>/dev/null || true)
+      VIOLATIONS=$(grep -r --include="*.md" "mcp__notebooklm-mcp__notebook_query" \
+        .claude/commands/mm/ \
+        .claude/skills/mm/brain-context/workflows/ \
+        $(find .claude/agents/mm/ -name "brain-*.md" 2>/dev/null) 2>/dev/null || true)
       if [[ -n "$VIOLATIONS" ]]; then
         echo "FAIL: Found residual MCP steps (DISP-02 violation):"
         echo "$VIOLATIONS"

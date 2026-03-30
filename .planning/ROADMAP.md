@@ -131,10 +131,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Wave 0: Extender sentinel script + test stubs para dispatch paralelo y SYNC isolation
-- [ ] 12-02-PLAN.md — Reescribir moment-2.md (Phase A/B/C dispatch) + restricción anti-mediocre en brain-07-growth.md
-- [ ] 12-03-PLAN.md — Migrar moment-3.md (Brain #7 barrier) + ask-all.md a Agent dispatch
-- [ ] 12-04-PLAN.md — Migrar los 7 ask-[domain].md a Agent dispatch (full sweep DISP-02)
+- [x] 12-01-PLAN.md — Wave 0: Extender sentinel script + test stubs para dispatch paralelo y SYNC isolation
+- [x] 12-02-PLAN.md — Reescribir moment-2.md (Phase A/B/C dispatch) + restricción anti-mediocre en brain-07-growth.md
+- [x] 12-03-PLAN.md — Migrar moment-3.md (Brain #7 barrier) + ask-all.md a Agent dispatch
+- [x] 12-04-PLAN.md — Migrar los 7 ask-[domain].md a Agent dispatch (full sweep DISP-02)
 
 ---
 
@@ -152,8 +152,8 @@ Plans:
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
 | 9. Baselines + Agent Authoring | v2.2 | 4/4 | ✅ Complete | 2026-03-28 |
 | 10. BRAIN-FEED Split | v2.2 | 3/3 | ✅ Complete | 2026-03-29 |
-| 11. Smoke Tests | v2.2 | TBD | In Progress | - |
-| 12. Parallel Dispatch + Command Update | 4/4 | Complete   | 2026-03-30 | - |
+| 11. Smoke Tests | v2.2 | 4/4 | ✅ Complete | 2026-03-30 |
+| 12. Parallel Dispatch + Command Update | v2.2 | 4/4 | ✅ Complete | 2026-03-30 |
 
 ---
 *Roadmap updated: 2026-03-30 — Phase 12 planned (4 plans, 3 waves)*
