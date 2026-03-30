@@ -126,5 +126,64 @@ Wire orchestrator parallel dispatch for all 7 domain brain agents via the Agent 
 
 ---
 
+## Expert Brain Synthesis
+
+### QA/DevOps — Acceptance Criteria (Brain #6)
+
+**Parallel dispatch verification (behavioral, not unit tests):**
+- Claude Code UI must show multiple concurrent agent "thinking" indicators — not sequential. Observable as simultaneous execution.
+- `Tiempo Total ≈ Max(T_brain_1..6) + T_brain_7` — if total time equals sum of all 7, dispatch is NOT parallel. This is the timing acceptance criterion.
+- Error independence: if one domain agent fails/times out, others must continue. Brain #7 receives successful results + explicit failure notification.
+- Domain agent outputs must appear as independent tool responses in orchestrator history, ready for Brain #7 consumption.
+
+**verify_feed_isolation.sh gaps for Phase 12 (must add before plan is complete):**
+- Current script only checks write isolation ✅ — sufficient for Phase 11 single-agent dispatch
+- Phase 12 needs 2 new checks:
+  1. **Barrier order validation**: verify Brain #7 prompt is sent AFTER all domain agent responses appear in context. Log check: #7 never fires before 1-6 return.
+  2. **Cross-talk isolation**: verify each agent's dispatch prompt contains ONLY its own domain feed SYNC fragments — not fragments from other agents' feeds. Brain #4 must NOT receive SYNC content meant for Brain #1.
+
+**SYNC resolution characterization test:**
+- Introduce a deliberate change to `BF-05-WS-AUTH` (break the auth contract)
+- WITHOUT SYNC injection: Brain #4 returns "No impact" (it only sees its own feed)
+- WITH SYNC injection (correct): Brain #4 detects the desync and raises an alert, citing the injected BF-05 fragment
+- Acceptance criterion: Brain #4 cites the BF-05 fragment explicitly. No citation = SYNC injection failed.
+
+**Safe delivery sequence (incremental, not atomic):**
+1. Update `mm:brain-context` dispatch logic first — test SYNC resolution with a single agent
+2. Implement Brain #7 barrier — validate it receives domain outputs and fires after
+3. Update `ask-*.md` files atomically (once core logic is validated)
+4. Run updated `verify_feed_isolation.sh` (with new barrier + cross-talk checks)
+
+### Product Strategy — T1 & Risk (Brain #1)
+
+**T1 projection post-Phase 12:** ~90-110s
+- Slowest domain brain ≈ 60s + Brain #7 synthesis ≈ 30-40s
+- vs pre-migration baseline: 210-270s (sequential MCP calls)
+- Triples profitability margin before 300s threshold
+
+**Delta-Velocity range expected: 3.5-4.5**
+- Rating 3: parallel dispatch works, T1 maintained, files updated
+- Rating 4: T1 < 120s AND Brain #7 report is self-contained — user doesn't need to open individual agent files to understand the synthesis
+
+**Critical risk: "Trap of the Average" in Brain #7**
+- Risk: Brain #7 reconciles contradictions between domain agents → produces mediocre consensus
+- Signal: user has to mentally "de-conflict" the Brain #7 report themselves → system failed its synthesis job
+- Mitigation: Brain #7 system prompt needs explicit constraint: "Do NOT reconcile contradictions. Name the conflict. Pick the strongest expert position. Mediocre synthesis is worse than no synthesis."
+- Action item for plan: audit `brain-07-growth.md` — add anti-mediocre synthesis guard if not already present
+
+**"Always 7" latency risk:**
+- Real trade-off: loses "early-stop efficiency" — even for simple questions, always waits for slowest brain
+- Non-linear degradation if slowest agent hits a latency spike or loops
+- Accepted trade-off (user decision): coverage + Brain #7 consistency outweigh early-stop flexibility at v2.2 scale
+
+### Non-Negotiables for Plan
+- SYNC cross-talk isolation MUST be explicit in orchestrator logic — each agent gets only its own SYNC fragments
+- Brain #7 anti-mediocre constraint must be verified before Phase 12 is marked complete
+- verify_feed_isolation.sh must be extended with barrier + cross-talk checks (not recreated — extended)
+- T1 < 120s is the Phase 12 success metric for Delta-Velocity Rating 4
+
+---
+
 *Phase: 12-parallel-dispatch-command-update*
 *Context gathered: 2026-03-30*
+*Brain consultation: Brain #6 QA (conversation: e4411abc) + Brain #1 Product (conversation: 8b6903e0)*
