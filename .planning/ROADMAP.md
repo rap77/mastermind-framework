@@ -128,7 +128,13 @@ Plans:
 3. After a full parallel dispatch, `BRAIN-FEED.md` (global) is identical to its pre-dispatch state — no agent wrote to it directly; any cross-domain patterns appear only in agent return values
 4. The `mm:brain-context` slash command file no longer contains manual `mcp__notebooklm-mcp__notebook_query` steps — it dispatches agents via `Task()` and synthesizes their outputs
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Wave 0: Extender sentinel script + test stubs para dispatch paralelo y SYNC isolation
+- [ ] 12-02-PLAN.md — Reescribir moment-2.md (Phase A/B/C dispatch) + restricción anti-mediocre en brain-07-growth.md
+- [ ] 12-03-PLAN.md — Migrar moment-3.md (Brain #7 barrier) + ask-all.md a Agent dispatch
+- [ ] 12-04-PLAN.md — Migrar los 7 ask-[domain].md a Agent dispatch (full sweep DISP-02)
 
 ---
 
@@ -144,10 +150,10 @@ Plans:
 | 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
 | 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
 | 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
-| 9. Baselines + Agent Authoring | 4/4 | Complete   | 2026-03-28 | - |
-| 10. BRAIN-FEED Split | 3/3 | Complete    | 2026-03-29 | - |
-| 11. Smoke Tests | 1/4 | In Progress|  | - |
-| 12. Parallel Dispatch + Command Update | v2.2 | 0/TBD | Not started | - |
+| 9. Baselines + Agent Authoring | v2.2 | 4/4 | ✅ Complete | 2026-03-28 |
+| 10. BRAIN-FEED Split | v2.2 | 3/3 | ✅ Complete | 2026-03-29 |
+| 11. Smoke Tests | v2.2 | TBD | In Progress | - |
+| 12. Parallel Dispatch + Command Update | v2.2 | 0/4 | Not started | - |
 
 ---
-*Roadmap updated: 2026-03-28 — Phase 09 planned (4 plans, 3 waves)*
+*Roadmap updated: 2026-03-30 — Phase 12 planned (4 plans, 3 waves)*
