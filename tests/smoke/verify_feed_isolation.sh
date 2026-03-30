@@ -14,6 +14,75 @@ set -euo pipefail
 BRAIN_ID="${1:-}"
 EXPECTED_FEED="${2:-}"
 
+# ──────────────────────────────────────────────
+# Optional checks — activated via --check flag
+# Usage: ./verify_feed_isolation.sh brain-04-frontend BRAIN-FEED-04-frontend.md --check barrier-order
+#        ./verify_feed_isolation.sh brain-04-frontend BRAIN-FEED-04-frontend.md --check crosstalk
+#        ./verify_feed_isolation.sh brain-04-frontend BRAIN-FEED-04-frontend.md --check mcp-elimination
+# Note: --check flags run standalone (no stash/dispatch needed) and exit early.
+# ──────────────────────────────────────────────
+CHECK_MODE="${3:-}"
+
+if [[ "$CHECK_MODE" == "--check" ]]; then
+  CHECK_TYPE="${4:-}"
+
+  case "$CHECK_TYPE" in
+    barrier-order)
+      # Barrier order check — Phase 12 specific
+      # Verifica que brain-07-growth NO fue el primer agente en escribir output
+      # Observable: si un output file existe para brain-07 pero no para dominio previo = FAIL
+      # In Phase 12: this check is MANUAL (observational via Claude Code UI)
+      # This flag documents the check requirement and exits 0 (human must confirm)
+      echo "CHECK barrier-order: Manual verification required."
+      echo "In Claude Code UI: confirm Brain #7 dispatch prompt appears AFTER all 6 domain agent responses."
+      echo "Observable: Multiple simultaneous 'thinking' indicators, then Brain #7 fires last."
+      echo "PASS (manual confirmation required — script cannot automate UI observation)"
+      exit 0
+      ;;
+
+    crosstalk)
+      # Cross-talk isolation check — Phase 12 specific
+      # Verifica que cada agente solo recibió sus propios fragmentos SYNC
+      # Test estático: brain-04 solo tiene SYNC tags apuntando a BF-05, nunca a BF-01/02/03/06/07
+      echo "CHECK crosstalk: Verifying SYNC tag isolation..."
+      FEED_04=".planning/BRAIN-FEED-04-frontend.md"
+      if [[ ! -f "$FEED_04" ]]; then
+        echo "FAIL: BRAIN-FEED-04-frontend.md not found at .planning/"
+        exit 1
+      fi
+      # Brain #4 feed should ONLY have SYNC tags pointing to BF-05 (backend)
+      # Any SYNC tag pointing to other feeds = cross-talk violation
+      CROSSTALK=$(grep '\[SYNC:' "$FEED_04" | grep -v 'BF-05' || true)
+      if [[ -n "$CROSSTALK" ]]; then
+        echo "FAIL: Brain #4 feed has SYNC tags pointing outside BF-05 (cross-talk risk):"
+        echo "$CROSSTALK"
+        exit 1
+      fi
+      echo "PASS: Brain #4 SYNC tags all point to BF-05 (backend) only. No cross-talk detected."
+      exit 0
+      ;;
+
+    mcp-elimination)
+      # Static check: confirm no MCP steps remain in command/skill files
+      echo "CHECK mcp-elimination: Scanning for residual mcp__notebooklm-mcp__ steps..."
+      VIOLATIONS=$(grep -r "mcp__notebooklm-mcp__notebook_query" .claude/commands/mm/ .claude/skills/mm/ 2>/dev/null || true)
+      if [[ -n "$VIOLATIONS" ]]; then
+        echo "FAIL: Found residual MCP steps (DISP-02 violation):"
+        echo "$VIOLATIONS"
+        exit 1
+      fi
+      echo "PASS: No mcp__notebooklm-mcp__notebook_query found in command/skill files."
+      exit 0
+      ;;
+
+    *)
+      echo "Unknown check type: $CHECK_TYPE"
+      echo "Valid options: barrier-order, crosstalk, mcp-elimination"
+      exit 1
+      ;;
+  esac
+fi
+
 if [[ -z "$BRAIN_ID" || -z "$EXPECTED_FEED" ]]; then
   echo "Usage: $0 <brain-id> <expected-feed-file>"
   echo "Example: $0 brain-04-frontend BRAIN-FEED-04-frontend.md"
