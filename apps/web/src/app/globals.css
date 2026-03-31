@@ -2,6 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ClusterGroup dynamic classes — Tailwind 4 purge safelist
+ * ClusterGroup.tsx line 66 builds class names at runtime from clusterConfig.color.
+ * Colors in use: cyan (software), purple (marketing), zinc (master).
+ * @source inline forces these into the CSS bundle. */
+@source inline("{bg,border}-{cyan,purple,zinc}-{50,200,800,950}");
+@source inline("dark:{bg,border}-{cyan,purple,zinc}-{50,200,800,950}");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
