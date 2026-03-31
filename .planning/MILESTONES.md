@@ -1,5 +1,14 @@
 # Milestones
 
+## v2.2 Brain Agents (Shipped: 2026-03-31)
+
+**Phases completed:** 4 phases, 15 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v2.1 War Room Frontend (Shipped: 2026-03-25)
 
 **Phases completed:** 4 phases, 16 plans, 13 tasks

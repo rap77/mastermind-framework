@@ -59,18 +59,70 @@
 
 ---
 
+## Milestone: v2.2 — Brain Agents
+
+**Shipped:** 2026-03-30
+**Phases:** 4 (09–12) | **Plans:** 15 | **Sessions:** ~10
+
+### What Was Built
+
+- **7 Brain Subagents** — `.claude/agents/mm/brain-NN-*/` with embedded intermediary protocol, domain-specific criteria.md, anti-patterns.md, and warnings.md
+- **Two-Level BRAIN-FEED** — Global `BRAIN-FEED.md` (cross-domain patterns) + 7 domain feeds `BRAIN-FEED-NN-domain.md` — no cross-domain pollution
+- **5 Pre-Migration Baselines** — `tests/baselines/baseline-01..05.md` with Delta-Velocity schema before any agent migration
+- **Sentinel Script** — `tests/smoke/verify_feed_isolation.sh` extended with barrier-order, crosstalk, and mcp-elimination checks
+- **Parallel Dispatch** — `mm:brain-context` rewritten (moment-2, moment-3, ask-all, ask-*.md × 7) to use Agent tool dispatch with Phase A (SYNC) / B (parallel) / C (Brain #7 barrier) pattern
+- **RED Test Stubs** — `tests/brain_agents/test_parallel_dispatch.py` + `test_sync_injection.py` documenting expected behavior for future GREEN implementation
+
+### What Worked
+
+- **model:inherit discovery early (Phase 11):** Smoke tests caught that `model: inherit` is not a valid keyword — caught in dedicated validation phase before wiring dispatch. Cost: 0 rework in Phase 12
+- **Adversarial prompt design:** Hardcoded adversarial prompts (e.g., Brain #4 asked about Redux when Zustand 5 is locked) provided objective pass/fail — subjective "does it look good" tests avoided
+- **Wave 0 pattern for infrastructure:** Creating test stubs + extending sentinel script before feature work (Phase 12) kept infrastructure always ahead of implementation
+- **Scoped grep in sentinel:** `mcp-elimination` check scoped to operational files prevented test noise from MCP references in test fixtures — learned from false-positive in code review
+
+### What Was Inefficient
+
+- **Inline execution when subagent permissions denied:** Phase 12 all 4 plans executed inline when subagent write permissions were denied at session start — required same-session re-execution. Cost: ~2 sessions
+- **ROADMAP.md Phase 11 stale checkbox:** Phase 11 had `[ ]` plans in ROADMAP even after completion — caught in code review before closure. Now fixed: ROADMAP updated atomically at phase completion
+- **Milestone closure context limit:** v2.2 closure attempted at 81% context — required fresh session. `/gsd:complete-milestone` should be the first command in a fresh context
+
+### Patterns Established
+
+- **Phase A/B/C dispatch pattern:** Phase A = SYNC resolution (required data before parallel), Phase B = parallel domain agents, Phase C = Brain #7 barrier. Standard template for all future mm:brain-context workflows
+- **model:""  not model:inherit:** Brain agents must use `model: ""` (empty string = inherit from launcher) — `model: inherit` is not a valid Claude Code keyword, causes silent fallback
+- **Brain #7 barrier:** Evaluator always dispatched after domain agents complete, never in parallel — it needs domain outputs as context to synthesize
+- **RED stubs as contracts:** When full implementation deferred, RED stubs document expected behavior and prevent "silent passing" if test file deleted
+
+### Key Lessons
+
+1. **Fresh context for milestone closure:** Always `/clear` before `/gsd:complete-milestone` — the closure workflow reads and writes many files, needs full context budget
+2. **Sentinel false-positive risk:** Grep patterns that match test fixtures cause false-positive failures — always scope to operational file paths, not whole repo
+3. **Subagent write permission must be confirmed at session start:** If subagent writes are denied, the entire wave-based strategy needs to switch to inline. Catch this before writing plans
+4. **Delta-Velocity schema as objective metric:** Baseline schema (T1/T2/T3, gap-count, quality-rating 1–5) enables objective comparison post-migration — without it v2.2 would have no measurement of improvement
+
+### Cost Observations
+
+- Model mix: ~75% sonnet, ~25% opus (brain consultations + code review + plan generation)
+- Sessions: ~10 over 3 days (2026-03-27 → 2026-03-30)
+- Most expensive: Phase 09 (7 brain bundles + 5 baselines, 4 plans) — ~3 sessions
+- Most efficient: Phase 10 (3 plans, feed split was mechanical) — ~1 session
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v2.0 | v2.1 |
-|--------|------|------|
-| Phases | 4 | 4 |
-| Plans | 17 | 21 |
-| Tests | 467 | 982 |
-| Sessions | ~10 | ~12 |
-| LOC (total) | ~14,275 | ~30,311 |
-| Gap closures | 2 | 5 |
-| Tech debt items | 4 | 9 |
+| Metric | v2.0 | v2.1 | v2.2 |
+|--------|------|------|------|
+| Phases | 4 | 4 | 4 |
+| Plans | 17 | 21 | 15 |
+| Tests | 467 | 982 | 985 (+3 RED stubs) |
+| Sessions | ~10 | ~12 | ~10 |
+| LOC (total) | ~14,275 | ~30,311 | ~30,311 + agents |
+| Gap closures | 2 | 5 | 1 (validation gaps) |
+| Tech debt items | 4 | 9 | 9 (carried) |
 
-**Trend:** Gap closure plans are increasing (2 → 5). Consider building explicit gap-closure buffer into phase planning (e.g., reserve plan slot N+1 for gap closure at planning time).
+**Trend:** Gap closure plans are increasing (2 → 5 → 1). The single gap closure in v2.2 (Nyquist validation fixes) suggests the audit + fix loop is tightening.
 
-**Trend:** Tech debt accumulation is growing. v2.2 should include a dedicated cleanup phase in the roadmap.
+**Trend:** v2.2 was faster (3 days vs 7 days for v2.1) despite similar scope — parallel planning + brain consultation upfront reduces mid-execution surprises.
+
+**Trend:** Tech debt at 9 items — unchanged since v2.1. v3.0 should include a dedicated cleanup phase or the list will compound.

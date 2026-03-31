@@ -2,18 +2,21 @@
 
 ## What This Is
 
-A cognitive architecture framework for building specialized AI-powered solutions using expert "brains" — distilled knowledge from world-class experts organized by niche. v2.1 shipped a real-time "war room" frontend: Next.js 16 + React 19 + TypeScript + Tailwind 4 with 4 production screens (Command Center, The Nexus, Strategy Vault, Engine Room), JWT auth, WebSocket live orchestration, and 982 tests passing.
+A cognitive architecture framework for building specialized AI-powered solutions using expert "brains" — distilled knowledge from world-class experts organized by niche. v2.2 ships autonomous Claude Code subagents per brain: each agent embeds the intermediary protocol natively, reads a two-level BRAIN-FEED (global + domain), and is dispatched in parallel by the orchestrator — replacing sequential manual skill steps with autonomous expert collaboration.
 
 ## Core Value
 
 **Expert AI collaboration that scales.** Multiple specialized brains working in parallel on complex problems — faster, safer, and more reliably than any single brain alone. Now with a real-time visual war room for operators to orchestrate and monitor 24 AI brains across 4 purpose-built screens.
 
-## Current State (v2.1 — shipped 2026-03-25)
+## Current State (v2.2 — shipped 2026-03-30)
 
 - **Python:** ~14,500 LOC across `apps/api/mastermind_cli/`
 - **TypeScript:** ~15,800 LOC across `apps/web/src/`
 - **Brains:** 24 active (7 Software Dev + 16 Marketing + 1 Master Interviewer)
-- **Tests:** 575 backend (pytest) + 407 frontend (vitest) = 982 total, 0 failures
+- **Tests:** 578 backend (pytest) + 407 frontend (vitest) = 985 total, 0 failures (3 RED stubs expected)
+- **Brain Agents:** 7 autonomous subagents (`.claude/agents/mm/brain-NN-*/`) with embedded intermediary protocol
+- **BRAIN-FEED:** Two-level architecture — `BRAIN-FEED.md` (global) + `BRAIN-FEED-NN-domain.md` × 7
+- **Dispatch:** Parallel (Agent tool) via `mm:brain-context` — Brain #7 runs after domain agents barrier
 - **Frontend:** Next.js 16 + React 19 + Tailwind 4 + shadcn/ui + Magic UI + React Flow (@xyflow/react v12) + Zustand 5
 - **4 Screens:** Command Center, The Nexus (DAG), Strategy Vault, Engine Room
 - **Auth:** JWT (30min) + refresh rotation (24h) + httpOnly cookies (CVE-2025-29927 mitigated)
@@ -21,8 +24,8 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - **API Keys:** api_keys_v2 table, prefix/suffix/revoked_at, show-once creation
 - **Monorepo:** apps/api/ (Python FastAPI) + apps/web/ (Next.js 16)
 - **CI:** 3-tier pipeline (typecheck → tests → semantic) on GitHub Actions
-- **Docker:** Multi-stage build, `docker compose up -d` → api:8000, web:3000
-- **Tag:** v2.1 on `master`
+- **Docker:** Multi-stage build, `docker compose up -d` → api:8001 (host), web:3000
+- **Tag:** v2.2 on `master`
 
 ## Requirements
 
@@ -48,22 +51,14 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - ✓ **Strategy Vault** (SV-01, SV-02) — Execution history, detail view, Markdown rendering, timeline scrubber — v2.1
 - ✓ **Engine Room** (ER-01, ER-02, ER-03) — Virtual scroll logs, API key CRUD, brain YAML viewer — v2.1
 - ✓ **UX Polish** (UX-01) — Focus Mode auto-activate, sidebar collapse, idle dimming, Esc exit — v2.1
+- ✓ **Brain Agents** (AGT-01 through AGT-04) — 7 autonomous subagents with embedded intermediary protocol, criteria, anti-patterns, smoke tested — v2.2
+- ✓ **BRAIN-FEED Split** (FEED-01 through FEED-03) — Two-level architecture, per-brain domain feeds, no cross-domain pollution — v2.2
+- ✓ **Baselines** (BASE-01, BASE-02) — 5 pre-migration baselines, Delta-Velocity metric schema — v2.2
+- ✓ **Parallel Dispatch** (DISP-01, DISP-02) — Agent tool dispatch, Brain #7 barrier, mm:brain-context updated — v2.2
 
-### Active (v2.2 — Brain Agents)
+### Active (v3.0 — Custom Workflow Framework + RAG)
 
-- [ ] **AGT-01** — `.claude/agents/brain-NN-*.md` with embedded intermediary protocol (7 files)
-- [ ] **AGT-02** — `evaluation-criteria.md` per brain — defines what a "good response" looks like
-- [ ] **AGT-03** — `anti-patterns.md` per brain — what NOT to include in BRAIN-FEED (manual curation; auto-pruning → v2.3)
-- [ ] **AGT-04** — All 7 brain subagents functional (smoke test end-to-end)
-- [ ] **FEED-01** — BRAIN-FEED split: `BRAIN-FEED.md` (global) + `BRAIN-FEED-NN-domain.md` (per-brain, 7 files)
-- [ ] **FEED-02** — Each agent reads both feeds (global + own domain) before querying NotebookLM
-- [ ] **FEED-03** — Each agent writes only to its own domain feed (no cross-domain pollution)
-- [ ] **BASE-01** — 5 manual consultation baselines documented before agent migration
-- [ ] **BASE-02** — Metric schema defined: time/consultation, gap-count, re-consultations, quality-rating
-- [ ] **DISP-01** — Orchestrator dispatches brain agents in parallel (Agent tool, not sequential skill steps)
-- [ ] **DISP-02** — `mm:brain-context` updated to dispatch agents vs manual MCP workflows
-
-Full requirements: `.planning/REQUIREMENTS.md`
+*(No requirements defined yet — start with `/gsd:new-milestone`)*
 
 ### Deferred (v3.0 — Custom Workflow Framework + RAG)
 
@@ -122,30 +117,33 @@ Full requirements: `.planning/REQUIREMENTS.md`
 | **Cursor pagination (created_at, id)** | Composite key prevents race conditions in concurrent writes | ✅ No duplicated entries |
 | **api_keys_v2 table** | Avoids migrating legacy api_keys, no breaking changes | ✅ Prefix/suffix/revoked_at fields |
 | **Skill before Agents** | v2.1 uses mm:brain-context skill (manual workflows); workflows become agent system prompts in v2.2 | ✅ Foundation built, v2.2 ready |
-| **Two-level BRAIN-FEED** | General project feed + per-brain domain feeds — prevents context pollution, enables agent independence | 📋 Planned v2.2 |
+| **Two-level BRAIN-FEED** | General project feed + per-brain domain feeds — prevents context pollution, enables agent independence | ✅ Validated v2.2 |
+| **model:inherit in agents** | Brain agents use `model: ""` (empty) not `model: inherit` — `inherit` is not a valid keyword, causes silent fallback | ✅ Fixed v2.2 (Phase 11) |
+| **Brain #7 barrier pattern** | Evaluator dispatched after domain agents complete, not in parallel — receives outputs as context | ✅ Validated v2.2 |
+| **Sentinel scoped grep** | `mcp-elimination` grep scoped to operational files only — `tests/smoke/verify_feed_isolation.sh` line 68 | ✅ Fixed v2.2 (Phase 12) |
 | **3-tier CI** | Token cost control: typecheck → tests → semantic | ✅ GitHub Actions running |
 | **Multi-stage Docker** | ~50% image size reduction | ✅ Production Docker deployed |
 
 ## Vision Notes
 
-### v2.2 — Brain Agents (next)
+### v2.2 — Brain Agents (shipped 2026-03-30)
 
-The brain consultation system evolves in 3 stages:
+The brain consultation system evolved in 3 stages:
 1. **v2.1 (shipped):** `mm:brain-context` skill with manual workflows → Claude follows instructions to build context, query brains, filter responses
-2. **v2.2:** Autonomous subagents per brain → intermediary protocol is native behavior, each agent accumulates domain expertise in its own BRAIN-FEED
+2. **v2.2 (shipped):** Autonomous subagents per brain → intermediary protocol is native behavior, each agent accumulates domain expertise in its own BRAIN-FEED, dispatched in parallel
 3. **v3.0:** Agents + RAG → each agent manages its own vector store, knowledge is persistent and searchable
 
-**Key insight (2026-03-22):** Brains (NotebookLM) are static knowledge — they never learn. The "learning" happens in the intermediary (Claude) via accumulated BRAIN-FEED context. Converting from skill to agents means the intermediary protocol becomes built-in behavior, not a workflow to read and follow.
-
-**Architecture:**
+**Architecture (live):**
 ```
-Orchestrator (Claude main) → dispatches Brain Agents in parallel
-  ├── Brain Agent #N reads: BRAIN-FEED.md (general) + BRAIN-FEED-NN.md (domain)
+Orchestrator (Claude main) → dispatches Brain Agents in parallel (Agent tool)
+  ├── Brain Agent #N reads: BRAIN-FEED.md (global) + BRAIN-FEED-NN-domain.md
   ├── Brain Agent #N reads: relevant code
   ├── Brain Agent #N queries: NotebookLM brain (static knowledge)
   ├── Brain Agent #N filters: grep each concern against codebase
-  ├── Brain Agent #N updates: BRAIN-FEED-NN.md with new patterns
+  ├── Brain Agent #N updates: BRAIN-FEED-NN-domain.md with new patterns
   └── Brain Agent #N returns: verified insights to orchestrator
+             ↓ (barrier — after all domain agents complete)
+Brain Agent #7 (Evaluator) → receives all domain outputs, evaluates synthesis
 ```
 
 ### v3.0 — Full RAG + Persistent Learning
@@ -156,4 +154,4 @@ Orchestrator (Claude main) → dispatches Brain Agents in parallel
 - **PostgreSQL + pgvector**: Migrate from SQLite + JSONB when scale demands it
 
 ---
-*Last updated: 2026-03-25 after v2.1 milestone*
+*Last updated: 2026-03-30 after v2.2 milestone*
