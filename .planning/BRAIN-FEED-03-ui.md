@@ -44,3 +44,57 @@
 ## SYNC Cross-References
 
 Sync: ICE Scoring animation threshold — [SYNC: BF-02-001] → BRAIN-FEED-02-ux.md > Strategic Anchors. ICE ≥ 15 required before recommending any animation. Brain #2 UX owns the decision. Owner: Brain #2 UX.
+
+---
+
+## 2026-03-31 — Phase 12 (Parallel Dispatch + Command Update)
+
+### Verified Insights
+
+#### Question 1: brain_routing Edge Animation in The Nexus
+**Decision: DEFERRED — surface in Engine Room log only**
+
+Brain #3 query returned Option B (animate coordinator edges as relay). REJECTED after grep verification.
+
+Reason for rejection:
+- Current graph is star topology: coordinator → all brains. NO brain-to-brain edges exist (`buildBlueprintEdges` generates only coordinator→brain pairs).
+- Option B (relay via coordinator) would require TWO sequential edge pulses — the relay is a lie; the actual routing is Brain #1 → Brain #4, not coordinator-mediated.
+- Adding temporary `brain_routing` edges to the DAG violates the "nodes array is layout-only — never mutated by WS events" invariant in NexusCanvas.tsx (comment line 158).
+- ICE re-scored: Impact 6 × Confidence 4 (implementation risk: graph mutation) / Effort 5 (edge lifecycle management + test coverage) = ICE 4.8 — BELOW the 15 threshold.
+
+Correct minimal action: Add `brain_routing` as a loggable event in LiveLogPanel (Engine Room). The log message already has brain isolation (LogBadge) — zero new components needed. The Nexus already illuminates BrainNode status for both source and target brains via brainStore → that is sufficient orientation.
+
+**Component: LiveLogPanel — subscribe to `brain_routing` WS events identically to `log:line`. Zero new components.**
+
+#### Question 2: Brain Memory Panel (NodeDetailPanel Tab)
+**Decision: APPROVED — NodeDetailPanel tab addition**
+
+NodeDetailPanel is a shadcn Sheet. It currently has: Status, LastUpdated, Configuration section, "View YAML Config" button. No tabs exist yet.
+
+Correct implementation path:
+- Add `Tabs` from `@/components/ui/` (shadcn/ui — already used throughout; verify it exists before adding the import)
+- Two tabs: "Details" (current content) | "Memory" (GET /api/experiences/{brain_id} list)
+- Memory tab content: simple ordered list, newest first, text-xs font-mono text-muted-foreground — NO new component needed, inline in NodeDetailPanel
+- The `Tabs` component is NOT in the current `components/ui/` directory (only button, card, dialog, input, sheet exist) — must be added via `pnpm dlx shadcn add tabs` before implementation
+- ICE: structural decision, no animation — accessibility: memory entries are text-only, no color dependency
+
+**Component to modify: NodeDetailPanel.tsx — add shadcn Tabs (must add primitive first)**
+
+#### Question 3: BrainTile `routing_to` 5th State
+**Decision: APPROVED WITH CORRECTION**
+
+Brain's ICE score (24) accepted. However, corrected the animation class choice:
+- Brain recommended `animate-pulse` for `routing_to` — REJECTED. `animate-pulse` is already used for `active` (BrainTile line 65). Two different states sharing the same animation = ambiguous feedback.
+- Correct: `routing_to` = brief directional state (brain done, dispatching). Animation: NONE. Use border-only distinction.
+- Classes: `opacity-100 border-amber-500/60 shadow-sm` — amber differentiates from blue (active) and green (complete). No animation = low cognitive noise.
+- Secondary indicator: `ArrowRight` icon from lucide-react (already a dep — Check icon used at line 128 of BrainTile.tsx)
+- Label text: "routing" — not "routing_to" (user-facing label, keep short)
+- `NodeStatusIndicator` must also receive the new state — currently typed as `'blueprint' | BrainStatus`. `BrainStatus` is in brainStore.ts — that type must be extended.
+- WCAG: amber border + ArrowRight icon + "routing" text label = triple redundancy — passes AA
+
+**Components to modify: BrainTile.tsx + NodeStatusIndicator.tsx + brainStore.ts (BrainStatus type)**
+
+### Deferred Items
+
+- Brain-to-brain directed edges in The Nexus DAG (visualizing routing chains): deferred until graph is rebuilt as a general DAG (not star topology). At that point, brain_routing edges can be pre-built and state-toggled without graph mutation.
+- Tabs primitive (`@/components/ui/tabs.tsx`) must be scaffolded before NodeDetailPanel Memory tab work begins. Track in Phase 12 task list.

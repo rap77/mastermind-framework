@@ -71,3 +71,49 @@ Reasoning chain (all 4 Cagan risk dimensions evaluated):
 ### Deferred Items
 
 📅 v3.0+ — If MasterMind pivots to multi-user or commercial product, the correct sequence is: (1) validate external user demand with a Concierge MVP (no code), (2) measure activation rate before building onboarding infrastructure, (3) only then spec the auth/registration/plan-tier model. The current `(auth)/login/` route is the seed — extend it then, not now.
+
+---
+
+## 2026-03-31 — v3.0 Planning / Agent Restructuring — Autonomous Brain Agents Plan Evaluation
+
+### Verified Insights
+
+**Plan evaluated:** Reestructuración a Agentes Autónomos (6 phases — brain_memory.py, experiences.py route, task_runner.py, brain_router.py, POST /api/tasks/auto, replicate to #2-#7)
+
+**Codebase state verified:**
+- `ExperienceLogger` is fully implemented at `apps/api/mastermind_cli/experience/logger.py` — `log_execution()`, `get_recent_by_brain()`, `search_by_trace_context()` all exist. 0 records because nothing calls it.
+- `create_experience_schema()` exists in `database.py:305` — NOT called in `startup_event` (app.py:136 only calls `create_task_schema()`). Phase 2 gap confirmed real.
+- TODO at `tasks.py:98` — verified. POST /api/tasks creates the execution record and returns `pending` but launches nothing.
+- `StatelessCoordinator` exists at `orchestrator/stateless_coordinator.py`. `FlowDetector` exists.
+- Brain bundles #1-#7 exist at `.claude/agents/mm/` — 22 files, 3 per domain + global-protocol.md.
+- Files the plan creates (brain_memory.py, experiences.py route, task_runner.py, brain_router.py) do NOT exist. Plan claims are accurate.
+
+**Verdict: APPROVED WITH CONDITIONS**
+
+Core justification: The problem is real and verified in code. ExperienceLogger at 0 records IS the pain — every consultation starts cold, which directly inflates T1. The plan fixes the disconnection between the API and actual brain execution, which is the minimum viable wiring to make v2.2 infrastructure do what it was built for.
+
+**Risk map (Cagan 4 dimensions):**
+
+1. Value Risk — LOW (mitigated): The core value proposition (brains that don't start cold) is directly T1-reducing. A second consultation that cites past records eliminates the re-injection of context the user currently does manually. Evidence is measurable: T1 before vs. after pilot with Brain #1.
+
+2. Usability Risk — MEDIUM (unnamed in plan): Phase 4 routing (brain_router.py) is opaque by design. If Brain #1 emits `frontend_implications` and Brain #4 auto-dispatches without surfacing the routing decision to the user, the user loses observability into what triggered. For a single-user internal tool, opaque routing becomes a trust problem — the user starts second-guessing the system and manually verifying every dispatch. The plan has no observability hook for routing decisions.
+
+3. Feasibility Risk — LOW: StatelessCoordinator exists, ExperienceLogger exists, WebSocket infrastructure exists. Phase 3 (task_runner.py) is the highest-complexity piece — async background task with SQLite WAL and WebSocket broadcast. Verified feasible with aiosqlite, but connection lifecycle must be explicit.
+
+4. Viability Risk — MEDIUM (the Meadows risk, unnamed in plan): Memory accumulation without a decay or relevance filter creates Systemic Inertia. Brain #1 will eventually cite outdated records as if they are current truth. The plan has no TTL on experience records, no quality score threshold for citation, and no mechanism to mark records as superseded. This is not urgent for Phase 1 pilot (few records) but becomes a liability by Phase 6 (all 7 brains logging).
+
+**Conditions for approval:**
+
+1. Phase 4 (brain_router.py) — add a routing trace field to WebSocket broadcast. When Brain #4 is dispatched because Brain #1 set `frontend_implications`, that routing decision must appear in the Engine Room as a visible event, not a silent auto-dispatch.
+
+2. Definition of Done — keep the technical DoD ("Brain #1 cites past records on second consultation") as smoke test, but add a behavioral DoD: "A 3-brain flow executes without user re-injection of context, with T1 < 90s user attention time." This aligns with the T1 90-110s target from Phase 12 context.
+
+3. Experience record quality gate — before Phase 6 (replicate to #2-#7), define a minimum quality_score threshold for citation. Records below threshold should be retrievable but not cited. ExperienceRecord model already has `custom_metadata` — use it now, not later.
+
+**Phase execution order — no changes needed.** Phases 1+2 parallel is correct. Phase 3 depends on Phase 2 schema. Phase 4 depends on Phase 3 task_runner. Phases 5+6 last.
+
+### Deferred Items
+
+📅 v3.1+ — Memory decay / TTL on experience records. Not needed for pilot (Brain #1 only, few records). Becomes critical at Phase 6 when all 7 brains are logging. Design the relevance filter before Phase 6, not after.
+
+📅 v3.1+ — Brain #7 as meta-evaluator for experience record quality. Currently Brain #7 evaluates domain outputs. Future: also flags when Brain #1 is citing records that contradict current codebase state (stale memory detection). This requires Brain #7 to have read access to ExperienceLogger — design that interface when scaling to all 7 brains.

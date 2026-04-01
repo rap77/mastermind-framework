@@ -57,3 +57,44 @@ Sync: WS token handoff protocol — [SYNC: BF-05-001] → BRAIN-FEED-05-backend.
 Sync: httpOnly cookie confirmation — [SYNC: BF-05-002] → BRAIN-FEED-05-backend.md > Auth & Security. Frontend must NOT attempt JS cookie read. Owner: Brain #5 Backend.
 Sync: Zod API contracts — [SYNC: BF-05-003] → BRAIN-FEED-05-backend.md > API Design. Confirmed: apps/web/src/types/api.ts + login/actions.ts. Frontend validates API responses with Zod — needs contract shape. Owner: Brain #5 Backend.
 Sync: Error response standard — [SYNC: BF-05-004] → BRAIN-FEED-05-backend.md > API Design. Frontend maps 500/429 to user messages — needs the shape. Owner: Brain #5 Backend.
+
+---
+
+## 2026-03-31 — Agent Restructuring Plan Review (Phase 12)
+
+### Verified Insights
+
+**WS Architecture — actual file is wsStore.ts (NOT wsDispatcher.ts)**
+- wsDispatcher.ts does not exist in this codebase. The WS singleton is wsStore.ts (useWSStore, Zustand store with pub/sub)
+- wsStore dispatches by msg.type → subscriber handlers. New event types = new subscribe() call, NOT a new store file
+- All WS validation happens in WSBrainBridge via WSMessageSchema.safeParse — silent fail path silently discards events that don't match the schema
+
+**Actual WS event type is 'task_update_batch' (not 'status_change')**
+- WSMessageSchema: z.literal('task_update_batch') — must be widened to discriminated union for brain_routing
+- BrainEventSchema has no 'result' field — completed events today carry no payload. Silent data loss if result lands unschema'd.
+
+**brain_routing event — recommended approach**
+- DO NOT add a second top-level subscribe() call that bypasses Zod validation
+- Widen WSMessageSchema to z.discriminatedUnion('type', [...existing, BrainRoutingEventSchema])
+- Handle in WSBrainBridge as a second subscribe block in the same component — maps from/to to brainStore status transitions
+- brain_routing must update data props only — NEVER positions (dagre locked after first run)
+
+**brainStore — result field needed, routing chain NOT needed**
+- Add result?: Record<string, unknown> to BrainState interface
+- DO NOT add Map<taskId, RoutingChain> — routing is transient topology, not persistent state
+- historyStack already snapshots routing transitions with no changes needed
+- RISK: large result objects in brainStore bloat historyStack snapshots — store result_ref only, fetch full on demand
+
+**New Zod schemas required**
+- BrainRoutingEventSchema: { type: 'brain_routing', from: string, to: string, sub_task_id: uuid }
+- ExperienceSchema: { id: uuid, output_json: record(unknown), duration_ms: nonneg int, status: enum, custom_metadata?: record(unknown) }
+- ExperiencesResponseSchema: array of ExperienceSchema
+- result field in BrainEventSchema: result?: record(unknown) — optional to avoid breaking idle/active/error events
+
+**New /api/experiences proxy**
+- Pattern: follow /api/executions/[id]/route.ts verbatim — await params, await cookies(), proxy with Bearer token
+- TanStack Query staleTime: 30s (same as brains config — stable data)
+
+### Deferred Items
+
+📅 If result objects grow beyond ~10KB, evaluate moving result storage out of brainStore.brains Map to avoid historyStack memory bloat — relevant when Phase 12 ships and real results start flowing

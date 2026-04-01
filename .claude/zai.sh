@@ -6,3 +6,11 @@
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7"
   },
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "ollama",
+    "ANTHROPIC_BASE_URL": "http://localhost:11434",
+    "API_TIMEOUT_MS": "3000000",
+#    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+#    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+#    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7"
+  },
