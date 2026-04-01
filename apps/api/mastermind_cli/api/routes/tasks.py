@@ -12,12 +12,13 @@ from datetime import datetime
 from html import escape
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.api.services.graph_builder import build_niche_clustered_graph
+from mastermind_cli.api.services.task_runner import run_brain_task
 from mastermind_cli.state.database import DatabaseConnection
 
 # Router
@@ -59,6 +60,7 @@ class TaskListResponse(BaseModel):
 @router.post("", response_model=TaskResponse, status_code=201)
 async def create_task(
     request: CreateTaskRequest,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> TaskResponse:
@@ -93,9 +95,13 @@ async def create_task(
         )
         await db.conn.commit()
 
-        # Note: Actual orchestration happens in background
-        # For now, just create the record
-        # TODO: Integrate with Coordinator.orchestrate() in Task 2
+    background_tasks.add_task(
+        run_brain_task,
+        task_id=task_id,
+        brief=brief_sanitized,
+        flow=request.flow if isinstance(request.flow, str) else None,
+        db_path=db_path,
+    )
 
     return TaskResponse(
         task_id=task_id,
