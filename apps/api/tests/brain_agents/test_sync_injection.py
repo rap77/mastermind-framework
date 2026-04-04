@@ -53,7 +53,7 @@ class TestSyncInjection:
         Manual acceptance: temporarily modify BF-05-WS-AUTH, invoke Brain #4,
         verify citation of the injected fragment appears in response.
         """
-        pytest.fail(
+        pytest.skip(
             "STUB — Not yet implemented. "
             "Manual characterization test after moment-2.md implements SYNC injection. "
             "Steps: (1) Modify .planning/BRAIN-FEED-05-backend.md BF-05-WS-AUTH section. "

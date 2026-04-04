@@ -19,6 +19,7 @@ from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.api.services.graph_builder import build_niche_clustered_graph
 from mastermind_cli.api.services.task_runner import run_brain_task
+from mastermind_cli.orchestrator.flow_detector import FlowDetector
 from mastermind_cli.state.database import DatabaseConnection
 
 # Router
@@ -52,6 +53,20 @@ class TaskListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class AutoTaskRequest(BaseModel):
+    """Request to create task with auto-detected flow."""
+
+    brief: str = Field(..., min_length=1, max_length=10000)
+
+
+class AutoTaskResponse(BaseModel):
+    """Auto-task creation response with detected flow."""
+
+    id: str
+    status: str
+    flow: str
 
 
 # ===== Endpoints =====
@@ -107,6 +122,60 @@ async def create_task(
         task_id=task_id,
         status="pending",
         created_at=datetime.utcnow(),
+    )
+
+
+@router.post("/auto", response_model=AutoTaskResponse, status_code=202)
+async def create_auto_task(
+    request: AutoTaskRequest,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user_any),
+    db_path: str = Depends(get_db_path),
+) -> AutoTaskResponse:
+    """Create task with auto-detected flow.
+
+    Accepts only a brief (no explicit flow), auto-detects the appropriate
+    flow using FlowDetector, creates an execution record, and dispatches
+    the brain orchestration via BackgroundTasks.
+
+    Returns 202 Accepted immediately — execution happens asynchronously.
+    """
+    task_id = str(uuid.uuid4())
+
+    # XSS Prevention: Server-side sanitization
+    brief_sanitized = escape(request.brief)
+
+    # Auto-detect flow from brief content
+    detector = FlowDetector()
+    detected_flow = detector.detect(brief_sanitized)
+
+    async with DatabaseConnection(db_path) as db:
+        await db.conn.execute(
+            """INSERT INTO executions (id, flow_config, brief, created_at, status, user_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            [
+                task_id,
+                detected_flow,
+                brief_sanitized,
+                datetime.utcnow(),
+                "pending",
+                user_id,
+            ],
+        )
+        await db.conn.commit()
+
+    background_tasks.add_task(
+        run_brain_task,
+        task_id=task_id,
+        brief=brief_sanitized,
+        flow=detected_flow,
+        db_path=db_path,
+    )
+
+    return AutoTaskResponse(
+        id=task_id,
+        status="pending",
+        flow=detected_flow,
     )
 
 

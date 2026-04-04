@@ -1,7 +1,13 @@
-"""Background task runner for brain orchestration — Fase 3 agent-restructuring.
+"""Background task runner for brain orchestration — Fase 3 + Fase 4.
 
 Executes StatelessCoordinator.execute_flow() as a FastAPI BackgroundTask,
-writes experience records, and updates execution status in SQLite.
+writes experience records, updates execution status in SQLite, and integrates
+brain-to-brain routing for sequential delegation.
+
+Fase 4 integration:
+- After flow completes, route_to_brain() checks if additional brains should run
+- emit_brain_routing_event() sends WS events for frontend awareness
+- Routed brain failures are isolated — parent task stays completed
 
 Brain #5/#6 guidance:
 - FastAPI BackgroundTasks (not asyncio.create_task) — avoids orphan tasks
@@ -12,8 +18,10 @@ Brain #5/#6 guidance:
 
 import asyncio
 import time
+import uuid
 
 from mastermind_cli.experience.logger import ExperienceLogger
+from mastermind_cli.orchestrator import brain_router as _brain_router
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
 from mastermind_cli.orchestrator.stateless_coordinator import (
     create_stateless_coordinator,
@@ -31,7 +39,7 @@ class _PassthroughMCPClient:
     without invoking MCP tools from Python.
     """
 
-    def query_notebooklm(self, notebook_id: str, query: str) -> str:  # noqa: ARG002
+    def query_notebooklm(self, notebook_id: str, query: str) -> str:
         return ""  # Brain agents make their own MCP calls via Bash tool
 
 
@@ -108,6 +116,52 @@ async def run_brain_task(
                 ["completed", task_id],
             )
             await db.conn.commit()
+
+        # --- Fase 4: Brain-to-brain routing (sequential delegation) ---
+        # After the main flow completes, check if any brain's brief should
+        # be routed to an additional brain that wasn't in the original flow.
+        for brain_id in list(results.keys()):
+            target_brain = _brain_router.route_to_brain(brief_obj, brain_id)
+            if target_brain is None or target_brain in results:
+                continue  # No match or brain already ran in this flow
+
+            sub_task_id = str(uuid.uuid4())
+
+            # Emit WS event for frontend awareness (Opción A: parent task_id)
+            await _brain_router.emit_brain_routing_event(
+                task_id=task_id,
+                from_brain=brain_id,
+                to_brain=target_brain,
+                sub_task_id=sub_task_id,
+            )
+
+            # Execute the routed brain — failures are isolated
+            try:
+                routed_results = await coordinator.execute_flow(
+                    brief_obj, [target_brain]
+                )
+                routed_elapsed = int(time.time() * 1000) - start_ms
+
+                # Log experience for routed brain
+                async with DatabaseConnection(db_path) as db:
+                    routed_logger = ExperienceLogger(db)
+                    for rid, rout in routed_results.items():
+                        await routed_logger.log_execution(
+                            brain_id=rid,
+                            input_json={
+                                "brief": brief,
+                                "flow": flow_type,
+                                "routed_from": brain_id,
+                            },
+                            output_json=rout.model_dump()
+                            if hasattr(rout, "model_dump")
+                            else {},
+                            duration_ms=routed_elapsed,
+                            status="success",
+                            trace_context_id=task_id,
+                        )
+            except Exception:
+                pass  # Routed brain failure is isolated — parent stays completed
 
     except (Exception, asyncio.CancelledError):
         # CancelledError is BaseException — must be listed explicitly
