@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Custom Workflow Framework + RAG
 status: planning
-stopped_at: "v2.2 milestone closed — ready for /gsd:new-milestone"
-last_updated: "2026-03-31T00:00:00Z"
-last_activity: "2026-03-30 — v2.2 Brain Agents shipped. Tag v2.2 pushed. Milestone archived."
+stopped_at: "v2.2 complete, agent-restructuring complete — ready for /gsd:new-milestone"
+last_updated: "2026-04-04T18:30:00Z"
+last_activity: "2026-04-04 — agent-restructuring Fases 4-6 complete, 7 brain agents created and tested."
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 15
+  completed_plans: 15
+  percent: 100
 ---
 
 # Project State
@@ -26,9 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Milestone: v2.2 Brain Agents — ✅ SHIPPED 2026-03-30
-Status: All 4 phases complete (09-12), 15/15 plans, tag v2.2 pushed.
+Milestone: Agent-Restructuring — ✅ SHIPPED 2026-04-04
+Status: All v2.2 phases complete (09-12), agent-restructuring complete (6/6 fases).
 Next: `/gsd:new-milestone` to define v3.0 requirements and roadmap.
-Last activity: 2026-03-30 — v2.2 milestone closed. Archives in .planning/milestones/v2.2-*.
+Last activity: 2026-04-04 — STATE.md updated, Phase 12 status corrected to COMPLETE.
+Archives: v2.2 in .planning/milestones/v2.2-*, agent-restructuring plan in ~/.claude/plans/.
 
 Progress: [██████████] 100%
 
@@ -39,7 +41,7 @@ Progress: [██████████] 100%
 | 09 | Baselines + Agent Authoring | ✅ COMPLETE |
 | 10 | BRAIN-FEED Split | ✅ COMPLETE |
 | 11 | Smoke Tests | ✅ COMPLETE |
-| 12 | Parallel Dispatch + Command Update | Pending |
+| 12 | Parallel Dispatch + Command Update | ✅ COMPLETE |
 
 ## Performance Metrics
 
@@ -127,9 +129,30 @@ Progress: [██████████] 100%
 
 ### Pending Todos
 
-- Phase 11: Smoke Tests — verify feed content quality end-to-end with real brain dispatches
-- Verify MCP tool inheritance to subagents (first smoke test in Phase 11)
-- Phase 11: validate SYNC pointer resolution (BF-05-001 thru BF-05-004 in Brain #4 feed)
+None. All v2.2 phases complete.
+
+### Agent-Restructuring Initiative (2026-04-04)
+
+**Plan:** sprightly-conjuring-hartmanis.md — Convert brains from YAML configs to autonomous Claude Code agents with memory
+
+**Status:** ✅ COMPLETE (6 fases)
+
+| Fase | Descripción | Estado | Tests |
+|------|-------------|--------|-------|
+| 1 | Brain Memory Tool (CLI) | ✅ DONE | brain_memory.py query/log |
+| 2 | Experience schema + REST endpoint | ✅ DONE | GET /api/experiences/{brain_id} |
+| 3 | API ↔ Execution real | ✅ DONE | task_runner.py + background tasks |
+| 4 | Brain-to-Brain Router | ✅ DONE | brain_router.py + 23 tests (16 unit + 7 integration) |
+| 5 | Auto endpoint /api/tasks/auto | ✅ DONE | FlowDetector auto-detection + 8 tests |
+| 6 | Replicate to Brains #2-#7 | ✅ DONE | 7 agents .claude/agents/mm/brain-NN-*/brain-NN-*.md |
+
+**Deliverables:**
+- 7 brain agents creados con protocolo de memoria (query → NotebookLM → log)
+- Piloto Brain #1 probado end-to-end (dark mode brief → DEFERRED con memoria)
+- Memoria SQLite funcionando (mastermind.db con 2 registros de experiencia)
+- Commit: a708e7a (+678/-7 líneas, 6 archivos)
+
+**Next:** Integrar agentes al flujo de producción (v3.0 scope)
 
 ### Blockers/Concerns
 
