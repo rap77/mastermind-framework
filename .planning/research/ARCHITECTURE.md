@@ -1,475 +1,723 @@
-# Architecture Research
+# Architecture Patterns — MasterMind v3.0
 
-**Domain:** Claude Code subagents integrating with existing mm:brain-context skill-based workflow
-**Researched:** 2026-03-27
-**Confidence:** HIGH (based on existing codebase, REQUIREMENTS.md, skill files, and established Claude Code agent patterns)
+**Domain:** Enterprise Agent Orchestration Platform with Knowledge Distillation
+**Researched:** 2026-04-04
+**Overall confidence:** HIGH
 
----
+## Executive Summary
 
-## Context
+MasterMind v3.0 introduces a **3-service architecture** (Rust Control Plane + Python Agent Runtime + Next.js Frontend) that builds incrementally on the existing v2.2 foundation. The integration strategy is **evolutionary, not revolutionary** — Python FastAPI remains the AI/knowledge layer, Rust handles performance-critical infrastructure, and Next.js evolves to match Paperclip's UX maturity.
 
-This document answers the v2.2 key architectural question: how does the orchestrator dispatch brain agents in parallel, what does the handoff look like, and how does each agent write back to its BRAIN-FEED without polluting other agents' feeds?
-
-This is a brownfield addition to a functioning system. The mm:brain-context skill (manual workflows) becomes the agent system prompts — no work thrown away, execution model changes.
+**Key architectural insight:** The Rust Control Plane is a **thin orchestration wrapper** around existing Python brain agents, not a rewrite. Brain agents, knowledge distillation, and memory systems remain in Python. Rust only owns state management, real-time events, and multi-channel routing — areas where existing FastAPI WebSocket infrastructure has scalability limits.
 
 ---
 
-## System Overview: Before vs After
+## Recommended Architecture
 
-### v2.1 (current) — Sequential manual skill execution
-
-```
-User: /mm:brain-context
-          ↓
-Orchestrator (Claude main)
-  reads: SKILL.md → moment-1.md workflow
-  reads: BRAIN-FEED.md (single file)
-  reads: codebase files
-  builds: [IMPLEMENTED REALITY] context block
-  queries: Brain #1 NotebookLM (MCP call)
-  queries: Brain #7 NotebookLM (MCP call, after #1)
-  filters: each concern against grep/code
-  writes: .planning/research/BRAIN-NN-CONTEXT.md
-  (orchestrator does all the work)
-```
-
-### v2.2 (target) — Parallel autonomous agent dispatch
+### 3-Service Split
 
 ```
-User: /mm:brain-context
-          ↓
-Orchestrator (Claude main)
-  reads: PROJECT.md + STATE.md
-  determines: which brains are needed (brain-selection.md rules)
-  dispatches (parallel, Agent tool):
-    ├── Brain Agent #1 (product)  → returns: verified insights
-    ├── Brain Agent #4 (frontend) → returns: verified insights
-    └── Brain Agent #7 (growth)   → returns: verdict + gaps
-  waits: all agents complete
-  synthesizes: insights into CONTEXT.md / ROADMAP.md / PLAN.md
-  (orchestrator directs; agents do the specialized work)
+┌───────────────────────────────────────────────────────────────┐
+│                     MasterMind v3.0                            │
+│                                                                │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────┐ │
+│  │   RUST CORE      │  │  PYTHON AI       │  │  NEXT.js    │ │
+│  │   (Axum+Tokio)   │  │  (FastAPI v2.2)  │  │  16+        │ │
+│  │                  │  │                  │  │  Paperclip  │ │
+│  │  ▸ Control Plane │  │  ▸ 7 Brains      │  │  UX Fork    │ │
+│  │  ▸ Real-time Hub │  │  ▸ Knowledge     │  │  ▸ Canvas   │ │
+│  │  ▸ WebSockets    │  │  ▸ LangChain     │  │  ▸ Dashboard│ │
+│  │  ▸ Adapter Reg.  │  │  ▸ NotebookLM    │  │  ▸ Monitor  │ │
+│  │  ▸ Auth+JWT+RBAC │  │  ▸ Auto-learn    │  │             │ │
+│  └────────┬─────────┘  └────────┬─────────┘  └──────┬──────┘ │
+│           │                     │                     │         │
+│           └──────────┬──────────┴─────────────────────┘         │
+│                      │                                        │
+│             ┌────────┴────────┐                               │
+│             │  gRPC + Protobuf│ ← Type-safe contract          │
+│             └────────┬────────┘                               │
+│                      │                                        │
+│  ┌────────────┐  ┌───┴─────────┐  ┌──────────────┐          │
+│  │ PostgreSQL │  │  Redis      │  │  Adapters    │          │
+│  │ + pgvector │  │  Pub/Sub    │  │  WhatsApp    │          │
+│  │            │  │             │  │  Instagram   │          │
+│  │            │  │             │  │  Email       │          │
+│  └────────────┘  └─────────────┘  └──────────────┘          │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-The key shift: the orchestrator stops being a manual workflow executor and becomes a director. Each brain agent is a self-contained specialist that knows its own domain, reads its own feeds, queries its own notebook, and returns verified insights.
+### Component Boundaries
+
+| Component | Responsibility | Communicates With | Existing? |
+|-----------|----------------|-------------------|-----------|
+| **Rust Control Plane** | Auth, state management, WebSocket hub, adapter registry, cost tracking | Python Runtime (gRPC), Next.js (WebSocket + HTTP), PostgreSQL, Redis | NEW — Fase 1 |
+| **Python Agent Runtime** | 7 brain agents, knowledge distillation, LangChain, NotebookLM, experience logging | Rust Control Plane (gRPC), PostgreSQL, vector stores (future) | EXISTING — v2.2 FastAPI, minimal wrapper changes |
+| **Next.js Frontend** | Canvas, dashboard, monitoring, config forms, multi-channel inbox | Rust Control Plane (WebSocket + HTTP), Python Runtime (gRPC proxy via Rust) | EXISTING — v2.2, evolves to match Paperclip UX |
+
+### Data Flow
+
+**Current v2.2 flow:**
+```
+Next.js → FastAPI HTTP/WS → brain_router.py → brain agents → SQLite → WS response
+```
+
+**v3.0 flow:**
+```
+Next.js → Rust Control Plane (HTTP/WS)
+    ↓
+Rust routes to Python Agent Runtime via gRPC
+    ↓
+Python brain agents execute → PostgreSQL → experience_records
+    ↓
+Python gRPC callback → Rust
+    ↓
+Rust WebSocket broadcast → Next.js (pub/sub via Redis for scale)
+```
+
+**Key change:** Rust becomes the **routing and event hub**, Python becomes a **compute service** for AI/knowledge operations.
 
 ---
 
-## Full System Architecture
+## Integration Points with Existing Architecture
 
+### 1. Python Agent Runtime — Minimal Changes, Maximum Reuse
+
+**What stays in Python (NO migration to Rust):**
+- `mastermind_cli/orchestrator/brain_router.py` (23 tests) — brain routing logic
+- `mastermind_cli/orchestrator/coordinator.py` (54.2K LOC) — orchestration engine
+- `mastermind_cli/tools/brain_memory.py` — memory CLI
+- `mastermind_cli/experience/` — experience logging
+- `mastermind_cli/memory/` — brain memory system
+- All 7 brain agent bundles (`.claude/agents/mm/`)
+
+**What changes in Python:**
+- **New gRPC server** (tonic-build for Python) — wraps existing orchestration logic
+- **New gRPC client** (calls Rust Control Plane for state queries)
+- **FastAPI routes deprecated** — all HTTP/WS goes through Rust, Python is gRPC-only
+- **PostgreSQL client** — replace aiosqlite with SQLAlchemy/Alembic (async)
+
+**Migration strategy:**
+```python
+# Existing v2.2 entry point
+@app.post("/api/tasks")
+async def create_task(...):
+    result = await coordinator.run_brains(brief)
+    return result
+
+# v3.0 Python gRPC service
+class BrainAgentService(brain_pb2_grpc.BrainAgentServicer):
+    async def ExecuteBrain(self, request, context):
+        # Reuse existing coordinator
+        result = await coordinator.run_brains(
+            brief=Brief.from_proto(request.brief)
+        )
+        return result.to_proto()
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                     ORCHESTRATOR LAYER                             │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  Orchestrator (Claude main)                                  │  │
-│  │  - Detects moment (auto or explicit)                         │  │
-│  │  - Selects which brains to dispatch (brain-selection.md)     │  │
-│  │  - Dispatches Agent tool calls (parallel)                    │  │
-│  │  - Synthesizes results into GSD artifacts                    │  │
-│  └──────────────────────┬───────────────────────────────────────┘  │
-└─────────────────────────┼──────────────────────────────────────────┘
-                          │  Agent tool (parallel dispatch)
-         ┌────────────────┼─────────────────────┐
-         ↓                ↓                     ↓
-┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-│  Brain Agent   │ │  Brain Agent   │ │  Brain Agent   │
-│  #1 product    │ │  #4 frontend   │ │  #7 growth     │
-│                │ │                │ │                │
-│  1. read feeds │ │  1. read feeds │ │  1. read feeds │
-│  2. read code  │ │  2. read code  │ │  2. read code  │
-│  3. build ctx  │ │  3. build ctx  │ │  3. build ctx  │
-│  4. MCP query  │ │  4. MCP query  │ │  4. MCP query  │
-│  5. filter     │ │  5. filter     │ │  5. filter     │
-│  6. write feed │ │  6. write feed │ │  6. write feed │
-│  7. return     │ │  7. return     │ │  7. return     │
-│     insights   │ │     insights   │ │     verdict    │
-└────────┬───────┘ └────────┬───────┘ └────────┬───────┘
-         │                  │                  │
-         ↓                  ↓                  ↓
-┌────────────────┐ ┌────────────────┐ ┌────────────────────────────┐
-│ BRAIN-FEED.md  │ │ BRAIN-FEED.md  │ │ BRAIN-FEED.md              │
-│ (global read)  │ │ (global read)  │ │ (global read)              │
-│ BRAIN-FEED-    │ │ BRAIN-FEED-    │ │ BRAIN-FEED-                │
-│ 01-product.md  │ │ 04-frontend.md │ │ 07-growth.md               │
-│ (own write)    │ │ (own write)    │ │ (own write)                │
-└────────────────┘ └────────────────┘ └────────────────────────────┘
+
+**Why this works:** The coordinator is already a pure function with minimal FastAPI dependencies. Extracting it to gRPC is a protocol change, not a logic rewrite.
+
+### 2. Rust Control Plane — New Components
+
+**New Rust modules (apps/control-plane/):**
+
+| Module | Purpose | Integration Point |
+|--------|---------|-------------------|
+| `auth/` | JWT verification, RBAC, API keys | Migrate from `apps/api/mastermind_cli/auth/` |
+| `websocket/` | Real-time hub, connection management | Replace FastAPI `websocket.py` (ThrottledBroadcaster → Tokio broadcast) |
+| `execution/` | State machine for tasks, processes | Calls Python gRPC for brain execution |
+| `adapters/` | Multi-channel routing (WhatsApp, IG, email) | NEW — sends messages to Python for NLP processing |
+| `grpc/` | gRPC server (tonic) + Python client | Bridges Rust ↔ Python |
+| `http/` | Axum HTTP routes for Next.js | Proxy to Python gRPC for brain operations |
+| `postgres/` | SQLx queries, migrations, pgvector | Replace `state/database.py` |
+| `cost/` | Token/cost tracking per brain | NEW — budget enforcement |
+
+**Key Rust responsibilities:**
+- **WebSocket hub** — replace FastAPI WebSocketManager with Tokio-based broadcast
+- **State management** — PostgreSQL as source of truth (not SQLite)
+- **Adapter registry** — dynamic routing to WhatsApp/IG/email providers
+- **Auth middleware** — JWT verification, RBAC per organization
+- **gRPC gateway** — all Python brain execution goes through Rust
+
+### 3. Next.js Frontend — Evolution to Paperclip UX
+
+**What stays:**
+- `apps/web/src/stores/wsStore.ts` — WebSocket client (minor endpoint change)
+- `apps/web/src/stores/brainStore.ts` — RAF batching, 60fps (no changes)
+- `apps/web/src/app/(protected)/` — 4 screens (Command Center, Nexus, Strategy Vault, Engine Room)
+- React Flow v12, Zustand 5, TanStack Query v5
+
+**What evolves (Paperclip patterns):**
+- **Layout** — three-column responsive with sidebar (`paperclip/ui/src/components/Layout.tsx`)
+- **Real-time monitoring** — `ActiveAgentsPanel.tsx` (ping animation, live status)
+- **Cost dashboard** — `BillerSpendCard.tsx` with `QuotaBar` (budget visualization)
+- **Kanban board** — `KanbanBoard.tsx` for task management (@dnd-kit)
+- **Command palette** — `CommandPalette.tsx` (Cmd+K quick actions)
+- **Onboarding wizard** — `OnboardingWizard.tsx` (progressive setup)
+- **Run transcript** — `RunTranscript` (multi-density streaming output)
+
+**Integration changes:**
+- WebSocket endpoint → `ws://rust-control-plane:3001/ws` (not FastAPI)
+- HTTP API calls → Rust Axum server (proxies to Python via gRPC)
+- TypeScript types → auto-generated from Protobuf (not handwritten Zod schemas)
+
+### 4. PostgreSQL Migration — Schema Translation
+
+**Existing SQLite schema (v2.2):**
+```sql
+-- tasks table (from state/database.py)
+CREATE TABLE tasks (
+    id TEXT PRIMARY KEY,
+    brief TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- executions table
+CREATE TABLE executions (
+    id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    brain_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    progress_json TEXT,
+    result_json TEXT,
+    error TEXT,
+    created_at TEXT,
+    completed_at TEXT,
+    FOREIGN KEY (task_id) REFERENCES tasks(id)
+);
+
+-- experience_records table
+CREATE TABLE experience_records (
+    id TEXT PRIMARY KEY,
+    brain_id TEXT NOT NULL,
+    interaction_type TEXT NOT NULL,
+    input_summary TEXT NOT NULL,
+    output_summary TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 ```
+
+**PostgreSQL v3.0 schema (enhanced):**
+```sql
+-- organizations table (NEW — multi-tenant)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    plan TEXT NOT NULL, -- free, pro, enterprise
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    rbac_policy JSONB -- permissions per role
+);
+
+-- tasks table (migrated + enhanced)
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id),
+    user_id TEXT NOT NULL, -- from JWT sub
+    brief JSONB NOT NULL, -- structured brief, not TEXT
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- executions table (migrated + enhanced)
+CREATE TABLE executions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID NOT NULL REFERENCES tasks(id),
+    brain_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    progress_json JSONB,
+    result_json JSONB,
+    error TEXT,
+    tokens_used INTEGER, -- NEW — cost tracking
+    cost_usd DECIMAL(10, 4), -- NEW — cost tracking
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+
+-- experience_records table (migrated + enhanced)
+CREATE TABLE experience_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brain_id TEXT NOT NULL,
+    organization_id UUID REFERENCES organizations(id), -- NEW — per-org learning
+    interaction_type TEXT NOT NULL,
+    input_summary TEXT NOT NULL,
+    output_summary TEXT NOT NULL,
+    delta_velocity REAL, -- NEW — improvement metric
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- activity_log table (NEW — event sourcing)
+CREATE TABLE activity_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID REFERENCES tasks(id),
+    execution_id UUID REFERENCES executions(id),
+    event_type TEXT NOT NULL, -- brain_started, brain_completed, etc.
+    event_data JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- indexes (performance)
+CREATE INDEX idx_tasks_org ON tasks(organization_id);
+CREATE INDEX idx_executions_task ON executions(task_id);
+CREATE INDEX idx_executions_brain ON executions(brain_id);
+CREATE INDEX idx_experience_org_brain ON experience_records(organization_id, brain_id);
+CREATE INDEX idx_activity_task ON activity_log(task_id);
+CREATE INDEX idx_activity_timestamp ON activity_log(created_at DESC);
+```
+
+**Migration strategy:**
+1. **Vertical slice first** — migrate 1 table + 1 flow end-to-end
+2. **Dual-write period** — FastAPI writes to SQLite + PostgreSQL (validate consistency)
+3. **Switch reads** — Rust reads from PostgreSQL, Python still writes to both
+4. **Deprecate SQLite** — Python writes to PostgreSQL only, remove SQLite code
+
+### 5. gRPC + Protobuf — Type Sync Across 3 Languages
+
+**Protobuf definitions (apps/proto/):**
+
+```protobuf
+// common.proto — shared types
+syntax = "proto3";
+
+package mastermind;
+
+message Brief {
+  string task_id = 1;
+  string user_id = 2;
+  string description = 3;
+  map<string, string> context = 4;
+  repeated string brain_keywords = 5;
+}
+
+message BrainResult {
+  string brain_id = 1;
+  string status = 2; // pending, running, completed, failed
+  string output = 3;
+  repeated string warnings = 4;
+  int32 tokens_used = 5;
+}
+
+message TaskStatus {
+  string task_id = 1;
+  string status = 2;
+  repeated BrainResult brain_results = 3;
+  double total_cost_usd = 4;
+}
+
+// brain_agent.proto — Python service
+service BrainAgentService {
+  rpc ExecuteBrain(Brief) returns (BrainResult);
+  rpc GetTaskStatus(string) returns (TaskStatus);
+  rpc QueryKnowledge(QueryRequest) returns (QueryResponse);
+}
+
+message QueryRequest {
+  string brain_id = 1;
+  string query = 2;
+  int32 k = 3; // top-k results
+}
+
+message QueryResponse {
+  repeated string results = 1;
+  repeated double scores = 2;
+}
+
+// control_plane.proto — Rust service
+service ControlPlaneService {
+  rpc CreateTask(CreateTaskRequest) returns (TaskStatus);
+  rpc SubscribeTaskUpdates(TaskSubscription) returns (stream TaskUpdate);
+  rpc RegisterAdapter(AdapterConfig) returns (AdapterStatus);
+}
+```
+
+**Type generation:**
+
+```bash
+# Rust types (tonic + prost)
+protoc --rust_out ./apps/control-plane/src/proto \
+       --tonic_out ./apps/control-plane/src/proto \
+       -I apps/proto \
+       apps/proto/*.proto
+
+# Python types (betterproto)
+protoc --python_out=./apps/api/mastermind_cli/proto \
+       --betterproto_out=./apps/api/mastermind_cli/proto \
+       -I apps/proto \
+       apps/proto/*.proto
+
+# TypeScript types (protoc-gen-es)
+protoc --es_out=./apps/web/src/proto \
+       -I apps/proto \
+       apps/proto/*.proto
+```
+
+**Result:** One field change → compilation error in all 3 languages. No more drift between Pydantic, Zod, and Rust structs.
 
 ---
 
-## Component Inventory
+## Patterns to Follow
 
-### New Components (v2.2 builds these)
+### Pattern 1: Vertical Slice for Rust Integration
 
-| Component | Path | Purpose | AGT/FEED req |
-|-----------|------|---------|------------|
-| Brain Agent #1 file | `.claude/agents/brain-01-product.md` | Subagent system prompt — product strategy specialist | AGT-01 |
-| Brain Agent #2 file | `.claude/agents/brain-02-ux.md` | Subagent system prompt — UX research specialist | AGT-01 |
-| Brain Agent #3 file | `.claude/agents/brain-03-ui.md` | Subagent system prompt — UI design specialist | AGT-01 |
-| Brain Agent #4 file | `.claude/agents/brain-04-frontend.md` | Subagent system prompt — frontend architecture specialist | AGT-01 |
-| Brain Agent #5 file | `.claude/agents/brain-05-backend.md` | Subagent system prompt — backend/API specialist | AGT-01 |
-| Brain Agent #6 file | `.claude/agents/brain-06-qa.md` | Subagent system prompt — QA/DevOps specialist | AGT-01 |
-| Brain Agent #7 file | `.claude/agents/brain-07-growth.md` | Subagent system prompt — growth/evaluator specialist | AGT-01 |
-| Evaluation criteria #1 | `.claude/agents/criteria/brain-01-evaluation.md` | What "good" looks like for product insights | AGT-02 |
-| Evaluation criteria #2-7 | `.claude/agents/criteria/brain-NN-evaluation.md` | Same, per domain | AGT-02 |
-| Anti-patterns #1 | `.claude/agents/anti-patterns/brain-01-anti-patterns.md` | What NOT to write to BRAIN-FEED-01 | AGT-03 |
-| Anti-patterns #2-7 | `.claude/agents/anti-patterns/brain-NN-anti-patterns.md` | Same, per domain | AGT-03 |
-| BRAIN-FEED-01 | `.planning/BRAIN-FEED-01-product.md` | Domain feed — product strategy patterns | FEED-01 |
-| BRAIN-FEED-02 | `.planning/BRAIN-FEED-02-ux.md` | Domain feed — UX patterns | FEED-01 |
-| BRAIN-FEED-03 | `.planning/BRAIN-FEED-03-ui.md` | Domain feed — UI design patterns | FEED-01 |
-| BRAIN-FEED-04 | `.planning/BRAIN-FEED-04-frontend.md` | Domain feed — frontend architecture patterns | FEED-01 |
-| BRAIN-FEED-05 | `.planning/BRAIN-FEED-05-backend.md` | Domain feed — backend/API patterns | FEED-01 |
-| BRAIN-FEED-06 | `.planning/BRAIN-FEED-06-qa.md` | Domain feed — QA/DevOps patterns | FEED-01 |
-| BRAIN-FEED-07 | `.planning/BRAIN-FEED-07-growth.md` | Domain feed — growth/evaluator patterns | FEED-01 |
-| Baselines 1-5 | `docs/baselines/consultation-baseline-NN.md` | Manual consultation records before migration | BASE-01 |
-| Metric schema | `docs/baselines/metric-schema.md` | Measurement framework | BASE-02 |
+**What:** Build 1 API path end-to-end before committing to the 3-service split.
 
-### Modified Components (v2.2 changes these)
+**When:** Fase 1 (Foundation Upgrade) — Week 1-2.
 
-| Component | Current Path | What Changes | DISP req |
-|-----------|-------------|-------------|----------|
-| mm:brain-context command | `claude-commands/mm/brain-context.md` | Replace manual MCP workflow execution with Agent tool dispatch | DISP-02 |
-| BRAIN-FEED.md (global) | `.planning/BRAIN-FEED.md` | Migrates domain-specific content to per-brain feeds; retains only cross-domain patterns | FEED-01 |
+**Example:**
+```rust
+// Rust Control Plane — minimal Axum server
+use axum::{routing::post, Router};
 
-### Unchanged Components (v2.2 does not touch these)
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/api/tasks", post(create_task))
+        .layer(axum::middleware::from_fn(auth_middleware));
 
-| Component | Path | Why Untouched |
-|-----------|------|--------------|
-| SKILL.md + workflows | `~/.claude/skills/mm/brain-context/` | Orchestrator reads these; skill behavior moves INTO agent system prompts |
-| Python brain modules | `apps/api/mastermind_cli/brains/` | Separate runtime; agents use MCP directly, not Python CLI |
-| NotebookLM notebooks | (7 notebook IDs in brain-selection.md) | Static knowledge; agent queries them via `mcp__notebooklm-mcp__notebook_query` |
-| STATE.md / ROADMAP.md | `.planning/` | Produced by GSD orchestrator; agents inform but don't write these |
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn create_task(
+    Json(brief): Json<Brief>,
+    extension(py_client): Extension<PythonGrpcClient>,
+) -> Json<TaskStatus> {
+    // Call Python via gRPC
+    let result = py_client.execute_brain(&brief).await;
+    Json(result)
+}
+```
+
+**Verification criteria:**
+- [ ] Next.js can call `/api/tasks` on Rust (not FastAPI)
+- [ ] Rust calls Python gRPC successfully
+- [ ] Task status stored in PostgreSQL (not SQLite)
+- [ ] WebSocket events flow Rust → Next.js
+
+**Why:** Reduces risk. If Rust velocity < 0.5x Python, we can fall back to "Rust as WebSocket hub only" (escape hatch from PRP).
+
+### Pattern 2: Adapter Pattern for Multi-Channel
+
+**What:** Rust trait `BrainAdapter` for pluggable channel providers.
+
+**When:** Fase 3 (Multi-Channel Gateway).
+
+**Example:**
+```rust
+#[async_trait]
+pub trait BrainAdapter: Send + Sync {
+    async fn send_message(&self, msg: Message) -> Result<AdapterResponse>;
+    async fn query_knowledge(&self, query: &str) -> Result<Vec<KnowledgeFragment>>;
+    fn channel_type(&self) -> ChannelType;
+}
+
+pub struct WhatsAppAdapter {
+    api_key: String,
+    phone_number_id: String,
+}
+
+#[async_trait]
+impl BrainAdapter for WhatsAppAdapter {
+    async fn send_message(&self, msg: Message) -> Result<AdapterResponse> {
+        // Call WhatsApp Business API
+        let client = reqwest::Client::new();
+        client.post(format!("https://graph.facebook.com/v19.0/{}/messages", self.phone_number_id))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&msg)
+            .send()
+            .await?;
+        Ok(AdapterResponse::success())
+    }
+
+    fn channel_type(&self) -> ChannelType {
+        ChannelType::WhatsApp
+    }
+}
+
+// Adapter Registry
+pub struct AdapterRegistry {
+    adapters: HashMap<String, Box<dyn BrainAdapter>>,
+}
+
+impl AdapterRegistry {
+    pub async fn route_message(&self, msg: Message) -> Result<AdapterResponse> {
+        let adapter = self.adapters.get(&msg.channel_id).ok_or("Adapter not found")?;
+        adapter.send_message(msg).await
+    }
+}
+```
+
+**Why:** Allows dynamic registration of new channels without core logic changes. WhatsApp, Instagram, email, Odoo — all implement the same trait.
+
+### Pattern 3: Event Sourcing for Activity Log
+
+**What:** Immutable `activity_log` table as source of truth for all brain operations.
+
+**When:** Fase 1 (PostgreSQL migration).
+
+**Example:**
+```sql
+-- Immutable append-only log
+INSERT INTO activity_log (task_id, event_type, event_data)
+VALUES ('uuid-123', 'brain_started', '{"brain_id": "brain-01", "timestamp": "2026-04-04T10:00:00Z"}');
+
+INSERT INTO activity_log (task_id, event_type, event_data)
+VALUES ('uuid-123', 'brain_completed', '{"brain_id": "brain-01", "output": "...", "tokens": 1500}');
+
+-- Reconstruct task state from events
+SELECT * FROM activity_log WHERE task_id = 'uuid-123' ORDER BY created_at ASC;
+```
+
+**Rust query (SQLx compile-time verified):**
+```rust
+use sqlx::FromRow;
+
+#[derive(FromRow)]
+struct ActivityEvent {
+    id: Uuid,
+    task_id: Uuid,
+    event_type: String,
+    event_data: Jsonb,
+    created_at: DateTime<Utc>,
+}
+
+let events = sqlx::query_as::<_, ActivityEvent>(
+    "SELECT * FROM activity_log WHERE task_id = $1 ORDER BY created_at ASC"
+)
+.bind(task_id)
+.fetch_all(pool)
+.await?;
+```
+
+**Why:** Enables analytics, audit trails, and learning from history. Reconstruct state at any point in time (temporal queries).
 
 ---
 
-## Agent System Prompt Structure
+## Anti-Patterns to Avoid
 
-Each `.claude/agents/brain-NN-domain.md` file embeds the intermediary protocol as native behavior — not as instructions to follow, but as the agent's built-in workflow. This is the key architectural insight: what the orchestrator was reading from SKILL.md and following manually, the agent does autonomously.
+### Anti-Pattern 1: Rewriting Python Brain Logic in Rust
 
+**What:** Porting `coordinator.py`, `brain_router.py`, or agent logic to Rust.
+
+**Why bad:**
+- **Huge velocity cost** — Python AI code is working, Rust rewrite is months of work
+- **Lost expertise** — 7 brains have distilled knowledge in Python prompts
+- **Unclear performance win** — brain execution is I/O-bound (API calls), not CPU-bound
+
+**Instead:**
+- Rust calls Python via gRPC for brain operations
+- Python stays as AI/knowledge service
+- Rust only owns state management, events, routing
+
+### Anti-Pattern 2: Direct Next.js → Python gRPC Calls
+
+**What:** Frontend bypasses Rust, calls Python gRPC directly.
+
+**Why bad:**
+- **Bypasses auth middleware** — Rust JWT checks circumvented
+- **No unified event hub** — WebSocket updates fragmented
+- **Tight coupling** — Next.js needs Python gRPC client, complicates deployment
+
+**Instead:**
+- Next.js calls Rust HTTP/WebSocket only
+- Rust routes to Python via internal gRPC
+- Single entry point = simpler security model
+
+### Anti-Pattern 3: Monolithic Protobuf File
+
+**What:** All 50+ message types in one `mastermind.proto` file.
+
+**Why bad:**
+- **Slow compilation** — any change rebuilds entire proto
+- **Unclear boundaries** — Python, Rust, Next.js concerns mixed
+
+**Instead:**
 ```
----
-name: brain-01-product
-description: Product Strategy brain — consults NotebookLM notebook for expert product advice grounded in MasterMind codebase reality
----
-
-## Identity
-
-You are Brain #1 (Product Strategy). Your NotebookLM notebook contains distilled knowledge
-from Cagan, Torres, Ries, Doerr, and others. You are called by the MasterMind orchestrator
-when product strategy insight is needed.
-
-## Protocol (ALWAYS follow — no exceptions)
-
-### Step 1 — Read feeds before anything else
-[read BRAIN-FEED.md — global context]
-[read BRAIN-FEED-01-product.md — own domain accumulated patterns]
-
-### Step 2 — Read codebase context
-[read files specified in the task prompt]
-
-### Step 3 — Build [IMPLEMENTED REALITY] block
-[structure what exists vs what's being planned vs wrong assumptions to correct]
-
-### Step 4 — Query NotebookLM
-notebook_id: f276ccb3-0bce-4069-8b55-eae8693dbe75
-[mcp__notebooklm-mcp__notebook_query with context block]
-
-### Step 5 — Filter response
-[for each concern: grep to verify if already solved / deferred / real gap]
-
-### Step 6 — Update BRAIN-FEED-01-product.md
-[append new patterns that are NOT already in the feed]
-[do NOT write to BRAIN-FEED.md — that is orchestrator territory]
-
-### Step 7 — Return verified insights
-[structured return: verified gaps, pattern references, confidence level]
-
-## Evaluation Criteria
-[reference or inline from brain-01-evaluation.md]
-
-## Anti-Patterns (NEVER write these to BRAIN-FEED-01)
-[reference or inline from brain-01-anti-patterns.md]
+apps/proto/
+├── common.proto      # Brief, BrainResult, TaskStatus
+├── brain_agent.proto # Python service definitions
+├── control_plane.proto # Rust service definitions
+└── frontend.proto    # Next.js types only
 ```
 
----
+### Anti-Pattern 4: PostgreSQL Before gRPC Contract
 
-## Data Flow: Parallel Dispatch
+**What:** Migrate database schema before defining gRPC interfaces.
 
-### Orchestrator side (mm:brain-context command)
+**Why bad:**
+- **Schema drift** — Python and Rust develop divergent data models
+- **Integration pain** — gRPC mismatch requires schema rework
 
-```
-1. Read STATE.md → determine moment (1/2/3/feed)
-2. Read brain-selection.md rules → select which brains for this moment/phase type
-3. Build dispatch prompt per brain:
-   - task description
-   - which files to read (codebase context)
-   - what question to answer
-   - which moment this is
-4. Dispatch Agent tool calls (all selected brains simultaneously)
-5. Await all results
-6. Synthesize into GSD artifact (ROADMAP / CONTEXT.md / PLAN.md update)
-```
-
-### Agent side (brain-NN.md system prompt)
-
-```
-1. Read BRAIN-FEED.md (global — for cross-domain context)
-2. Read BRAIN-FEED-NN-domain.md (own — for accumulated domain patterns)
-3. Read codebase files from task prompt
-4. Build [IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] block
-5. Call mcp__notebooklm-mcp__notebook_query with context block
-6. Filter: grep each concern → mark ✅ / 📅 / 🔴
-7. Append new patterns to BRAIN-FEED-NN-domain.md (NOT global feed)
-8. Return structured response to orchestrator
-```
-
-### Isolation guarantee
-
-The BRAIN-FEED isolation is enforced by contract in the agent system prompt: each agent is explicitly instructed to write only to its own domain feed. The global BRAIN-FEED.md is write-protected from agents — only the orchestrator (after cross-domain synthesis) or human can update it. This is not a technical lock (no filesystem permissions), it is a behavioral contract baked into every agent's identity section.
+**Instead:**
+1. Define Protobuf contracts first (Fase 1, Week 1)
+2. Generate types in all 3 languages
+3. Implement PostgreSQL schema to match proto types
+4. Build migration scripts from SQLite → PostgreSQL
 
 ---
 
-## Recommended File Structure
+## Scalability Considerations
 
-```
-.claude/
-├── agents/
-│   ├── brain-01-product.md         # Agent system prompt
-│   ├── brain-02-ux.md
-│   ├── brain-03-ui.md
-│   ├── brain-04-frontend.md
-│   ├── brain-05-backend.md
-│   ├── brain-06-qa.md
-│   ├── brain-07-growth.md          # Evaluator — same pattern, different criteria
-│   ├── criteria/
-│   │   ├── brain-01-evaluation.md  # "Good response" standard for product
-│   │   ├── brain-02-evaluation.md
-│   │   └── ...
-│   └── anti-patterns/
-│       ├── brain-01-anti-patterns.md   # What NOT to BRAIN-FEED
-│       ├── brain-02-anti-patterns.md
-│       └── ...
-│
-.planning/
-├── BRAIN-FEED.md                   # Global — cross-domain, human + orchestrator writes only
-├── BRAIN-FEED-01-product.md        # Domain — product strategy agent writes here
-├── BRAIN-FEED-02-ux.md
-├── BRAIN-FEED-03-ui.md
-├── BRAIN-FEED-04-frontend.md
-├── BRAIN-FEED-05-backend.md
-├── BRAIN-FEED-06-qa.md
-├── BRAIN-FEED-07-growth.md
-│
-docs/
-└── baselines/
-    ├── metric-schema.md            # Measurement framework (BASE-02)
-    ├── consultation-baseline-01.md # Manual consultation records (BASE-01)
-    ├── consultation-baseline-02.md
-    ├── consultation-baseline-03.md
-    ├── consultation-baseline-04.md
-    └── consultation-baseline-05.md
+| Concern | At 100 users | At 10K users | At 1M users |
+|---------|--------------|--------------|-------------|
+| **WebSocket connections** | Rust Tokio (single host) | Rust + Redis pub/sub (3 hosts) | Rust cluster + Redis Cluster |
+| **PostgreSQL** | Single instance + pgbench | Primary + 2 replicas | Patroni cluster + PgBouncer |
+| **Python gRPC** | 1 FastAPI container | 3 containers (load balanced) | Autoscaling pool + queue |
+| **Knowledge distillation** | In-memory experience_records | Redis cache + PostgreSQL | Separate vector DB (Qdrant) |
+| **Multi-channel adapters** | 1 WhatsApp API key | Rate-limited per org | Adapter pool per region |
 
-claude-commands/mm/
-└── brain-context.md                # Updated: dispatches agents instead of manual workflow
-```
+**Key scaling point:** Rust Control Plane is stateless (except WebSocket connections). Scale horizontally by adding more Rust instances behind a load balancer. Python gRPC services can scale independently.
 
 ---
 
-## Build Order: Dependency-Driven Sequence
+## Migration Path — Build Order
 
-The 4 requirement groups have hard dependencies. Build order must respect them:
+### Phase 0: Fork Paperclip UI (1-2 weeks)
+**Goal:** Copy frontend, rebrand to MasterMind.
 
-```
-BASE (can start immediately — no deps)
-  └─→ BASE-01: Document 5 manual baselines (uses existing mm:brain-context skill)
-  └─→ BASE-02: Define metric schema (informed by BASE-01 data)
+**Tasks:**
+1. Copy `/home/rpadron/proy/paperclip/ui/` → `apps/web-v3/`
+2. Replace Paperclip API calls with placeholder endpoints
+3. Rebrand colors, logos, texts
+4. Verify 10 UX patterns work (see PAPERCLIP-UX-AUDIT.md)
 
-AGT (parallel with BASE, no deps on BASE)
-  └─→ AGT-01: Write 7 brain agent files
-      AGT-02 can start immediately (parallel with AGT-01)
-      AGT-03 can start immediately (parallel with AGT-01)
-  └─→ AGT-04: Smoke test (REQUIRES AGT-01 + AGT-02 + AGT-03 complete)
+**Deliverable:** `apps/web-v3/` with MasterMind branding, non-functional API calls.
 
-FEED (requires knowing what content goes where — logically after AGT-01 draft)
-  └─→ FEED-01: Split BRAIN-FEED.md (safe to do before AGT is complete)
-  └─→ FEED-02: Baked into AGT-01 system prompts (done when AGT-01 is done)
-  └─→ FEED-03: Baked into AGT-01 system prompts (done when AGT-01 is done)
+### Phase 1: Vertical Slice — Rust + gRPC + PostgreSQL (3-4 weeks)
+**Goal:** Prove 3-service architecture with 1 flow end-to-end.
 
-DISP (requires AGT complete — can't dispatch agents that don't exist)
-  └─→ DISP-01: Orchestrator parallel dispatch (REQUIRES AGT-04 passing smoke test)
-  └─→ DISP-02: Update mm:brain-context command (REQUIRES DISP-01 working)
-```
+**Tasks:**
+1. **Define Protobuf contracts** (`apps/proto/common.proto`, `brain_agent.proto`)
+2. **Bootstrap Rust Control Plane** (Axum + Tokio + tonic + SQLx)
+3. **Implement Python gRPC wrapper** (betterproto, wraps existing coordinator)
+4. **PostgreSQL migration** — migrate `tasks` table only
+5. **Wire 1 flow:** Next.js → Rust → Python gRPC → PostgreSQL → Rust WS → Next.js
 
-### Recommended phase breakdown
+**Deliverable:** `/api/tasks/create` works end-to-end with 3 services. WebSocket updates flow correctly.
 
-**Phase 1: BASE + AGT-01/02/03 (parallel work)**
-- Document baselines using existing skill (BASE-01, BASE-02)
-- Draft all 7 agent files with embedded intermediary protocol (AGT-01)
-- Write evaluation criteria per domain (AGT-02)
-- Write anti-patterns per domain (AGT-03)
-- These can proceed in parallel — no cross-dependency
+**Success criteria:**
+- [ ] Rust receives HTTP request, validates JWT
+- [ ] Rust calls Python via gRPC
+- [ ] Python executes brain, returns result
+- [ ] Rust stores result in PostgreSQL
+- [ ] Rust broadcasts WebSocket event
+- [ ] Next.js receives WS event, updates UI
 
-**Phase 2: FEED**
-- Split monolithic BRAIN-FEED.md (FEED-01)
-- FEED-02 and FEED-03 are embedded in agent system prompts — done as part of AGT-01
+### Phase 2: Rust WebSocket Hub + Real-time Canvas (2-3 weeks)
+**Goal:** Replace FastAPI WebSocket with Tokio-based hub, build React Flow canvas.
 
-**Phase 3: AGT-04 smoke test**
-- Test each agent end-to-end against the split feeds
-- Validates AGT + FEED working together before dispatch layer
+**Tasks:**
+1. **Rust WebSocket server** (tokio-tungstenite)
+2. **Redis pub/sub** for cross-service broadcast
+3. **React Flow canvas** (nodes = brains, edges = routing rules)
+4. **Real-time updates** (ping animation, live status)
 
-**Phase 4: DISP**
-- Implement parallel dispatch in orchestrator (DISP-01)
-- Update mm:brain-context command (DISP-02)
-- Integration test against validated agents
+**Deliverable:** Canvas shows live brain execution with WebSocket updates.
 
----
+### Phase 3: Multi-Channel Gateway (3-4 weeks)
+**Goal:** WhatsApp + Instagram + email adapters in Rust.
 
-## Architectural Patterns
+**Tasks:**
+1. **Adapter trait** (`BrainAdapter` with `send_message`, `query_knowledge`)
+2. **WhatsApp adapter** (Meta Graph API)
+3. **Instagram DM adapter** (Meta Graph API)
+4. **Email gateway** (lettre + imap crates)
+5. **Unified inbox UI** (Paperclip `RunTranscript` pattern)
 
-### Pattern 1: Agent as Embedded Protocol
+**Deliverable:** Send message via WhatsApp, receive response, route to Python for NLP, respond.
 
-**What:** The intermediary protocol (6-step: read, build context, correct assumptions, query, filter, cascade) is not a workflow the agent follows from a file — it is the agent's intrinsic behavior defined in its system prompt identity section.
+### Phase 4: Knowledge Distillation Engine (3-4 weeks)
+**Goal:** Brains learn from interactions.
 
-**When to use:** Always. Every brain agent file must embed the full protocol, not reference it.
+**Tasks:**
+1. **Experience analytics dashboard** (patterns per brain)
+2. **Auto-learning loop** (Brain #7 evaluates → feedback → adjustment)
+3. **Template generation** (successful interactions → reusable templates)
 
-**Why:** When the protocol is a reference (`@ ~/.claude/skills/...`), the orchestrator must read and follow it manually — that is v2.1 behavior. In v2.2, the agent IS the protocol. The orchestrator dispatches and directs; the agent executes the protocol autonomously.
+**Deliverable:** Experience records show delta-velocity improvements. Templates marketplace v1.
 
-**Trade-offs:** Agent files are larger (protocol is duplicated across 7 files). This is the correct trade-off — cohesion over DRY for behavioral correctness.
+### Phase 5: Template Marketplace + Enterprise (4-6 weeks)
+**Goal:** Scale to multiple verticals.
 
-### Pattern 2: Feed Isolation via Behavioral Contract
+**Tasks:**
+1. **Multi-tenant RBAC** (per-organization isolation)
+2. **Template marketplace** (Clipmart-style gallery)
+3. **Enterprise adapters** (Odoo, Notion, custom webhooks)
+4. **Billing + usage tracking**
 
-**What:** Each agent writes only to its own domain BRAIN-FEED. No technical lock enforces this — the constraint is in the agent's identity definition ("you write ONLY to BRAIN-FEED-NN-domain.md").
-
-**When to use:** Every agent system prompt must include explicit write-scope instructions. Omitting this creates cross-domain pollution risk.
-
-**Why:** Cross-domain pollution is the primary failure mode for multi-agent knowledge systems. If Brain #7 (growth) writes a frontend performance pattern into BRAIN-FEED.md (global), Brain #4 (frontend) will get conflicting signals from a non-specialist. Isolation preserves signal quality per domain.
-
-**Detection:** If a brain agent ever proposes to write to BRAIN-FEED.md directly, that is a violation. Only the orchestrator updates the global feed, after explicit cross-domain synthesis.
-
-### Pattern 3: Structured Return from Agent to Orchestrator
-
-**What:** Each agent returns a structured response with: verified insights (categorized ✅/📅/🔴), any new patterns added to its domain feed, and confidence level.
-
-**When to use:** Brain #7 additionally returns a verdict (APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE) for Moment 3.
-
-**Why:** The orchestrator cannot synthesize free-form prose from 4 parallel agents efficiently. Structure enables the orchestrator to merge results and update artifacts without re-reading the agents' full outputs.
-
-**Example return format:**
-```
-BRAIN-NN RESPONSE
-Domain: [domain]
-NotebookLM query answered: YES
-
-VERIFIED INSIGHTS:
-✅ [concern] — already in codebase at [path]
-📅 [concern] — defer to v2.3 (out of scope)
-🔴 [gap] — [specific actionable recommendation]
-
-BRAIN-FEED UPDATE: [pattern name] added to BRAIN-FEED-NN-domain.md
-  Content: [1-2 line description of what was added]
-
-CONFIDENCE: HIGH / MEDIUM / LOW + reason
-```
-
-### Pattern 4: Baseline-Before-Migration
-
-**What:** Before DISP-01 (parallel agent dispatch), collect 5 manual consultation baselines using the current skill workflow. Define metric schema (BASE-02) before collecting baselines (BASE-01) so measurements are comparable.
-
-**When to use:** Any time a manual-to-agent migration is planned. This is BASE-01 and BASE-02.
-
-**Why:** Without baseline, "agents are better" is a claim without evidence. Brain #7 (growth) would flag this as confirmation bias. The metric schema must be defined before collecting baselines, not after — otherwise you fit the schema to the data you already have.
+**Deliverable:** 5 paying customers, 10 templates, multi-tenant isolation verified.
 
 ---
 
-## Integration Points
+## Integration Checklist
 
-### Agent → NotebookLM (MCP)
+### New Components (Build from Scratch)
+- [ ] Rust Control Plane (apps/control-plane/)
+- [ ] Protobuf definitions (apps/proto/)
+- [ ] PostgreSQL schema + migrations
+- [ ] Redis pub/sub for WebSocket scaling
+- [ ] Multi-channel adapters (WhatsApp, IG, email)
+- [ ] gRPC Python wrapper (apps/api/mastermind_cli/proto/)
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Brain Agent → NotebookLM | `mcp__notebooklm-mcp__notebook_query(notebook_id, query)` | Each agent has its own hardcoded notebook_id in its system prompt |
-| Notebook IDs | Embedded in agent file | Do NOT reference brain-selection.md from agent — embed directly for agent self-sufficiency |
+### Modified Components (Evolve Existing)
+- [ ] Python FastAPI → Python gRPC service (minimal changes to coordinator)
+- [ ] SQLite → PostgreSQL (migration scripts)
+- [ ] Next.js API calls → Rust endpoints (update TanStack Query hooks)
+- [ ] WebSocket client → Rust Control Plane (change endpoint URL)
+- [ ] TypeScript types → Protobuf-generated (remove Zod schemas)
 
-### Agent → BRAIN-FEED files (filesystem)
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Brain Agent → Own domain feed | Write tool (append pattern to BRAIN-FEED-NN.md) | Agent writes ONLY to its own file |
-| Brain Agent → Global feed | READ only | Global feed is write-protected by behavioral contract |
-| Orchestrator → Global feed | Write tool (post-synthesis) | Orchestrator updates global feed after cross-domain synthesis |
-
-### Orchestrator → Agent (Agent tool)
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Orchestrator dispatches | `Agent(agent="brain-NN-domain", prompt="...")` | Prompt includes: which moment, which files to read, what question |
-| Agent returns | Structured text response | Orchestrator parses the structured return to update GSD artifacts |
-
-### mm:brain-context command → Orchestrator
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Command → Orchestrator | Shell detection output + moment confirmation | Unchanged from v2.1; only the execution block changes |
-| Command execution block | v2.1: `@ ~/.claude/skills/mm/brain-context/SKILL.md` | v2.2: dispatch Agent tool calls directly |
+### Unchanged Components (Reuse as-Is)
+- [ ] 7 brain agent bundles (`.claude/agents/mm/`)
+- [ ] `brain_router.py` (routing logic)
+- [ ] `coordinator.py` (orchestration engine)
+- [ ] `brain_memory.py` CLI
+- [ ] `experience_records` logging (enhanced with PostgreSQL)
+- [ ] Zustand stores (wsStore, brainStore)
+- [ ] React Flow DAG (Nexus screen)
 
 ---
 
-## Anti-Patterns
+## Confidence Assessment
 
-### Anti-Pattern 1: Agent Reads Protocol from External File
+| Area | Confidence | Notes |
+|------|------------|-------|
+| **3-service architecture** | HIGH | Clear separation: Rust (infra), Python (AI), Next.js (UX). Proven pattern (Paperclip does similar Rust/TS split). |
+| **gRPC type sync** | HIGH | Protobuf is industry standard. tonic (Rust) + betterproto (Python) + protoc-gen-es (TS) are mature. |
+| **PostgreSQL migration** | HIGH | SQLx compile-time queries prevent runtime SQL errors. Alembic handles migrations safely. |
+| **Rust WebSocket hub** | MEDIUM | Tokio-tungstenite is proven, but need to test Ghost Mode buffer equivalent. |
+| **Multi-channel adapters** | MEDIUM | Trait pattern is sound, but WhatsApp/IG API approval is external dependency. |
+| **Knowledge distillation** | HIGH | Leverages existing `experience_records` + brain_memory.py. PostgreSQL schema supports per-org learning. |
 
-**What people do:** Write a thin agent file that says "read the SKILL.md and follow the intermediary protocol."
-
-**Why it's wrong:** The agent then becomes the v2.1 orchestrator — manually reading and following a workflow. This defeats the purpose of the migration. Agents ARE the protocol, they don't follow it from a file.
-
-**Do this instead:** Embed the full 6-step intermediary protocol directly in the agent's system prompt. Yes, it is duplicated across 7 files. That is correct.
-
-### Anti-Pattern 2: Agent Writes to Global BRAIN-FEED
-
-**What people do:** Agent discovers a cross-domain pattern and writes it to BRAIN-FEED.md (thinking "this is important for everyone").
-
-**Why it's wrong:** The global feed should only contain validated cross-domain insights after orchestrator synthesis. An agent writing directly bypasses validation and creates pollution with domain-specific signals labeled as cross-domain.
-
-**Do this instead:** Agent writes to its domain feed. Orchestrator, after collecting all agent results, synthesizes cross-domain patterns and updates the global feed.
-
-### Anti-Pattern 3: Dispatch Before Smoke Test
-
-**What people do:** Write the parallel dispatch (DISP-01) before running AGT-04 smoke tests per agent.
-
-**Why it's wrong:** If 3 out of 7 agents have broken MCP calls or wrong notebook IDs, parallel dispatch silently produces empty/wrong results. The error is harder to diagnose in a parallel context than in isolation.
-
-**Do this instead:** Smoke test each agent individually (AGT-04) before wiring parallel dispatch. Confirm each agent: reads feeds, queries NotebookLM, filters, writes domain feed, returns structured response.
-
-### Anti-Pattern 4: Baseline After Migration
-
-**What people do:** Start using agents, notice they seem better, then decide to document "what things were like before" from memory.
-
-**Why it's wrong:** Memory of pre-migration pain is unreliable and biased toward justifying the change. The baseline must be documented before migration to be valid.
-
-**Do this instead:** Document 5 real manual consultations using the existing skill workflow (BASE-01) before touching any agent or dispatch code. This is why BASE is first in the build order.
-
----
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 7 brains (v2.2 scope) | Behavioral contract isolation is sufficient. No technical enforcement needed. |
-| 24+ brains (future niches) | Consider a BRAIN-FEED registry file that lists all domain feeds by niche. Global feed becomes per-niche global. |
-| Multiple simultaneous orchestrators | Agent write isolation becomes critical — concurrent writes to same BRAIN-FEED-NN.md would need append-with-timestamp convention or file locking. |
+**Gaps to validate:**
+- **Rust velocity vs Python** — Vertical slice (Phase 1) will confirm if Rust development is fast enough
+- **WebSocket Ghost Mode in Rust** — Need to replicate ThrottledBroadcaster + buffer behavior in Tokio
+- **gRPC latency overhead** — Measure Python ←→ Rust call latency. If > 50ms, consider direct Next.js → Python for hot paths
 
 ---
 
 ## Sources
 
-- `.planning/PROJECT.md` — v2.2 architecture vision, key decisions table, component list
-- `.planning/REQUIREMENTS.md` — 11 requirements across AGT/FEED/BASE/DISP groups with acceptance criteria
-- `claude-commands/mm/brain-context.md` — existing command structure being evolved
-- `~/.claude/skills/mm/brain-context/SKILL.md` — intermediary protocol that becomes agent native behavior
-- `~/.claude/skills/mm/brain-context/workflows/moment-1.md`, `moment-3.md` — workflow detail that maps to agent steps
-- `~/.claude/skills/mm/brain-context/references/brain-selection.md` — notebook IDs, dispatch rules, cascade rules
-- `~/.claude/skills/mm/brain-context/references/intermediary-protocol.md` — 6-step protocol to embed in agents
-- `.planning/BRAIN-FEED.md` — current monolithic feed structure being split
+### Internal Documentation (HIGH confidence)
+- `.planning/PROJECT.md` — Existing architecture, v2.2 feature set
+- `.planning/BRAIN-FEED.md` — Architecture invariants, patterns proven in production
+- `docs/nuevo giro/PRP MasterMind v3.0 — Plataforma de Orquestación con Knowledge Distillation.md` — v3.0 vision, Rust/Python split rationale
+- `docs/nuevo giro/PAPERCLIP-UX-AUDIT.md` — 10 UX patterns to copy from Paperclip
 
----
-*Architecture research for: v2.2 Brain Agents — Claude Code subagent dispatch for MasterMind Framework*
-*Researched: 2026-03-27*
+### Codebase Analysis (HIGH confidence)
+- `apps/api/mastermind_cli/orchestrator/coordinator.py` (54.2K LOC) — Orchestration engine to wrap in gRPC
+- `apps/api/mastermind_cli/orchestrator/brain_router.py` (23 tests) — Brain routing logic
+- `apps/api/mastermind_cli/api/websocket.py` — ThrottledBroadcaster, Ghost Mode buffer
+- `apps/api/mastermind_cli/state/database.py` — SQLite schema to migrate
+- `apps/web/src/stores/wsStore.ts` — WebSocket client (endpoint change only)
+- `apps/web/src/stores/brainStore.ts` — RAF batching (no changes)
+
+### External References (MEDIUM confidence — search limit reached, general knowledge)
+- Axum web framework — https://github.com/tokio-rs/axum
+- Tokio async runtime — https://tokio.rs/
+- tonic gRPC for Rust — https://github.com/hyperium/tonic
+- betterproto for Python — https://github.com/danielgtaylor/python-betterproto
+- SQLx compile-time SQL — https://github.com/launchbadge/sqlx
+- React Flow v12 — https://reactflow.dev/
+
+**Note:** WebSearch limit reached (429 error). Architecture recommendations based on internal documentation + codebase analysis + general knowledge of Rust/Python/TypeScript ecosystems. Validation via Context7 for specific libraries would increase confidence to HIGH.

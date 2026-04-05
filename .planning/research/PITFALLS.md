@@ -1,288 +1,667 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** Claude Code subagent migration — manual skill workflows to autonomous brain agents
-**Researched:** 2026-03-27
-**Confidence:** HIGH (derived from: codebase analysis, real skill/workflow code, existing brain consultation patterns, Claude Code agent format inspection from production plugin agents)
-
-> This file replaces the v2.1 PITFALLS.md for v2.2 scope. The v2.1 pitfalls (React Flow CSS, Magic UI, JWT, WS) remain valid for `apps/web/` and are documented in `.planning/research/PITFALLS-v2.1.md` (archived). This file covers **only v2.2 Brain Agents pitfalls**: Claude Code subagent migration, BRAIN-FEED partitioning, and measurement anti-patterns.
+**Domain:** Enterprise Agent Orchestration Platform with Knowledge Distillation (v3.0)
+**Researched:** 2026-04-06
+**Context:** SUBSEQUENT MILESTONE — Adding Rust + gRPC + PostgreSQL + Multi-channel to existing Python/TypeScript monorepo
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: System Prompt Embeds Workflow Steps Instead of Internalized Behavior
+Mistakes that cause rewrites, major issues, or complete failure of the v3.0 milestone.
 
-**What goes wrong:**
-The brain agent's system prompt reads like the old `mm:brain-context` skill — a numbered list of steps ("Step 1: Read BRAIN-FEED.md. Step 2: Build context block. Step 3: Query NotebookLM..."). The agent treats it as a checklist to follow mechanically. When the orchestrator dispatches the agent with a specific question, the agent spends half its context budget executing the protocol overhead rather than delivering domain expertise. The consultation quality is the same as the old skill, but now it's harder to maintain (split across 7 files instead of one skill).
+### Pitfall 1: Big Bang Rewrite — Sunk Cost Fallacy
 
-**Why it happens:**
-The v2.1 skill was procedure-first — it documented HOW to execute a consultation. The v2.2 migration copies those procedures into agent files without converting them into internalized behavior. The key insight from PROJECT.md: "the intermediary protocol becomes built-in behavior, not a workflow to read and follow." A workflow step says "read BRAIN-FEED.md." Internalized behavior means the agent understands WHY it reads BRAIN-FEED.md (to avoid recommending what already exists) and does it automatically as context-loading, not as a step to check off.
-
-**How to avoid:**
-Write agent system prompts as expert personas with embedded knowledge, not procedures. Instead of "Step 1: Read BRAIN-FEED.md before querying," write: "You never query your brain without first loading the project reality. Knowing what already exists is not optional — it is how you avoid wasting the team's time with recommendations the codebase already implements." The behavior is the same; the framing is identity-level, not procedure-level. Test by dispatching the agent with no explicit instructions about the protocol — if it reads BRAIN-FEED.md first without being told, the behavior is internalized.
-
-**Warning signs:**
-- Agent system prompt has numbered "Step N:" sections mirroring `moment-1.md` or `moment-2.md` workflows
-- Agent returns responses that rehash what's already in BRAIN-FEED.md
-- Consultation time increases after migration (agent is running through protocol overhead)
-- Two agents dispatched with the same question return near-identical protocol traces
-
-**Phase to address:** AGT group — Pitfall must be addressed in AGT-01 (brain subagent files) before AGT-04 (smoke test). Validate with AGT-04 smoke test: dispatch agent cold, verify it reads feeds before querying NotebookLM without explicit instruction.
-
----
-
-### Pitfall 2: BRAIN-FEED Partition Pollutes Shared Context on Migration Day
-
-**What goes wrong:**
-The current monolithic `BRAIN-FEED.md` contains patterns that look general but are actually domain-specific. When you split it into 7 per-brain files (`BRAIN-FEED-01-product.md`, `BRAIN-FEED-04-frontend.md`, etc.), patterns get copied into multiple domain files "just to be safe." The Frontend brain now carries Product Strategy patterns it will echo back as recommendations. The Product brain carries Frontend implementation details it will use to constrain product thinking. Within 2-3 consultation cycles, each domain feed has grown with cross-domain pollution, defeating the purpose of the split.
+**What goes wrong:** Attempting to rebuild the entire system in Rust/PostgreSQL before validating value. The "we'll migrate everything" mindset creates a 6-month+ black hole with no shipping, no customer feedback, and mounting technical debt in both old and new systems.
 
 **Why it happens:**
-The split is mechanical: someone reads the monolith, can't decide which domain owns a pattern, and copies it to 2-3 feeds. No ownership rule is enforced. FEED-03 (agents write only to their own feed) prevents future pollution but doesn't address the initial migration.
+- Excitement about new technology (Rust performance, PostgreSQL features)
+- Desire to "fix everything" at once
+- Underestimation of integration complexity
+- False belief that "doing it right" means rewriting from scratch
 
-**How to avoid:**
-Define a migration ownership rule before splitting: every entry in the current BRAIN-FEED.md gets assigned to exactly ONE domain. If a pattern is cross-domain (e.g., "JWT verified at Server Components + Route Handlers"), it goes to the global feed only, never to a domain feed. If a pattern is clearly domain-specific (e.g., "NODE_TYPES at module level prevents infinite re-render"), it goes to the domain feed only. Create a migration checklist: for each entry, one owner. No copies. The global feed should contain only cross-cutting concerns that every brain needs. A domain feed that grows beyond 2 pages before any new consultation is a sign the split was too generous.
+**Consequences:**
+- Zero shipping for months while competitors ship features
+- Team burnout from "perfectionism paralysis"
+- Old system atrophies (security updates, bug fixes stop)
+- New system accumulates its own technical debt before launch
+- Deadline pressure → cut corners → production incidents
+- **Project abandonment** (see: Netscape rewrote from scratch, took 4 years, lost market share to IE)
 
-**Warning signs:**
-- A pattern appears in both global and a domain feed
-- Two domain feeds contain the same architectural decision
-- Global BRAIN-FEED.md retains all its v2.1 content after the split (nothing was moved, only copied)
-- Domain feed for Frontend contains Product Strategy patterns (e.g., OKR framework, discovery cadence)
+**Prevention:**
 
-**Phase to address:** FEED group — FEED-01 must include the migration ownership rule as an acceptance criterion, not just "8 feed files exist." Verify during FEED-01: each entry appears in exactly one file. Spot-check 5 entries post-migration.
+1. **Strangler Fig Pattern** — Migrate incrementally, NOT Big Bang
+   - Phase 0: Fork UI only (no backend changes)
+   - Phase 1: Vertical slice — 1 API path end-to-end through Rust → gRPC → Python
+   - Validate 3-service architecture BEFORE committing to full migration
+   - Each phase MUST ship value, not just infrastructure
+
+2. **Escape Hatch Activated** — If Rust velocity < 0.5x Python after Phase 1:
+   - Rust ONLY for WebSocket Hub + Adapter Registry (performance-critical only)
+   - Python remains for ALL business logic, auth, database access
+   - Accept that "perfect stack" is enemy of "shipped product"
+
+3. **No Parallel Development** — Don't build "v2" alongside "v1"
+   - Each component is migrated once, replaced in-place
+   - Feature flags to route traffic: old implementation vs new implementation
+   - Kill switch: revert to old system if new system fails
+
+4. **Weekly Value Delivery** — Every phase MUST deliver user-facing value
+   - Phase 0: New UI (visible improvement)
+   - Phase 1: Faster API response (performance win)
+   - Phase 2: Real-time canvas (new capability)
+   - If a phase is 100% infrastructure → restructure
+
+**Detection:**
+- Milestone timeline extends beyond 4 months without shipping
+- "We're almost done" for 8+ weeks
+- Growing list of "blockers" preventing any deployment
+- Team morale dropping, "this is taking forever" sentiment
+
+**Phase to Address:** Phase 0 (Fork UI) — Set strangler fig pattern before writing any Rust code
 
 ---
 
-### Pitfall 3: Agent Without Evaluation Criteria Passes Everything
+### Pitfall 2: Type Synchronization Drift — gRPC Contract Nightmares
 
-**What goes wrong:**
-A brain agent without `evaluation-criteria.md` has no definition of what a "good response" looks like. When the agent queries NotebookLM and gets a response about, say, continuous discovery frameworks, it has no basis to filter. Two failure modes emerge simultaneously: (a) the agent passes through all 8 NotebookLM recommendations, including generic ones that don't apply to this codebase, filling BRAIN-FEED with noise; (b) or the agent applies its own implicit criteria, which varies by consultation and cannot be measured or improved. Either way, BRAIN-FEED degrades rather than improves over time.
+**What goes wrong:** Protobuf definitions diverge from actual Rust/Python/TypeScript implementations. "It compiles on my machine" becomes epidemic. Field renames in Rust but not Python. Optional fields added to TypeScript but not Protobuf. Silent data corruption follows.
 
 **Why it happens:**
-The v2.1 skill used the intermediary protocol's Step 5 (filter the response) as a shared filtering standard. But the step is vague: "for each concern raised: verify in code. Mark solved / deferred / real gap." Each brain agent needs a domain-specific rubric. Brain #1 (Product Strategy) should evaluate recommendations against discovery maturity. Brain #4 (Frontend) should evaluate against performance constraints and existing architectural invariants. Without this, filtering is vibes-based.
+- Manual updates to `.proto` files without regenerating all 3 languages
+- "Quick hack" in one language, "I'll update the proto later"
+- No CI gate preventing compilation if proto is out of sync
+- Multiple developers working on different services independently
 
-**How to avoid:**
-For each brain, define 4-6 criteria that distinguish a useful recommendation from a generic one. Evaluation criteria should be specific enough to apply without judgment: "Reject any recommendation that suggests a feature already present in the Implemented Features table of BRAIN-FEED.md." "Reject any recommendation that requires a library not in the current stack unless the agent can verify it solves a proven gap." "Accept recommendations that reference a specific codebase constraint with a path or component name." Write the criteria before writing the agent system prompt — they shape what expertise the agent applies.
+**Consequences:**
+- Runtime crashes: Python expects `user_id` (string), Rust sends `userId` (i32)
+- Silent data loss: Optional fields dropped because type mismatch
+- Debugging hell: Error in Rust service → Python gRPC client → TypeScript frontend — where's the bug?
+- Deploy failures: Production Rust service has proto v1.2, Python has v1.3 → connection refused
 
-**Warning signs:**
-- BRAIN-FEED domain sections grow by more than 3 entries per consultation (too permissive)
-- BRAIN-FEED domain sections grow by 0 entries per consultation (too restrictive)
-- Two consultations on the same topic return contradictory BRAIN-FEED entries
-- Agent output includes recommendations the BRAIN-FEED already documents as rejected anti-patterns
+**Prevention:**
 
-**Phase to address:** AGT-02 — Evaluation criteria files are a prerequisite for AGT-04 smoke test. Do not attempt end-to-end testing without evaluation criteria in place. The criteria are the oracle for the smoke test.
+1. **Single Source of Truth**
+   ```bash
+   # Directory structure (ENFORCE)
+   proto/
+   ├── common/
+   │   ├── auth.proto          # Auth messages shared by all services
+   │   ├── brain_agent.proto   # Brain agent execution contracts
+   │   └── events.proto        # WebSocket event types
+   └── build.sh                # Regenerates all 3 languages
+   ```
+
+2. **Generated Code is Read-Only**
+   - `proto/gen/rust/` — **NEVER EDIT** (tonic + prost generated)
+   - `proto/gen/python/` — **NEVER EDIT** (betterproto generated)
+   - `proto/gen/typescript/` — **NEVER EDIT** (protoc-gen-es generated)
+   - Git pre-commit hook: reject modifications to `gen/` directories
+
+3. **CI Gate — Proto Sync Check**
+   ```yaml
+   # .github/workflows/proto-sync.yml
+   - name: Regenerate proto
+     run: proto/build.sh --check-only
+   # If generated code differs from committed → FAIL
+   # Forces: update proto → regenerate → commit all together
+   ```
+
+4. **Field Naming Convention — Protobuf Style Guide**
+   - Use `snake_case` for field names in `.proto` (not camelCase)
+   - Rust mapping: `snake_case` → `snake_case` (no conversion)
+   - Python mapping: `snake_case` → `snake_case` (no conversion)
+   - TypeScript mapping: `snake_case` → `snake_case` (enforce via lint rule)
+   - **WHY:** Avoids "userId" vs "user_id" confusion across languages
+
+5. **Versioned Protobuf Contracts**
+   ```
+   v1/auth.proto (STABLE) — Never change breaking
+   v2/auth.proto (DRAFT) — Iterate here
+   ```
+   - Once deployed to production → v1 is frozen forever
+   - Breaking changes → create v2, support both during migration
+   - Deprecate v1 after all services updated
+
+**Detection:**
+- Manual protobuf editing in one language without regenerating others
+- "Works locally but fails in CI" (proto out of sync)
+- Runtime gRPC errors: "field not found", "type mismatch"
+- Deploy script includes "skip proto check" flag
+
+**Phase to Address:** Phase 1 (Foundation Upgrade) — BEFORE writing first gRPC service, set up proto sync CI gate
 
 ---
 
-### Pitfall 4: No Baseline = No Way to Validate Agent Improvement
+### Pitfall 3: SQLite → PostgreSQL Migration — Data Loss & Query Failures
 
-**What goes wrong:**
-You migrate from `mm:brain-context` skill to autonomous agents. The agents feel faster and return more structured output. You declare the migration a success. Six weeks later, a critical architectural decision contradicts a pattern the brain consultations should have caught — one that the v2.1 manual workflow had actually flagged correctly but the agent missed. You have no data to understand what happened. Was the agent worse on this domain? Did it miss it because the context was different? You don't know because you never measured the baseline.
+**What goes wrong:** Schema migration succeeds but queries fail in production. SQLite permissiveness masks SQL errors that PostgreSQL rejects. Silent data truncation, case sensitivity issues, and transaction differences cause corruption.
 
 **Why it happens:**
-Teams skip baselines because they feel like overhead before the "real work" starts. The intuition is: agents will clearly be better (faster, parallel, more consistent) so why measure? The problem is that speed and consistency are not the same as quality. An agent that returns a response in 10 seconds consistently is worse than a slower workflow that surfaces the right gap if it misses the gap every time.
+- SQLite is **permissive** (allows implicit type conversions, flexible column types)
+- PostgreSQL is **strict** (type-safe, no implicit conversions)
+- No testing against PostgreSQL until production migration
+- Assumption: "SQL is SQL" — false, dialect differences are massive
 
-**How to avoid:**
-Before migrating the first brain to agent format, run 5 real consultations using the current `mm:brain-context` skill workflow. Not synthetic tests. Real consultations on real upcoming phase planning questions. For each: record time elapsed, number of recommendations filtered, number of real gaps identified, number of re-consultations needed, and a 1-5 quality rating applied 24 hours later (not immediately — recency bias). Document using the metric schema from BASE-02. After v2.2 ships, run the same 5 questions through the agent equivalents. Compare. The baseline is not bureaucracy — it is the only way to know if the migration worked.
+**Consequences:**
+- **Data Loss:** SQLite allows `INSERT "text" INTO INTEGER column` (truncates to 0), PostgreSQL rejects → migration halts
+- **Query Failures:** SQLite `LIKE` is case-insensitive by default, PostgreSQL is case-sensitive → search returns 0 results
+- **Transaction Isolation:** SQLite allows `SELECT` inside transaction before `COMMIT`, PostgreSQL with `READ COMMITTED` sees different data → race conditions
+- **Performance Collapse:** SQLite `SELECT * FROM brain_records WHERE brain_id = 1` uses index (fast), PostgreSQL same query does sequential scan (slow) → missing `ANALYZE`
 
-**Warning signs:**
-- BASE-01 is created the same day as AGT-04 smoke test (consultation was synthetic, not real)
-- Baselines document only what went right (confirmation bias — record struggles too)
-- Quality ratings are applied immediately after consultation (should be 24h later)
-- Baseline format differs from the metric schema (makes comparison impossible)
+**Prevention:**
 
-**Phase to address:** BASE group — BASE-01 and BASE-02 must complete before any AGT group work begins. This is the hardest sequencing rule to enforce because it feels like delay. The sequencing is not optional.
+1. **Test Against PostgreSQL in Development — NEVER SQLite**
+   ```bash
+   # .env.development
+   DATABASE_URL=postgresql://localhost:5432/mastermind_dev
+   # NOT sqlite:///./mastermind.db
+   ```
+   - From Phase 1 Day 1, ALL dev environments use PostgreSQL
+   - SQLite only for local scripts (NOT application logic)
+   - Docker Compose: PostgreSQL service always running
+
+2. **SQLAlchemy Alembic Migrations — Hand-Rolled SQL is Forbidden**
+   ```python
+   # migration/001_initial_schema.py
+   def upgrade():
+       # ✅ SAFE — Alembic generates dialect-specific SQL
+       op.create_table(
+           'brain_records',
+           sa.Column('id', sa.Integer(), primary_key=True),
+           sa.Column('brain_id', sa.Integer(), sa.ForeignKey('brains.id'), nullable=False),
+           sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('NOW()')),
+       )
+   ```
+
+   ```python
+   # ❌ UNSAFE — Raw SQL assumes SQLite behavior
+   def upgrade():
+       op.execute("CREATE TABLE brain_records (id INTEGER PRIMARY KEY, brain_id INTEGER)")
+   ```
+
+3. **Type Mapping Audit — SQLite vs PostgreSQL**
+   | SQLite | PostgreSQL | Migration Issue |
+   |--------|-----------|-----------------|
+   | `INTEGER` | `INTEGER` | ✅ Safe |
+   | `TEXT` | `VARCHAR` or `TEXT` | ✅ Safe if `TEXT` |
+   | `BOOLEAN` | `BOOLEAN` | ⚠️ SQLite stores `0`/`1`, PostgreSQL requires `TRUE`/`FALSE` |
+   | `DATETIME` | `TIMESTAMPTZ` | ⚠️ SQLite no timezone, PostgreSQL requires timezone-aware |
+   | `JSON` | `JSONB` | ✅ Safe if using SQLAlchemy's `JSONB` type |
+
+4. **Case Insensitivity — PostgreSQL `CITEXT` Extension**
+   ```sql
+   -- SQLite: LIKE is case-insensitive by default
+   SELECT * FROM brains WHERE name LIKE '%product%';
+
+   -- PostgreSQL: LIKE is case-sensitive, use CITEXT
+   CREATE EXTENSION citext;
+   CREATE TABLE brains (name CITEXT); -- Case-insensitive text
+   SELECT * FROM brains WHERE name LIKE '%product%';
+   ```
+
+5. **Migration Dry-Run — Production Test on Copy**
+   ```bash
+   # 1. Dump production SQLite
+   sqlite3 mastermind.db .dump > prod_dump.sql
+
+   # 2. Load into PostgreSQL staging
+   psql staging_mastermind < prod_dump.sql
+
+   # 3. Run Alembic migrations on staging
+   alembic upgrade head --sql
+
+   # 4. Verify data integrity
+   python scripts/verify_migration.py --source sqlite --target postgres
+   ```
+
+**Detection:**
+- Migration test suite passes on SQLite but fails on PostgreSQL
+- "Works in dev, breaks in prod" (dev uses SQLite, prod uses PostgreSQL)
+- Alembic migration includes `op.execute()` with raw SQL
+- `SELECT` queries return 0 results after migration (case sensitivity issue)
+
+**Phase to Address:** Phase 1 (Foundation Upgrade) — Set up PostgreSQL in dev from day 1, write migration tests
 
 ---
 
-### Pitfall 5: Parallel Dispatch Races to a Single BRAIN-FEED Write
+### Pitfall 4: Multi-Channel Webhook Reliability — Silent Message Loss
 
-**What goes wrong:**
-The orchestrator dispatches 3 brain agents in parallel (e.g., Brain #2, #3, #4 for a frontend-heavy phase). Each agent reads `BRAIN-FEED-NN-domain.md`, queries NotebookLM, filters the response, and then writes new patterns back to its own domain file. Since each writes to a different file (`BRAIN-FEED-02-ux.md`, `BRAIN-FEED-03-ui.md`, `BRAIN-FEED-04-frontend.md`), there is no file-level race. But each agent also writes a cross-domain insight to the global `BRAIN-FEED.md`. Two agents writing to the same global file at the same time results in one overwriting the other's additions — no error, silent data loss. The third agent reads a stale global feed that is missing patterns the first agent just wrote.
+**What goes wrong:** WhatsApp/Instagram/Email webhooks arrive but are silently dropped. No retry, no dead letter queue, no monitoring. Customers report "we sent messages but got no response" — support nightmare.
 
 **Why it happens:**
-FEED-03 says "each agent writes only to its own domain feed." But in practice, agents make judgment calls about what's "cross-domain enough" for the global feed. Without an explicit rule that agents NEVER write to `BRAIN-FEED.md` (only the orchestrator does), agents will attempt global writes. Claude Code's Agent tool does not synchronize writes across parallel subagents — there is no lock mechanism.
+- Webhook handlers return 200 OK but crash during processing (async task fails)
+- No persistent queue — in-memory messages lost on restart
+- Rate limiting from Meta/WhatsApp → webhook rejected, no retry
+- "We'll add monitoring later" → never happens
 
-**How to avoid:**
-Make the write boundary absolute in every agent system prompt: "You write only to your domain feed (`BRAIN-FEED-NN-domain.md`). You never write to `BRAIN-FEED.md`. If you identify a cross-domain pattern during consultation, include it in a `cross-domain-insights` section of your return value. The orchestrator collects all cross-domain insights and writes them to the global feed after all agents complete." This turns the global feed write into a sequential, orchestrator-controlled operation. No race condition possible.
+**Consequences:**
+- **Silent Data Loss:** 1000s of webhooks processed successfully but never stored
+- **Customer Churn:** "Your platform doesn't work" (it works, but messages lost)
+- **Compliance Risk:** GDPR — lost customer data in webhooks
+- **Debugging Hell:** "Can you resend that webhook?" (Meta doesn't keep logs beyond 24h)
 
-**Warning signs:**
-- Multiple domain agents have write instructions that include `BRAIN-FEED.md` (not just their domain file)
-- Global BRAIN-FEED.md grows during parallel dispatch (should only grow in post-dispatch synthesis)
-- Two consecutive parallel dispatches produce different global feed states for the same input
-- An agent's domain feed contains entries that reference patterns from another brain's domain
+**Prevention:**
 
-**Phase to address:** FEED-03 and DISP-01 — both must be addressed together. FEED-03 defines the write boundary; DISP-01 implements the parallel dispatch. If DISP-01 is built without FEED-03 in place, the race condition ships.
+1. **Webhook Handler = Write-First, Process-Later**
+   ```rust
+   // Axum webhook handler (Rust)
+   async fn whatsapp_webhook(
+       State(pool): State<PgPool>,
+       Json(payload): Json<WebhookPayload>,
+   ) -> Result<StatusCode, Error> {
+       // ✅ Step 1: Persist IMMEDIATELY
+       pool.execute("INSERT INTO webhook_queue (payload, created_at) VALUES ($1, NOW())", &[&payload]).await?;
+
+       // ✅ Step 2: Return 200 OK (Meta happy)
+       Ok(StatusCode::OK)
+   }
+
+   // Background worker processes queue
+   async fn process_webhooks(pool: PgPool) {
+       loop {
+           let webhook = pool.fetch_one("SELECT * FROM webhook_queue WHERE processed = false ORDER BY created_at LIMIT 1").await?;
+           process_webhook(webhook).await?;
+           pool.execute("UPDATE webhook_queue SET processed = true WHERE id = $1", &[webhook.id]).await?;
+       }
+   }
+   ```
+
+2. **Dead Letter Queue — Failed Webhooks**
+   ```sql
+   CREATE TABLE webhook_dlq (
+       id SERIAL PRIMARY KEY,
+       payload JSONB NOT NULL,
+       error_message TEXT,
+       retry_count INT DEFAULT 0,
+       last_retry_at TIMESTAMPTZ,
+       created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+   -- Retry strategy: exponential backoff
+   -- retry 1: 1 min delay
+   -- retry 2: 5 min delay
+   -- retry 3: 30 min delay
+   -- retry 4+: human investigation
+   ```
+
+3. **Idempotency — Deduplicate Webhooks**
+   ```rust
+   // Meta may retry webhooks (if response timeout)
+   // Use webhook_id as unique constraint
+   INSERT INTO webhook_queue (webhook_id, payload, created_at)
+   VALUES ($1, $2, NOW())
+   ON CONFLICT (webhook_id) DO NOTHING; -- Ignore duplicate
+   ```
+
+4. **Monitoring — Webhook Health Dashboard**
+   - Metrics: `webhooks_received_total`, `webhooks_processed_total`, `webhooks_failed_total`
+   - Alert: If `webhooks_failed_total > 100` in 5 minutes → page on-call
+   - Grafana dashboard: Queue depth, processing lag, error rate by channel
+
+5. **Testing Without Sandbox — Mock Webhook Server**
+   ```bash
+   # Dev environment: ngrok tunnel to local Rust service
+   ngrok http 3000
+
+   # Meta sandbox sends to https://abc123.ngrok.io/webhook/whatsapp
+   # Local Axum receives webhook, writes to dev PostgreSQL
+   ```
+
+**Detection:**
+- Webhook handler has async processing in the same function as HTTP response
+- No `webhook_queue` table (or equivalent persistence)
+- Production incident: "webhooks stopped working but no errors in logs"
+- Meta developer dashboard shows "Webhook delivery failed" with 500 errors
+
+**Phase to Address:** Phase 3 (Multi-Channel Gateway) — BEFORE connecting to real WhatsApp API, build webhook queue + DLQ
 
 ---
 
-### Pitfall 6: Agent Context Window Exhaustion From Feed Over-Loading
+### Pitfall 5: Vite → Next.js Rebuild — Architecture Mismatch
 
-**What goes wrong:**
-An agent system prompt instructs it to "read BRAIN-FEED.md (global) + BRAIN-FEED-NN-domain.md (own domain) before querying." After 3 months of operation, the global feed is 8,000 words and the domain feed is 4,000 words. The agent loads both, builds a context block from relevant code, and then queries NotebookLM. By the time it writes the query, 60% of its context window is consumed by feed content. The NotebookLM response is returned but the agent truncates its filtering step — it doesn't have enough context budget left to systematically verify each recommendation against the codebase.
+**What goes wrong:** Attempting to "migrate" Paperclip's Vite frontend to Next.js App Router by copying components. Runtime failures pile up: `useEffect` runs on server, `window` is undefined, routing doesn't work. "Fork" becomes a 3-month rewrite from scratch.
 
 **Why it happens:**
-BRAIN-FEED files are "living documents" that grow over time. The v2.1 update-brain-feed workflow has a compaction rule ("Don't dump everything. Ask: will a brain give a better answer because of this entry?") but this rule is applied per-entry at write time, not as periodic garbage collection. Feeds accumulate redundant, outdated, or overly-specific entries that bloat total size without improving consultation quality.
+- **Vite** = Client-side only, `useEffect` runs in browser, `window` always available
+- **Next.js App Router** = Server Components by default, no `window`, no `useEffect`
+- Paperclip uses **Vite + React Router** — incompatible with Next.js App Router
+- Assumption: "It's all React, how different can it be?" — VERY different
 
-**How to avoid:**
-Enforce a feed size budget at write time, not as periodic cleanup. Each domain feed has a maximum of 50 bullet-point entries (approximately 2,000 words). When the feed reaches 45 entries, the agent's write instruction triggers a compaction step before adding new entries: review the oldest 20 entries, remove any that describe patterns now visible in the codebase (self-documenting code doesn't need a feed entry), merge entries that express the same invariant. The global feed has a stricter limit: 30 entries max. This is not about trimming for trimming's sake — it's about keeping the context budget available for actual analysis.
+**Consequences:**
+- **Component Rewrites Required:** 90% of Paperclip components need changes for Next.js
+- **SSR Incompatibility:** Components using `window`, `localStorage`, `useEffect` break on server
+- **Routing Mismatch:** React Router `<Route>` vs Next.js `file-system` routing — completely different
+- **State Management:** Vite uses pure client-side state, Next.js requires Server Component + Client Component split
+- **3-Month Delay:** What was promised as "2-week fork" becomes "3-month rebuild"
 
-**Warning signs:**
-- BRAIN-FEED.md exceeds 3,000 words
-- Any domain BRAIN-FEED file exceeds 2,000 words
-- Agent output quality degrades over time without apparent reason (context exhaustion)
-- Agent filter step ("for each concern: verify in code") contains fewer verifications than recommended count
+**Prevention:**
 
-**Phase to address:** FEED group — FEED-01 must set initial size budgets as acceptance criteria. Add to AGT-01 system prompt templates: the feed size enforcement rule.
+1. **Accept Reality — NOT a Fork, a Pattern Extraction**
+   - DO NOT copy Paperclip code directly — it won't work in Next.js App Router
+   - Extract UX patterns (not code): three-column layout, active agents panel, cost dashboard
+   - Rebuild components using Next.js patterns: Server Components for data, Client Components for interactivity
+
+2. **Component Architecture — Server vs Client Split**
+   ```tsx
+   // ✅ Server Component (default) — data fetching, NO interactivity
+   // apps/web/app/dashboard/page.tsx
+   export default async function DashboardPage() {
+       const agents = await fetchAgents(); // Server-side fetch
+       return <AgentList agents={agents} />; // Pass to Client Component
+   }
+
+   // ✅ Client Component — interactivity, NO data fetching
+   // apps/web/src/components/AgentList.tsx
+   'use client';
+   export function AgentList({ agents }: { agents: Agent[] }) {
+       const [selected, setSelected] = useState(null);
+       return <div onClick={() => setSelected(...)}>...</div>;
+   }
+   ```
+
+3. **Pattern Library — Paperclip UX, Next.js Implementation**
+   | Paperclip Pattern | Next.js Implementation |
+   |-------------------|------------------------|
+   | Three-column layout (Vite) | Server Component with async data fetch |
+   | Active Agents Panel (WebSocket) | Client Component with Zustand store |
+   | Agent Config Form (useState) | Server Action (form POST) |
+   | Cost Dashboard (useEffect) | Server Component + React Query for refresh |
+
+4. **Incremental Migration — One Screen at a Time**
+   - Week 1: Dashboard screen (Server Component, no WebSocket yet)
+   - Week 2: Command Center screen (Client Component for interactivity)
+   - Week 3: WebSocket integration (Zustand store, React Flow canvas)
+   - Week 4: Multi-channel inbox (Server Actions for form submission)
+
+5. **Testing Strategy — E2E Tests Guide Migration**
+   ```typescript
+   // Playwright test defines expected UX behavior
+   test('dashboard shows active agents', async ({ page }) => {
+       await page.goto('/dashboard');
+       await expect(page.locator('.agent-tile')).toHaveCount(7);
+   });
+
+   // Implementation details (Vite vs Next.js) don't matter
+   // Focus on UX outcome, not code similarity
+   ```
+
+**Detection:**
+- "We'll just copy the Vite components" → IMMEDIATE red flag
+- Next.js build error: `window is not defined` → component not marked `'use client'`
+- `useEffect` runs in Server Component → wrong architecture
+- Git history shows `cp -r paperclip/ui/src apps/web/src` → this will fail
+
+**Phase to Address:** Phase 0 (Fork Paperclip UI) — Document "Pattern Extraction, Not Code Copy" before touching any frontend code
 
 ---
 
-### Pitfall 7: BRAIN-FEED Poisoning via Unverified Patterns
+## Moderate Pitfalls
 
-**What goes wrong:**
-Brain #4 (Frontend) consults NotebookLM about state management patterns. NotebookLM recommends "use Redux Toolkit for complex state." The agent lacks evaluation-criteria.md or the criteria don't explicitly cover stack lock-in. The agent adds this to `BRAIN-FEED-04-frontend.md`. In the next consultation, the agent reads this as an established project pattern and begins recommending Redux Toolkit for new state requirements — even though the project uses Zustand 5 with Immer, proven across 4 phases. The poisoned feed entry overrides actual codebase reality.
+Mistakes that cause significant delays but are recoverable with course correction.
+
+### Pitfall 6: RAG Integration — Embedding Quality Degradation
+
+**What goes wrong:** Knowledge distillation accumulates low-quality patterns. Brains learn from their own mistakes, creating a feedback loop of bad advice. "Delta-Velocity" metric shows decline, not improvement.
 
 **Why it happens:**
-This is the specific risk Brain #7 identified before v2.2: "wrong pattern in feed = 'expertise' envenenado." The root cause is two-fold: (a) evaluation-criteria.md doesn't exist yet when the agent writes its first entry, or (b) the criteria exist but don't include a "verify against codebase before writing" gate.
+- No validation that experience_record is "successful" before storing
+- Human corrections not tracked — brain repeats same mistake
+- Embeddings stale (old knowledge never updated)
+- No deduplication — same pattern stored 100 times
 
-**How to avoid:**
-Evaluation criteria must include a mandatory pre-write verification rule: "Before writing any pattern to the domain feed, verify it is not contradicted by the locked stack in the global BRAIN-FEED.md. If the pattern requires a different library than what's in the stack, the pattern is rejected — not added with a note, rejected." Anti-patterns.md for each brain serves as the explicit rejection list. A pattern that matches an entry in anti-patterns.md cannot enter the domain feed under any circumstances. The agent's write gate is: (1) not already in feed, (2) not in anti-patterns, (3) not contradicted by stack in global feed.
+**Prevention:**
+- **Success Filter:** Only log experiences with `human_rating >= 4/5` or `auto_score > 0.8`
+- **Correction Tracking:** If human overrides brain output → flag as anti-pattern, store as negative example
+- **Embedding Refresh:** Weekly re-embedding of outdated patterns (timestamp > 90 days)
+- **Deduplication:** Semantic similarity check before inserting (if cosine_sim > 0.95 → skip)
 
-**Warning signs:**
-- Domain feed contains a library recommendation that contradicts the stack table in global BRAIN-FEED.md
-- A pattern is added to the domain feed before the agent has read the codebase to verify it
-- Two consecutive consultations on the same feature suggest different approaches (feed was poisoned then corrected)
-- Anti-patterns.md file doesn't exist (no rejection list means no protection)
+**Detection:**
+- Brain suggestions getting worse over time (subjective user feedback)
+- Delta-Velocity metric: `T3_brain < T3_baseline` (agent slower than manual)
+- `experience_records` table grows by 10K+ rows per week (too much noise)
 
-**Phase to address:** AGT-02 (evaluation-criteria) and AGT-03 (anti-patterns) — these two files are the poison prevention mechanism. AGT-01 (agent files) must reference both explicitly in the write gate. Creating AGT-01 without AGT-02 and AGT-03 produces an unprotected write path.
+**Phase to Address:** Phase 4 (Knowledge Distillation Engine) — Build success filters before first experience log
 
 ---
 
-### Pitfall 8: Smoke Test Passes Syntactically But Not Semantically
+### Pitfall 7: 3-Service Distributed System — Observability Gaps
 
-**What goes wrong:**
-AGT-04 acceptance criterion is "each agent can be dispatched, reads its feeds, queries its NotebookLM brain, filters for codebase reality, and returns verified insights." The smoke test dispatches each agent, observes it reads the feed files, sees a NotebookLM query in the transcript, and marks the test passed. What it doesn't check: did the filter step actually reject any recommendations? Did the agent verify even one recommendation against the codebase by reading code? Did it try to write a recommendation that anti-patterns.md should have blocked? A syntactic smoke test can pass while the agent's quality gate is effectively absent.
+**What goes wrong:** Rust service fails but Python/TypeScript don't know. Request timeout, no error logged. Debugging requires checking 3 different log streams. "It's slow" but which service is the bottleneck?
 
 **Why it happens:**
-Smoke tests are optimized to check happy-path completeness, not quality-gate enforcement. The intermediary protocol's value comes from the filter step (Step 5) and the cascade rule (Step 6). Both require active exercise of rejection — which only happens when the brain returns a recommendation that conflicts with codebase reality. A smoke test that uses an easy question ("What are best practices for product discovery?") will never trigger a filter rejection because the brain's generic advice won't conflict with anything in a typical BRAIN-FEED.
+- No distributed tracing (correlation IDs lost across service boundaries)
+- Logs in 3 different formats (Rust `tracing`, Python `structlog`, Next.js `console.log`)
+- No unified dashboard — need to open 3 terminals to debug one request
+- "We'll add tracing later" → never happens
 
-**How to avoid:**
-Design smoke test prompts specifically to trigger filter rejections. Use a question where NotebookLM will likely suggest something the codebase already implements or explicitly rejected. For Brain #4 (Frontend): "What state management approach should we use for real-time brain status updates across 24 concurrent tiles?" NotebookLM will recommend Redux, MobX, or Context API. The agent's filter should reject all three (Zustand 5 + Immer + RAF batching is in both the stack lock and BRAIN-FEED). A smoke test that passes AGT-04 correctly shows at least one rejection in the filter log per agent.
+**Prevention:**
 
-**Warning signs:**
-- Smoke test transcript shows 0 rejected recommendations (agent passed everything through)
-- Smoke test prompt is generic ("give me best practices for X domain")
-- All 7 smoke tests complete in under 2 minutes (agents aren't doing actual codebase verification)
-- Agent returns the same recommendations that anti-patterns.md explicitly lists
+1. **Correlation ID — Inject at Edge, Propagate Everywhere**
+   ```rust
+   // Rust Control Plane (edge service)
+   use uuid::Uuid;
 
-**Phase to address:** AGT-04 — redesign the smoke test prompt design to be adversarial. One question per agent that should trigger at least one rejection. Document the expected rejections before running the test.
+   #[derive(Debug, Clone)]
+   pub struct Metadata {
+       pub request_id: Uuid, // Generate on first request
+       pub user_id: Option<i32>,
+   }
 
----
+   // Pass to Python via gRPC metadata
+   let request = tonic::Request::new(brain_execution_request);
+   request.metadata_mut().insert("x-request-id", metadata.request_id.to_string());
+   ```
 
-## Technical Debt Patterns
+   ```python
+   # Python Agent Runtime
+   request_id = request.metadata.get("x-request-id")
+   logger.bind(request_id=request_id).info("Processing brain execution")
+   ```
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Copy skill workflow steps verbatim into agent system prompt | Fast migration | Agent behaves as a slow skill, not an autonomous agent. No quality improvement | Never — reframe as internalized behavior |
-| Skip evaluation-criteria.md for "simple" brains | Faster delivery | No filter standard. Feed degrades with unverified entries | Never — criteria are the quality gate |
-| Use the same anti-patterns.md template for all 7 brains | Saves time upfront | Domain-specific anti-patterns missed (e.g., Frontend brain won't know Product anti-patterns) | Never — each brain needs domain-specific rejections |
-| Write baselines after migration, not before | Avoids delay | Can't distinguish improvement from degradation — baselines after are meaningless | Never — before-only, no exceptions |
-| Allow agents to write to global BRAIN-FEED.md | Simpler agent instructions | Silent write race condition in parallel dispatch | Never — orchestrator-controlled global writes only |
-| Skip feed size budgets until feeds "feel too long" | Less cognitive overhead | Gradual context window exhaustion. Quality degrades invisibly over 2-3 months | Acceptable if team commits to manual quarterly compaction |
-| Dispatch agents sequentially in DISP-01 to avoid race conditions | Eliminates write race at the cost of parallelism | Misses the key value of v2.2 (parallel domain expertise). Equivalent to the old skill pattern | Acceptable as a temporary step before FEED-03 write boundaries are validated |
+2. **Structured Logging — JSON Format Everywhere**
+   ```rust
+   // Rust: tracing + tracing-subscriber JSON formatter
+   tracing::info!(
+       request_id = %metadata.request_id,
+       brain_id = %brain.id,
+       duration_ms = execution_time.as_millis(),
+       "Brain execution completed"
+   );
+   ```
 
----
+   ```python
+   # Python: structlog
+   log.info("brain_execution_completed",
+       request_id=request_id,
+       brain_id=brain.id,
+       duration_ms=execution_time
+   )
+   ```
 
-## Integration Gotchas
+   ```typescript
+   // Next.js: pino or winston JSON logging
+   logger.info({
+       request_id,
+       brain_id: brain.id,
+       duration_ms: executionTime
+   }, "Brain execution completed");
+   ```
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| **mm:brain-context → agent dispatch** | Update `mm:brain-context` to call agents in parallel but forget to update the Moment routing logic | Verify all 4 moment workflows (moment-1.md, moment-2.md, moment-3.md, update-brain-feed.md) are updated for DISP-02, not just the main SKILL.md |
-| **Agent tool dispatch + NotebookLM MCP** | Agent dispatched with Agent tool tries to invoke `mcp__notebooklm-mcp__notebook_query` but NotebookLM MCP tool is not in the agent's allowed-tools list | Explicitly include NotebookLM MCP tools in agent file front matter. Tool access does not inherit from the parent invocation. |
-| **BRAIN-FEED split + existing skill** | Old `mm:brain-context` skill still references `BRAIN-FEED.md` as the single file. After split, skill reads global-only and misses domain patterns | Update skill's intermediary protocol references after FEED-01 split completes. The skill is decommissioned by DISP-02 but must remain functional until DISP-02 completes. |
-| **Agent system prompt file path** | Agent expects feeds at `.planning/BRAIN-FEED-NN.md` but actual path uses domain suffix `.planning/BRAIN-FEED-01-product.md` | Standardize and lock the naming convention in FEED-01 before writing any agent system prompts. Path in system prompt cannot be refactored without editing all 7 agent files. |
-| **Parallel dispatch + orchestrator context** | Orchestrator dispatches agents in parallel but passes a stale copy of the project context to each | Ensure agents read fresh context from files (not from orchestrator's passed summary). Agents should independently read their feeds from disk, not rely on orchestrator-provided content. |
-| **evaluation-criteria.md location** | Criteria files stored alongside agent files in `.claude/agents/` but agent system prompt references wrong relative path | Establish file structure convention (suggest `.claude/agents/criteria/brain-NN-evaluation.md`) before creating any criteria files. |
-| **AGT-04 smoke test isolation** | Running all 7 smoke tests sequentially causes each agent to read domain feeds written by the previous agent's test — contaminated test state | Each smoke test should run against a clean feed snapshot. Either use isolated test feeds or clear domain feed additions after each smoke test. |
+3. **OpenTelemetry Distributed Tracing**
+   ```toml
+   # Cargo.toml (Rust)
+   [dependencies]
+   opentelemetry = "0.21"
+   tracing-opentelemetry = "0.22"
+   ```
 
----
+   ```python
+   # requirements.txt (Python)
+   opentelemetry-api==1.21.0
+   opentelemetry-sdk==1.21.0
+   ```
 
-## Performance Traps
+   - Single trace spans across Rust → Python → TypeScript
+   - Grafana Tempo UI: See request waterfall (which service is slow)
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| **Feed over-loading per consultation** | Consultation takes 3x longer than baseline; agent context budget exhausted before filtering step | Feed size budgets enforced at write time (50 entries max per domain feed) | When any domain feed exceeds ~2,000 words |
-| **Sequential agent dispatch masquerading as parallel** | `mm:brain-context` updated to "dispatch agents" but the dispatch loop is actually awaited serially | Use Agent tool with truly parallel invocation. Time multiple agents to verify they start within 1s of each other. | Immediately visible if timed, invisible if not measured |
-| **NotebookLM cold-start penalty in smoke tests** | All 7 smoke tests run against cold NotebookLM sessions. First query per notebook is 2-3x slower than warm | Account for this in baseline measurements. Do not penalize agents for cold-start latency. | In every test run since notebooks don't stay warm indefinitely |
-| **Anti-patterns.md growing into a knowledge base** | anti-patterns.md file grows beyond 30 entries as team adds every rejected pattern ever seen | anti-patterns.md is a rejection list, not a learning log. Cap at 20 entries per brain. Archive to a separate file if needed. | When more than 5 agents reference anti-patterns that are 6+ months old |
+4. **Unified Observability Dashboard**
+   - Grafana: Metrics (Prometheus) + Logs (Loki) + Traces (Tempo)
+   - Alert: If p95 latency > 5s in any service → page on-call
+   - Service Health: `/health` endpoint in all 3 services (Rust, Python, Next.js)
 
----
+**Detection:**
+- Debugging requires SSH into 3 servers to check logs
+- "Which service is causing the timeout?" → can't answer without manual trace
+- Logs not queryable (grep only, no structured fields)
+- No graphs for latency, error rate, request volume
 
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| **API keys or notebook IDs in agent system prompts** | Notebook IDs (e.g., `f276ccb3-...`) in `.claude/agents/brain-01-product.md` are readable by anyone with repo access. Low severity today (these are NotebookLM IDs, not API keys), but establishes a bad pattern | Store notebook IDs in `.claude/skills/mm/brain-context/references/brain-selection.md` (already exists). Agent system prompts reference brain ID numbers only — the mapping lives in the reference file. |
-| **Agent allowed-tools without Write restriction** | A brain agent with unrestricted Write access could accidentally modify source files if a confused recommendation lands in a Bash command | Restrict brain agent `tools` front matter to `Read, Grep, Glob, Bash (read-only), Write` where Write is scoped to `.planning/` only. This matches the skill's `allowed-tools: Read, Bash, Grep, Glob` pattern. |
-| **BRAIN-FEED committed with internal project context** | If BRAIN-FEED.md contains client-specific data (feature names, business logic) and the repo is later made public | Use generic, architectural language in BRAIN-FEED entries. No business domain names, no client-specific logic. This is about patterns, not content. |
-
----
-
-## "Looks Done But Isn't" Checklist
-
-- [ ] **AGT-01:** Agent files exist and have correct front matter — verify each agent's `tools` includes NotebookLM MCP, not just file-reading tools
-- [ ] **AGT-02:** evaluation-criteria.md exists per brain — verify the criteria include at least one explicit rejection rule that references the locked stack
-- [ ] **AGT-03:** anti-patterns.md exists per brain — verify entries include patterns specific to that domain (not copies of the global anti-patterns list)
-- [ ] **FEED-01:** All 8 feed files exist — verify each entry in the old monolith appears in exactly ONE file (one-owner rule), not copied across multiple
-- [ ] **FEED-02:** Agent reads both feeds before querying — verify in smoke test transcript that both `BRAIN-FEED.md` and `BRAIN-FEED-NN-domain.md` are read before the NotebookLM query appears
-- [ ] **FEED-03:** Agents write only to domain feed — dispatch 2 agents in parallel and verify `BRAIN-FEED.md` (global) is NOT modified by either
-- [ ] **BASE-01:** 5 baselines documented — verify baselines predate any AGT group work (timestamps prove before-migration)
-- [ ] **BASE-02:** Metric schema applied — verify each baseline has all 4 metrics (time, gap-count, re-consultations, quality-rating) filled, quality-rating recorded 24h after consultation
-- [ ] **DISP-01:** Parallel dispatch implemented — verify via timing that 3 dispatched agents start within 1s of each other (not sequential)
-- [ ] **DISP-02:** mm:brain-context updated — verify all 4 moment workflows are updated, not just the main SKILL.md routing table
-
----
-
-## Recovery Strategies
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| **Workflow-as-steps system prompt** | MEDIUM | Rewrite all 7 agent system prompts. Convert procedure to identity-level behavior. Re-run AGT-04 smoke test. |
-| **BRAIN-FEED polluted on migration day** | MEDIUM | Restore BRAIN-FEED.md to last clean state from git. Re-apply the one-owner migration rule. Takes ~2-4 hours for 7 domain files. |
-| **Missing evaluation-criteria per agent** | LOW | Write criteria files. Requires 1-2h domain research per brain. No code changes required. |
-| **No baseline before migration** | HIGH (unrecoverable) | Cannot recreate pre-migration baselines after the fact. Retrospective reconstruction is not the same measurement. Accept the gap and start measuring from now. Document what's known about the old workflow performance from memory. |
-| **Global feed write race condition** | LOW (if caught early) | Remove global write instructions from agent system prompts. Add cross-domain-insights section to agent return value schema. Update orchestrator to handle synthesis. |
-| **Feed size exceeds context budget** | MEDIUM | Manual compaction: read each feed, remove entries that are now documented in code, merge redundant entries. Implement size budget enforcement. Takes ~1h per feed. |
-| **Poisoned BRAIN-FEED entry** | LOW-MEDIUM | Identify poisoned entries (look for library recommendations that contradict locked stack). Remove them. Add them to anti-patterns.md. Run smoke test to verify agent now rejects the pattern. |
-| **Smoke test passes without filter rejection** | LOW | Redesign smoke test prompts to be adversarial. No code changes needed — just better test questions. |
+**Phase to Address:** Phase 2 (Orchestration Canvas) — Add distributed tracing BEFORE building real-time canvas (canvas needs traces)
 
 ---
 
-## Pitfall-to-Phase Mapping
+### Pitfall 8: Marketplace Before Validation — Build Trap
 
-| Pitfall | Requirement Group | Prevention | Verification |
-|---------|--------------------|------------|--------------|
-| Workflow-as-steps system prompt | AGT-01 | Agent identity-level framing, not procedure steps | AGT-04 smoke test: agent reads feeds without explicit instruction |
-| BRAIN-FEED pollution on migration | FEED-01 | One-owner migration rule before split | Each entry appears in exactly 1 file |
-| Missing evaluation criteria | AGT-02 | criteria files before agent files are finalized | Criteria includes at least 1 rejection rule referencing locked stack |
-| No baseline before migration | BASE-01, BASE-02 | Baseline before AGT group starts | File timestamps predate first AGT file |
-| Parallel write race to global feed | FEED-03, DISP-01 | Write boundary absolute in all 7 agent prompts | Parallel dispatch test: global feed unchanged |
-| Context window exhaustion | FEED-01 | Size budget as acceptance criterion in FEED-01 | No feed file > 2,000 words |
-| BRAIN-FEED poisoning | AGT-02, AGT-03 | Evaluation criteria + anti-patterns as write gate | Smoke test triggers known rejection correctly |
-| Smoke test semantic failure | AGT-04 | Adversarial smoke test prompt design | Each agent transcript shows ≥1 rejected recommendation |
+**What goes wrong:** Building template marketplace, multi-tenant RBAC, billing infrastructure before having 3 paying customers. Zero usage, wasted engineering, "if we build it they will come" fallacy.
+
+**Why it happens:**
+- Excitement about "platform" features (marketplace sounds sexy)
+- Assumption: "Competitors have marketplace, we need it too"
+- Fear: "If we don't build marketplace, we can't scale"
+- Reality: **Paperclip has marketplace, zero paying customers** (red flag ignored)
+
+**Prevention:**
+
+1. **CONDITIONAL Gate — LOI Before Marketplace**
+   - Milestone: "Template Marketplace + Multi-tenant" is BLOCKED until:
+     - ✅ 3 LATAM SME interviews completed
+     - ✅ 1 Letter of Intent (LOI) signed (customer commits to pay)
+     - ✅ Customer agrees to pay for marketplace feature (validation, not assumption)
+   - If gate not met → marketplace deferred to v3.1+
+
+2. **Single-Tenant First — Multi-Tenant Later**
+   - v3.0: Single company per deployment (simpler, faster)
+   - v3.1+: Multi-tenant ONLY if > 5 paying customers request it
+   - Don't build RBAC until you have > 1 organization
+
+3. **Template Marketplace = GitHub Repository, Not SaaS**
+   - Phase 4: Templates stored in `mastermind-templates/` GitHub repo
+   - Users `git clone` templates, import to their instance
+   - No billing, no authentication, no marketplace UI
+   - If templates get > 100 GitHub stars → build SaaS marketplace in v3.1
+
+4. **Customer Discovery — 3 Interviews Before Code**
+   - Interview LATAM SMEs: "Would you pay $50/mo for a template marketplace?"
+   - If answer: "No, we build our own templates" → marketplace is waste
+   - If answer: "Yes, but only if it has X" → build X, not full marketplace
+
+**Detection:**
+- PRD includes "multi-tenant" and "marketplace" but zero customer interviews
+- Competitive analysis: "Paperclip has it, we need it" → copycat trap
+- Engineering team building billing before first payment
+- No LOI from any customer, but marketplace sprint already planned
+
+**Phase to Address:** Phase 5 (Template Marketplace) — DO NOT START until LOI gate passed
+
+---
+
+## Minor Pitfalls
+
+Mistakes that cause annoyance but are quickly fixed.
+
+### Pitfall 9: Rust Learning Curve — Maintenance Risk
+
+**What goes wrong:** AI writes Rust code during development (fast), but 6 months later human must debug (slow). No one on team knows Rust ownership, lifetimes, async/await. Debugging `borrow checker` errors takes hours.
+
+**Why it happens:**
+- "AI will write the Rust" — true during initial development
+- **BUT:** Production incidents require human debugging
+- Rust has steep learning curve (ownership, lifetimes, `Send`/`Sync`)
+- If team doesn't know Rust → every bug is a day-long investigation
+
+**Prevention:**
+- **Escape Hatch:** If Rust velocity < 0.5x Python → Rust only for WebSocket Hub + Adapter Registry
+- **At Least One Human Rust Expert:** Hire, contract, or train ONE person who owns Rust service
+- **Rust is NOT for Business Logic:** Python handles all complex domain logic (brains, knowledge distillation)
+- **Rust = Infrastructure Only:** Auth, WebSocket, database access (all standard patterns)
+
+**Detection:**
+- "How do I fix this borrow checker error?" asked daily
+- Rust PR review takes 3+ hours (vs 30 min for Python)
+- On-call rotation refuses to cover Rust service (no one knows how to debug)
+
+**Phase to Address:** Phase 1 (Foundation Upgrade) — Measure Rust vs Python velocity, activate escape hatch if needed
+
+---
+
+### Pitfall 10: PostgreSQL pgvector Over-Engineering
+
+**What goes wrong:** Installing pgvector extension, building vector search, embedding all brain knowledge — but never using it. v3.0 ships with RAG infrastructure, zero production queries.
+
+**Why it happens:**
+- "We'll need vector search later" (future-proofing)
+- Excitement about AI/RAG buzzwords
+- Paperclip doesn't have it → "differentiator" (but unvalidated)
+- Reality: **7 brains with NotebookLM is sufficient for v3.0**
+
+**Prevention:**
+- **v3.0: NO pgvector** — Use existing 7 brains + NotebookLM
+- **v3.1+: ADD pgvector** — ONLY if: experience_records > 10K AND search is slow
+- Don't install pgvector until you have a proven performance problem
+
+**Detection:**
+- `pgvector` in `requirements.txt` but no queries use it
+- Embedding script runs but no dashboard searches embeddings
+- "We'll use this in v3.1" → you're building for imaginary users
+
+**Phase to Address:** Phase 4 (Knowledge Distillation) — Remove pgvector from scope, use existing NotebookLM
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| **Phase 0: Fork UI** | Architecture mismatch (Vite → Next.js) | Pattern extraction, NOT code copy. Rebuild with Server Components. |
+| **Phase 1: Rust + gRPC** | Type sync drift | Proto sync CI gate BEFORE writing first gRPC service. |
+| **Phase 1: PostgreSQL** | Data loss in migration | Test against PostgreSQL from day 1, never SQLite in dev. |
+| **Phase 2: Real-time Hub** | Observability gaps | Add distributed tracing BEFORE building canvas. |
+| **Phase 3: Multi-channel** | Webhook message loss | Webhook queue + DLQ BEFORE connecting to WhatsApp API. |
+| **Phase 4: Knowledge Distillation** | Low-quality RAG | Success filters BEFORE logging first experience. |
+| **Phase 5: Marketplace** | Build trap (no validation) | LOI gate BEFORE writing marketplace code. |
 
 ---
 
 ## Sources
 
-- **Codebase — `.claude/skills/mm/brain-context/SKILL.md`** — existing skill structure being replaced (HIGH confidence)
-- **Codebase — `.claude/skills/mm/brain-context/references/intermediary-protocol.md`** — 6-step protocol that agents must internalize (HIGH confidence)
-- **Codebase — `.planning/BRAIN-FEED.md`** — current monolith structure, sizing reference (HIGH confidence)
-- **Codebase — `.planning/REQUIREMENTS.md`** — AGT/FEED/BASE/DISP requirement groups (HIGH confidence)
-- **Codebase — `.planning/PROJECT.md`** — "intermediary protocol becomes built-in behavior, not a workflow to read and follow" (HIGH confidence — explicit decision)
-- **Claude Code agent format — `/home/rpadron/.claude/plugins/marketplaces/claude-plugins-official/`** — production agent files, tool restrictions, system prompt patterns (HIGH confidence)
-- **Brain #7 pre-v2.2 consultation output** — BRAIN-FEED poisoning risk identified as top gap before requirements approval (HIGH confidence — documented in REQUIREMENTS.md AGT-03 rationale)
-- **Training knowledge — Claude Code subagent behavior** — context window constraints, parallel Agent tool dispatch, lack of cross-agent write synchronization (MEDIUM confidence — verify tool access inheritance empirically during AGT-04)
+### High Confidence (Official Documentation & Project Context)
+- **Project Context Files** (HIGH confidence — read directly):
+  - `.planning/PROJECT.md` — Existing v2.2 stack, technical debt, known issues
+  - `.planning/BRAIN-FEED.md` — Anti-patterns tried and rejected (v2.2)
+  - `docs/nuevo giro/PRP MasterMind v3.0.md` — Stack DEFINITIVO, Rust/Python split, escape hatch
+
+- **Official Documentation** (HIGH confidence — authoritative sources):
+  - **Tonic gRPC:** https://docs.rs/tonic/latest/tonic/ — Rust gRPC framework
+  - **Axum:** https://docs.rs/axum/latest/axum/ — Rust web framework
+  - **SQLx:** https://docs.rs/sqlx/latest/sqlx/ — Compile-time checked SQL for Rust
+  - **Alembic:** https://alembic.sqlalchemy.org/en/latest/ — Database migration tool for Python
+  - **Next.js App Router:** https://nextjs.org/docs/app — Official Next.js documentation
+
+### Medium Confidence (Established Patterns)
+- **Strangler Fig Pattern:** Martin Fowler's incremental migration strategy — NOT Big Bang rewrite
+- **Big Bang Rewrite Failures:** Netscape rewrite (4 years, lost market share) — cautionary tale
+- **SQLite vs PostgreSQL:** Type strictness differences, case sensitivity, transaction isolation
+- **Webhook Best Practices:** Idempotency, dead letter queues, write-first-process-later pattern
+
+### Low Confidence (Needs Validation — Web Search Unavailable)
+- **Rust Python integration patterns:** tonic + betterproto specifics (web search limit exhausted)
+- **WhatsApp Business API webhook reliability:** Meta platform specifics (web search unavailable)
+- **pgvector performance at scale:** Vector DB benchmarks (web search unavailable)
+- **Multi-channel architecture patterns:** WhatsApp + IG + email integration patterns (web search unavailable)
+
+**Note:** Web search was unavailable (weekly/monthly limit exhausted at 2026-04-13 18:30:03). Some findings based on general software engineering knowledge, project context, and established patterns. **Verify with official docs before implementing.**
 
 ---
-*Pitfalls research for: MasterMind Framework v2.2 — Brain Agents migration*
-*Researched: 2026-03-27*
+
+*Pitfalls research for: MasterMind Framework v3.0 — Enterprise Agent Orchestration Platform*
+*Researched: 2026-04-06*
+*Confidence: HIGH (project context) + MEDIUM (established patterns) + LOW (web search unavailable)*
