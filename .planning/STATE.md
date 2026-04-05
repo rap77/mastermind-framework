@@ -1,167 +1,126 @@
 ---
 gsd_state_version: 1.0
 milestone: v3.0
-milestone_name: Custom Workflow Framework + RAG
-status: planning
-stopped_at: "v2.2 complete, agent-restructuring complete — ready for /gsd:new-milestone"
-last_updated: "2026-04-04T18:30:00Z"
-last_activity: "2026-04-04 — agent-restructuring Fases 4-6 complete, 7 brain agents created and tested."
+milestone_name: Enterprise Agent Orchestration Platform with Knowledge Distillation for LATAM
+status: roadmap
+stopped_at: "Roadmap created — ready for Phase 13 planning"
+last_updated: "2026-04-05T14:00:00Z"
+last_activity: "2026-04-05 — ROADMAP.md created with 6 phases (13-18), 100% requirement coverage (15/15), success criteria derived for all phases"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_phases: 6
+  completed_phases: 0
+  percent: 0
 ---
 
-# Project State
+# STATE.md — MasterMind v3.0
 
-## Project Reference
+**Milestone:** Enterprise Agent Orchestration Platform with Knowledge Distillation for LATAM
+**Current Phase:** Planning (Phase 13 not started)
+**Last Updated:** 2026-04-05
 
-See: .planning/PROJECT.md (updated 2026-03-30)
+## Progress Bar
 
-**Core value:** Expert AI collaboration that scales — autonomous brain agents with domain expertise accumulation
-**Current focus:** Planning v3.0 — Custom Workflow Framework + RAG
+```
+Phase 13: [░░░░░░░░░░] 0% (0/3 requirements)
+Phase 14: [░░░░░░░░░░] 0% (0/3 requirements)
+Phase 15: [░░░░░░░░░░] 0% (0/3 requirements)
+Phase 16: [░░░░░░░░░░] 0% (0/2 requirements)
+Phase 17: [░░░░░░░░░░] 0% (0/3 requirements)
+Phase 18: [░░░░░░░░░░] 0% (0/1 requirements)
+
+Overall: [░░░░░░░░░░] 0% (0/15 requirements)
+```
 
 ## Current Position
 
-Milestone: v2.2 Brain Agents — ✅ SHIPPED 2026-03-30
-Milestone: Agent-Restructuring — ✅ SHIPPED 2026-04-04
-Status: All v2.2 phases complete (09-12), agent-restructuring complete (6/6 fases).
-Next: `/gsd:new-milestone` to define v3.0 requirements and roadmap.
-Last activity: 2026-04-04 — STATE.md updated, Phase 12 status corrected to COMPLETE.
-Archives: v2.2 in .planning/milestones/v2.2-*, agent-restructuring plan in ~/.claude/plans/.
+**Phase:** Planning (roadmap created, not executing)
+**Plan:** TBD
+**Status:** Roadmap approved, ready for Phase 13 planning
+**Active Branch:** `master`
 
-Progress: [██████████] 100%
+## Project Reference
 
-## Phase Status
+**Core Value:** Enterprise agent orchestration platform with knowledge distillation from world-class experts for LATAM
 
-| Phase | Name | Status |
-|-------|------|--------|
-| 09 | Baselines + Agent Authoring | ✅ COMPLETE |
-| 10 | BRAIN-FEED Split | ✅ COMPLETE |
-| 11 | Smoke Tests | ✅ COMPLETE |
-| 12 | Parallel Dispatch + Command Update | ✅ COMPLETE |
+**Current Focus:** Validate 3-service architecture (Next.js → Rust → gRPC → Python) via Vertical Slice before committing to full Rust build
+
+**Technical Stack (v3.0):**
+- **Rust:** Axum 0.7 + Tokio 1.x + tonic 0.11 (Control Plane)
+- **Python:** FastAPI + grpclib (Agent Runtime)
+- **TypeScript:** Next.js 16 + React 19 (Frontend)
+- **Database:** PostgreSQL 16 + pgvector (migrate from SQLite)
+- **Integration:** gRPC + Protobuf (type-safe cross-language)
+
+**Existing Stack (v2.2):**
+- Python: ~14,500 LOC (FastAPI, aiosqlite, Pydantic v2, mypy strict)
+- TypeScript: ~15,800 LOC (Next.js 16, React 19, Tailwind 4, Zustand 5)
+- Tests: 985 total (578 backend pytest + 407 frontend vitest)
+- Tag: v2.2 on `master`
+
+## Key Decisions
+
+From Brain #1 + Brain #7 validation:
+
+1. **Strangler Fig Pattern** — Incremental migration, NOT Big Bang rewrite. Each phase delivers user-facing value.
+2. **Vertical Slice First** — Prove 3-service architecture before committing to full Rust build. Escape hatch: if Rust velocity < 0.5x Python, Rust only for WebSocket Hub + Adapter Registry.
+3. **Knowledge Distillation Pulled Forward** — Leverages existing 7 brains + brain_memory.py + experience_records. Zero Rust risk, high competitive moat.
+4. **NOT a Fork** — Paperclip uses Vite (incompatible with Next.js App Router). Extract 10 UX patterns and rebuild in Next.js.
+5. **Marketplace CONDITIONAL** — Requires 3 LATAM SME interviews + 1 LOI before execution — NOT in v3.0.
 
 ## Performance Metrics
 
-**v2.1 Velocity (reference):**
-- Total plans completed: 19
-- Average duration: ~30 min/plan
-- Total execution time: ~9.5 hours
+**v2.2 Baseline:**
+- Parallel speedup: 4.65x
+- Status query latency: 0.39ms
+- Tests passing: 985 (0 failures)
+- Python LOC: 14,500
+- TypeScript LOC: 15,800
 
-**v2.2 By Phase (targets):**
-
-| Phase | Plans | Status |
-|-------|-------|--------|
-| 09 Baselines + Agent Authoring | 4 | ✅ COMPLETE |
-| 10 BRAIN-FEED Split | 3 | ✅ COMPLETE |
-| 11 Smoke Tests | TBD | Pending |
-| 12 Parallel Dispatch + Command Update | TBD | Pending |
-| Phase 10-brain-feed-split P01 | 3 | 3 tasks | 6 files |
-| Phase 10 P02 | 2 | 2 tasks | 4 files |
-| Phase 10 P03 | 1 min | 2 tasks | 1 files |
-| Phase 11-smoke-tests P01 | 2 | 2 tasks | 3 files |
+**v3.0 Targets (to be measured during Phase 13):**
+- Rust velocity vs Python baseline (escape hatch: < 0.5x activates reduction)
+- End-to-end API latency (Next.js → Rust → gRPC → Python → response)
+- WebSocket concurrent connections (target: thousands without GC pauses)
+- PostgreSQL query performance (vs SQLite 0.39ms baseline)
 
 ## Accumulated Context
 
-### Key v2.2 Decisions
+### Anti-Patterns (from v2.2 BRAIN-FEED)
 
-- [v2.2 design]: Intermediary protocol must be embedded in agent persona — NOT a step checklist to follow
-- [v2.2 design]: BASE-01/02 baselines MUST precede any AGT file — git timestamps are the proof
-- [v2.2 design]: FEED-02 and FEED-03 embedded in AGT-01 system prompts — complete when Phase 09 completes
-- [v2.2 design]: Brain #7 always dispatched AFTER domain agents complete — never in parallel with them
-- [v2.2 design]: Agent name format must be `brain-NN-domain` (lowercase-hyphens, 3-50 chars) for Task() dispatch
-- [v2.2 design]: Global BRAIN-FEED.md is read-only for agents — only orchestrator writes post-synthesis
-- [v2.2 design]: Ownership-First feed architecture — global = product/UX/milestone ONLY, zero technical entries
-- [v2.2 feed]: SYNC tags format `[SYNC: BF-NN-ID]` — 4 in Brain #4 feed, automated in Phase 12
-- [v2.2 feed]: Conservation law with KNOWN_DELETIONS=2 (stale Phase 09 self-referential notes)
-- [10-02 feed]: Brain #8 validation = Hormozi filter — all 12 Strategic Anchors pass (increase success probability OR reduce effort)
-- [10-02 feed]: BRAIN-FEED-01 append-only — Strategic Anchors prepended, Phase 09 consultation entry preserved verbatim
-- [10-02 feed]: UX feed expanded to 6 anchors — Efficiency>Learnability + High Information Density + Engine Status Feedback prevent SaaS hallucinations
-- [10-02 feed]: SYNC pointer [BF-02-001] unidirectional — Brain #3 UI gets pointer to Brain #2 UX ICE threshold, owner file stays clean
-- [10-03 cleanup]: KNOWN_DELETIONS=2 applied in strict mode — Phase 10 self-referential notes deleted (not migrated), conservation law holds at 19 original entries
-- [10-03 cleanup]: Global feed 19 bullets < 20 target — Stack table, Brain Agent Architecture, Delta-Velocity, Implemented Features preserved
-- [11-01 sentinel]: Sentinel Script uses git stash/diff protocol — anchored regex `^\.planning/BRAIN-FEED\.md$` prevents false matches on domain feeds, no-diff is a PASS for adversarial rejections
-- [11-01 synthetic]: Synthetic baselines use exactly ONE anomaly each — T1-400s for Brain #7 Hard Stop detection, PROSE for Structured Output Violation detection
+- **Big Bang Rewrite** — Attempting to rebuild everything in Rust/PostgreSQL before validating value. Prevented by Strangler Fig Pattern.
+- **Type Sync Drift** — Protobuf definitions diverging from implementations. Prevented by single-source `.proto` + CI gate.
+- **Vite → Next.js Fork** — Architecture mismatch. Paperclip uses Vite + React Router (incompatible with Next.js App Router). Solution: Extract UX patterns only.
+- **Webhook Message Loss** — WhatsApp/Instagram webhooks dropped silently. Prevented by write-first-process-later + dead letter queue.
 
-### Phase 09 Highlights
+### Technical Debt Carried from v2.2
 
-**7 Brain Bundles created:**
-| # | Domain | Persona |
-|---|--------|--------|
-| 1 | Product Strategy | Discovery Ruthless |
-| 2 | UX Research | Flow Absolutist |
-| 3 | UI Design | Minimalist Nazi |
-| 4 | Frontend | Performance Nazi (O(1) selectors, RAF batching) |
-| 5 | Backend | Type-Safety Zealot |
-| 6 | QA/DevOps | Reliability Fundamentalist |
-| 7 | Growth/Data | Systems Thinker |
-
-**5 Baselines documented:** T1 210-270s (all < 300s threshold)
-- Baseline 04 surfaced: free-text output → cascade error in Brain #7 → structured output required
-- Baseline 05: Brain #4 unprompted Senior insight (IntersectionObserver + @xyflow v12)
-
-**Verification:** 13/13 Nyquist checks passed, human verification @brain-01-product
-
-### Phase 10 Validation Complete
-
-**Brain Enrichment (Momento 2):**
-- Brain #4 (Frontend) + #5 (Backend): Guardrail-first, 4 SYNC pointers
-- Brain #2 (UX): **6 Strategic Anchors** (expanded from 3)
-  - War Room = IDE, 4-panel layout, ICE ≥ 15
-  - **NEW:** Efficiency > Learnability, High Information Density, Engine Status Feedback H1
-- Brain #3 (UI): **4 Architectural Sections** (detailed)
-  - Design System (OKLCH + 3-Tier), Component Patterns, Animation Standards, WCAG 2.1 AA
-
-**3 Plans Verified:**
-- 10-01: Engineering Niche (#4+#5+#6) + Wave 0 scripts + smoke test
-- 10-02: Strategy Niche (#1+#2+#3+#7) + Brain #8 validation (REVISED)
-- 10-03: Global consolidation + purity verification
-
-**Brain #7 Validation (Momento 3):**
-- Veredict: **APPROVED** ✅ (2 iterations)
-- Gaps resolved: Quantitative smoke test criteria, Pre-mortem added to 10-03
-- Clarification: Scripts are VERIFICATION only, not partitioning
-- VALIDATION.md: `.planning/phases/10-brain-feed-split/10-VALIDATION.md`
-
-**Verification Scripts:** verify_feed_conservation.py, verify_feed_paths.py, verify_global_purity.py
-
-### Pending Todos
-
-None. All v2.2 phases complete.
-
-### Agent-Restructuring Initiative (2026-04-04)
-
-**Plan:** sprightly-conjuring-hartmanis.md — Convert brains from YAML configs to autonomous Claude Code agents with memory
-
-**Status:** ✅ COMPLETE (6 fases)
-
-| Fase | Descripción | Estado | Tests |
-|------|-------------|--------|-------|
-| 1 | Brain Memory Tool (CLI) | ✅ DONE | brain_memory.py query/log |
-| 2 | Experience schema + REST endpoint | ✅ DONE | GET /api/experiences/{brain_id} |
-| 3 | API ↔ Execution real | ✅ DONE | task_runner.py + background tasks |
-| 4 | Brain-to-Brain Router | ✅ DONE | brain_router.py + 23 tests (16 unit + 7 integration) |
-| 5 | Auto endpoint /api/tasks/auto | ✅ DONE | FlowDetector auto-detection + 8 tests |
-| 6 | Replicate to Brains #2-#7 | ✅ DONE | 7 agents .claude/agents/mm/brain-NN-*/brain-NN-*.md |
-
-**Deliverables:**
-- 7 brain agents creados con protocolo de memoria (query → NotebookLM → log)
-- Piloto Brain #1 probado end-to-end (dark mode brief → DEFERRED con memoria)
-- Memoria SQLite funcionando (mastermind.db con 2 registros de experiencia)
-- Commit: a708e7a (+678/-7 líneas, 6 archivos)
-
-**Next:** Integrar agentes al flujo de producción (v3.0 scope)
-
-### Blockers/Concerns
-
-None. Planning complete, ready to execute.
+- SECRET_KEY hardcoded (TODO: load from ENV_VAR)
+- YAML export implementation incomplete
+- 3 coordinator tests with timestamp comparison flakiness (non-critical)
+- `--parallel` flag missing in `orchestrate run` CLI
+- uptime/last_called_at hardcoded in `brain_registry.py:170-171`
+- Pyright 156 errors in test files (zero in production code)
 
 ## Session Continuity
 
-Last session: 2026-03-30T03:49:44.821Z
-Stopped at: Phase 12 context enriched — Brain #1+#6 consulted
-Resume file: .planning/phases/12-parallel-dispatch-command-update/12-CONTEXT.md
+**Last Session:** 2026-04-05 — Roadmap creation for v3.0 milestone
 
-Next command: `/clear` → `/gsd:plan-phase 12`
+**What Was Done:**
+- Created ROADMAP.md with 6 phases (13-18)
+- Validated 100% requirement coverage (15/15)
+- Derived success criteria for each phase (2-5 observable behaviors per phase)
+- Applied Strangler Fig Pattern — incremental migration
+- Established Rust escape hatch (velocity < 0.5x Python)
+
+**Next Steps:**
+- `/mm:plan-phase 13` — Create execution plans for Vertical Slice
+- Phase 13 validates: (1) 3-service architecture works, (2) Rust velocity acceptable, (3) PostgreSQL migration safe
+- If Phase 13 succeeds → Phase 14 (Knowledge Distillation) can run in parallel with Phase 15 (Rust Control Plane)
+
+**Open Questions:**
+- Should Phase 14 (Knowledge Distillation) run in parallel with Phase 13 (Vertical Slice)? (Phase 14 has no Rust dependencies)
+- Should we start PostgreSQL migration in Phase 13 or wait for Phase 15? (Decision: Phase 13 tests against PostgreSQL, Phase 15 completes migration)
+
+---
+
+*State initialized: 2026-04-05*
+*Next action: `/mm:plan-phase 13`*

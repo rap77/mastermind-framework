@@ -74,17 +74,17 @@
 | VS-01 | Phase 13 | Pending |
 | VS-02 | Phase 13 | Pending |
 | VS-03 | Phase 13 | Pending |
-| KD-01 | Phase 17 | Pending |
-| KD-02 | Phase 17 | Pending |
-| KD-03 | Phase 17 | Pending |
-| RCP-01 | Phase 14 | Pending |
-| RCP-02 | Phase 14 | Pending |
-| RCP-03 | Phase 14 | Pending |
-| UIE-01 | Phase 15 | Pending |
-| UIE-02 | Phase 15 | Pending |
-| UIE-03 | Phase 15 | Pending |
+| KD-01 | Phase 14 | Pending |
+| KD-02 | Phase 14 | Pending |
+| KD-03 | Phase 14 | Pending |
+| RCP-01 | Phase 15 | Pending |
+| RCP-02 | Phase 15 | Pending |
+| RCP-03 | Phase 15 | Pending |
 | OBS-01 | Phase 16 | Pending |
 | RTU-01 | Phase 16 | Pending |
+| UIE-01 | Phase 17 | Pending |
+| UIE-02 | Phase 17 | Pending |
+| UIE-03 | Phase 17 | Pending |
 | MCG-01 | Phase 18 | Pending |
 
 **Coverage:**
@@ -94,4 +94,4 @@
 
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 after initial definition with brain validation*
+*Last updated: 2026-04-05 after roadmap creation with 6 phases (13-18)*

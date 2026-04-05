@@ -1,67 +1,186 @@
-# Roadmap: MasterMind Framework
+# Roadmap: MasterMind v3.0
 
-## Milestones
-
-- ✅ **v2.0 Production Platform** — Phases 1–4 (shipped 2026-03-17)
-- ✅ **v2.1 War Room Frontend** — Phases 5–8 (shipped 2026-03-25)
-- ✅ **v2.2 Brain Agents** — Phases 9–12 (shipped 2026-03-30)
-- 📋 **v3.0 Custom Workflow Framework + RAG** — Replace GSD, declarative DSL, pluggable agents, per-agent vector stores
-- 📋 **v3.1 OpenClaw Integration** — Brain agents as OpenClaw skills, omnichannel (22+ channels), voice, native apps
+**Milestone:** Enterprise Agent Orchestration Platform with Knowledge Distillation for LATAM
+**Defined:** 2026-04-05
+**Phase Start:** 13 (v2.2 ended at Phase 12)
+**Granularity:** Coarse
 
 ## Phases
 
-<details>
-<summary>✅ v2.0 Production Platform (Phases 1–4) — SHIPPED 2026-03-17</summary>
+- [ ] **Phase 13: Vertical Slice** — Prove 3-service architecture (Next.js → Rust → gRPC → Python)
+- [ ] **Phase 14: Knowledge Distillation** — Auto-learning loop with existing 7 brains
+- [ ] **Phase 15: Rust Control Plane** — PostgreSQL + JWT auth + event sourcing
+- [ ] **Phase 16: Observability + Real-time Hub** — Cross-service logging + WebSocket infrastructure
+- [ ] **Phase 17: UI Evolution** — Extract Paperclip UX patterns, rebuild in Next.js
+- [ ] **Phase 18: Multi-channel Gateway** — WhatsApp + Instagram + Email unified inbox
 
-- [x] Phase 1: Type Safety Foundation (3/3 plans) — completed 2026-03-13
-- [x] Phase 2: Parallel Execution Core (4/4 plans) — completed 2026-03-13
-- [x] Phase 3: Web UI Platform (4/4 plans) — completed 2026-03-13
-- [x] Phase 4: Experience Store & Production (5/5 plans) — completed 2026-03-14
+## Phase Details
 
-See full details: `.planning/milestones/v2.0-ROADMAP.md`
+### Phase 13: Vertical Slice
 
-</details>
+**Goal:** Validate 3-service architecture works end-to-end before committing to full Rust build
 
-<details>
-<summary>✅ v2.1 War Room Frontend (Phases 5–8) — SHIPPED 2026-03-25</summary>
+**Depends on:** Nothing (first phase of v3.0)
 
-- [x] Phase 5: Foundation, Auth & WebSocket Infrastructure (5/5 plans) — completed 2026-03-20
-- [x] Phase 6: Command Center (3/3 plans) — completed 2026-03-20
-- [x] Phase 7: The Nexus (3/3 plans) — completed 2026-03-22
-- [x] Phase 8: Strategy Vault, Engine Room & UX Polish (5/5 plans) — completed 2026-03-24
+**Requirements:** VS-01, VS-02, VS-03
 
-See full details: `.planning/milestones/v2.1-ROADMAP.md`
+**Success Criteria** (what must be TRUE):
 
-</details>
+1. User can trigger one API path (`POST /api/tasks/create`) from Next.js → Rust (Axum) → gRPC → Python (FastAPI) → response → UI renders result
+2. Single `.proto` file generates types for Rust (tonic + prost), Python (grpclib), and TypeScript (ts-proto) without manual type definitions
+3. Rust velocity is measured against Python baseline — if < 0.5x Python at midpoint, escape hatch activates (Rust only for WebSocket Hub + Adapter Registry)
+4. PostgreSQL 16 + pgvector is running in development with all 620 existing tests passing (dual-write migration: SQLite + PostgreSQL simultaneously)
 
-<details>
-<summary>✅ v2.2 Brain Agents (Phases 9–12) — SHIPPED 2026-03-30</summary>
+**Plans:** TBD
 
-- [x] Phase 9: Baselines + Agent Authoring (4/4 plans) — completed 2026-03-28
-- [x] Phase 10: BRAIN-FEED Split (3/3 plans) — completed 2026-03-29
-- [x] Phase 11: Smoke Tests (4/4 plans) — completed 2026-03-30
-- [x] Phase 12: Parallel Dispatch + Command Update (4/4 plans) — completed 2026-03-30
+---
 
-See full details: `.planning/milestones/v2.2-ROADMAP.md`
+### Phase 14: Knowledge Distillation
 
-</details>
+**Goal:** Brains learn from every interaction and accumulate expertise over time
+
+**Depends on:** Nothing (can run in parallel with Phase 13)
+
+**Requirements:** KD-01, KD-02, KD-03
+
+**Success Criteria** (what must be TRUE):
+
+1. Brain #7 automatically evaluates every brain output → feedback → adjusts brain memory after each orchestration session
+2. Delta-velocity tracking shows improvement vs T1 baseline (210-270s target) — operators see brains getting faster
+3. Successful interactions automatically generate reusable templates — Brain #1 suggests templates based on recurring patterns across sessions
+4. Dashboard shows: recurring patterns per brain, insights over time, correlation analysis between brains, delta-velocity trends
+
+**Plans:** TBD
+
+---
+
+### Phase 15: Rust Control Plane
+
+**Goal:** State management, auth, and event sourcing migrated to Rust with PostgreSQL
+
+**Depends on:** Phase 13 (Vertical Slice validation)
+
+**Requirements:** RCP-01, RCP-02, RCP-03
+
+**Success Criteria** (what must be TRUE):
+
+1. SQLite successfully migrates to PostgreSQL 16 + pgvector via dual-write strategy (no data loss, all 620 tests pass)
+2. JWT auth + RBAC migrated from Python (jose) to Rust (Axum middleware) — role-based access control per organization, refresh token rotation preserved
+3. Immutable `activity_log` table via event sourcing — every brain operation = event with brain_id, timestamp, type, payload for temporal queries and audit trail
+
+**Plans:** TBD
+
+---
+
+### Phase 16: Observability + Real-time Hub
+
+**Goal:** Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring
+
+**Depends on:** Phase 15 (Rust Control Plane foundation)
+
+**Requirements:** OBS-01, RTU-01
+
+**Success Criteria** (what must be TRUE):
+
+1. Structured logging (Rust tracing crate) + distributed tracing (trace_id propagated across Rust → gRPC → Python → response) + health checks for all 3 services
+2. Unified log format for debugging cross-service failures — operators can trace a single request across all 3 services
+3. Rust WebSocket Hub (Tokio-tungstenite) handles thousands of concurrent connections without GC pauses — events: brain_started, brain_completed, brain_routed, brain_failed
+4. Ghost Mode buffer (100-event replay) replicated in Tokio + Redis pub/sub for cross-service broadcast
+
+**Plans:** TBD
+
+---
+
+### Phase 17: UI Evolution
+
+**Goal:** Extract Paperclip UX patterns and rebuild in Next.js 16 App Router (NOT a fork — Paperclip uses Vite)
+
+**Depends on:** Phase 16 (Real-time Hub for WebSocket updates)
+
+**Requirements:** UIE-01, UIE-02, UIE-03
+
+**Success Criteria** (what must be TRUE):
+
+1. Three-column layout (CompanyRail + Sidebar + Content) rebuilt in Next.js 16 with multi-tenant sidebar switcher and responsive mobile (swipe gestures, bottom nav)
+2. Real-time agent monitoring panel with ping animation, status badges (idle/running/completed/failed), compact density modes — ActiveAgentsPanel pattern from Paperclip
+3. Orchestration canvas extends existing React Flow Nexus with real-time WebSocket updates — cost dashboard with MetricCard per brain (tokens, duration, cost) and budget enforcement visual (QuotaBar pattern)
+
+**Plans:** TBD
+
+---
+
+### Phase 18: Multi-channel Gateway
+
+**Goal:** Unified inbox across WhatsApp + Instagram + Email with webhook reliability
+
+**Depends on:** Phase 16 (Real-time Hub for webhook processing)
+
+**Requirements:** MCG-01
+
+**Success Criteria** (what must be TRUE):
+
+1. WhatsApp Business Cloud API + Instagram Graph API + Email (aiosmtplib) adapters working — Rust handles webhooks + routing, Python handles AI processing
+2. Webhook queue with dead-letter queue (DLQ) for reliability — no dropped messages, operators can retry failed webhooks
+3. Unified inbox UI across all channels — operators see WhatsApp, Instagram, and Email messages in one place
+4. Channel Router (new brain agent) selects optimal channel for responses — automatic channel selection based on context
+
+**Plans:** TBD
+
+---
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 1. Type Safety Foundation | v2.0 | 3/3 | ✅ Complete | 2026-03-13 |
-| 2. Parallel Execution Core | v2.0 | 4/4 | ✅ Complete | 2026-03-13 |
-| 3. Web UI Platform | v2.0 | 4/4 | ✅ Complete | 2026-03-13 |
-| 4. Experience Store & Production | v2.0 | 5/5 | ✅ Complete | 2026-03-14 |
-| 5. Foundation, Auth & WS Infrastructure | v2.1 | 5/5 | ✅ Complete | 2026-03-20 |
-| 6. Command Center | v2.1 | 3/3 | ✅ Complete | 2026-03-20 |
-| 7. The Nexus | v2.1 | 3/3 | ✅ Complete | 2026-03-22 |
-| 8. Strategy Vault, Engine Room & UX Polish | v2.1 | 5/5 | ✅ Complete | 2026-03-24 |
-| 9. Baselines + Agent Authoring | v2.2 | 4/4 | ✅ Complete | 2026-03-28 |
-| 10. BRAIN-FEED Split | v2.2 | 3/3 | ✅ Complete | 2026-03-29 |
-| 11. Smoke Tests | v2.2 | 4/4 | ✅ Complete | 2026-03-30 |
-| 12. Parallel Dispatch + Command Update | v2.2 | 4/4 | ✅ Complete | 2026-03-30 |
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 13. Vertical Slice | 0/3 | Not started | - |
+| 14. Knowledge Distillation | 0/3 | Not started | - |
+| 15. Rust Control Plane | 0/3 | Not started | - |
+| 16. Observability + Real-time Hub | 0/2 | Not started | - |
+| 17. UI Evolution | 0/3 | Not started | - |
+| 18. Multi-channel Gateway | 0/1 | Not started | - |
+
+**Overall Progress:** 0/15 requirements delivered
 
 ---
-*Roadmap updated: 2026-03-30 — v2.2 Brain Agents shipped*
+
+## Traceability
+
+All v3.0 requirements mapped to phases:
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| VS-01 | Phase 13 | Pending |
+| VS-02 | Phase 13 | Pending |
+| VS-03 | Phase 13 | Pending |
+| KD-01 | Phase 14 | Pending |
+| KD-02 | Phase 14 | Pending |
+| KD-03 | Phase 14 | Pending |
+| RCP-01 | Phase 15 | Pending |
+| RCP-02 | Phase 15 | Pending |
+| RCP-03 | Phase 15 | Pending |
+| OBS-01 | Phase 16 | Pending |
+| RTU-01 | Phase 16 | Pending |
+| UIE-01 | Phase 17 | Pending |
+| UIE-02 | Phase 17 | Pending |
+| UIE-03 | Phase 17 | Pending |
+| MCG-01 | Phase 18 | Pending |
+
+**Coverage:** 15/15 requirements mapped ✓
+
+---
+
+## Key Constraints
+
+From Brain #1 + Brain #7 validation:
+
+1. **NOT a fork** — Paperclip uses Vite (incompatible with Next.js App Router). Extract 10 UX patterns and rebuild.
+2. **Knowledge Distillation first** — Leverages existing 7 brains + brain_memory.py + experience_records. Zero Rust needed.
+3. **Vertical Slice validates architecture** — Proves 3-service split before committing to full Rust build.
+4. **Rust escape hatch** — If velocity < 0.5x Python, Rust only for WebSocket Hub + Adapter Registry.
+5. **Marketplace is CONDITIONAL** — Requires 3 LATAM SME interviews + 1 LOI — NOT in this milestone.
+6. **Strangler Fig Pattern** — Incremental migration, NOT Big Bang rewrite.
+
+---
+
+*Roadmap created: 2026-04-05*
+*Ready for planning: `/mm:plan-phase 13`*
