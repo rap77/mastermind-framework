@@ -21,7 +21,7 @@ function unauthorized() {
 }
 
 export async function GET() {
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
   const token = await getToken()
   if (!token) return unauthorized()
 
@@ -48,7 +48,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
   const token = await getToken()
   if (!token) return unauthorized()
 

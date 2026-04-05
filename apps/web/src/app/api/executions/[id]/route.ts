@@ -21,7 +21,7 @@ export async function GET(
   // CRITICAL: await params — required in Next.js 16
   const { id } = await params
 
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
 
   // CRITICAL: Get JWT token from httpOnly cookie
   const cookieStore = await cookies() // CRITICAL: await in Next.js 16

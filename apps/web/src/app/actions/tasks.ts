@@ -19,8 +19,10 @@ function stripHtml(input: string): string {
   return withoutScriptBlocks.replace(/<[^>]*>/g, "")
 }
 
-// FastAPI base URL (from env or default)
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8001"
+// Control Plane base URL (from env or default)
+// Phase 13: Migrated from FASTAPI_URL to CONTROL_PLANE_URL
+// CONTROL_PLANE_URL = Rust gateway (port 3001), AGENT_RUNTIME_URL = Python (port 8001)
+const CONTROL_PLANE_URL = process.env.CONTROL_PLANE_URL || "http://localhost:3001"
 
 /**
  * Server Action response for task creation
@@ -63,7 +65,7 @@ export async function createTask(brief: string): Promise<CreateTaskResult> {
 
   try {
     // Call FastAPI POST /api/tasks endpoint
-    const response = await fetch(`${FASTAPI_URL}/api/tasks`, {
+    const response = await fetch(`${CONTROL_PLANE_URL}/api/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

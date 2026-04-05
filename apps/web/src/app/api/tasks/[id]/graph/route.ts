@@ -21,7 +21,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
   const { id: taskId } = await params  // CRITICAL: await params in Next.js 16
 
   const cookieStore = await cookies()  // CRITICAL: await in Next.js 16

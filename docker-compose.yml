@@ -25,7 +25,9 @@ services:
     ports:
       - "3001:3000"
     environment:
-      API_URL: http://api:8001
+      # Phase 13: API_URL → AGENT_RUNTIME_URL (Python FastAPI service)
+      # CONTROL_PLANE_URL will point to Rust gateway (port 3001) in future
+      AGENT_RUNTIME_URL: http://api:8001
       MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}
       NODE_ENV: production
     depends_on:

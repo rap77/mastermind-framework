@@ -33,7 +33,7 @@ export async function loginAction(prevState: { error?: string } | null, formData
     return { error: 'Invalid input' }
   }
 
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
 
   const response = await fetch(`${apiUrl}/api/auth/login`, {
     method: 'POST',

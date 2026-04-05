@@ -5,14 +5,18 @@
  * **Context:** Phase 06-02 - Command Center Bento Grid
  *
  * **Architecture:**
- * - Server Components call FastAPI directly with cookies
+ * - Server Components call Agent Runtime directly with cookies
  * - Client Components use Next.js API routes as proxies
  * - Proper error handling with typed responses
+ *
+ * **Phase 13 Migration:**
+ * - API_URL → AGENT_RUNTIME_URL (Python FastAPI service)
+ * - CONTROL_PLANE_URL → Rust gateway (future, used in tasks.ts)
  *
  * **Why dual approach?**
  * - Server Components CAN read cookies with await cookies()
  * - But fetch() from Server Component to internal route loses cookies
- * - Solution: Server Components call FastAPI directly, pass token manually
+ * - Solution: Server Components call Agent Runtime directly, pass token manually
  */
 
 import 'server-only'
@@ -75,7 +79,7 @@ export async function fetchBrains(
   pageSize: number = 24
 ): Promise<BrainsResponse> {
   // CRITICAL: Server Component reads cookies and calls FastAPI directly
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
   const url = `${apiUrl}/api/brains?page=${page}&page_size=${pageSize}`
 
   // Get JWT token from httpOnly cookie
@@ -124,7 +128,7 @@ export async function fetchBrains(
  */
 export async function fetchBrain(brainId: string): Promise<Brain> {
   // CRITICAL: Server Component reads cookies and calls FastAPI directly
-  const apiUrl = process.env.API_URL || 'http://localhost:8001'
+  const apiUrl = process.env.AGENT_RUNTIME_URL || 'http://localhost:8001'  // Phase 13: API_URL → AGENT_RUNTIME_URL
   const url = `${apiUrl}/api/brains/${brainId}`
 
   // Get JWT token from httpOnly cookie
