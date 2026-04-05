@@ -67,24 +67,36 @@ When Brain-07 raises a concern in Moment 3:
 
 **Important:** Cascade with the same `[IMPLEMENTED REALITY]` block. Don't start fresh.
 
-## CLI Command
+## Agent Dispatch Pattern
 
-```bash
-# Single brain query (uses context chaining)
-uv run python -m mastermind_cli brain ask <brain_id> "<query>" --use-mcp
+All brain consultation uses the `Agent` tool with the appropriate `subagent_type`:
 
-# Examples:
-uv run python -m mastermind_cli brain ask 4 "..." --use-mcp   # Frontend
-uv run python -m mastermind_cli brain ask 7 "..." --use-mcp   # Evaluator
 ```
-
-## MCP Direct Query
-
-```python
-mcp__notebooklm-mcp__notebook_query(
-    notebook_id="<notebook_id>",
-    query="..."
+Agent(
+    subagent_type="brain-04-frontend",
+    prompt="[IMPLEMENTED REALITY] + [CORRECTED ASSUMPTIONS] + [WHAT I NEED]"
 )
 ```
 
-Use CLI for context chaining (multi-brain sequences). Use MCP direct for single quick queries.
+Each brain agent is autonomous — it:
+1. Reads its own `BRAIN-FEED-NN-domain.md` + global `BRAIN-FEED.md`
+2. Queries its NotebookLM notebook via MCP (configured in agent frontmatter)
+3. Filters response against codebase (Read, Grep, Glob tools)
+4. Writes insights to its own domain feed
+5. Returns structured output to the orchestrator
+
+**No CLI or direct MCP calls needed** — agents handle everything internally.
+
+### Cross-Brain Communication (Option D)
+
+Brain #7 does NOT receive domain outputs inline. Instead:
+1. Orchestrator writes domain outputs to `NN-BRAIN-OUTPUTS.md`
+2. Brain #7 reads the file as part of its evaluation protocol
+3. Orchestrator stays thin — receives only the verdict
+
+```
+Agent(
+    subagent_type="brain-07-growth",
+    prompt="Read .planning/phases/NN-name/NN-BRAIN-OUTPUTS.md before evaluating. [context]"
+)
+```

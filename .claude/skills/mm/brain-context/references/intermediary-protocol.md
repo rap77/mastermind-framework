@@ -53,23 +53,27 @@ What will the brain likely assume wrong? Correct it explicitly:
 
 Rule: Only correct assumptions that would lead to bad recommendations. Don't over-explain.
 
-### Step 4 — QUERY with delta
+### Step 4 — DISPATCH brain agents
 
-Structure the query as: reality + corrections + specific question about the gap.
+Use the `Agent` tool to dispatch brain agents. Each agent is autonomous — it reads feeds, queries NotebookLM, and writes insights internally.
 
 ```
-[IMPLEMENTED REALITY]
-... (from Step 2)
+Agent(
+    subagent_type="brain-NN-domain",  // e.g., "brain-04-frontend"
+    prompt="[IMPLEMENTED REALITY block from Step 2]
 
-[CORRECTED ASSUMPTIONS]
-... (from Step 3)
+[CORRECTED ASSUMPTIONS from Step 3]
 
 [WHAT I NEED]
 Phase 07 introduces NexusCanvas with dagre layout + WS illumination.
 The specific question: how should BrainNode differentiate `active` vs `complete` visually
 given that 8% of users are colorblind? We already use neon glow for active state.
-No generic UX theory — I need specific implementation decisions for this stack.
+No generic UX theory — I need specific implementation decisions for this stack."
+)
 ```
+
+The agent handles: feed reading, NotebookLM query, codebase verification, feed writing.
+You handle: building the context block, filtering the response, cascading gaps.
 
 ### Step 5 — FILTER the response
 
@@ -90,11 +94,14 @@ grep -r "animate-pulse" apps/web/src/              # is pulse animation used?
 
 ### Step 6 — CASCADE real gaps immediately
 
-Real gaps do NOT go into todos. They go into action:
+Real gaps do NOT go into todos. They go into action — dispatch a domain brain agent:
 
 ```
 🔴 Real gap found: error state needs AlertTriangle icon + pulse (not just color)
-→ Consult Brain-03 (UI) in parallel with same [IMPLEMENTED REALITY] block
+→ Agent(
+      subagent_type="brain-03-ui",
+      prompt="[Same IMPLEMENTED REALITY block] + [Specific gap: error state visual differentiation for colorblind users]"
+   )
 → Get specific: CSS tokens, icon name, animation class
 → Update PLAN.md Task 2 with concrete change before execute
 ```

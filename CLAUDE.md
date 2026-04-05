@@ -182,17 +182,23 @@ Cuando trabajes en este proyecto, lee en este orden:
 3. `docs/PRD/09-Filesystem-Structure.md` - Estructura de carpetas
 4. Cerebro específico en `docs/PRD/05-*.md` o `06-*.md`
 
-## mm Brain Context — GSD Integration
+## Brain-Aware GSD Commands (USE THESE INSTEAD OF gsd:)
 
-**IMPORTANTE:** Antes de cualquier operación GSD, verificar si aplica la skill `mm:brain-context`:
+Este proyecto tiene 7 brain agents autónomos con conocimiento experto. Los comandos `/mm:` ejecutan brain consultation automáticamente antes del flujo GSD estándar.
 
-| Momento | Cuándo | Qué hacer |
-|---------|--------|-----------|
-| **Momento 1** | Antes de crear ROADMAP.md | Correr brains relevantes → `.planning/research/BRAIN-0X-CONTEXT.md` |
-| **Momento 2** | Antes de `/gsd:plan-phase N` | Brain del dominio de la fase → `CONTEXT.md` de la fase |
-| **Momento 3** | Después de PLAN.md, antes de ejecutar | brain-07 valida el plan → aprobar o iterar |
+| Standard GSD | Brain-Aware | Qué agrega |
+|-------------|-------------|------------|
+| `/gsd:new-milestone` | `/mm:new-milestone` | Brain #1 + #7 validan milestone structure antes del roadmap |
+| `/gsd:plan-phase N` | `/mm:plan-phase N` | 6 domain brains injectan conocimiento experto → CONTEXT.md |
+| `/gsd:execute-phase N` | `/mm:execute-phase N` | Brain #7 valida PLAN.md antes de ejecutar |
+| (no equivalent) | `/mm:complete-phase N` | Execute + auto BRAIN-FEED update con aprendizajes |
 
-Skill completa: `.claude/skills/mm/brain-context/SKILL.md`
+**Cross-brain communication:** Option D (file-based). Orchestrator writes domain outputs to `NN-BRAIN-OUTPUTS.md`, Brain #7 reads the file. Orchestrator stays thin.
+
+**Manual override:** Si necesitás consultar brains sin GSD, usá `/mm:brain-context` con el momento (1, 2, o 3).
+
+**Skill completa:** `.claude/skills/mm/brain-context/SKILL.md`
+**Agentes:** `.claude/agents/mm/brain-0{1..7}-*/`
 
 ## Language
 
