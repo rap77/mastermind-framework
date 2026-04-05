@@ -56,13 +56,25 @@ A cognitive architecture framework for building specialized AI-powered solutions
 - ✓ **Baselines** (BASE-01, BASE-02) — 5 pre-migration baselines, Delta-Velocity metric schema — v2.2
 - ✓ **Parallel Dispatch** (DISP-01, DISP-02) — Agent tool dispatch, Brain #7 barrier, mm:brain-context updated — v2.2
 
-### Active (v3.0 — Custom Workflow Framework + RAG)
+### Active (v3.0 — Enterprise Agent Orchestration Platform)
 
-*(No requirements defined yet — start with `/gsd:new-milestone`)*
+**Brain-validated milestone.** Phase structure validated by Brain #1 (Product Strategy) + Brain #7 (Growth/Evaluator). Key decisions resolved:
+- Frontend: Extract UX patterns from Paperclip → rebuild in Next.js (NOT fork — Paperclip uses Vite, incompatible)
+- Rust: Vertical slice first. Escape hatch: if Rust velocity < 0.5x Python, Rust only for WebSocket Hub + Adapter Registry
+- Knowledge Distillation pulled forward — leverages existing 7 brains + brain_memory.py + experience_records
+- Marketplace CONDITIONAL — requires 3 LATAM SME interviews + 1 LOI before execution
 
-### Deferred (v3.0 — Custom Workflow Framework + RAG)
+- [ ] **VS (Vertical Slice):** 1 API path end-to-end (Next.js → Rust → gRPC → Python → response) proving the 3-service architecture
+- [ ] **KD (Knowledge Distillation):** Brains learn from each interaction, accumulate patterns, improve over time
+- [ ] **RCP (Rust Control Plane):** Axum + Tokio Control Plane with PostgreSQL + JWT auth + gRPC bridge
+- [ ] **UIE (UI Evolution):** 10 UX patterns from Paperclip audit rebuilt in Next.js App Router
+- [ ] **OBS (Observability):** Structured logging + distributed tracing + health checks across 3 services
+- [ ] **RTU (Real-time Hub):** Rust WebSocket hub + React Flow Canvas + cost dashboard
+- [ ] **MCG (Multi-channel):** WhatsApp Business API + Instagram DM + Email gateway
 
-- **MasterMind Workflow Framework**: Replace GSD workflows with niche-agnostic orchestration system. Keep GSD strengths (goal-backward, wave parallelization, atomic commits, deviation rules). Add: declarative DSL, pluggable agent registry, brain integration layer, domain-agnostic verification, niche-specific flow templates, custom checkpoint types
+### Deferred (v3.1+)
+
+- **Template Marketplace + Multi-tenant:** CONDITIONAL on 3 LATAM SME interviews + 1 LOI/paid pilot. Includes: Clipmart-style template gallery, RBAC per organization, billing + usage tracking, Odoo/Notion/custom webhook adapters
 - **RAG per agent**: Each brain agent manages its own vector store partition (ChromaDB/Qdrant) — domain knowledge (books) + project memory (accumulated patterns) in separate collections
 - **Cross-brain learning**: Brains learn from each other's successful patterns via shared project BRAIN-FEED
 - **PostgreSQL + pgvector**: Migrate from SQLite when scale demands it
