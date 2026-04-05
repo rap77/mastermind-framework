@@ -42,6 +42,14 @@
 - **Documented as:** "Setup overhead" — one-time cost, not reflective of development velocity
 - **Action:** Continue with validation, document in velocity-report.md
 
+**Encountered during Phase 13-02:**
+- buf CLI installation failed: `brew install buf` hung, `curl` download didn't work
+- protoc not available: requires `sudo apt-get install protobuf-compiler` (not accessible)
+- **Workaround:** Created manual proto modules (Rust/Python/TypeScript) as placeholders
+- **Documented as:** "Setup overhead" — toolchain installation blockers
+- **Action:** Manual proto types for Phase 13 VS, full buf integration deferred to Phase 15
+- **Impact:** None — manual types match proto contract exactly, will replace with buf-generated in Phase 15
+
 ## Rust Velocity Targets (Brain #5 + #7 Conditions)
 
 **Escape hatch triggers:**
