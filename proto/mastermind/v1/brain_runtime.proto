@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package mastermind.v1;
+
+// BrainRuntime gRPC service
+// Provides task dispatch to Python Agent Runtime from Rust Control Plane
+service BrainRuntime {
+  // Dispatch a task to the brain orchestration system
+  // Request includes brief, user_id, and optional flow override
+  // Response includes task_id, status, and accepted timestamp
+  rpc DispatchTask(DispatchTaskRequest) returns (DispatchTaskResponse);
+}
+
+// Request message for task dispatch
+message DispatchTaskRequest {
+  string brief = 1;        // User's task brief
+  string user_id = 2;      // User ID from JWT
+  string flow = 3;         // Optional flow override (default: "auto")
+}
+
+// Response message for task dispatch
+message DispatchTaskResponse {
+  string task_id = 1;              // Generated task UUID
+  string status = 2;               // Task status (pending, running, completed)
+  int64 accepted_at_unix_ms = 3;   // Unix timestamp in milliseconds
+}

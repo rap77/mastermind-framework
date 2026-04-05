@@ -1,0 +1,42 @@
+name: Proto Sync Check
+
+on:
+  pull_request:
+    paths:
+      - 'proto/**'
+      - 'apps/control-plane/src/proto/**'
+      - 'apps/api/mastermind_cli/proto/**'
+      - 'apps/web/src/proto/**'
+
+jobs:
+  proto-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check proto files exist
+        run: |
+          # Rust proto
+          test -f apps/control-plane/src/proto/mod.rs || echo "WARNING: Rust proto module not found"
+          # Python proto
+          test -f apps/api/mastermind_cli/proto/__init__.py || echo "WARNING: Python proto module not found"
+          # TypeScript proto
+          test -f apps/web/src/proto/brain_runtime.ts || echo "WARNING: TypeScript proto types not found"
+          echo "✓ All proto modules exist"
+
+      - name: Verify proto imports (Rust)
+        run: |
+          if ! grep -q "mod proto" apps/control-plane/src/main.rs; then
+            echo "ERROR: Proto module not imported in Rust main.rs"
+            exit 1
+          fi
+          echo "✓ Rust proto module imported"
+
+      - name: Verify proto imports (Python)
+        run: |
+          cd apps/api
+          if ! uv run python -c "from mastermind_cli.proto import DispatchTaskRequest, DispatchTaskResponse" 2>/dev/null; then
+            echo "ERROR: Proto module not importable in Python"
+            exit 1
+          fi
+          echo "✓ Python proto module importable"

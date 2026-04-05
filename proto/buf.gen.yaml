@@ -1,0 +1,17 @@
+version: v1
+plugins:
+  # Rust code generation (tonic)
+  - name: tonic
+    out: ../apps/control-plane/src/proto
+    opt:
+      - compile_well_known_types=true
+      - rust_type=Server
+  # Python code generation
+  - name: python
+    out: ../apps/api/mastermind_cli/proto
+  # TypeScript code generation (ts-proto)
+  - plugin: protoc-gen-es
+    out: ../apps/web/src/proto
+    opt:
+      - target=ts
+      - file_suffix=.ts
