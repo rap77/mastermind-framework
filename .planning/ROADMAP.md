@@ -35,7 +35,8 @@
 
 - [ ] 13-01-PLAN.md — Unify env vars + PostgreSQL foundation + baseline measurement
 - [ ] 13-02-PLAN.md — Protobuf contract + Rust Control Plane project setup
-- [ ] 13-03-PLAN.md — Vertical slice implementation: POST /api/tasks/auto end-to-end
+- [ ] 13-03-PLAN.md — Backend vertical slice: Python gRPC + Rust client + PostgreSQL + Axum handler
+- [ ] 13-04-PLAN.md — Frontend integration + Docker Compose + velocity report
 
 ---
 
@@ -136,7 +137,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Vertical Slice | 0/3 | Planning complete | - |
+| 13. Vertical Slice | 0/4 | Planning complete | - |
 | 14. Knowledge Distillation | 0/3 | Not started | - |
 | 15. Rust Control Plane | 0/3 | Not started | - |
 | 16. Observability + Real-time Hub | 0/2 | Not started | - |
@@ -186,5 +187,5 @@ From Brain #1 + Brain #7 validation:
 
 ---
 *Roadmap created: 2026-04-05*
-*Last updated: 2026-04-05 (Phase 13 plans added)*
+*Last updated: 2026-04-05 (Phase 13 plans: 4 plans after splitting 13-03)*
 *Ready for execution: `/mm:execute-phase 13`*
