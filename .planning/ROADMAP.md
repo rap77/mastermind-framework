@@ -26,12 +26,16 @@
 
 **Success Criteria** (what must be TRUE):
 
-1. User can trigger one API path (`POST /api/tasks/create`) from Next.js → Rust (Axum) → gRPC → Python (FastAPI) → response → UI renders result
+1. User can trigger one API path (`POST /api/tasks/auto`) from Next.js → Rust (Axum) → gRPC → Python (FastAPI) → response → UI renders result
 2. Single `.proto` file generates types for Rust (tonic + prost), Python (grpclib), and TypeScript (ts-proto) without manual type definitions
 3. Rust velocity is measured against Python baseline — if < 0.5x Python at midpoint, escape hatch activates (Rust only for WebSocket Hub + Adapter Registry)
 4. PostgreSQL 16 + pgvector is running in development with all 620 existing tests passing (dual-write migration: SQLite + PostgreSQL simultaneously)
 
-**Plans:** TBD
+**Plans:**
+
+- [ ] 13-01-PLAN.md — Unify env vars + PostgreSQL foundation + baseline measurement
+- [ ] 13-02-PLAN.md — Protobuf contract + Rust Control Plane project setup
+- [ ] 13-03-PLAN.md — Vertical slice implementation: POST /api/tasks/auto end-to-end
 
 ---
 
@@ -120,7 +124,7 @@
 **Success Criteria** (what must be TRUE):
 
 1. WhatsApp Business Cloud API + Instagram Graph API + Email (aiosmtplib) adapters working — Rust handles webhooks + routing, Python handles AI processing
-2. Webhook queue with dead-letter queue (DLQ) for reliability — no dropped messages, operators can retry failed webhooks
+2. Webhook queue with dead letter queue (DLQ) for reliability — no dropped messages, operators can retry failed webhooks
 3. Unified inbox UI across all channels — operators see WhatsApp, Instagram, and Email messages in one place
 4. Channel Router (new brain agent) selects optimal channel for responses — automatic channel selection based on context
 
@@ -132,7 +136,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Vertical Slice | 0/3 | Not started | - |
+| 13. Vertical Slice | 0/3 | Planning complete | - |
 | 14. Knowledge Distillation | 0/3 | Not started | - |
 | 15. Rust Control Plane | 0/3 | Not started | - |
 | 16. Observability + Real-time Hub | 0/2 | Not started | - |
@@ -181,6 +185,6 @@ From Brain #1 + Brain #7 validation:
 6. **Strangler Fig Pattern** — Incremental migration, NOT Big Bang rewrite.
 
 ---
-
 *Roadmap created: 2026-04-05*
-*Ready for planning: `/mm:plan-phase 13`*
+*Last updated: 2026-04-05 (Phase 13 plans added)*
+*Ready for execution: `/mm:execute-phase 13`*
