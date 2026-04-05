@@ -64,8 +64,9 @@ export async function createTask(brief: string): Promise<CreateTaskResult> {
   }
 
   try {
-    // Call FastAPI POST /api/tasks endpoint
-    const response = await fetch(`${CONTROL_PLANE_URL}/api/tasks`, {
+    // Phase 13: Call Rust Control Plane POST /api/tasks/auto
+    // Routes: Axum → gRPC client → Python Agent Runtime → PostgreSQL
+    const response = await fetch(`${CONTROL_PLANE_URL}/api/tasks/auto`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
