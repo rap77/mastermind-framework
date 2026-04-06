@@ -356,6 +356,39 @@ class DatabaseConnection:
             "ON experience_records(expires_at)"
         )
 
+        # Create knowledge_templates table (separate from experience_records)
+        # Per Screaming Architecture: templates are domain concepts, logs are infrastructure
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS knowledge_templates (
+                id TEXT PRIMARY KEY,
+                brain_id TEXT NOT NULL,
+                template_name TEXT NOT NULL,
+                template_data TEXT NOT NULL,
+                success_rate REAL DEFAULT 1.0,
+                usage_count INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                last_used_at TEXT
+            )
+        """)
+
+        # Index for brain-specific template retrieval
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_knowledge_templates_brain_id "
+            "ON knowledge_templates(brain_id)"
+        )
+
+        # Index for success rate ranking (best templates first)
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_knowledge_templates_success_rate "
+            "ON knowledge_templates(success_rate DESC)"
+        )
+
+        # Index for last-used tracking
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_knowledge_templates_last_used_at "
+            "ON knowledge_templates(last_used_at DESC)"
+        )
+
         await self.conn.commit()
 
     async def close(self) -> None:
