@@ -57,6 +57,7 @@ class ExperienceLogger:
         parent_brain_id: Optional[str] = None,
         trace_context_id: Optional[str] = None,
         custom_metadata: Dict[str, Any] | None = None,
+        quality_score: Optional[float] = None,
     ) -> str:
         """Log execution with automatic PII redaction.
 
@@ -65,14 +66,21 @@ class ExperienceLogger:
             input_json: Input dictionary (will be hashed)
             output_json: Output dictionary (will be redacted)
             duration_ms: Execution duration in milliseconds
-            status: Execution status (success, failure, timeout)
+            status: Execution status (success, failure, timeout, rejected)
             parent_brain_id: Optional parent brain ID
             trace_context_id: Optional trace context ID
             custom_metadata: Optional custom metadata dictionary
+            quality_score: Optional quality score for filtering
 
         Returns:
             Record ID (UUID4)
         """
+        # Merge quality_score into custom_metadata
+        if custom_metadata is None:
+            custom_metadata = {}
+        if quality_score is not None:
+            custom_metadata["quality_score"] = quality_score
+
         # Create record with auto-generated fields
         record = ExperienceRecord.create(
             brain_id=brain_id,
@@ -127,23 +135,27 @@ class ExperienceLogger:
         return None
 
     async def get_recent_by_brain(
-        self, brain_id: str, limit: int = 100
+        self, brain_id: str, limit: int = 100, min_quality_score: float = 1.0
     ) -> List[ExperienceRecord]:
-        """Get last N records for a brain.
+        """Get last N records for a brain, filtered by quality score and status.
 
         Args:
             brain_id: Brain ID to filter by
             limit: Maximum number of records to return (default: 100)
+            min_quality_score: Minimum quality score threshold (default: 1.0)
 
         Returns:
             List of ExperienceRecord objects, ordered by timestamp DESC
+            Excludes records with quality_score < min_quality_score or status='rejected'
         """
         cursor = await self.db.conn.execute(
             """SELECT * FROM experience_records
                WHERE brain_id = ?
+                 AND json_extract(custom_metadata, '$.quality_score') >= ?
+                 AND status != 'rejected'
                ORDER BY timestamp DESC
                LIMIT ?""",
-            (brain_id, limit),
+            (brain_id, min_quality_score, limit),
         )
         rows = await cursor.fetchall()
         return [self._row_to_record(row) for row in rows]

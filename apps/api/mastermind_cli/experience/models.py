@@ -47,7 +47,9 @@ class ExperienceRecord(BaseModel):
         ..., ge=0, description="Execution duration in milliseconds"
     )
     status: str = Field(
-        ..., pattern="^(success|failure|timeout)$", description="Execution status"
+        ...,
+        pattern="^(success|failure|timeout|rejected)$",
+        description="Execution status",
     )
 
     # Lineage fields
