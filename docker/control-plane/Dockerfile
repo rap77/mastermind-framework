@@ -1,5 +1,5 @@
 # Rust Control Plane — Multi-stage build for minimal image
-FROM rust:1.75 as builder
+FROM rust:latest as builder
 
 WORKDIR /app
 

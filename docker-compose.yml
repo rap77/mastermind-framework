@@ -2,11 +2,11 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: mastermind_dev
+      POSTGRES_DB: mastermind_bd
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: devpassword
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -30,7 +30,7 @@ services:
       MM_DB_PATH: /app/data/mastermind.db
       MM_ADMIN_PASSWORD: ${MM_ADMIN_PASSWORD:-admin}
       MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}
-      POSTGRES_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_dev
+      POSTGRES_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_bd
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/"]
       interval: 10s
@@ -50,7 +50,7 @@ services:
     environment:
       CONTROL_PLANE_URL: http://control-plane:3001
       AGENT_RUNTIME_URL: http://api:8001
-      POSTGRES_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_dev
+      POSTGRES_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_bd
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 10s

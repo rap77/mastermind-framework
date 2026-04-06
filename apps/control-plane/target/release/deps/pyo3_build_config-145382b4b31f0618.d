@@ -1,0 +1,14 @@
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/pyo3_build_config-145382b4b31f0618.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/errors.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/impl_.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config-file.txt /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config.txt
+
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/libpyo3_build_config-145382b4b31f0618.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/errors.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/impl_.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config-file.txt /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config.txt
+
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/libpyo3_build_config-145382b4b31f0618.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/errors.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/impl_.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config-file.txt /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config.txt
+
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/lib.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/errors.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.20.3/src/impl_.rs:
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config-file.txt:
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out/pyo3-build-config.txt:
+
+# env-dep:CARGO_PKG_VERSION=0.20.3
+# env-dep:OUT_DIR=/home/rpadron/proy/mastermind/apps/control-plane/target/release/build/pyo3-build-config-bccc38ad9dc595f5/out

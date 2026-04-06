@@ -98,3 +98,47 @@ Sync: Error response standard — [SYNC: BF-05-004] → BRAIN-FEED-05-backend.md
 ### Deferred Items
 
 📅 If result objects grow beyond ~10KB, evaluate moving result storage out of brainStore.brains Map to avoid historyStack memory bloat — relevant when Phase 12 ships and real results start flowing
+
+## 2026-04-05 — Phase 13 Vertical Slice: Frontend Architecture Decisions
+
+### Verified Insights
+
+**Vertical slice path: POST /api/tasks (Server Action in actions/tasks.ts)**
+- ROADMAP specifies POST /api/tasks/create — maps to createTask() Server Action
+- Single-line change: swap FASTAPI_URL -> RUST_GATEWAY_URL on line 66 of actions/tasks.ts
+- Validates full chain: user action -> Server Action -> Rust -> gRPC -> Python -> response -> UI -> WS
+- GET /api/brains would be WRONG — it only validates Server Component read, not user action round-trip
+
+**TanStack Query IS used in codebase (corrected earlier assumption)**
+- 5 Client Components use useQuery/useMutation: ExecutionDetail, ExecutionList, APIKeyManager, KeyListTable, KeyCreateDialog
+- Server Components (command-center, nexus) use fetchBrains() from lib/api.ts directly
+- Two distinct data-fetching patterns coexist already: Server-only (lib/api.ts) and Client-side (TanStack Query)
+- For vertical slice: NO TanStack Query change needed — task creation is a Server Action mutation
+
+**Type coexistence strategy: proto-generated types in new directory, NOT replacing types/api.ts**
+- types/api.ts has 9 hand-written Zod schemas used across 17+ files
+- Vertical slice response shape is { task_id: string } — trivially simple
+- New types/proto/ directory for generated types — zero existing file changes
+- Runtime validation: derive Zod schema from proto type at the Route Handler boundary
+
+**Rust gateway URL configuration: RUST_GATEWAY_URL env var, NOT next.config.ts rewrites**
+- Rewrites cannot read httpOnly cookies and transform into Authorization headers
+- Each Route Handler / Server Action already has its own API_URL variable — surgical migration per path
+- Server Actions keep reading cookies server-side, add Bearer token, call Rust instead of Python
+- Global API_URL change would break all paths — violates Strangler Fig
+
+**Testing: Integration test for Server Action + one E2E smoke test**
+- MSW is WRONG for Server Actions (they run server-side, not browser) — use real test server instead
+- Integration: mock RUST_GATEWAY_URL to test Axum server, verify round-trip
+- E2E: one Playwright test for brief submission -> task created -> WS channel opens
+- Performance observable: measure round-trip vs Python-direct baseline, target < 50ms overhead
+
+**Architecture implication: current proxy pattern is EXACTLY right for Strangler Fig**
+- Server Actions = security boundary (read httpOnly cookie, add Bearer token)
+- Route Handlers = same pattern for client-initiated fetches
+- Phase 15 migration = URL swap per handler, zero architecture changes
+
+### Deferred Items
+📅 When Phase 15 migrates ALL paths to Rust, consider removing FASTAPI_URL entirely and unifying on RUST_GATEWAY_URL
+📅 When proto-generated types grow complex (multiple services), evaluate Zod schema auto-generation from .proto definitions
+📅 TanStack Query's staleTime (30s for brains, 60s for executions) may need adjustment when Rust gateway introduces latency — measure and tune in Phase 16

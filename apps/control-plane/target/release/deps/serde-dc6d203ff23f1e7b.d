@@ -1,0 +1,14 @@
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/serde-dc6d203ff23f1e7b.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/libserde-dc6d203ff23f1e7b.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/deps/libserde-dc6d203ff23f1e7b.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/apps/control-plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/home/rpadron/proy/mastermind/apps/control-plane/target/release/build/serde-9efbb96b1957166b/out/private.rs:
+
+# env-dep:OUT_DIR=/home/rpadron/proy/mastermind/apps/control-plane/target/release/build/serde-9efbb96b1957166b/out

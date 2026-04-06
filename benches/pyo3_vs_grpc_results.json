@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-04-05 21:42:07",
+  "iterations": 1000,
+  "pyo3_results": {
+    "approach": "PyO3 Direct",
+    "total_time_s": 0.0019495487213134766,
+    "throughput_ops_per_sec": 512939.21976274916,
+    "avg_latency_ms": 0.0008610017830505967,
+    "median_latency_ms": 0.0007839989848434925,
+    "min_latency_ms": 0.0006849877536296844,
+    "max_latency_ms": 0.014403980458155274,
+    "p95_latency_ms": 0.000980013282969594,
+    "p99_latency_ms": 0.0012740201782435179,
+    "memory_mb": 0.03040790557861328
+  },
+  "grpc_results": {
+    "approach": "gRPC (mock)",
+    "total_time_s": 2.6134238243103027,
+    "throughput_ops_per_sec": 382.63981168990284,
+    "avg_latency_ms": 2.602012981486041,
+    "median_latency_ms": 2.5801175070228055,
+    "min_latency_ms": 2.5183139950968325,
+    "max_latency_ms": 3.2538200030103326,
+    "p95_latency_ms": 2.740442572394386,
+    "p99_latency_ms": 2.900248322985135,
+    "memory_mb": 0.0291595458984375
+  },
+  "analysis": {
+    "decision": "ADOPT_PYO3",
+    "speedup": 3022.076182312777,
+    "throughput_improvement": 1340.5275773511069
+  }
+}

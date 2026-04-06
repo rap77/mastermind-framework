@@ -117,3 +117,154 @@ Core justification: The problem is real and verified in code. ExperienceLogger a
 📅 v3.1+ — Memory decay / TTL on experience records. Not needed for pilot (Brain #1 only, few records). Becomes critical at Phase 6 when all 7 brains are logging. Design the relevance filter before Phase 6, not after.
 
 📅 v3.1+ — Brain #7 as meta-evaluator for experience record quality. Currently Brain #7 evaluates domain outputs. Future: also flags when Brain #1 is citing records that contradict current codebase state (stale memory detection). This requires Brain #7 to have read access to ExperienceLogger — design that interface when scaling to all 7 brains.
+
+---
+
+## 2026-04-04 — v3.0 Milestone Planning — Phase Sequencing + Scope Analysis
+
+### Verified Insights
+
+**Context:** v3.0 milestone "enterprise agent orchestration platform" — PRP proposes 6 phases (0-5) covering UI fork, Rust backend, multi-channel, knowledge distillation, marketplace.
+
+**Codebase verification performed:**
+- Paperclip `ui/src/api/` = 24 API files, ALL importing from `@paperclipai/shared` (11 direct imports in api/, 131 total across 122 files)
+- `@paperclipai/shared` = `packages/shared/src/index.ts` = 644 lines of TypeScript types (enums, interfaces, schemas)
+- Paperclip UI uses Vite (not Next.js) — framework mismatch with MasterMind's Next.js 16 App Router
+- Paperclip server = 250 TypeScript files, all Node.js — no Rust code exists anywhere
+- Zero gRPC/Protobuf/Rust configuration in MasterMind repo (confirmed: no .toml, no Cargo.toml, no proto files)
+- MasterMind's existing Next.js 16 frontend = 4 screens (Command Center, Nexus, Strategy Vault, Engine Room) — already working
+
+**CRITICAL FINDING: Framework Mismatch**
+The PRP says "Fork Paperclip UI" but Paperclip's UI uses Vite + React Router, while MasterMind uses Next.js 16 App Router. These are fundamentally incompatible architectures. You cannot "copy pages" from one to the other — the routing model, data fetching (Server Components vs client-only), SSR, and layout system are completely different. This is the single highest-risk assumption in the entire PRP.
+
+**CRITICAL FINDING: Type System Dependency**
+Every single Paperclip API call depends on `@paperclipai/shared` types (644 lines). Replacing this with Protobuf-generated types means: (1) define all 644 lines of types as .proto files, (2) generate TypeScript from proto, (3) verify every API call still works. This is a hidden phase the PRP does not account for.
+
+**Phase Sequencing Verdict:**
+
+1. Phase 0 (Fork UI) — SCOPE EXPLOSION RISK. Copying 41 pages + 94 components between incompatible frameworks is not "1-2 weeks." The honest scope is: (a) extract design patterns + UX patterns as documentation, (b) re-implement key patterns in Next.js App Router. This is a REBUILD, not a fork.
+
+2. Phase 1 (Rust Control Plane) — SCOPE EXPLOSION RISK. Combines: Rust greenfield bootstrapping + PostgreSQL migration + Protobuf schema design + gRPC wiring + Auth migration + Event Sourcing. This is 4-5 independent phases compressed into one. Each has its own failure mode that blocks the others.
+
+3. Phase 2 (Orchestration Canvas + Real-time Hub) — PARTIAL DUPLICATION. MasterMind already has React Flow DAG (The Nexus) with WebSocket infrastructure + Zustand RAF batching. Rebuilding this from Paperclip patterns is redundant. The evolution path should be: extend existing Nexus, not replace it.
+
+4. Phase 3 (Multi-channel Gateway) — DEPENDENCY RISK. WhatsApp Business API approval takes 2-6 weeks with Meta. This phase CANNOT start until sandbox access is confirmed. Instagram API requires a Facebook App review. These are external blockers, not engineering tasks.
+
+5. Phase 4 (Knowledge Distillation) — WELL-SCOPED. This leverages what already exists (7 brain agents + experience_records + brain_memory.py + brain_router.py). This is the highest-value, lowest-risk phase and should be pulled earlier.
+
+6. Phase 5 (Marketplace + Enterprise) — PREMATURE. No paying customers exist yet. Building multi-tenant + billing + marketplace before validating that a single LATAM SME will pay is the Build Trap in its purest form.
+
+### Recommended Phase Sequence (corrected)
+
+| Phase | Content | Duration Estimate | Why This Order |
+|-------|---------|-------------------|----------------|
+| 0 | Vertical Slice: One API path end-to-end (Rust + gRPC + Protobuf + UI) | 2-3 weeks | Validates the ENTIRE integration pattern at minimal scope |
+| 1 | Knowledge Distillation Engine | 2-3 weeks | Highest value, leverages existing infrastructure, proves the moat |
+| 2 | Rust Control Plane (Core only: Auth + DB + gRPC) | 3-4 weeks | Stripped of Event Sourcing and Adapter Registry — those move to later phases |
+| 3 | UI Evolution: Extend existing Next.js + extract Paperclip UX patterns | 3-4 weeks | Not a fork — selective pattern adoption into proven architecture |
+| 4 | Multi-channel Gateway (WhatsApp first) | 3-4 weeks | External dependency — start sandbox access in Phase 0, implement when approved |
+| 5 | Adapter Registry + Event Sourcing | 2-3 weeks | Foundation for scaling |
+| 6 | Template Marketplace + Multi-tenant | 4-6 weeks | Only after paying customers validate the model |
+
+### Deferred Items
+
+📅 Phase 7+ — Org Chart, Company Rail, Onboarding Wizard, Import/Export — enterprise features that have no buyer yet.
+
+📅 Redis — the PRP mentions Redis pub/sub for cross-service broadcast. This is premature for a single-host deployment. Start with SQLite WAL + gRPC, add Redis when multi-instance is needed.
+
+📅 Codex Subscription Panel, Claude Subscription Panel — Paperclip-specific features with no MasterMind equivalent. Drop entirely.
+
+---
+
+## 2026-04-06 — Phase 14 / Knowledge Distillation — Product Strategy Analysis
+
+### Context
+**Phase:** Knowledge Distillation (KD-01, KD-02, KD-03)
+**Codebase State:** ExperienceLogger EXISTS (0 records), brain_memory.py CLI EXISTS (unused), 7 brain agents EXIST (don't call logger), Delta-velocity NOT tracked, Templates NOT generated, Dashboard NOT built
+**Knowledge Base Consulted:** NotebookLM `f276ccb3-0bce-4069-8b55-eae8693dbe75` (Cagan, Torres, Ries, Doerr, Meadows)
+
+### Verified Insights
+
+**1. Template Definition (KD-02) — APPROVED with scope refinement**
+
+A "template" is NOT just text storage — it's a **validated solution structure** following the Product Trio pattern (Context + Intention + Output Structure).
+
+**Definition:** A template captures a brain's **opportunity framing** (the brief) AND its **solution structure** (the output schema) that has demonstrated it reduces uncertainty in planning.
+
+**Success criteria for template-ization:** An interaction becomes a template when Brain #7 assigns it a `quality_score >= 0.8` AND the session results in a **high-integrity commitment** (architectural decision, resource allocation, or directional pivot). This prevents polluting the template library with low-value noise.
+
+**Structure:** Must include BOTH brief AND output structure. The brief = the "opportunity" in Opportunity Solution Tree language. The output structure = the "solution" that was validated. This enables **compare-and-contrast** in future sessions — the brain can say "this is like pattern X but with constraint Y."
+
+**Codebase verification:** `ExperienceRecord.custom_metadata` already supports `quality_score` (line 18 in logger.py whitelist). The precedent template at `apps/api/agents/orchestrator/precedents/template.yaml` provides a structural starting point — adapt it for brain-specific templates.
+
+---
+
+**2. Pattern Extraction — APPROVED with pgvector**
+
+**Decision:** Implement embedding-based similarity using pgvector (available in v3.0 PostgreSQL stack). Keyword clustering is insufficient.
+
+**Rationale:** Knowledge distillation is about identifying patterns in the "opportunity space," not just surface text. Keywords match words; embeddings match **semantic intent**. This is the difference between "database query" (shallow) and "data modeling decision with consistency tradeoffs" (deep).
+
+**Technical implication:** Phase 15 (PostgreSQL migration) MUST include pgvector extension. The `embedding_stub` field in ExperienceRecord (line 62-64 in models.py) is a placeholder — replace with actual vector column in v3.0 schema.
+
+**Anti-pattern:** Do NOT build ML training pipelines. Template extraction is clustering over existing embeddings, not neural network training. Out of scope per REQUIREMENTS.md line 62.
+
+---
+
+**3. Brain #7 Trigger — APPROVED with high-value filter**
+
+**Decision:** Brain #7 should NOT evaluate every session. Only evaluate **high-value interactions** to avoid systemic noise.
+
+**Criteria for high-value:**
+1. **Strategic Intent Impact:** Sessions connected to milestone-level objectives (e.g., phase completion, architectural pivots)
+2. **High-Integrity Commitments:** Sessions concluding in decisions that require resource investment
+3. **Planning Pivots:** Sessions where the user changes direction mid-flow (capturing the "why")
+
+**Implementation:** Add a `high_value` flag to `custom_metadata` during session logging. Set it automatically when:
+- Session duration > 5 minutes (indicates complexity)
+- Brain #7's planning score changed during the session
+- User invoked `/mm:complete-phase` (vs. `/mm:execute-phase`)
+
+**Codebase verification:** Brain #7 currently evaluates during PLANNING (Moment 2+3 in GSD workflow), not PRODUCTION sessions. KD-01 requires a NEW post-session hook — modify `StatelessCoordinator` or create a separate cron job.
+
+---
+
+**4. Dashboard Priorities (KD-03) — TOP 3 METRICS DEFINED**
+
+If only 3 metrics for v1 dashboard, these are the MOST valuable (ranked by outcome impact):
+
+**Metric 1: Delta-T1 (Learning Efficiency)**
+- **Definition:** Average session duration vs. 210-270s baseline
+- **Why:** This is the PRIMARY outcome metric. T1 reduction = ROI proof
+- **Target:** Sub-90s after learning kicks in
+- **Visualization:** Time series showing T1 trend over sessions, with vertical markers when templates were applied
+
+**Metric 2: Knowledge Yield (Reuse Rate)**
+- **Definition:** Percentage of new sessions that cite or accelerate using a distilled template
+- **Why:** Measures system learning viability. If knowledge is never reused, distillation has no value
+- **Target:** >30% of sessions should leverage templates by week 4
+- **Visualization:** Bar chart: "Sessions with template citation" vs. "Cold start sessions"
+
+**Metric 3: Planning Accuracy (Brain #7 Quality Score)**
+- **Definition:** Average Brain #7 score for planning coherence (0.0-1.0)
+- **Why:** Guards against "velocity at the cost of quality." Fast but wrong = zero value
+- **Target:** Maintain >0.75 average even as T1 decreases
+- **Visualization:** Scatter plot: T1 (x-axis) vs. Quality Score (y-axis) per session
+
+**Anti-patterns avoided:**
+- ❌ "Total sessions logged" — vanity metric, no outcome signal
+- ❌ "Number of templates created" — output, not outcome. 100 unused templates = zero value
+- ❌ "Brain execution count" — activity metric, irrelevant to learning
+
+### Deferred Items
+
+📅 Phase 15+ — Memory decay / TTL on experience records. Not needed for Phase 14 pilot (few records). Becomes critical when all 7 brains are logging. Design relevance filter before scaling.
+
+📅 v3.1+ — Cross-brain template sharing. Phase 14 focuses on per-brain templates. Future: Brain #1 can cite Brain #5's backend patterns when discussing frontend-backend tradeoffs.
+
+### Open Questions Requiring Brain Consultation
+
+1. **Brain #5:** What's the post-session evaluation hook? Modify `StatelessCoordinator` to call Brain #7 after session completion, or separate async job?
+2. **Brain #6:** How do we A/B test "memory enabled" vs. "memory disabled" to prove T1 improvement? Feature flag in brain_memory.py?
+3. **Brain #7:** What's the exact evaluation rubric for template worthiness? Is `quality_score >= 0.8` sufficient, or need additional criteria (e.g., session contained architectural decision)?
+

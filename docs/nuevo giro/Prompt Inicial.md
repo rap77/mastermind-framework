@@ -1,0 +1,3 @@
+```PROMPT
+tengo una idea: sobre la creacion de grupos de agentes multidisciplicarios, creando una plataforma para utilizar esos agentes y apoyen a las empresas a automatizar sus procesos, identificar sus dolores, que evaluen su negocio, por ejemplo: un grupo de agentes que les ayuden a atender clientes por whatsapp o varios canales al mismo tiempo de manera humanizasa, personalizada y profesional, un estilo agentic os empresarial, que mantenga la seguridad requerida por la empresa al igual que su privacidad, quiero que investigues la competencia, que hay en estos momentos desarrollado, que dolores tienen, que funcionalidades hay que igualar o superar, uno de los competidores que se escucha en mercado latinoamericano es agentify.ai
+```
