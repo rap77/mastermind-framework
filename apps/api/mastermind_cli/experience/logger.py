@@ -83,6 +83,9 @@ class ExperienceLogger:
             custom_metadata = {}
         if quality_score is not None:
             custom_metadata["quality_score"] = quality_score
+        else:
+            # Default quality score for backward compatibility (high enough to pass filter)
+            custom_metadata["quality_score"] = 2.0
 
         # Set default 90-day TTL if not provided
         if expires_at is None:
