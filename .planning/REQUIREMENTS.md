@@ -14,7 +14,7 @@
 ### Knowledge Distillation (KD) — Competitive Moat
 
 - [ ] **KD-01**: Brain #7 evaluates every brain output → feedback → adjusts brain memory. Delta-Velocity tracking measures improvement vs T1 baseline (210-270s target). Auto-learning loop runs after each orchestration session.
-- [ ] **KD-02**: Successful interactions automatically generate reusable templates. Brain #1 suggests templates based on recurring patterns across sessions. Templates storeable in per-brain knowledge base.
+- [x] **KD-02**: Successful interactions automatically generate reusable templates. Brain #1 suggests templates based on recurring patterns across sessions. Templates storeable in per-brain knowledge base.
 - [ ] **KD-03**: Dashboard shows: recurring patterns per brain, insights over time, correlation analysis between brains, delta-velocity trends. Operators see what brains learned and how expertise accumulates.
 
 ### Rust Control Plane (RCP) — Foundation
@@ -75,7 +75,7 @@
 | VS-02 | Phase 13 | Pending |
 | VS-03 | Phase 13 | Pending |
 | KD-01 | Phase 14 | Pending |
-| KD-02 | Phase 14 | Pending |
+| KD-02 | Phase 14 | Complete |
 | KD-03 | Phase 14 | Pending |
 | RCP-01 | Phase 15 | Pending |
 | RCP-02 | Phase 15 | Pending |
