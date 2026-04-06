@@ -456,42 +456,57 @@ class TestDistillationIntegration:
             DistillationTask,
         )
 
-        db = DatabaseConnection(":memory:")
-        await db.connect()
-        await db.create_experience_schema()
+        # Use file-based database so KnowledgeDistillationService can access it
+        import tempfile
+        import os
 
-        logger = ExperienceLogger(db)
+        fd, db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
 
-        # Create high-quality experience records
-        await logger.log_execution(
-            brain_id="brain-01-product",
-            input_json={"brief": "Test brief"},
-            output_json={"summary": "High quality session", "sections": ["S1", "S2"]},
-            duration_ms=600000,  # 10 minutes (high-value)
-            status="success",
-            custom_metadata={"quality_score": 3.5},
-        )
+        try:
+            db = DatabaseConnection(db_path)
+            await db.connect()
+            await db.create_experience_schema()
 
-        # Trigger distillation
-        service = KnowledgeDistillationService()
-        task = DistillationTask(
-            session_id="sess-001",
-            brain_ids=["brain-01-product"],
-            brief_summary="Test session",
-            execution_start_ms=0,
-            execution_end_ms=600000,
-            invocation_method="mm:execute-phase",
-        )
+            logger = ExperienceLogger(db)
 
-        await service.trigger_evaluation_and_distillation(task)
+            # Create high-quality experience records
+            await logger.log_execution(
+                brain_id="brain-01-product",
+                input_json={"brief": "Test brief"},
+                output_json={
+                    "summary": "High quality session",
+                    "sections": ["S1", "S2"],
+                },
+                duration_ms=600000,  # 10 minutes (high-value)
+                status="success",
+                custom_metadata={"quality_score": 3.5},
+            )
 
-        # Verify template was extracted
-        extractor = TemplateExtractor(logger)
-        templates = await extractor.get_templates_for_brain("brain-01-product")
+            # Trigger distillation (service uses same database)
+            service = KnowledgeDistillationService(db_path=db_path)
+            task = DistillationTask(
+                session_id="sess-001",
+                brain_ids=["brain-01-product"],
+                brief_summary="Test session",
+                execution_start_ms=0,
+                execution_end_ms=600000,
+                invocation_method="mm:execute-phase",
+            )
 
-        assert len(templates) > 0, "Should have extracted at least one template"
-        assert (
-            templates[0]["success_rate"] >= 0.5
-        ), "Templates should meet minimum success rate"
+            await service.trigger_evaluation_and_distillation(task)
 
-        await db.close()
+            # Verify template was extracted
+            extractor = TemplateExtractor(logger)
+            templates = await extractor.get_templates_for_brain("brain-01-product")
+
+            assert len(templates) > 0, "Should have extracted at least one template"
+            assert (
+                templates[0]["success_rate"] >= 0.5
+            ), "Templates should meet minimum success rate"
+
+            await db.close()
+        finally:
+            # Cleanup temp file
+            if os.path.exists(db_path):
+                os.unlink(db_path)

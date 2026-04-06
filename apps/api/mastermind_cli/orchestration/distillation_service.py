@@ -18,6 +18,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from mastermind_cli.experience.logger import ExperienceLogger
+from mastermind_cli.experience.template_extractor import TemplateExtractor
 from mastermind_cli.state.database import DatabaseConnection
 
 
@@ -49,7 +50,7 @@ class KnowledgeDistillationService:
     FastAPI BackgroundTasks to avoid blocking user responses.
     """
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str = "mastermind.db"):
         self.db_path = db_path
         self._db: Optional[DatabaseConnection] = None
 
@@ -91,13 +92,13 @@ class KnowledgeDistillationService:
         return False
 
     async def trigger_evaluation_and_distillation(self, task: DistillationTask) -> None:
-        """Post-session hook: Evaluate high-value sessions with Brain #7.
+        """Post-session hook: Evaluate high-value sessions + extract templates.
 
         This runs in background (non-blocking) after user receives 202 response.
-        Only high-value sessions trigger Brain #7 evaluation to avoid noise.
+        Only high-value sessions trigger evaluation and template extraction.
 
-        For Plan 14-02: Logs evaluation trigger without calling Brain #7 yet.
-        Brain #7 integration deferred to Plan 14-03.
+        Plan 14-03: Extract templates from high-quality experience records.
+        Templates with quality_score >= 3.0 are automatically extracted.
 
         Args:
             task: DistillationTask with session metadata
@@ -105,11 +106,26 @@ class KnowledgeDistillationService:
         if not self._is_high_value_session(task):
             return  # Skip evaluation for low-value sessions
 
-        # TODO: In Plan 14-03, call Brain #7 agent here
-        # For now: Log that evaluation was triggered
         db = await self._get_db()
         logger = ExperienceLogger(db)
 
+        # Fetch recent experience records for this session
+        brain_id = task.brain_ids[0] if task.brain_ids else "brain-01-product"
+        records = await logger.get_recent_by_brain(
+            brain_id=brain_id,
+            limit=10,
+        )
+
+        # Extract templates from high-quality records
+        extractor = TemplateExtractor(logger)
+        templates_extracted = 0
+
+        for record in records:
+            template_id = await extractor.extract_and_store_template(record)
+            if template_id:
+                templates_extracted += 1
+
+        # Log evaluation results
         await logger.log_execution(
             brain_id="brain-07-growth",
             input_json={
@@ -117,8 +133,9 @@ class KnowledgeDistillationService:
                 "brief": task.brief_summary,
             },
             output_json={
-                "evaluation_status": "triggered",
+                "evaluation_status": "complete",
                 "high_value": True,
+                "templates_extracted": templates_extracted,
             },
             duration_ms=task.execution_end_ms - task.execution_start_ms,
             status="success",
