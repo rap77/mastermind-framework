@@ -335,7 +335,8 @@ class DatabaseConnection:
                 embedding_stub BLOB,
                 parent_brain_id TEXT,
                 trace_context_id TEXT,
-                custom_metadata TEXT NOT NULL DEFAULT '{}'
+                custom_metadata TEXT NOT NULL DEFAULT '{}',
+                expires_at TEXT
             )
         """)
 
@@ -348,6 +349,11 @@ class DatabaseConnection:
         await self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_experience_trace "
             "ON experience_records(trace_context_id)"
+        )
+
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_experience_expires_at "
+            "ON experience_records(expires_at)"
         )
 
         await self.conn.commit()

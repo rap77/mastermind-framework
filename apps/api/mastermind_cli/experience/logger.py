@@ -11,6 +11,7 @@ from mastermind_cli.state.database import DatabaseConnection
 from typing import List, Optional, Dict, Any
 import aiosqlite
 import json
+from datetime import datetime, timedelta, timezone
 
 
 # Whitelist of allowed metadata keys for search_by_metadata (prevents SQL injection)
@@ -58,6 +59,7 @@ class ExperienceLogger:
         trace_context_id: Optional[str] = None,
         custom_metadata: Dict[str, Any] | None = None,
         quality_score: Optional[float] = None,
+        expires_at: Optional[str] = None,
     ) -> str:
         """Log execution with automatic PII redaction.
 
@@ -71,6 +73,7 @@ class ExperienceLogger:
             trace_context_id: Optional trace context ID
             custom_metadata: Optional custom metadata dictionary
             quality_score: Optional quality score for filtering
+            expires_at: Optional expiry timestamp (ISO 8601). Defaults to 90 days if not provided
 
         Returns:
             Record ID (UUID4)
@@ -80,6 +83,13 @@ class ExperienceLogger:
             custom_metadata = {}
         if quality_score is not None:
             custom_metadata["quality_score"] = quality_score
+
+        # Set default 90-day TTL if not provided
+        if expires_at is None:
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=90)).isoformat()
+            custom_metadata["expires_at"] = expires_at
+        elif expires_at is not None:
+            custom_metadata["expires_at"] = expires_at
 
         # Create record with auto-generated fields
         record = ExperienceRecord.create(
@@ -96,11 +106,14 @@ class ExperienceLogger:
         # Redact PII before storage
         redacted_output = redact_for_storage(record.output_json)
 
+        # Extract expires_at from custom_metadata for column storage
+        expires_at_value = custom_metadata.get("expires_at") if custom_metadata else None
+
         await self.db.conn.execute(
             """INSERT INTO experience_records
                (id, brain_id, input_hash, output_json, timestamp, duration_ms, status,
-                parent_brain_id, trace_context_id, custom_metadata)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                parent_brain_id, trace_context_id, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 record.id,
                 record.brain_id,
@@ -112,6 +125,7 @@ class ExperienceLogger:
                 record.parent_brain_id,
                 record.trace_context_id,
                 json.dumps(record.custom_metadata),
+                expires_at_value,
             ),
         )
         await self.db.conn.commit()
@@ -153,6 +167,7 @@ class ExperienceLogger:
                WHERE brain_id = ?
                  AND json_extract(custom_metadata, '$.quality_score') >= ?
                  AND status != 'rejected'
+                 AND (expires_at IS NULL OR expires_at > datetime('now'))
                ORDER BY timestamp DESC
                LIMIT ?""",
             (brain_id, min_quality_score, limit),
@@ -232,6 +247,13 @@ class ExperienceLogger:
         Returns:
             ExperienceRecord instance
         """
+        # Parse custom_metadata
+        custom_metadata = json.loads(row[10])
+
+        # Merge expires_at from column into custom_metadata if present
+        if len(row) > 11 and row[11] is not None:
+            custom_metadata["expires_at"] = row[11]
+
         return ExperienceRecord(
             id=row[0],
             brain_id=row[1],
@@ -243,7 +265,7 @@ class ExperienceLogger:
             embedding_stub=row[7],
             parent_brain_id=row[8],
             trace_context_id=row[9],
-            custom_metadata=json.loads(row[10]),
+            custom_metadata=custom_metadata,
         )
 
 
