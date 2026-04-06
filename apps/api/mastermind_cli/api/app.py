@@ -20,7 +20,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from mastermind_cli.api.dependencies import get_db_path
-from mastermind_cli.api.routes import auth, tasks, brains
+from mastermind_cli.api.routes import analytics, auth, tasks, brains
 from mastermind_cli.api.routes.executions import router as executions_router
 from mastermind_cli.api.routes.experiences import router as experiences_router
 from mastermind_cli.api.routes.keys import (
@@ -122,6 +122,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         experiences_router, prefix="/api/experiences", tags=["Experiences"]
     )
     app.include_router(keys_router, prefix="/api/keys", tags=["API Keys"])
+    app.include_router(analytics.router)  # Analytics endpoints
     app.include_router(websocket_router, tags=["WebSocket"])
 
     # Serve dashboard HTML

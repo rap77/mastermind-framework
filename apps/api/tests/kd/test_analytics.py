@@ -308,3 +308,217 @@ class TestAnalyticsServicePatterns:
         assert "brain-001" in patterns
         assert len(patterns) == 1  # Only brain-001
         assert "brain-002" not in patterns
+
+
+class TestAnalyticsEndpoints:
+    """Test analytics API endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_system_health_endpoint(
+        self, async_db: DatabaseConnection, sample_records
+    ):
+        """Test GET /api/analytics/system-health returns system health metrics."""
+        from fastapi.testclient import TestClient
+        from mastermind_cli.api.app import create_app
+        from mastermind_cli.api.dependencies import get_db_path
+        import tempfile
+
+        # Use file-based database to persist data across test
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            db_path = f.name
+
+        # Create schema and insert data
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            # Re-insert sample records
+            now = datetime.utcnow()
+            samples = [
+                ("brain-001", "completed", 100, 0.85, None),
+                ("brain-001", "completed", 150, 0.90, None),
+                ("brain-001", "rejected", 200, 0.30, None),
+            ]
+            for brain_id, status, duration_ms, quality_score, expires_at in samples:
+                await db.conn.execute(
+                    """INSERT INTO experience_records
+                       (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"record-{brain_id}-{duration_ms}",
+                        brain_id,
+                        f"hash-{brain_id}-{duration_ms}",
+                        f"Test output for {brain_id}",
+                        now.isoformat(),
+                        duration_ms,
+                        status,
+                        f'{{"quality_score": {quality_score}}}',
+                        expires_at,
+                    ),
+                )
+            await db.conn.commit()
+
+        app = create_app(db_path)
+        app.dependency_overrides[get_db_path] = lambda: db_path
+        client = TestClient(app)
+        response = client.get("/api/analytics/system-health")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "record_count" in data
+        assert "avg_quality_score" in data
+        assert "rejection_rate" in data
+        assert "p50_latency_ms" in data
+        assert "p90_latency_ms" in data
+        assert "t1_trend" in data
+
+    @pytest.mark.asyncio
+    async def test_templates_endpoint(
+        self, async_db: DatabaseConnection, sample_templates
+    ):
+        """Test GET /api/analytics/templates returns templates ordered by success_rate."""
+        from fastapi.testclient import TestClient
+        from mastermind_cli.api.app import create_app
+        from mastermind_cli.api.dependencies import get_db_path
+        import tempfile
+
+        # Use file-based database to persist data across test
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            db_path = f.name
+
+        # Create schema and insert data
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            # Re-insert sample templates
+            now = datetime.utcnow()
+            templates = [
+                ("brain-001", "Template A", 0.95, 50),
+                ("brain-001", "Template B", 0.85, 30),
+                ("brain-002", "Template C", 0.75, 20),
+                ("brain-003", "Template D", 0.90, 40),
+            ]
+            for brain_id, template_name, success_rate, usage_count in templates:
+                await db.conn.execute(
+                    """INSERT INTO knowledge_templates
+                       (id, brain_id, template_name, template_data, success_rate, usage_count, created_at, last_used_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"template-{brain_id}-{template_name}",
+                        brain_id,
+                        template_name,
+                        f'{{"pattern": "{template_name}"}}',
+                        success_rate,
+                        usage_count,
+                        now.isoformat(),
+                        now.isoformat(),
+                    ),
+                )
+            await db.conn.commit()
+
+        app = create_app(db_path)
+        app.dependency_overrides[get_db_path] = lambda: db_path
+        client = TestClient(app)
+        response = client.get("/api/analytics/templates")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 4  # All 4 templates
+
+        # Verify ordering by success_rate DESC
+        if len(data) > 1:
+            assert data[0]["success_rate"] >= data[1]["success_rate"]
+
+    @pytest.mark.asyncio
+    async def test_patterns_endpoint(
+        self, async_db: DatabaseConnection, sample_records
+    ):
+        """Test GET /api/analytics/patterns returns patterns grouped by brain."""
+        from fastapi.testclient import TestClient
+        from mastermind_cli.api.app import create_app
+        from mastermind_cli.api.dependencies import get_db_path
+        import tempfile
+
+        # Use file-based database to persist data across test
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            db_path = f.name
+
+        # Create schema and insert data
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            now = datetime.utcnow()
+            await db.conn.execute(
+                """INSERT INTO experience_records
+                   (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    "record-pattern-test",
+                    "brain-001",
+                    "test-hash",
+                    "Response",
+                    now.isoformat(),
+                    100,
+                    "completed",
+                    '{"quality_score": 0.8}',
+                    None,
+                ),
+            )
+            await db.conn.commit()
+
+        app = create_app(db_path)
+        app.dependency_overrides[get_db_path] = lambda: db_path
+        client = TestClient(app)
+        response = client.get("/api/analytics/patterns")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
+
+        # Should have patterns for at least one brain
+        if data:
+            assert "brain-001" in data or "brain-002" in data or "brain-003" in data
+
+    @pytest.mark.asyncio
+    async def test_outcome_metrics_endpoint(
+        self, async_db: DatabaseConnection, sample_records
+    ):
+        """Test GET /api/analytics/outcome-metrics returns outcome metrics."""
+        from fastapi.testclient import TestClient
+        from mastermind_cli.api.app import create_app
+        from mastermind_cli.api.dependencies import get_db_path
+        import tempfile
+
+        # Use file-based database to persist data across test
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            db_path = f.name
+
+        # Create schema and insert data
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            now = datetime.utcnow()
+            await db.conn.execute(
+                """INSERT INTO experience_records
+                   (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    "record-outcome-test",
+                    "brain-001",
+                    "test-hash",
+                    "Response",
+                    now.isoformat(),
+                    100,
+                    "completed",
+                    '{"quality_score": 0.8}',
+                    None,
+                ),
+            )
+            await db.conn.commit()
+
+        app = create_app(db_path)
+        app.dependency_overrides[get_db_path] = lambda: db_path
+        client = TestClient(app)
+        response = client.get("/api/analytics/outcome-metrics")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "delta_velocity" in data
+        assert "knowledge_yield" in data
+        assert "planning_accuracy" in data
