@@ -144,6 +144,23 @@ class TestTemplateExtractor:
         logger = ExperienceLogger(db)
         extractor = TemplateExtractor(logger)
 
+        # Insert a dummy template to avoid cold start mode
+        await db.conn.execute(
+            """INSERT INTO knowledge_templates
+               (id, brain_id, template_name, template_data, success_rate, usage_count, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "dummy-tmpl",
+                "brain-01",
+                "Dummy",
+                "{}",
+                1.0,
+                0,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        await db.conn.commit()
+
         # Create low-quality record (quality_score = 2.5)
         record = ExperienceRecord(
             id="rec-001",
