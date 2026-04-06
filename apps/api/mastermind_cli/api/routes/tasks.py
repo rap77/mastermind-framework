@@ -7,6 +7,7 @@ Security: OWASP A03 (XSS) - Server-side brief sanitization
 """
 
 import json
+import time
 import uuid
 from datetime import datetime
 from html import escape
@@ -19,6 +20,10 @@ from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.api.services.graph_builder import build_niche_clustered_graph
 from mastermind_cli.api.services.task_runner import run_brain_task
+from mastermind_cli.orchestration.distillation_service import (
+    KnowledgeDistillationService,
+    DistillationTask,
+)
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
 from mastermind_cli.state.database import DatabaseConnection
 
@@ -170,6 +175,26 @@ async def create_auto_task(
         brief=brief_sanitized,
         flow=detected_flow,
         db_path=db_path,
+    )
+
+    # NEW: Hook distillation after orchestration completes
+    execution_start_ms = int(time.time() * 1000)
+
+    distillation_service = KnowledgeDistillationService(db_path=db_path)
+    distillation_task = DistillationTask(
+        session_id=task_id,
+        brain_ids=[detected_flow] if isinstance(detected_flow, str) else [],
+        brief_summary=brief_sanitized[:200],  # Truncate for storage
+        execution_start_ms=execution_start_ms,
+        execution_end_ms=execution_start_ms,  # Placeholder; will update in AgentRunner
+        invocation_method="mm:execute-phase",  # Detect from request context if needed
+        user_id=user_id,
+    )
+
+    # Fire-and-forget: Non-blocking, executes AFTER user receives 202 response
+    background_tasks.add_task(
+        distillation_service.trigger_evaluation_and_distillation,
+        distillation_task,
     )
 
     return AutoTaskResponse(
