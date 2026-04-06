@@ -15,14 +15,15 @@ from mastermind_cli.state.database import DatabaseConnection
 
 
 @pytest.fixture
-async def analytics_service(db: DatabaseConnection) -> AnalyticsService:
+async def analytics_service(async_db: DatabaseConnection) -> AnalyticsService:
     """Create analytics service fixture."""
-    return AnalyticsService(db)
+    return AnalyticsService(async_db)
 
 
 @pytest.fixture
-async def sample_records(db: DatabaseConnection) -> None:
+async def sample_records(async_db: DatabaseConnection) -> None:
     """Create sample experience records for testing."""
+    await async_db.create_experience_schema()
     now = datetime.utcnow()
 
     # Insert 10 sample records with varying quality and duration
@@ -41,27 +42,29 @@ async def sample_records(db: DatabaseConnection) -> None:
     ]
 
     for brain_id, status, duration_ms, quality_score, expires_at in samples:
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO experience_records
-               (brain_id, brief, response, status, duration_ms, timestamp, custom_metadata, expires_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                f"record-{brain_id}-{duration_ms}",
                 brain_id,
-                f"Test brief for {brain_id}",
-                f"Test response for {brain_id}",
-                status,
+                f"hash-{brain_id}-{duration_ms}",
+                f"Test output for {brain_id}",
+                now.isoformat(),
                 duration_ms,
-                now,
+                status,
                 f'{{"quality_score": {quality_score}}}',
                 expires_at,
             ),
         )
-    await db.conn.commit()
+    await async_db.conn.commit()
 
 
 @pytest.fixture
-async def sample_templates(db: DatabaseConnection) -> None:
+async def sample_templates(async_db: DatabaseConnection) -> None:
     """Create sample knowledge templates for testing."""
+    await async_db.create_experience_schema()
     now = datetime.utcnow()
 
     templates = [
@@ -73,21 +76,22 @@ async def sample_templates(db: DatabaseConnection) -> None:
     ]
 
     for brain_id, template_name, success_rate, usage_count in templates:
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO knowledge_templates
-               (brain_id, template_name, pattern_json, success_rate, usage_count, created_at, last_used_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, template_name, template_data, success_rate, usage_count, created_at, last_used_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                f"template-{brain_id}-{template_name}",
                 brain_id,
                 template_name,
                 f'{{"pattern": "{template_name}"}}',
                 success_rate,
                 usage_count,
-                now,
-                now,
+                now.isoformat(),
+                now.isoformat(),
             ),
         )
-    await db.conn.commit()
+    await async_db.conn.commit()
 
 
 class TestAnalyticsServiceSystemHealth:
@@ -128,29 +132,32 @@ class TestAnalyticsServiceSystemHealth:
         assert metrics.rejection_rate == 0.2
 
     @pytest.mark.asyncio
+    @pytest.mark.asyncio
     async def test_get_system_health_filters_expired_records(
-        self, analytics_service: AnalyticsService, db: DatabaseConnection
+        self, analytics_service: AnalyticsService, async_db: DatabaseConnection
     ):
         """Test get_system_health() filters out expired records (expires_at < now)."""
+        await async_db.create_experience_schema()
         now = datetime.utcnow()
 
         # Insert expired record
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO experience_records
-               (brain_id, brief, response, status, duration_ms, timestamp, custom_metadata, expires_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                "record-expired",
                 "brain-001",
-                "Expired brief",
-                "Expired response",
-                "completed",
+                "hash-expired",
+                "Expired output",
+                now.isoformat(),
                 1000,
-                now,
+                "completed",
                 '{"quality_score": 0.5}',
-                now - timedelta(days=1),  # Expired yesterday
+                (now - timedelta(days=1)).isoformat(),  # Expired yesterday
             ),
         )
-        await db.conn.commit()
+        await async_db.conn.commit()
 
         metrics = await analytics_service.get_system_health()
 
@@ -215,43 +222,46 @@ class TestAnalyticsServicePatterns:
 
     @pytest.mark.asyncio
     async def test_get_patterns_groups_by_brain_and_input_hash(
-        self, analytics_service: AnalyticsService, db: DatabaseConnection
+        self, analytics_service: AnalyticsService, async_db: DatabaseConnection
     ):
         """Test get_patterns() groups experience_records by brain_id + brief similarity."""
+        await async_db.create_experience_schema()
         now = datetime.utcnow()
 
         # Insert records with same input_hash (same brief)
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO experience_records
-               (brain_id, brief, response, status, duration_ms, timestamp, custom_metadata, expires_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                "record-pattern-1",
                 "brain-001",
-                "Repeated brief",  # Same brief = same hash
+                "repeated-hash",  # Same hash
                 "Response 1",
-                "completed",
+                now.isoformat(),
                 100,
-                now,
+                "completed",
                 '{"quality_score": 0.8}',
                 None,
             ),
         )
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO experience_records
-               (brain_id, brief, response, status, duration_ms, timestamp, custom_metadata, expires_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                "record-pattern-2",
                 "brain-001",
-                "Repeated brief",  # Same brief = same hash
+                "repeated-hash",  # Same hash
                 "Response 2",
-                "completed",
+                now.isoformat(),
                 150,
-                now,
+                "completed",
                 '{"quality_score": 0.9}',
                 None,
             ),
         )
-        await db.conn.commit()
+        await async_db.conn.commit()
 
         patterns = await analytics_service.get_patterns()
 
@@ -269,27 +279,29 @@ class TestAnalyticsServicePatterns:
 
     @pytest.mark.asyncio
     async def test_get_patterns_filters_by_brain_id(
-        self, analytics_service: AnalyticsService, db: DatabaseConnection
+        self, analytics_service: AnalyticsService, async_db: DatabaseConnection
     ):
         """Test get_patterns() filters by brain_id when provided."""
+        await async_db.create_experience_schema()
         now = datetime.utcnow()
 
-        await db.conn.execute(
+        await async_db.conn.execute(
             """INSERT INTO experience_records
-               (brain_id, brief, response, status, duration_ms, timestamp, custom_metadata, expires_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
+                "record-filter-test",
                 "brain-001",
-                "Test brief",
+                "test-hash",
                 "Response",
-                "completed",
+                now.isoformat(),
                 100,
-                now,
+                "completed",
                 '{"quality_score": 0.8}',
                 None,
             ),
         )
-        await db.conn.commit()
+        await async_db.conn.commit()
 
         patterns = await analytics_service.get_patterns(brain_id="brain-001")
 
