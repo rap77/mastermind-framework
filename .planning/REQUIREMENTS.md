@@ -19,7 +19,7 @@
 
 ### Rust Control Plane (RCP) — Foundation
 
-- [ ] **RCP-01**: SQLite migrates to PostgreSQL 16 + pgvector. Dual-write migration strategy (SQLite + PostgreSQL simultaneously → read migration → primary switch → SQLite removal). SQLx compile-time verified queries. All 620 existing tests pass against PostgreSQL.
+- [x] **RCP-01**: SQLite migrates to PostgreSQL 16 + pgvector. Dual-write migration strategy (SQLite + PostgreSQL simultaneously → read migration → primary switch → SQLite removal). SQLx compile-time verified queries. All 620 existing tests pass against PostgreSQL.
 - [ ] **RCP-02**: JWT auth + RBAC migrated from Python (jose) to Rust (Axum middleware). Role-based access control per organization. Refresh token rotation preserved. CVE-2025-29927 mitigation replicated in Rust.
 - [ ] **RCP-03**: Immutable `activity_log` table via event sourcing. Every brain operation = event with brain_id, timestamp, type, payload. Temporal queries for analytics. Audit trail across all services.
 
@@ -77,7 +77,7 @@
 | KD-01 | Phase 14 | Pending |
 | KD-02 | Phase 14 | Complete |
 | KD-03 | Phase 14 | Pending |
-| RCP-01 | Phase 15 | Pending |
+| RCP-01 | Phase 15 | Complete |
 | RCP-02 | Phase 15 | Pending |
 | RCP-03 | Phase 15 | Pending |
 | OBS-01 | Phase 16 | Pending |

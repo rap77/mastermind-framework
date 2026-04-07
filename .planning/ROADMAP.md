@@ -78,7 +78,7 @@
 2. JWT auth + RBAC migrated from Python (jose) to Rust (Axum middleware) — role-based access control per organization, refresh token rotation preserved
 3. Immutable `activity_log` table via event sourcing — every brain operation = event with brain_id, timestamp, type, payload for temporal queries and audit trail
 
-**Plans:** 4 plans ready
+**Plans:** 3/4 plans executed
 
 - [ ] 15-01-PLAN.md — PostgreSQL 16 + pgvector foundation + Rust project structure (Wave 1)
 - [ ] 15-02-PLAN.md — JWT auth + RBAC migrated from Python to Rust (Wave 2)
@@ -149,7 +149,7 @@
 |-------|----------------|--------|-----------|
 | 13. Vertical Slice | 4/4 | Complete | ✅ 2026-04-05 |
 | 14. Knowledge Distillation | 4/4 | Complete   | 2026-04-06 |
-| 15. Rust Control Plane | 0/4 | Not started | - |
+| 15. Rust Control Plane | 3/4 | In Progress|  |
 | 16. Observability + Real-time Hub | 0/2 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
 | 18. Multi-channel Gateway | 0/1 | Not started | - |
