@@ -19,27 +19,28 @@ impl EventStore {
         event_type: BrainEventType,
         payload: serde_json::Value,
     ) -> Result<BrainEvent> {
-        let event = BrainEvent {
-            id: Uuid::new_v4(),
-            brain_id: brain_id.to_string(),
-            event_type,
-            payload,
-            created_at: Utc::now(),
-        };
+        let id = Uuid::new_v4();
+        let created_at = Utc::now();
 
         sqlx::query!(
             "INSERT INTO activity_log (id, brain_id, event_type, payload, created_at)
              VALUES ($1, $2, $3, $4, $5)",
-            event.id,
-            event.brain_id,
-            event.event_type as BrainEventType,
-            event.payload,
-            event.created_at,
+            id,
+            brain_id,
+            event_type as BrainEventType,
+            payload,
+            created_at,
         )
         .execute(&self.pool)
         .await?;
 
-        Ok(event)
+        Ok(BrainEvent {
+            id,
+            brain_id: brain_id.to_string(),
+            event_type,
+            payload,
+            created_at,
+        })
     }
 
     pub async fn read_events(

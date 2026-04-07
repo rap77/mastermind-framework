@@ -20,6 +20,7 @@ mod handlers;
 mod auth;
 mod state;
 mod sqlite_reader;
+mod event_sourcing;
 
 use db::connect_pool;
 use auth::auth_middleware;
@@ -68,6 +69,9 @@ async fn main() -> Result<()> {
         .route("/api/auth/refresh", post(handlers::auth::refresh))
         // Protected auth routes (require authentication)
         .route("/api/auth/logout", post(handlers::auth::logout))
+        // Audit log routes (protected, admin-only)
+        .route("/api/audit/activity", get(handlers::audit::get_activity_log))
+        .route("/api/audit/brain/:brain_id", get(handlers::audit::get_brain_timeline))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
