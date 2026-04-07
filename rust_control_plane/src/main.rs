@@ -1,12 +1,15 @@
 use anyhow::Result;
 use axum::{
-    routing::get,
+    routing::{get, post},
     Router,
     Json,
     response::IntoResponse,
     http::StatusCode,
+    middleware,
+    extract::State,
 };
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tracing::{info, error};
@@ -15,8 +18,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod db;
 mod handlers;
 mod auth;
+mod state;
 
 use db::connect_pool;
+use auth::auth_middleware;
+use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -35,13 +41,37 @@ async fn main() -> Result<()> {
 
     let pool = connect_with_retry(&database_url, 3).await?;
 
+    // Validate JWT_SECRET on startup
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .map_err(|_| anyhow::anyhow!("JWT_SECRET environment variable not set"))?;
+
+    if jwt_secret.len() < 32 {
+        anyhow::bail!("JWT_SECRET must be at least 32 characters");
+    }
+
+    info!("JWT_SECRET validated (length: {})", jwt_secret.len());
+
+    // Create application state
+    let state = AppState {
+        pool,
+        jwt_secret: Arc::new(jwt_secret),
+    };
+
     // Build our application with routes
     let app = Router::new()
+        // Health check routes (public)
         .route("/health", get(handlers::health::health_check))
-        .route("/health/db", get({
-            let pool = pool.clone();
-            move || handlers::health::database_health(pool)
-        }));
+        .route("/health/db", get(handlers::health::db_health))
+        // Auth routes (public)
+        .route("/api/auth/login", post(handlers::auth::login))
+        .route("/api/auth/refresh", post(handlers::auth::refresh))
+        // Protected auth routes (require authentication)
+        .route("/api/auth/logout", post(handlers::auth::logout))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
+        .with_state(state);
 
     // Create TCP listener
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

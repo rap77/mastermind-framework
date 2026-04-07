@@ -20,6 +20,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 jsonwebtoken = "9.2"
 bcrypt = "0.15"
 rusqlite = { version = "0.32", features = ["bundled"] }
+futures = "0.3"
 
 [dev-dependencies]
 sqlx-cli = "0.8"

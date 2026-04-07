@@ -22,6 +22,14 @@ impl std::str::FromStr for Role {
     }
 }
 
+impl TryFrom<String> for Role {
+    type Error = anyhow::Error;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        s.as_str().parse()
+    }
+}
+
 impl std::fmt::Display for Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -32,7 +40,7 @@ impl std::fmt::Display for Role {
 }
 
 /// User model with role (simplified - organization_id removed)
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub username: String,
@@ -63,6 +71,7 @@ pub struct LoginRequest {
 pub struct TokenResponse {
     pub access_token: String,
     pub refresh_token: String,
+    pub token_type: String,
     pub expires_in: i64,  // 1800 seconds (30 minutes)
 }
 

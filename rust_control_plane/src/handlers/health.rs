@@ -1,8 +1,8 @@
-use axum::{Json, response::IntoResponse, http::StatusCode};
+use axum::{Json, extract::State, response::IntoResponse, http::StatusCode};
 use serde_json::json;
-use sqlx::PgPool;
 
 use crate::db::health_check as db_health_check;
+use crate::state::AppState;
 
 /// Basic health check endpoint (does not query database)
 pub async fn health_check() -> impl IntoResponse {
@@ -17,8 +17,8 @@ pub async fn health_check() -> impl IntoResponse {
 ///
 /// Returns 503 Service Unavailable if PostgreSQL is down.
 /// Returns 200 OK with pool statistics if PostgreSQL is healthy.
-pub async fn database_health(pool: PgPool) -> impl IntoResponse {
-    match db_health_check(&pool).await {
+pub async fn db_health(State(state): State<AppState>) -> impl IntoResponse {
+    match db_health_check(&state.pool).await {
         Ok(status) => Json(json!({
             "status": "healthy",
             "database": "postgresql",
