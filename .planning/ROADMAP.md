@@ -102,7 +102,15 @@
 3. Rust WebSocket Hub (Tokio-tungstenite) handles thousands of concurrent connections without GC pauses — events: brain_started, brain_completed, brain_routed, brain_failed
 4. Ghost Mode buffer (100-event replay) replicated in Tokio + Redis pub/sub for cross-service broadcast
 
-**Plans:** TBD
+**Plans:** 7 plans
+
+- [ ] 16-01-PLAN.md — Structured logging (Rust tracing + Python structlog)
+- [ ] 16-02-PLAN.md — Distributed tracing (trace_id propagation, gRPC interceptor)
+- [ ] 16-03-PLAN.md — Health checks (liveness + readiness with dependency checks)
+- [ ] 16-04-PLAN.md — WebSocket Hub foundation (tokio-tungstenite + bounded channels + max_connections ceiling)
+- [ ] 16-05-PLAN.md — Ghost Mode buffer (in-memory ring buffer + replay endpoint)
+- [ ] 16-06-PLAN.md — Metrics exposition (Prometheus `/metrics` endpoint)
+- [ ] 16-07-PLAN.md — Load testing suite (k6 scripts for 1000 connections)
 
 ---
 
@@ -150,7 +158,7 @@
 | 13. Vertical Slice | 4/4 | Complete | ✅ 2026-04-05 |
 | 14. Knowledge Distillation | 4/4 | Complete   | 2026-04-06 |
 | 15. Rust Control Plane | 6/4 | Complete    | 2026-04-07 |
-| 16. Observability + Real-time Hub | 0/2 | Not started | - |
+| 16. Observability + Real-time Hub | 0/7 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
 | 18. Multi-channel Gateway | 0/1 | Not started | - |
 
@@ -197,5 +205,5 @@ From Brain #1 + Brain #7 validation:
 
 ---
 *Roadmap created: 2026-04-05*
-*Last updated: 2026-04-06 (Phase 14 plans: 4 plans ready)*
-*Ready for execution: `/mm:execute-phase 14`*
+*Last updated: 2026-04-07 (Phase 16 plans: 7 plans ready)*
+*Ready for execution: `/mm:execute-phase 16`*
