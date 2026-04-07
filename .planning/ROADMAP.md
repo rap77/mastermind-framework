@@ -149,7 +149,7 @@
 |-------|----------------|--------|-----------|
 | 13. Vertical Slice | 4/4 | Complete | ✅ 2026-04-05 |
 | 14. Knowledge Distillation | 4/4 | Complete   | 2026-04-06 |
-| 15. Rust Control Plane | 6/4 | Complete   | 2026-04-07 |
+| 15. Rust Control Plane | 6/4 | Complete    | 2026-04-07 |
 | 16. Observability + Real-time Hub | 0/2 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
 | 18. Multi-channel Gateway | 0/1 | Not started | - |

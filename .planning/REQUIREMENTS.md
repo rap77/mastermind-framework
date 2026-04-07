@@ -7,9 +7,9 @@
 
 ### Vertical Slice (VS) — Architecture Validation
 
-- [ ] **VS-01**: One API path round-trips end-to-end: Next.js → Rust (Axum) → gRPC → Python (FastAPI) → response → UI renders. Proves 3-service architecture works before committing to full Rust build.
-- [ ] **VS-02**: Single `.proto` source auto-generates types for Rust (tonic + prost), Python (grpclib), and TypeScript (ts-proto). Proto Sync CI gate prevents type drift across services.
-- [ ] **VS-03**: Rust velocity is measured against Python baseline during VS phase. If Rust velocity < 0.5x Python at midpoint, escape hatch activates: Rust only for WebSocket Hub + Adapter Registry, rest stays Python.
+- [x] **VS-01**: One API path round-trips end-to-end: Next.js → Rust (Axum) → gRPC → Python (FastAPI) → response → UI renders. Proves 3-service architecture works before committing to full Rust build.
+- [x] **VS-02**: Single `.proto` source auto-generates types for Rust (tonic + prost), Python (grpclib), and TypeScript (ts-proto). Proto Sync CI gate prevents type drift across services.
+- [x] **VS-03**: Rust velocity is measured against Python baseline during VS phase. If Rust velocity < 0.5x Python at midpoint, escape hatch activates: Rust only for WebSocket Hub + Adapter Registry, rest stays Python.
 
 ### Knowledge Distillation (KD) — Competitive Moat
 
@@ -71,9 +71,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VS-01 | Phase 13 | Pending |
-| VS-02 | Phase 13 | Pending |
-| VS-03 | Phase 13 | Pending |
+| VS-01 | Phase 13 | Complete |
+| VS-02 | Phase 13 | Complete |
+| VS-03 | Phase 13 | Complete |
 | KD-01 | Phase 14 | Pending |
 | KD-02 | Phase 14 | Complete |
 | KD-03 | Phase 14 | Pending |
