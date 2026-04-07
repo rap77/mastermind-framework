@@ -3,46 +3,46 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: milestone
 current_phase: Phase 15 (Rust Control Plane) — 🟡 **IN PROGRESS**
-status: Plan 15-01 complete (PostgreSQL foundation + Rust project structure)
-last_updated: "2026-04-07T01:55:16.000Z"
+status: Plan 15-02 complete (JWT auth + RBAC implementation)
+last_updated: "2026-04-07T02:45:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # STATE.md — MasterMind v3.0
 
 **Milestone:** Enterprise Agent Orchestration Platform with Knowledge Distillation for LATAM
 **Current Phase:** Phase 15 (Rust Control Plane) — 🟡 **IN PROGRESS**
-**Last Updated:** 2026-04-07 01:55
+**Last Updated:** 2026-04-07 02:45
 
 ## Progress Bar
 
 ```
 Phase 13: [██████████] 100% (4/4 plans complete) — 3/3 requirements met ✅
 Phase 14: [██████████] 100% (4/4 plans complete) — 3/3 requirements met ✅
-Phase 15: [███░░░░░░░] 25% (1/4 plans complete) — 1/4 requirements met ✅
+Phase 15: [█████░░░░░] 50% (2/4 plans complete) — 2/4 requirements met ✅
 Phase 16: [░░░░░░░░░░] 0% (0/2 requirements)
 Phase 17: [░░░░░░░░░░] 0% (0/3 requirements)
 Phase 18: [░░░░░░░░░░] 0% (0/1 requirements)
 
-Overall: [███████░░░] 36% (10/13 plans, 1/4 Phase 15 requirements)
+Overall: [███████░░░] 38% (11/13 plans, 2/4 Phase 15 requirements)
 ```
 
 ## Current Position
 
 **Phase:** 15 (Rust Control Plane) — 🟡 **IN PROGRESS**
-**Plans:** 1 of 4 plans executed (15-01 ✅, 15-02 pending, 15-03 pending, 15-04 pending)
-**Status:** PostgreSQL foundation complete, Rust project scaffolded, health endpoints operational
+**Plans:** 2 of 4 plans executed (15-01 ✅, 15-02 ✅, 15-03 pending, 15-04 pending)
+**Status:** JWT auth + RBAC complete, refresh token rotation implemented
 **Active Branch:** `master`
 
 ## Project Reference
 
 **Core Value:** Enterprise agent orchestration platform with knowledge distillation from world-class experts for LATAM
 
-**Current Focus:** Phase 15 Plan 01 complete — PostgreSQL 16 + pgvector running, 7 tables migrated, Rust control plane with health endpoints
+**Current Focus:** Phase 15 Plan 02 complete — JWT auth with refresh token rotation (CVE-2025-29927 mitigation), RBAC with 2-tier role system
 
 **Technical Stack (v3.0):**
 - **Rust:** Axum 0.7 + Tokio 1.x + tonic 0.11 (Control Plane) ✅ VALIDATED
@@ -222,11 +222,65 @@ From Brain #1 + Brain #7 validation:
 - ✅ Task 4: Axum health check integration
 
 **Next Steps:**
-- **Plan 15-02:** JWT auth + RBAC implementation (5 tasks, ~4-5h)
+- **Plan 15-03:** gRPC service definitions (3 tasks, ~2-3h)
+- `/mm:execute-phase 15` — Continue with remaining plans
+
+---
+
+**Last Session:** 2026-04-07T02:45:00.000Z
+
+**What Was Done:**
+- **Plan 15-02 execution complete** — All 5 tasks executed (100%)
+- **JWT authentication implementation:**
+  - Token generation and validation (30min access, 24h refresh)
+  - Password hashing with bcrypt (cost 12)
+  - Refresh token rotation (CVE-2025-29927 mitigation)
+- **RBAC implementation:**
+  - 2-tier role system (Admin/User)
+  - Role-based authorization middleware
+  - JWT validation middleware for protected routes
+- **Auth endpoints:**
+  - POST /api/auth/login (generate tokens)
+  - POST /api/auth/refresh (rotate tokens)
+  - POST /api/auth/logout (revoke sessions)
+- **Schema migration:**
+  - Added role column to users table
+  - CHECK constraint for valid roles
+- **Verification:**
+  - Build successful (0 errors, 17 warnings)
+  - All type errors resolved
+  - JWT_SECRET validation on startup
+- **Duration:** 45 minutes
+- **Commits:** 4 atomic commits (7870d8a, 19b34b3, 49d5b3a, 76ba4d1)
+
+**Key Decisions:**
+- **Simplified RBAC:** 3 roles → 2 roles (org_admin deferred to Phase 17)
+- **Manual User construction:** query! + manual parsing instead of query_as! (avoids type inference issues)
+- **Thread-safe JWT secret:** Arc<String> for read-only sharing across async handlers
+- **Transactional rotation:** PostgreSQL transaction ensures atomicity (DELETE old + INSERT new)
+
+**Deviations:**
+- 7 auto-fixed issues (3 bugs, 1 blocking, 3 missing critical)
+- Type inference errors with sqlx macros (fixed with manual construction)
+- FromRequestParts lifetime mismatch (removed implementation)
+- Missing Arc import (added to main.rs)
+- TokenResponse missing token_type field (added to match Python)
+- Missing futures dependency (added to Cargo.toml)
+- Middleware state type mismatch (fixed to accept AppState)
+
+**Phase 15 Plan 02 Complete:**
+- ✅ Task 1: RBAC schema migration and auth models
+- ✅ Task 2: JWT token generation and validation
+- ✅ Task 3: Refresh token rotation
+- ✅ Task 4: Axum middleware for JWT auth
+- ✅ Task 5: Auth endpoints (login, refresh, logout)
+
+**Next Steps:**
+- **Plan 15-03:** gRPC service definitions (auth.proto + 3 services)
 - `/mm:execute-phase 15` — Continue with remaining plans
 
 ---
 
 *State initialized: 2026-04-05*
-*Updated: 2026-04-07 01:55 — Phase 15 Plan 01 COMPLETE*
-*Next action: `/mm:execute-phase 15` (continue with Plan 15-02)*
+*Updated: 2026-04-07 02:45 — Phase 15 Plan 02 COMPLETE*
+*Next action: `/mm:execute-phase 15` (continue with Plan 15-03)*
