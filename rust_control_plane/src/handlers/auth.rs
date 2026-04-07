@@ -17,21 +17,21 @@ pub async fn login(
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<TokenResponse>, StatusCode> {
     // Find user by username
-    let row = sqlx::query!(
+    let row: (Uuid, String, String, String, Option<chrono::DateTime<chrono::Utc>>) = sqlx::query_as(
         "SELECT id, username, password_hash, role, created_at FROM users WHERE username = $1",
-        req.username
     )
+    .bind(&req.username)
     .fetch_optional(&state.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let user = User {
-        id: row.id,
-        username: row.username,
-        password_hash: row.password_hash,
-        role: row.role.parse().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-        created_at: row.created_at.expect("created_at should not be NULL"),
+        id: row.0,
+        username: row.1,
+        password_hash: row.2,
+        role: row.3.parse().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+        created_at: row.4.expect("created_at should not be NULL"),
     };
 
     // Verify password
@@ -68,30 +68,30 @@ pub async fn refresh(
     let refresh_hash = bcrypt::hash(&req.refresh_token, bcrypt::DEFAULT_COST)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let session = sqlx::query!(
+    let user_id: Uuid = sqlx::query_scalar(
         "SELECT user_id FROM sessions WHERE refresh_token_hash = $1 AND expires_at > NOW()",
-        refresh_hash
     )
+    .bind(&refresh_hash)
     .fetch_optional(&state.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::UNAUTHORIZED)?;
 
     // Get user
-    let row = sqlx::query!(
+    let row: (Uuid, String, String, String, Option<chrono::DateTime<chrono::Utc>>) = sqlx::query_as(
         "SELECT id, username, password_hash, role, created_at FROM users WHERE id = $1",
-        session.user_id
     )
+    .bind(&user_id)
     .fetch_one(&state.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let user = User {
-        id: row.id,
-        username: row.username,
-        password_hash: row.password_hash,
-        role: row.role.parse().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-        created_at: row.created_at.expect("created_at should not be NULL"),
+        id: row.0,
+        username: row.1,
+        password_hash: row.2,
+        role: row.3.parse().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+        created_at: row.4.expect("created_at should not be NULL"),
     };
 
     // Rotate refresh token (delete old, create new)

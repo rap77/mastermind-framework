@@ -20,24 +20,24 @@ pub async fn rotate_refresh_token(
     let mut tx = pool.begin().await?;
 
     // Delete old session (mitigates token theft)
-    sqlx::query!(
+    sqlx::query(
         "DELETE FROM sessions WHERE user_id = $1 AND refresh_token_hash = $2",
-        user_id,
-        old_refresh_token_hash
     )
+    .bind(&user_id)
+    .bind(&old_refresh_token_hash)
     .execute(&mut *tx)
     .await?;
 
     // Create new session with rotation_count + 1
-    sqlx::query!(
+    sqlx::query(
         "INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at, rotation_count)
          SELECT $1, $2, $3, NOW(), NOW() + INTERVAL '24 hours', COALESCE(MAX(rotation_count), 0) + 1
          FROM sessions WHERE user_id = $4",
-        Uuid::new_v4(),
-        user_id,
-        new_hash,
-        user_id
     )
+    .bind(&Uuid::new_v4())
+    .bind(&user_id)
+    .bind(&new_hash)
+    .bind(&user_id)
     .execute(&mut *tx)
     .await?;
 
@@ -53,13 +53,13 @@ pub async fn store_refresh_token(
 ) -> Result<()> {
     let refresh_hash = bcrypt::hash(refresh_token, bcrypt::DEFAULT_COST)?;
 
-    sqlx::query!(
+    sqlx::query(
         "INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at, rotation_count)
          VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours', 0)",
-        Uuid::new_v4(),
-        user_id,
-        refresh_hash
     )
+    .bind(&Uuid::new_v4())
+    .bind(&user_id)
+    .bind(&refresh_hash)
     .execute(pool)
     .await?;
 
@@ -71,12 +71,10 @@ pub async fn revoke_all_tokens(
     pool: &PgPool,
     user_id: Uuid,
 ) -> Result<()> {
-    sqlx::query!(
-        "DELETE FROM sessions WHERE user_id = $1",
-        user_id
-    )
-    .execute(pool)
-    .await?;
+    sqlx::query("DELETE FROM sessions WHERE user_id = $1")
+        .bind(&user_id)
+        .execute(pool)
+        .await?;
 
     Ok(())
 }

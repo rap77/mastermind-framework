@@ -19,6 +19,7 @@ mod db;
 mod handlers;
 mod auth;
 mod state;
+mod sqlite_reader;
 
 use db::connect_pool;
 use auth::auth_middleware;

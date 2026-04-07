@@ -9,6 +9,7 @@ import os
 import uuid
 
 import aiosqlite
+import asyncpg  # type: ignore[import-untyped]
 import bcrypt
 from typing import Optional, Any
 
@@ -512,6 +513,168 @@ class DatabaseConnection:
             }
             for row in rows
         ]
+
+
+class DualWriteDatabaseConnection(DatabaseConnection):
+    """Dual-write database connection manager (SQLite + PostgreSQL).
+
+    Extends DatabaseConnection to write to both SQLite and PostgreSQL simultaneously.
+    Reads from PostgreSQL (primary source after migration).
+
+    Attributes:
+        postgres_url: PostgreSQL connection URL (optional)
+        _pg_conn: asyncpg connection to PostgreSQL
+
+    Example:
+        >>> db = DualWriteDatabaseConnection("mastermind.db", "postgresql://...")
+        >>> await db.connect()
+        >>> await db.execute_write("INSERT INTO tasks ...")
+        >>> result = await db.execute_read("SELECT * FROM tasks")
+    """
+
+    def __init__(self, db_path: str = ":memory:", postgres_url: Optional[str] = None):
+        """Initialize dual-write database connection.
+
+        Args:
+            db_path: Path to SQLite database file
+            postgres_url: PostgreSQL connection URL (optional)
+        """
+        super().__init__(db_path)
+        self.postgres_url = postgres_url
+        self._pg_conn: Optional[asyncpg.Connection] = None
+
+    async def connect(self) -> None:
+        """Connect to both SQLite and PostgreSQL."""
+        await super().connect()  # SQLite connection
+
+        if self.postgres_url:
+            try:
+                self._pg_conn = await asyncpg.connect(self.postgres_url)
+            except Exception as e:
+                # Log but don't fail - dual-write is optional during migration
+                print(f"Warning: Failed to connect to PostgreSQL: {e}")
+
+    async def execute_write(self, sql: str, *args: Any) -> None:
+        """Write to both SQLite and PostgreSQL.
+
+        Args:
+            sql: SQL statement to execute
+            *args: Query parameters
+
+        Note:
+            PostgreSQL write failures don't affect SQLite writes (graceful degradation)
+        """
+        # Write to SQLite
+        await self.conn.execute(sql, *args)
+
+        # Write to PostgreSQL (non-blocking)
+        if self._pg_conn:
+            try:
+                # Convert SQLite ? placeholders to PostgreSQL $1, $2, etc.
+                pg_sql = self._convert_placeholders(sql)
+                await self._pg_conn.execute(pg_sql, *args)
+            except Exception as e:
+                # Log but don't fail - dual-write is optional
+                print(f"Warning: PostgreSQL write failed: {e}")
+
+    async def execute_read(
+        self, sql: str, *args: Any, fetch_one: bool = False, fetch_val: bool = False
+    ) -> Any:
+        """Read from PostgreSQL (primary source) or fallback to SQLite.
+
+        Args:
+            sql: SQL query to execute
+            *args: Query parameters
+            fetch_one: Return single row instead of all rows
+            fetch_val: Return single value instead of row
+
+        Returns:
+            Query result (row, rows, or value)
+        """
+        # Try PostgreSQL first
+        if self._pg_conn:
+            try:
+                pg_sql = self._convert_placeholders(sql)
+                if fetch_val:
+                    return await self._pg_conn.fetchval(pg_sql, *args)
+                elif fetch_one:
+                    return await self._pg_conn.fetchrow(pg_sql, *args)
+                else:
+                    return await self._pg_conn.fetch(pg_sql, *args)
+            except Exception as e:
+                # Fallback to SQLite on error
+                print(f"Warning: PostgreSQL read failed, using SQLite: {e}")
+
+        # Fallback to SQLite
+        if fetch_val:
+            cursor = await self.conn.execute(sql, *args)
+            row = await cursor.fetchone()
+            return row[0] if row else None
+        elif fetch_one:
+            cursor = await self.conn.execute(sql, *args)
+            return await cursor.fetchone()
+        else:
+            cursor = await self.conn.execute(sql, *args)
+            return await cursor.fetchall()
+
+    async def verify_consistency(self) -> list[str]:
+        """Verify row counts match between SQLite and PostgreSQL.
+
+        Returns:
+            List of inconsistency messages (empty if all consistent)
+        """
+        if not self._pg_conn:
+            return ["PostgreSQL not connected"]
+
+        inconsistencies = []
+        tables = [
+            "users",
+            "sessions",
+            "tasks",
+            "executions",
+            "api_keys",
+            "experience_records",
+        ]
+
+        for table in tables:
+            try:
+                # SQLite count
+                cursor = await self.conn.execute(f"SELECT COUNT(*) FROM {table}")
+                sqlite_row = await cursor.fetchone()
+                sqlite_count = sqlite_row[0] if sqlite_row else 0
+
+                # PostgreSQL count
+                pg_count = await self._pg_conn.fetchval(f"SELECT COUNT(*) FROM {table}")
+
+                if sqlite_count != pg_count:
+                    inconsistencies.append(
+                        f"{table}: SQLite={sqlite_count}, PostgreSQL={pg_count}"
+                    )
+            except Exception as e:
+                inconsistencies.append(f"{table}: Error - {e}")
+
+        return inconsistencies
+
+    def _convert_placeholders(self, sql: str) -> str:
+        """Convert SQLite ? placeholders to PostgreSQL $1, $2, etc.
+
+        Args:
+            sql: SQL query with ? placeholders
+
+        Returns:
+            SQL query with $1, $2, etc. placeholders
+        """
+        param_count = 0
+        result = []
+
+        for char in sql:
+            if char == "?":
+                param_count += 1
+                result.append(f"${param_count}")
+            else:
+                result.append(char)
+
+        return "".join(result)
 
 
 # ===== SINGLETON DATABASE INSTANCE =====
