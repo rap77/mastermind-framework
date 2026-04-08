@@ -4,6 +4,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use chrono::Utc;
+use crate::websocket::ghost_mode::{GhostModeBuffer, StoredEvent, BrainEventType};
 
 const MAX_CONNECTIONS: usize = 2000; // Brain #7 Condition #3
 const CHANNEL_BUFFER: usize = 256;    // Brain #7 Condition #2
@@ -61,6 +63,7 @@ pub struct WebSocketHub {
     connections: Arc<DashMap<UserId, mpsc::Sender<ClientMessage>>>,
     global_events: broadcast::Sender<SystemEvent>,
     active_count: Arc<Mutex<usize>>,
+    ghost_buffer: Arc<GhostModeBuffer>,
 }
 
 impl WebSocketHub {
@@ -70,10 +73,11 @@ impl WebSocketHub {
             connections: Arc::new(DashMap::new()),
             global_events: tx,
             active_count: Arc::new(Mutex::new(0)),
+            ghost_buffer: Arc::new(GhostModeBuffer::new()),
         }
     }
 
-    pub async fn connect(&self, user_id: UserId) -> Result<mpsc::Receiver<ClientMessage>, &'static str> {
+    pub async fn connect(&self, user_id: UserId) -> Result<(mpsc::Receiver<ClientMessage>, Vec<StoredEvent>), &'static str> {
         let mut count = self.active_count.lock().await;
         if *count >= MAX_CONNECTIONS {
             return Err("Max connections exceeded (2000 limit)");
@@ -82,7 +86,11 @@ impl WebSocketHub {
 
         let (tx, rx) = mpsc::channel(CHANNEL_BUFFER);
         self.connections.insert(user_id, tx);
-        Ok(rx)
+
+        // Get replay from ghost buffer
+        let replay = self.ghost_buffer.replay().await;
+
+        Ok((rx, replay))
     }
 
     pub async fn disconnect(&self, user_id: UserId) {
@@ -92,6 +100,10 @@ impl WebSocketHub {
     }
 
     pub async fn broadcast(&self, event: ClientMessage) {
+        // Convert to StoredEvent and push to ghost buffer
+        let stored_event = self.client_message_to_stored(event.clone());
+        self.ghost_buffer.push(stored_event).await;
+
         let message_json = match serde_json::to_string(&event) {
             Ok(json) => json,
             Err(e) => {
@@ -121,12 +133,44 @@ impl WebSocketHub {
         let _ = self.global_events.send(system_event);
     }
 
+    fn client_message_to_stored(&self, event: ClientMessage) -> StoredEvent {
+        let (event_type, payload) = match event {
+            ClientMessage::BrainStarted(e) => (
+                BrainEventType::BrainStarted,
+                serde_json::to_value(e).unwrap_or(Value::Null),
+            ),
+            ClientMessage::BrainCompleted(e) => (
+                BrainEventType::BrainCompleted,
+                serde_json::to_value(e).unwrap_or(Value::Null),
+            ),
+            ClientMessage::BrainFailed(e) => (
+                BrainEventType::BrainFailed,
+                serde_json::to_value(e).unwrap_or(Value::Null),
+            ),
+            ClientMessage::BrainRouted(e) => (
+                BrainEventType::BrainRouted,
+                serde_json::to_value(e).unwrap_or(Value::Null),
+            ),
+        };
+
+        StoredEvent {
+            id: Uuid::new_v4(),
+            event_type,
+            payload,
+            created_at: Utc::now(),
+        }
+    }
+
     pub async fn get_connection_count(&self) -> usize {
         *self.active_count.lock().await
     }
 
     pub fn subscribe_global_events(&self) -> broadcast::Receiver<SystemEvent> {
         self.global_events.subscribe()
+    }
+
+    pub fn ghost_buffer(&self) -> &GhostModeBuffer {
+        &self.ghost_buffer
     }
 }
 
@@ -153,7 +197,8 @@ mod tests {
         // Should allow up to MAX_CONNECTIONS
         for i in 0..MAX_CONNECTIONS {
             let user_id = Uuid::new_v4();
-            assert!(hub.connect(user_id).await.is_ok(), "Connection {} failed", i);
+            let result = hub.connect(user_id).await;
+            assert!(result.is_ok(), "Connection {} failed", i);
         }
 
         // Should reject the (MAX_CONNECTIONS + 1)th connection
@@ -166,7 +211,7 @@ mod tests {
         let hub = WebSocketHub::new();
         let user_id = Uuid::new_v4();
 
-        let mut rx = hub.connect(user_id).await.unwrap();
+        let (mut rx, _replay) = hub.connect(user_id).await.unwrap();
 
         // Send CHANNEL_BUFFER + 1 messages
         let event = ClientMessage::BrainStarted(BrainStartedEvent {

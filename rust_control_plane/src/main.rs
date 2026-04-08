@@ -31,6 +31,17 @@ use db::connect_pool;
 use auth::auth_middleware;
 use state::AppState;
 use websocket::WebSocketHub;
+use axum::Json;
+
+/// Ghost Mode replay endpoint - returns last 100 events
+async fn ghost_replay_handler(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let events = state.websocket_hub.ghost_buffer().replay().await;
+    let json = serde_json::to_value(&events)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(json))
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -65,6 +76,8 @@ async fn main() -> Result<()> {
     let app = Router::new()
         // Metrics endpoint (public)
         .route("/metrics", get(metrics::metrics_endpoint))
+        // Ghost Mode replay endpoint (public)
+        .route("/api/ghost/replay", get(ghost_replay_handler))
         // WebSocket endpoint (public)
         .route("/ws", get(websocket::websocket_handler))
         // Kubernetes-style health probes (public)

@@ -23,8 +23,8 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let user_id = Uuid::new_v4();
 
     // Connect to the hub
-    let mut rx = match state.websocket_hub.connect(user_id).await {
-        Ok(receiver) => receiver,
+    let (mut rx, replay) = match state.websocket_hub.connect(user_id).await {
+        Ok(result) => result,
         Err(_) => {
             tracing::error!("Failed to connect user {:?} to WebSocket hub", user_id);
             return;
@@ -34,10 +34,46 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     // Increment WebSocket connection gauge
     inc_websocket_connections();
 
-    tracing::info!("WebSocket client connected: {:?}", user_id);
-
     // Split the socket into sender and receiver
     let (mut sender, mut receiver) = socket.split();
+
+    // Send replay events first
+    for stored_event in replay {
+        let client_message = match stored_event.event_type {
+            crate::websocket::ghost_mode::BrainEventType::BrainStarted => {
+                serde_json::from_value(stored_event.payload)
+                    .ok()
+                    .map(ClientMessage::BrainStarted)
+            }
+            crate::websocket::ghost_mode::BrainEventType::BrainCompleted => {
+                serde_json::from_value(stored_event.payload)
+                    .ok()
+                    .map(ClientMessage::BrainCompleted)
+            }
+            crate::websocket::ghost_mode::BrainEventType::BrainFailed => {
+                serde_json::from_value(stored_event.payload)
+                    .ok()
+                    .map(ClientMessage::BrainFailed)
+            }
+            crate::websocket::ghost_mode::BrainEventType::BrainRouted => {
+                serde_json::from_value(stored_event.payload)
+                    .ok()
+                    .map(ClientMessage::BrainRouted)
+            }
+        };
+
+        if let Some(msg) = client_message {
+            if let Ok(json) = serde_json::to_string(&msg) {
+                if sender.send(Message::Text(json.into())).await.is_err() {
+                    tracing::error!("Failed to send replay event to client");
+                    dec_websocket_connections();
+                    return;
+                }
+            }
+        }
+    }
+
+    tracing::info!("WebSocket client connected: {:?}", user_id);
 
     // Task to receive messages from the hub and send to the client
     let mut send_task = tokio::spawn(async move {
