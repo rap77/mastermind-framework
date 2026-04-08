@@ -22,6 +22,8 @@ mod sqlite_reader;
 mod event_sourcing;
 mod tracing;
 
+use tracing::inject_trace_middleware;
+
 use db::connect_pool;
 use auth::auth_middleware;
 use state::AppState;
@@ -70,6 +72,7 @@ async fn main() -> Result<()> {
             state.clone(),
             auth_middleware,
         ))
+        .layer(inject_trace_middleware) // Add trace injection middleware
         .with_state(state);
 
     // Create TCP listener

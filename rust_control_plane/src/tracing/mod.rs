@@ -2,6 +2,11 @@ use tracing_subscriber::{Registry, EnvFilter};
 use tracing_subscriber::fmt::layer;
 
 pub mod metadata;
+pub mod middleware;
+pub mod interceptor;
+
+pub use middleware::inject_trace_middleware;
+pub use interceptor::TraceInterceptor;
 
 pub fn init_tracing() {
     let env_filter = EnvFilter::from_default_env()
