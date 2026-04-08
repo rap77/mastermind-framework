@@ -21,6 +21,7 @@ impl EventStore {
     ) -> Result<BrainEvent> {
         let id = Uuid::new_v4();
         let created_at = Utc::now();
+        let event_type_clone = event_type.clone();
 
         sqlx::query!(
             "INSERT INTO activity_log (id, brain_id, event_type, payload, created_at)
@@ -37,7 +38,7 @@ impl EventStore {
         Ok(BrainEvent {
             id,
             brain_id: brain_id.to_string(),
-            event_type,
+            event_type: event_type_clone,
             payload,
             created_at,
         })
