@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package mastermind.events.v1;
+
+// Event Stream Service
+// START with unary (Brain #7 Condition #5)
+// Add streaming when metrics prove unary is bottleneck
+service EventStream {
+  rpc PublishBrainEvent(BrainEvent) returns (EventAck);
+
+  // TODO: Add streaming when metrics prove unary is bottleneck
+  // rpc SubscribeBrainEvents(SubscriptionRequest) returns (stream BrainEvent);
+}
+
+// Brain Event Message
+message BrainEvent {
+  string event_id = 1;
+  string trace_id = 2;
+  BrainEventType event_type = 3;
+  string brain_id = 4;
+  string payload_json = 5;
+  int64 created_at_unix_ms = 6;
+}
+
+// Brain Event Types
+enum BrainEventType {
+  BRAIN_STARTED = 0;
+  BRAIN_COMPLETED = 1;
+  BRAIN_FAILED = 2;
+  BRAIN_ROUTED = 3;
+}
+
+// Event Acknowledgment
+message EventAck {
+  bool success = 1;
+  string error = 2;
+}
