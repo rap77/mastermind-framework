@@ -21,6 +21,7 @@ mod state;
 mod sqlite_reader;
 mod event_sourcing;
 mod tracing;
+mod health;
 
 use tracing::inject_trace_middleware;
 
@@ -57,9 +58,9 @@ async fn main() -> Result<()> {
 
     // Build our application with routes
     let app = Router::new()
-        // Health check routes (public)
-        .route("/health", get(handlers::health::health_check))
-        .route("/health/db", get(handlers::health::db_health))
+        // Kubernetes-style health probes (public)
+        .route("/health/live", get(health::live::liveness_probe))
+        .route("/health/ready", get(health::ready::readiness_check))
         // Auth routes (public)
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh))
