@@ -22,12 +22,14 @@ mod sqlite_reader;
 mod event_sourcing;
 mod tracing;
 mod health;
+mod websocket;
 
 use tracing::inject_trace_middleware;
 
 use db::connect_pool;
 use auth::auth_middleware;
 use state::AppState;
+use websocket::WebSocketHub;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -51,13 +53,17 @@ async fn main() -> Result<()> {
     info!("JWT_SECRET validated (length: {})", jwt_secret.len());
 
     // Create application state
+    let websocket_hub = Arc::new(WebSocketHub::new());
     let state = AppState {
         pool,
         jwt_secret: Arc::new(jwt_secret),
+        websocket_hub,
     };
 
     // Build our application with routes
     let app = Router::new()
+        // WebSocket endpoint (public)
+        .route("/ws", get(websocket::websocket_handler))
         // Kubernetes-style health probes (public)
         .route("/health/live", get(health::live::liveness_probe))
         .route("/health/ready", get(health::ready::readiness_check))
