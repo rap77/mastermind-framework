@@ -13,7 +13,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tracing::{info, error};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod db;
 mod handlers;
@@ -21,6 +20,7 @@ mod auth;
 mod state;
 mod sqlite_reader;
 mod event_sourcing;
+mod tracing;
 
 use db::connect_pool;
 use auth::auth_middleware;
@@ -28,14 +28,8 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "rust_control_plane=info,tower_http=debug,axum=trace".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    // Initialize tracing with JSON output
+    tracing::init_tracing();
 
     // Connect to PostgreSQL with retry logic
     let database_url = std::env::var("DATABASE_URL")

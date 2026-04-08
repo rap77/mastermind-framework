@@ -24,6 +24,7 @@ dependencies = [
     "grpclib>=0.4.7",  # Phase 13: Python gRPC server (grpclib)
     "types-python-jose>=3.5.0.20250531",
     "slowapi>=0.1.9",
+    "structlog>=24.1.0",  # Phase 16: Structured logging
 ]
 
 [project.scripts]
