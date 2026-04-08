@@ -1,6 +1,8 @@
 use axum::{extract::Request, http::StatusCode, response::Response, Extension, Next};
 use uuid::Uuid;
 use crate::tracing::metadata::TraceMetadata;
+use crate::metrics::record_http_request;
+use std::time::Instant;
 
 pub async fn inject_trace_middleware(
     mut req: Request,
@@ -16,5 +18,17 @@ pub async fn inject_trace_middleware(
         user_id: None, // Extract from JWT if present
     });
 
-    next.run(req).await
+    // Record start time
+    let start = Instant::now();
+    let method = req.method().to_string();
+    let path = req.uri().path().to_string();
+
+    // Process request
+    let response = next.run(req).await;
+
+    // Record metrics
+    let duration = start.elapsed().as_secs_f64();
+    record_http_request(&method, &path, duration);
+
+    response
 }

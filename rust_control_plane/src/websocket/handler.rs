@@ -9,6 +9,7 @@ use futures_util::{stream::StreamExt, SinkExt};
 use uuid::Uuid;
 use crate::state::AppState;
 use crate::websocket::ClientMessage;
+use crate::metrics::{inc_websocket_connections, dec_websocket_connections};
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
@@ -29,6 +30,9 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
             return;
         }
     };
+
+    // Increment WebSocket connection gauge
+    inc_websocket_connections();
 
     tracing::info!("WebSocket client connected: {:?}", user_id);
 
@@ -81,5 +85,6 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
 
     // Disconnect from the hub
     state.websocket_hub.disconnect(user_id).await;
+    dec_websocket_connections();
     tracing::info!("WebSocket client disconnected: {:?}", user_id);
 }

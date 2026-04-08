@@ -23,6 +23,7 @@ mod event_sourcing;
 mod tracing;
 mod health;
 mod websocket;
+mod metrics;
 
 use tracing::inject_trace_middleware;
 
@@ -62,6 +63,8 @@ async fn main() -> Result<()> {
 
     // Build our application with routes
     let app = Router::new()
+        // Metrics endpoint (public)
+        .route("/metrics", get(metrics::metrics_endpoint))
         // WebSocket endpoint (public)
         .route("/ws", get(websocket::websocket_handler))
         // Kubernetes-style health probes (public)
