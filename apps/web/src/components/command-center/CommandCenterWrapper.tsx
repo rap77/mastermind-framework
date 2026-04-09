@@ -16,7 +16,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { BriefInputModal } from "./BriefInputModal"
-import { createTask } from "@/app/actions/tasks"
+// Don't import Server Action statically - causes 403 error during SSR
+// import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
 import { useWSStore } from "@/stores/wsStore"
 import { useOrchestratorStore } from "@/stores/orchestratorStore"
@@ -60,7 +61,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
    *
    * Flow:
    * 1. Validate and sanitize brief (BriefInputModal)
-   * 2. Create task via Server Action (createTask)
+   * 2. Create task via Server Action (createTask) - dynamic import to avoid SSR 403
    * 3. Get WS token from /api/auth/token
    * 4. Connect WebSocket
    * 5. Close modal on success
@@ -71,7 +72,8 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
       setError(null)
 
       try {
-        // Step 1: Create task via Server Action
+        // Step 1: Create task via Server Action (dynamic import)
+        const { createTask } = await import("@/app/actions/tasks")
         const result = await createTask(brief)
 
         if (!result.success) {
@@ -103,7 +105,6 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
         // Step 5: Navigate to The Nexus to watch brains illuminate in real-time
         router.push('/nexus')
       } catch (err) {
-        console.error("Failed to submit brief:", err)
         setError("Network error: Failed to create task")
       } finally {
         setIsSubmitting(false)

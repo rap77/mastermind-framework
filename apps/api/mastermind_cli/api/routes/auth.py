@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
@@ -159,15 +160,17 @@ async def get_current_user_any(
 # ===== Endpoints =====
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
     request: LoginRequest,
     db_path: str = Depends(get_db_path),
-) -> TokenResponse:
+) -> JSONResponse:
     """Authenticate user and return JWT tokens.
 
     Validates credentials, creates session with refresh_token_hash,
     and returns access_token (30min) + refresh_token (24h).
+
+    Cookies: Sets httpOnly cookies for access_token and refresh_token.
     """
     async with DatabaseConnection(db_path) as db:
         # Look up user by username
@@ -202,10 +205,35 @@ async def login(
         )
         await db.conn.commit()
 
-        return TokenResponse(
+        # Create response with JSONResponse
+        token_response = TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
         )
+
+        # Build Response and set cookies individually
+        response = JSONResponse(content=token_response.model_dump())
+
+        # Set httpOnly cookies (browser sends them automatically)
+        response.set_cookie(
+            "access_token",
+            access_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=ACCESS_TOKEN_EXPIRY_MINUTES * 60,
+        )
+
+        response.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=REFRESH_TOKEN_EXPIRY_HOURS * 3600,
+        )
+
+        return response
 
 
 @router.post("/refresh", response_model=TokenResponse)

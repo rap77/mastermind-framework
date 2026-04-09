@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { WSBrainBridge } from '@/components/ws/WSBrainBridge'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ThreeColumnLayout } from '@/components/layout/ThreeColumnLayout'
 import 'server-only'
 
 /**
@@ -35,7 +36,9 @@ export default async function AuthGuardLayout({
     <>
       <WSBrainBridge taskId={null} />
       <ErrorBoundary>
-        {children}
+        <ThreeColumnLayout showPropertiesPanel={false}>
+          {children}
+        </ThreeColumnLayout>
       </ErrorBoundary>
     </>
   )
