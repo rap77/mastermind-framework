@@ -55,7 +55,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Configure CORS with explicit origins (Pitfall 7: wildcard + credentials is invalid)
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3001,http://localhost:3000").split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,  # Explicit origins required when allow_credentials=True

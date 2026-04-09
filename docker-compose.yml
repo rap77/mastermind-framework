@@ -45,8 +45,7 @@ services:
     build:
       context: ./apps/control-plane
       dockerfile: ../../docker/control-plane/Dockerfile
-    ports:
-      - "3001:3001"
+    # Internal service - NOT exposed to host, consumed by Next.js
     environment:
       CONTROL_PLANE_URL: http://control-plane:3001
       AGENT_RUNTIME_URL: http://api:8001
@@ -68,9 +67,9 @@ services:
       context: ./apps/web
       dockerfile: ../../docker/web/Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"  # Host 3001 → Container 3000 (Next.js default)
     environment:
-      # Phase 13: CONTROL_PLANE_URL points to Rust gateway (port 3001)
+      # Phase 13: CONTROL_PLANE_URL points to Rust gateway (internal)
       CONTROL_PLANE_URL: http://control-plane:3001
       AGENT_RUNTIME_URL: http://api:8001
       MM_SECRET_KEY: ${MM_SECRET_KEY:-change-me-in-production}

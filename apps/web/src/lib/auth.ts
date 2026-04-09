@@ -22,7 +22,7 @@ function getSecret(): Uint8Array {
 export async function verifyToken(token: string): Promise<boolean> {
   try {
     const secret = getSecret()
-    await jwtVerify(token, secret)
+    const result = await jwtVerify(token, secret)
     return true
   } catch (error) {
     // Log in development for debugging
