@@ -2,7 +2,84 @@
 
 > Written by Brain #7 (Growth/Data). Read-only for other agents.
 > Orchestrator reads this after all domain feeds to write BRAIN-FEED.md (global synthesis).
-> Last updated: 2026-03-28
+> Last updated: 2026-04-06
+
+---
+
+## 2026-04-06 — PROP-005 MCP Configuration UI — Meta-Evaluation of: Brains #1 #4 #5
+
+### Cross-Domain Synthesis
+
+**Brain #1 (Product Strategy) — DEFERRED:**
+Builder YA SABE configurar MCP manualmente. No hay friction reportada. Opportunity cost real: robar tiempo de Phase 15. DEFER hasta Marketplace active (3 interviews + 1 LOI).
+
+**Brain #4 (Frontend) — TECHNICAL READY:**
+Stack alineado (Sheet, Card, Zustand, Server Actions). APIKeyManager es template perfecto. Falta: página de integraciones, useMCPStore, OAuth callback. Peligros: CLS, throttling, React.memo OBLIGATORIO, memory leaks. Sugerencia: Vertical Slice primero (1 integración fake).
+
+**Brain #5 (Backend) — SECURITY HEAVY:**
+Patrón MCP existe, auth robusto. Falta: endpoints CRUD, tabla mcp_integrations, OAuth handlers, cifrado tokens. Peligros: AUTH BYPASS, OAuth CSRF, token leakage, IDOR, SQL injection. Sugerencia: Phase 1 custom servers (sin OAuth), Phase 2 OAuth Gmail.
+
+**Consensus técnico:** Feasible (Next.js 16 + FastAPI + shadcn/ui). MCP servers ya funcionan (notebooklm, Gmail, Notion).
+
+**Tensión fundamental:** Brain #1 dice "NO HAY PROBLEMA" vs. Brains #4+#5 dicen "AQUÍ ESTÁN LOS RIESGOS DE IMPLEMENTARLO."
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Feature Factory Trap:** Implementar UI sin validar demanda latente = síntoma de "Feature Shipping" en lugar de "Systems Thinking". Genera deuda técnica sin retorno claro en Product-Market Fit. Loop: UI shippable → 2-3 weeks consumidas → Phase 15 retrasada → v3.0 pivot amenazado → first-mover advantage en LATAM perdido.
+
+**CASCADE FAILURE — Efecto Lollapalooza de Riesgo:** Convergencia de tres factores de fallo: (1) implementación apresurada Frontend (Brain #4 CLS/memory leaks), (2) riesgos de seguridad críticos OAuth CSRF (Brain #5), (3) presión de cronograma Phase 15. Si OAuth CSRF attack ocurre → compromise de Gmail/Notion tokens → brecha de seguridad catastrófica en plataforma Enterprise → confianza LATAM destruida.
+
+**SYSTEMIC INERTIA — Atomic Network Dilution:** Pivot v3.0 = Enterprise LATAM. Atomic Network inicial = Builders técnicos. Optimizar para usuarios no técnicos prematuramente diluye propuesta de valor para segmento que genera tracción inicial. Loop: MCP UI para no-técnicos → Builders perciben "este producto no es para mí" → churn de base técnica →Revenue PRIMER mercado desaparece antes de que SEGUNDO mercado exista.
+
+**WYSIATI RISK — Assumptions no cuestionados:**
+- Assumption 1: "UI de configuración es必需 cuando hay usuarios no-técnicos" — NO VALIDADO por Mom Test interviews.
+- Assumption 2: "OAuth es obligatorio para integraciones de terceros" — Gmail/Notion SÍ requieren, pero MCP custom servers NO.
+- Assumption 3: "MCP configuration es bottleneck actual del producto" — Builder NO lo reportó.
+
+### Metric Proposals
+
+**SLI-1 (Activation Rate):** Time to first successful MCP connection < 1 día (benchmark SaaS B2B). Si excede → el supuesto de Brain #1 sobre "no fricción" es FALSO.
+
+**SLI-2 (Support Ticket Rate):** Tickets relacionados con configuración MCP manual / month. Si incremento sostenido → producto ha superado capacidad técnica de base usuarios actual.
+
+**SLI-3 (Fake Door CTR):** Botón "Configurar vía UI" (deshabilitado o "Próximamente") CTR. Si masivo (>20% de visitantes) → invalida asunción de que no hay demanda latente. Permite Bayesian Updating de estrategia.
+
+**OKR (Market Validation):** 3 entrevistas Mom Test + 1 LOI antes de implementar. Entrevistas basadas en COMPORTAMIENTOS PASADOS (ej: "¿Cómo configuraste tu último server?", no "¿Te gustaría una UI?").
+
+### Verdict
+
+**DEFERRED (Aplazamiento Condicionado)** — Delta-Velocity Rating 4 (Senior)
+
+**Confianza:** 85%
+
+**Razonamiento:**
+
+Proceder con UI ahora viola principio de **Margin of Safety** (Munger) al comprometer seguridad y cronograma v3.0 por mejora de conveniencia NO VALIDADA por mercado. **Action Bias** (sesgo cognitivo detectado en propuesta) — tendencia a sentir "debemos hacer algo" respecto a interfaz, cuando silencio de datos (no fricción reportada) sugiere omisión es decisión correcta.
+
+**Value Equation (Balfour):** UI reduciría "Esfuerzo y Sacrificio", pero dado que "Dream Outcome" ya es alcanzable vía CLI para usuario actual, incremento neto de valor es MÍNIMO comparado con "Time Delay" que impondría a Phase 15.
+
+**Planning Fallacy (Kohavi):** Intentar optimizar seguridad (Brain #5) + velocidad aprendizaje (Brain #1) simultáneamente en 2-3 semanas es error de planificación. OAuth CSRF no se puede "hardcodear rápido" — es ATTACK SURFACE que requiere threat modeling, test suite adversarial, y security review.
+
+**Condiciones para re-evaluación:**
+
+1. [ ] 3 entrevistas Mom Test con LATAM SMEs validando "configurar integraciones es blocker"
+2. [ ] 1 LOI (Letter of Intent) o piloto pagado confirmado
+3. [ ] Marketplace activado (original roadmap Phase 6)
+4. [ ] Phase 15 (Rust Control Plane) completa o en milestone estable
+5. [ ] Métricas de control (SLI-1/2/3) indican demanda latente real
+
+**Alternativa v3.0:** CLI helper (`npx mastermind mcp add --server notebooklm --url ...`) si pain es "hate editing JSON" (no reportado). Cost: 1 día vs 2-3 semanas para full UI.
+
+**Fuentes:**
+
+- Brain #1 feed: `.planning/BRAIN-FEED-01-product.md > 2026-04-06 MCP Configuration UI` — DEFER verdict citado
+- Brain #4 feed: `.planning/BRAIN-FEED-04-frontend.md > 2026-04-05 Phase 13` — APIKeyManager pattern confirmado
+- Brain #5 feed: `.planning/BRAIN-FEED-05-backend.md > Critical Constraints` — AUTH BYPASS prohibición confirmada
+- NotebookLM: Cagan (Build Trap), Torres (OST), Balfour (Growth Loops), Kohavi (Experimentation), Munger (Margin of Safety)
+
+---
+
+
 
 ---
 
@@ -585,3 +662,318 @@ Source citations:
 - NotebookLM sources: Feedback loops, cascade failure, second-order effects, metric blindspots
 
 ---
+
+## 2026-04-06 — PROP-001 Onboarding Visual — Evaluation of: Brains #2 (UX) + #3 (UI)
+
+### Cross-Domain Synthesis
+
+**Brain #2 (UX Research):** CONDITIONAL APPROVAL — Identified CLI barrier as REAL problem (Paperclip UX-Audit confirms "curva de aprendizaje alta" + "CLI-first perception"). Required persona definition (✅ RESOLVED: CEO técnico que quiere onboarding guiado que inspire confianza), Happy Path specification (✅ RESOLVED: 4 elementos — API Keys, Nicho, Brains, Knowledge Base), testing plan (✅ RESOLVED: MVP + iterar según feedback del CEO). Brain #2 emphasized dual onboarding paths (CLI + GUI), but user chose CLI replacement (no coexistence).
+
+**Brain #3 (UI Design):** CONDITIONAL APPROVAL — Validated technical feasibility (Next.js 16 + React 19 + Tailwind 4 + shadcn/ui stack). Required 5-state system documentation (Default, Hover, Active, Disabled, Error/Loading), tonal elevation definition (dark mode overlays), grid system specification (12-column, 4/8px spacing), typography scale (math-based ratio 1.25). Brain #3 approved 4-step MVP structure aligned with user's 4-element Happy Path.
+
+**Points of convergence:** Both brains agree CLI-based onboarding is a blocker for v3.0 target (LATAM business + technical users). Both agree War Room aesthetic must be preserved (desktop-first, 1440px, high density, terminal-style logs, zero happy talk). Both agree onboarding should be end-to-end (setup → first consultation → dashboard handoff).
+
+**Points of tension:** Brain #2 wanted dual paths (CLI + GUI) to preserve power user flexibility; user explicitly chose CLI replacement (no fallback). This creates a **single point of failure** if visual onboarding has bugs.
+
+**Shared assumptions:** v3.0 target includes business users who need GUI onboarding. Phase 15 (Rust Control Plane) is the implementation target. War Room aesthetic constraints apply. Both brains assumed Phase 15 will be ready when GUI onboarding ships — **this is unverified and creates cascade risk.**
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP RISK — CLI replacement creates Phase 15 dependency without margin of safety:** According to Munger's margin of safety principle, eliminating CLI removes the technical safety net. If Phase 15 (Rust Control Plane) delays or has API contract changes, visual onboarding becomes non-functional. Zero fallback path = zero error recovery. Named cascade: Phase 15 delay → GUI onboarding broken → zero user activation → v3.0 launch blocked.
+
+**CASCADE FAILURE MODE — Visual onboarding without Rust endpoints = empty shell:** The 4-element flow requires (1) API Key validation against Rust Control Plane, (2) Brain selection persistence via Rust API, (3) Knowledge Base connection through Rust gateway, (4) First consultation triggering Rust dispatcher. If ANY of these Rust endpoints are incomplete, onboarding fails at step 2. Verified: Phase 15 does not exist yet (`.planning/phases/` stops at Phase 14). This is not theoretical — it is a confirmed missing phase.
+
+**METRIC BLINDSPOT — No "CEO technical assumption" validation metric:** Domain brains accepted user's persona clarification ("CEO técnico") without proposing how to DETECT if this assumption is WRONG. If actual users are LESS technical than expected, onboarding will have high abandonment at step 2 (API Key validation) or step 4 (Knowledge Base connection). No brain proposed measuring: (1) API Key error rate, (2) Time-to-First-Value (TTV), (3) Drop-off rate at Knowledge Base connection step, (4) Support ticket categorization ("what is an API Key" = failed persona assumption).
+
+**CROSS-DOMAIN TRADEOFF — Brain #3's visual polish increases Brain #5's backend complexity:** 5-state system (Default, Hover, Active, Disabled, Error/Loading) requires Rust Control Plane to return granular validation states for every input. This is not just "status: 200/400" — it's "field: api_key, state: disabled, reason: invalid_format". Backend complexity increases → Phase 15 timeline extends → GUI onboarding waits longer → vicious cycle.
+
+**WYSIATI RISK (What You See Is All There Is):** All domain brains evaluated the proposal AS IF Phase 15 exists and will be ready. None questioned: (1) Has Phase 15 been planned? (NO — confirmed missing), (2) What is the Phase 15 timeline estimate? (UNKNOWN), (3) What if Phase 15 API contracts change during development? (UNADDRESSED). This is classic WYSIATI — evaluating the visible (GUI design) without probing the invisible (backend readiness).
+
+### Metric Proposals
+
+**SLI-1 (Persona Validation):** API Key validation error rate < 15% at step 2. Measurement: `SELECT COUNT(*) WHERE validation_result = 'error' / COUNT(*) WHERE step = 'api_key_validation'`. If > 15%, the "CEO técnico" persona assumption is WRONG — users lack technical prerequisites.
+
+**SLI-2 (Time-to-First-Value):** TTV < 5 minutes from onboarding start to first consultation complete. Measurement: `MAX(timestamp_first_consultation) - MIN(timestamp_onboarding_start)`. Target: < 300s. If median TTV > 15min, onboarding flow is too complex for the persona.
+
+**SLI-3 (Abandonment Rate):** Drop-off rate < 30% at each step. Measurement: Funnel analysis (step 1 → 2 → 3 → 4 → complete). If any step has > 40% drop-off, that step is the friction point. Knowledge Base connection (step 4) is the predicted highest-friction step.
+
+**OKR (Activation Rate):** 60% of users who start onboarding complete first consultation within 24 hours. Measurement: `COUNT(DISTINCT user_id) WHERE first_consultation_completed < 24h / COUNT(DISTINCT user_id) WHERE onboarding_started`. Target: ≥ 0.6. If < 0.4, onboarding is failing the core activation goal.
+
+**Leading Indicator (Phase 15 Readiness):** Rust Control Plane API contract frozen AND all 4 endpoints (validate_api_key, persist_brain_selection, connect_knowledge_base, trigger_consultation) return 200 in staging BEFORE GUI onboarding development starts. Measurement: Contract version number in API docs + integration test suite pass rate = 100%.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Delta-Velocity Rating 3 (Peer). The proposal is VALID and ALIGNED with v3.0 strategic direction, but execution timing is CRITICAL. Building GUI onboarding before Phase 15 Rust Control Plane exists is premature optimization with high sunk cost risk.
+
+**Conditions (MUST resolve before implementation starts):**
+
+1. **[BLOCKER] Phase 15 must be planned AND estimated FIRST.** Current state: Phase 15 does not exist in `.planning/phases/`. Cannot build GUI onboarding without knowing: (a) What are the exact API contracts? (b) When will Phase 15 be ready? (c) What is the contingency plan if Phase 15 delays?
+
+2. **[BLOCKER] Persona validation REQUIRED before code.** Conduct 3 Mom Test interviews with target users (LATAM CEOs who code or use AI tools). Ask: "Walk me through the last time you configured API keys for a service." If they struggle → persona is wrong → onboarding design must change. Evidence: Rob Fitzpatrick's "The Mom Test" — ask about specific past behavior, not future opinions.
+
+3. **[CONDITION] Define escape hatch for CLI replacement.** Even though user chose replacement, document what happens if GUI onboarding has a critical bug (e.g., API Key validation loop). Options: (a) Emergency CLI command `npx mastermind-cli onboard --emergency`, (b) Direct config file editing in `~/.mastermind/config.yaml`. Pick ONE and document it.
+
+4. **[CONDITION] Instrument abandonment metrics BEFORE launch.** Add funnel tracking (step 1 start → step 2 start → step 3 start → step 4 start → complete) to the GUI onboarding from day one. If you don't measure it, you can't detect when the persona assumption is wrong.
+
+**Integration Recommendation:**
+
+**DO NOT start GUI onboarding development in parallel with Phase 15.** Correct sequence:
+
+1. **Phase 14.5 (Pre-build validation):** Conduct 3 Mom Test interviews to validate "CEO técnico" persona. If persona fails → iterate onboarding design → re-test. Time: 1 week.
+
+2. **Phase 15 (Rust Control Plane):** Build backend infrastructure + API contracts + integration tests. Time: 3-4 weeks (estimated).
+
+3. **Phase 15.5 (GUI Onboarding):** Build visual onboarding AFTER Rust endpoints are frozen and tested in staging. Time: 2 weeks.
+
+**Why this sequence?** Fake Door testing (Phase 14.5) validates the problem exists without writing code. Phase 15 builds the foundation. Phase 15.5 builds the house ON TOP of the foundation, not in parallel with an uncertain foundation.
+
+**Risk if ignored:** If GUI onboarding is built before Phase 15 and Phase 15 API contracts change, GUI code must be rewritten. This is sunk cost fallacy — "we already spent 2 weeks on the GUI, we can't throw it away." The correct decision is to WAIT for Phase 15 contracts to stabilize.
+
+**Source citations:**
+- PROP-001 proposal: "Reemplazar CLI completamente" — user chose replacement, no fallback
+- Brain #2 output: "Onboarding visual = CONDITIONAL APPROVAL" — requires persona definition + Happy Path + testing plan
+- Brain #3 output: "CONDITIONAL APPROVAL" — requires 5-state system + tonal elevation + grid system
+- NotebookLM Brain #7 sources: Munger (margin of safety), Kohavi (A/B testing, counterfactuals), Reforge (growth loops, retention > acquisition)
+- Codebase verification: `.planning/phases/` directory — Phase 15 does not exist (confirmed with ls command)
+- Charlie Munger: "Margin of safety" — eliminating CLI removes technical safety net
+- Rob Fitzpatrick: "The Mom Test" — validate persona with specific past behavior questions
+- Paperclip UX-Audit: "Curva de aprendizaje alta" (CRITICAL) + "CLI-first perception" (HIGH) — confirms the problem is real
+
+## 2026-04-06 — PROP-002 CEO Chat — Meta-evaluación de: Brains #1 (Product) + #2 (UX)
+
+### Cross-Domain Synthesis
+
+PROP-002 CEO Chat evaluated by 2 domain brains with conflicting verdicts.
+
+**Brain #1 (Product Strategy):** REJECTED (85% confianza) — Solution looking for problem. User real is developer/architect, not CEO. Developers prefer visual dashboards over NL queries. No evidence NL reduces T1. Competes with Command+K. Suggests Concierge MVP first (manual Slack/Discord for 1 week).
+
+**Brain #2 (UX Research):** CONDITIONAL_APPROVAL (65% confianza) — Aligned with UX principles (Jakob's Law, reduced gulf of evaluation). Complements War Room (chat = quick entry, War Room = deep monitoring). But requires: personality definition, expectation management, 3+ chat-only superpowers, Cmd+K integration, ambiguity handling, LATAM validation (3 interviews The Mom Test), paper prototype validation.
+
+Points of agreement: Both agree role-based security is valid for enterprise platform.
+Points of tension: Brain #1 says "vanity feature for wrong user", Brain #2 says "UX-aligned if validated".
+
+### Conflict Resolution
+
+**Why verdicts differ:** Brain #1 evaluates from VALUE/RISK ("Should we build this?"). Brain #2 evaluates from UX/USABILITY ("If this exists, how do we make it work well?"). Brain #1 questions the problem itself; Brain #2 assumes problem is real and focuses on solution design.
+
+**Winner:** Brain #1 has the stronger position. Brain #2 assumes the problem is real ("UX-aligned if validated"), but Brain #1 questions whether the problem exists at all. In product systems, validating the problem BEFORE designing the solution is more important than designing the right solution to the wrong problem.
+
+**Critical insight from NotebookLM:** The user's statement "Qué gano con tener un CEO virtual... y no puedo consultarle" is **Solution-talk, not Problem-talk**. The user is proposing a solution ("I want natural language chat") rather than describing a past behavior or specific difficulty. This is exactly what *The Mom Test* warns against — "fantasy about the future" is not evidence.
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Lollapalooza Effect of Complexity:** Dashboard + Command+K + Chat = 3 competitive interfaces for the same task → Network degradation (Hitting a Ceiling from Reforge sources). Value to user decreases as more interfaces are added for the same job. Each interface adds cognitive load without clearing T1.
+
+**FEEDBACK LOOP — Feature Factory Anti-pattern:** Shipping features without measuring OEC (Overall Evaluation Criteria). If chat only duplicates Command+K functionality, we create UI pattern fragmentation that increases maintenance cost without improving retention. This is "output over outcome" trap.
+
+**FEEDBACK LOOP — Substitution Bias in Development:** Team might be answering the easy question ("Can we build chat?") instead of the hard one ("How do we reduce CEO Time-to-Value in decision making?"). This is classic WYSIATI — building what's visible instead of investigating the root problem.
+
+**CASCADE FAILURE — Trust Leakage:** RBAC bug or LLM hallucination is not just a feature bug, it's a breach of the product's defensive moat. Enterprise trust is hard to gain and easy to lose. A single confidential data leak via chat AI kills the enterprise value proposition entirely.
+
+**METRIC BLINDSPOT — No T1 before/after measurement:** Neither brain proposed measuring T1 (Time to Insight) before and after chat. Without baseline, we cannot claim chat improves anything. Vanity metrics: "users used chat" ≠ "chat reduced T1".
+
+**METRIC BLINDSPOT — No abandonment rate tracking:** Neither brain proposed measuring "users start chat but don't complete" or "users start chat then switch to dashboard to verify data". This indicates lack of trust in chat output — a critical failure mode.
+
+**CROSS-DOMAIN TRADEOFF — Brain #2's UX polish increases Brain #5's backend complexity:** Chat with personality, expectation management, and ambiguity handling requires sophisticated NLP + context management + RBAC. Backend complexity increases → development timeline extends → opportunity cost on other features increases.
+
+### Metric Proposals
+
+**SLI-1 (Time-to-Value comparison):** Measure TTV via manual chat (Concierge MVP) vs dashboard. Target: Manual chat TTV ≤ dashboard TTV. If manual chat is SLOWER, automated chat will be worse. Measurement: Timestamp question asked → timestamp user acknowledges "that's the answer I needed".
+
+**SLI-2 (Abandonment rate):** Percentage of chat sessions that start but user switches to dashboard before completion. Target: < 40%. If > 60%, chat does not generate trust. Measurement: Funnel analysis (chat initiated → dashboard visited within 2 minutes → chat abandoned).
+
+**SLI-3 (Query type distribution):** Categorize manual chat queries: (a) Status/State questions ("what's happening?"), (b) Action instructions ("create X"), (c) KPI queries ("what's the metric?"), (d) Cross-brain synthesis ("summarize everything"). Target: ≥50% cross-brain synthesis queries (these are chat-only superpower). If most queries are (a)/(c), dashboard already handles them better.
+
+**OKR-1 (40% Test — PMF validation):** After Concierge MVP, ask users "How disappointed would you be if we removed this chat channel?" Target: ≥40% "very disappointed". If <40%, Brain #1 was right — this is a solution looking for a problem. Measurement: Survey with 4 options (very disappointed, somewhat disappointed, not disappointed, don't care).
+
+### Verdict
+
+**DEFERRED** — Delta-Velocity Rating 4 (Senior). The proposal is valid directionally but premature. User's statement is Solution-talk, not Problem-talk. No evidence of problem existence. Concierge MVP is REQUIRED to validate problem before any code investment.
+
+**Integration Recommendation:**
+
+**DO NOT build code yet.** Execute **Concierge MVP (1-week manual test)** FIRST:
+
+1. **Week 1 — Concierge MVP:**
+   - Create private Slack/Discord channel `#ceo-chat-beta`
+   - User asks questions in natural language
+   - You (or agent) respond manually using Command Center + Command+K
+   - Measure: (a) What questions do they ask? (b) How frequently? (c) TTV vs dashboard?
+
+2. **Decision criteria after Concierge MVP:**
+   - **IF** SLI-1 (TTV) shows chat ≥ dashboard speed **AND** SLI-2 (abandonment) < 40% **AND** OKR-1 (40% Test) ≥ 40% very disappointed → **PROCEED to Brain #2 conditions** (personality, 3+ chat-only superpowers, Cmd+K integration, LATAM validation)
+   - **ELSE** → **PROP-002 REJECTED**, close as "solution without problem"
+
+3. **If Concierge MVP passes:**
+   - Only then invest in LLM + RBAC + chat UI
+   - Apply Brain #2's 6 conditions (personality definition, expectation management, chat-only superpowers, Cmd+K integration, ambiguity strategy, LATAM validation)
+
+**Risk if ignored:** Building chat now without validation = sunk cost in LLM+RBAC integration + dead code + tech debt if nobody uses it. Concierge MVP cost = 1 week of manual time. Asymmetry of risk is enormous.
+
+**Why Concierge MVP?** It's Margin of Safety (Munger) against Sunk Cost Fallacy. Transforms Solution-talk into behavioral data (The Mom Test) before investing in technical infrastructure. Cheapest way to validate if "Starving Crowd" exists for chat or if it's just "Twaddle" (talking for talking's sake).
+
+**Source citations:**
+- Brain #1 output: "REJECTED — Solution looking for problem. Concierge MVP first"
+- Brain #2 output: "CONDITIONAL_APPROVAL — UX-aligned but requires validation LATAM + 3+ chat-only superpowers"
+- NotebookLM Brain #7 sources: Lollapalooza Effect (55eeb28c), Feature Factory (1ad04189), Substitution Bias (5db6e11a), Trust Leakage/Moat (742c3cef), Value Equation (5e1f5de8), The Mom Test (3e3ce4f2), 40% PMF Test (bcad43f9), Sunk Cost/Action Bias (76a9c932), Starving Crowd (5e1f5de8), Twaddle (55eeb28c), Time to Value (b289f2a3)
+
+---
+
+## 2026-04-06 — PROP-003-B Analytics Financiero — Meta-evaluación de: Brains #1 (Product) + #7 (Growth/Data Domain)
+
+### Cross-Domain Synthesis
+
+**Propuesta evaluada:** Analytics Financiero por Agente y Proyecto — agregar tracking de costos (tokens, $$) y ROI por agente al dashboard de analytics existente (Phase 14-04).
+
+**Brain #1 (Product Strategy):** DEFERRED (75% confianza) — Value Risk ALTO (no hay usuario con pain de costos verificado), Viability Risk ALTO (sin revenue ni pricing model), Usability Risk MEDIO (dashboard sin interpretación). Sugerencia: implementar como "Telemetry" primero (no dashboard completo), diferir a Phase 15+ solo si hay revenue.
+
+**Brain #7 (Growth/Data - Domain):** APPROVED_WITH_CONDITIONS (80% confianza) — duration_ms YA capturado, quality_score YA calculado, custom_metadata JSONB permite agregar cost metrics sin migración. Condiciones: capturar prompt_tokens + completion_tokens, model_id, calcular roi_score asincrónicamente, evitar Goodhart's Law (bajo costo como target).
+
+**Points of agreement:** Ambos coinciden en que la infraestructura técnica existe (duration_ms, quality_score, JSONB). Ambos coinciden en que hay riesgo de Goodhart's Law.
+
+**Points of tension:**
+- Brain #1 dice "DEFERRED — no hay paying customers, Value Risk alto"
+- Brain #7 (domain) dice "APPROVED_WITH_CONDITIONS — datos disponibles, calcular ROI async"
+
+### Conflict Resolution
+
+**Why verdicts differ:** Brain #1 evalúa desde VALUE/RISK ("¿Deberíamos construir esto?"). Brain #7 (domain) evalúa desde DATA/INFRASTRUCTURE ("¿Podemos medir esto técnicamente?"). Brain #1 cuestiona el problema de negocio; Brain #7 (domain) asume que el problema es real y se enfoca en la solución técnica.
+
+**Winner:** Brain #1 tiene la posición más fuerte. Brain #7 (domain) asume que "podemos medir costo" = "debemos medir costo", pero ignora la pregunta crítica: "¿El costo es el bottleneck que está bloqueando el éxito AHORA?" Sin evidencia de que los usuarios estén sintiendo pain financiero (preguntas espontáneas, hojas de cálculo manuales, quejas sobre costos), esta feature es **Optimización Prematura** — el anti-patrón que *Lean Analytics* advierte: medir lo que NO importa para tu etapa actual.
+
+**Critical insight from NotebookLM:** El sistema está en etapa de **"Empathy" o "Stickiness"** (validar valor), no de **"Revenue"** (optimizar costos). Intentar optimizar el ROI antes de validar el Product-Market Fit es invertir el orden de las prioridades. El costo de oportunidad es alto: cada hora en trackear centavos = una hora NO en mejorar Delta-T1 o Knowledge Yield.
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Goodhart's Law Death Spiral:**
+Dashboard muestra "Agente A = $0.50, Agente B = $0.10" → Usuario selecciona Agente B siempre → Knowledge Yield baja (Agente B menos capaz) → Delta-T1 sube → Sistema se vuelve más barato PERO más inútil → ROI real colapsa → Builder abandona el sistema.
+
+Este no es un riesgo teórico. NotebookLM confirma: **Lollapalooza Effect** (Munger) — convergencia de "Super-respuesta a Incentivos" (optimizar costo) + "Evitación de Inconsistencia" (una vez que el dashboard dice que A es "caro", el equipo dejará de usarlo aunque sea el más capaz) = degradación irreversible de la inteligencia del sistema.
+
+**FEEDBACK LOOP — Overhead Cascade:**
+Agregar tracking de tokens → cada consulta requiere +1-2 API calls (LLM providers para token counts) → T1 aumenta 50-100ms → Delta-T1 empeora → Feature que debería "optimizar costos" termina COSTANDO más dinero (time = money) → ROI se vuelve negativo → Feature se auto-invalida.
+
+**FEEDBACK LOOP — Substitution Bias (Kahneman):**
+El sistema está respondiendo la pregunta fácil ("¿Podemos medir tokens?") en lugar de la pregunta difícil ("¿Es el costo la barrera principal para la adopción?"). WYSIATI — lo que vemos (datos técnicos disponibles) es TODO lo que hay, ignorando lo que falta (evidencia cualitativa de pain financiero).
+
+**CASCADE FAILURE — Trust Erosion:**
+Dashboard muestra "ROI Score: 0.2" (bajo) → Builder pierde confianza en el sistema → Deja de usar brain agents → Knowledge Yield cae a 0% → Sistema muere. Sin paying customers NI siquiera, este riesgo es PREMATURO.
+
+**METRIC BLINDSPOT — No "Market Hunger" detection:**
+Ningún cerebro propuso medir: "¿Con qué frecuencia los usuarios preguntan espontáneamente por costos?" o "¿Hay evidencia de cálculo manual de costos (hojas de cálculo, scripts)?" Sin esta señal, estamos construyendo para un problema que NO sabemos si existe.
+
+**CROSS-DOMAIN TRADEOFF — Brain #7's telemetry data increases Brain #5's backend complexity:**
+Capturar prompt_tokens + completion_tokens requiere integración con LLM provider APIs (OpenAI, Anthropic) para obtener token counts precisos. Backend complexity aumenta → development timeline extends → opportunity cost en Delta-T1 features.
+
+### Metric Proposals
+
+**SLI-1 (The Mom Test — Market Hunger):** Frecuencia de preguntas espontáneas sobre costos. Target: ≥5 preguntas/semana sobre "¿Cuánto me costará esto?" antes de construir dashboard. Measurement: Contar preguntas en Slack/Discord/GitHub issues. Si <1/semana → DEFERRED.
+
+**SLI-2 (Proxy de Desperdicio):** Porcentaje de ejecuciones que consumen 80% de tokens sin mejorar Knowledge Yield. Target: Si el 20% de ejecuciones consumen el 80% de tokens Y knowledge_yield < 0.3 → existe ineficiencia sistémica que justifica control financiero. Measurement: Query sobre `experience_records` agrupado por token_count vs quality_score.
+
+**SLI-3 (T1 Overhead Guardrail):** Aumento de Delta-T1 por tracking overhead. Target: <1-2% aumento. Si >5% → feature se auto-invalida. Measurement: Delta-T1 promedio 7 días antes vs. después de activar tracking.
+
+**OKR-1 (Threshold de Retención):** Si retención cae y entrevistas de salida citan "incertidumbre de costos" como razón principal → invertir prioridades inmediatamente. Target: 0% churn por costo hasta Phase 15+.
+
+**OKR-2 (Signal-to-Noise Ratio):** Porcentaje de decisiones de agente cambiadas por dashboard de costos. Target: ≥40% de decisiones realmente cambian. Si <10% → dashboard es ruido, no signal.
+
+### Verdict
+
+**DEFERRED** — Delta-Velocity Rating 5 (Principal). La propuesta es técnicamente factible PERO estratégicamente prematura.
+
+**Why DEFERRED instead of REJECTED?**
+- Los datos técnicos están disponibles (Brain #7 correct: duration_ms, quality_score, JSONB)
+- El problema PUEDE ser real en Phase 15+ cuando haya paying customers
+- No hay daño en capturar telemetría silenciosa (sin dashboard)
+
+**Why not APPROVED_WITH_CONDITIONS?**
+- Brain #7 (domain) propone calcular ROI Score, pero sin revenue ni pricing model, el "R" en ROI es ZERO → ROI Score = (quality × Likelihood) / (Financial_Cost + Time) = (algo) / (0 + algo) = undefined
+- Condiciones técnicas (async calculation, evitar Goodhart's Law) no resuelven el problema estratégico: **¿Quién es el usuario que siente pain de costos HOY?**
+- Opportunity cost real: cada hora en esto = hora NO en Delta-T1 o Knowledge Yield (los únicos outcomes que validan PMF ahora)
+
+**Conditions for future approval (Phase 15+ o cuando exista UNA de estas señales):**
+
+1. **[BLOCKER] Market Hunger Signal:** ≥5 preguntas espontáneas/semana sobre costos, OR evidencia de cálculo manual (hojas de cálculo, scripts), OR paying customers que piden breakdown de costs.
+
+2. **[BLOCKER] Revenue Model Existence:** Pricing model definido + al menos 1 paying customer. Sin revenue, ROI es conceptual, no real.
+
+3. **[BLOCKER] TOP 3 Outcomes Estables:** Delta-T1 <90s sostenido por 2 semanas, Knowledge Yield >30%, Planning Accuracy >0.75. Solo cuando outcomes core están estabilizados, optimizar costos tiene sentido.
+
+4. **[TECHNICAL] Implementación como Telemetría Primero:** Capturar prompt_tokens, completion_tokens, model_id en `custom_metadata` JSONB SIN exponer dashboard. Construir base de datos histórica ("Inside View") para cuando se necesite.
+
+5. **[TECHNICAL] T1 Overhead <2%:** Verificar que tracking overhead no aumenta Delta-T1 más de 1-2%. Si aumenta más → feature se auto-invalida.
+
+**Roadmap recomendado:**
+
+**Fase 0: Telemetría Silenciosa (1 semana) — PUEDE empezar AHORA**
+1. Agregar `prompt_tokens`, `completion_tokens`, `model_id` a `custom_metadata` JSONB
+2. NO exponer dashboard, NO calcular ROI Score
+3. Solo escribir datos para construcción de "Inside View" histórica
+
+**Fase 1: Detección de Market Hunger (ongoing) — CRÍTICO**
+1. Medir SLI-1 (preguntas espontáneas sobre costos)
+2. Medir SLI-2 (proxy de desperdicio: 20% ejecuciones consumen 80% tokens?)
+3. Si SLI-1 <1/semana Y SLI-2 <30% → continuar en Fase 0
+
+**Fase 2: Dashboard + ROI Score (Phase 15+ o cuando trigger) — Solo si Fase 1 pasa**
+1. SI paying customers existen Y Market Hunger ≥5/semana → construir dashboard
+2. Calcular ROI Score = (quality_score × Perceived_Likelihood) / (Financial_Cost + Time_Delay)
+3. Aplicar guardrails: Goodhart's Law (no optimizar costo como target), T1 Overhead <2%
+
+**Risk if ignored:** Construir dashboard financiero AHORA = sunk cost en UI + backend complexity + risk de Goodhart's Law + overhead en T1 = feature que debería "ahorrar dinero" termina "costando dinero" (time + complexity) + opportunity cost en outcomes que SÍ importan (Delta-T1, Knowledge Yield).
+
+**Source citations:**
+- Brain #1 output: "DEFERRED — Value Risk ALTO, Viability Risk ALTO, implementar como Telemetry primero"
+- Brain #7 (domain) output: "APPROVED_WITH_CONDITIONS — duration_ms YA capturado, custom_metadata JSONB permite agregar cost metrics"
+- NotebookLM Brain #7 sources: Lean Analytics (stage mismatch), Goodhart's Law, Lollapalooza Effect, Action Bias, Hormozi Value Equation, The Mom Test (market hunger), Sunk Cost Fallacy, Opportunity Cost, WYSIATI, Substitution Bias
+
+---
+*PROP-003-B Analytics Financiero — Meta-evaluación completa: 2026-04-06*
+*Status: DEFERRED hasta Phase 15+ o hasta detectar Market Hunger signal*
+*Next review: When SLI-1 ≥5/semana OR when paying customers exist*
+
+## 2026-04-07 — Phase 16 Observability + Real-Time Hub — Evaluation of: Brains #5 #6
+
+### Cross-Domain Synthesis
+
+**Brain #5 (Backend):** Tracing via `tracing` crate (already in Cargo.toml), WebSocket Hub with DashMap Registry, PostgreSQL-first Ghost Mode, gRPC bi-directional streaming. Priority: OBS-01 > RTU-01 > Health > Ghost Mode (nice-to-have).
+
+**Brain #6 (QA):** Prometheus metrics with /metrics endpoint, structured JSON logging, E2E trace propagation test, 1000-connection load test at <100ms broadcast SLA, circuit breaker + retry patterns. Flags 5 monitoring gaps: alerting, dashboards, log aggregation, runbooks, capacity limits.
+
+**Consensus:** PostgreSQL-first (no Redis), structured JSON logging, liveness vs readiness separation, tokio-tungstenite for WS, load testing required.
+
+### Second-Order Concerns
+
+**SYSTEMS GAP — Thundering Herd on Ghost Mode Replay:** 1000 clients reconnecting simultaneously = 1000 concurrent PostgreSQL queries against activity_log. Connection pool max = 20 (Brain #5). Result: pool starvation, replay timeout, disconnect loop. Neither brain identified this cascade. Ghost Mode MUST use in-memory ring buffer, not direct PostgreSQL queries on reconnect.
+
+**SYSTEMS GAP — UnboundedSender is OOM risk:** Brain #5 type contract uses `mpsc::UnboundedSender<ClientMessage>`. Under broadcast load with slow consumers, memory grows without limit. Bounded channel (256 buffer) with disconnect-on-overflow is the correct pattern.
+
+**SYSTEMS GAP — Ghost Mode is NOT nice-to-have:** Brain #5 deprioritizes Ghost Mode to priority 4. But a WebSocket Hub without event replay creates false confidence in delivery. Ghost Mode is an invariant, not a feature. Deprioritizing it while building the Hub is building the pipe without the water.
+
+**SYSTEMS GAP — No max_connections ceiling:** Brain #6 flags this as "monitoring gap" but it is a LAUNCH BLOCKER. Without enforced max_connections, the Hub accepts connections until OOM.
+
+**CONFLICT — gRPC bi-directional streaming:** Brain #5 proposes persistent bi-directional streaming for brain events. This adds 3 failure modes (lifecycle, backpressure, reconnection) for unvalidated benefit. Winner: start with unary gRPC calls, add streaming when metrics prove unary is a bottleneck (Kohavi: measure first).
+
+### Metric Proposals
+
+**SLI-1 (Ghost Mode Replay Latency):** P95 < 500ms for last 100 events. If exceeded, ring buffer implementation is failing.
+
+**SLI-2 (Memory per WS Connection):** < 50KB at steady state, total Hub < 100MB at 1000 connections. If exceeded, connection model has a leak.
+
+**SLI-3 (gRPC Trace Propagation Rate):** 100% of cross-service requests carry trace_id in gRPC metadata. If < 100%, interceptor is broken.
+
+**SLI-4 (Connection Rejection):** Connections beyond max_connections (2000) receive HTTP 429. If connections exceed limit without 429, ceiling is not enforced.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Rating 72/100
+
+**Conditions (must resolve before execution):**
+1. Elevate Ghost Mode from nice-to-have to co-requirement with RTU-01
+2. Replace UnboundedSender with bounded channel (256 buffer)
+3. Define max_connections constant (2000 recommended)
+4. Specify gRPC trace interceptor BEFORE writing tracing code
+5. Defer bi-directional gRPC streaming — use unary first
+6. Add thundering herd mitigation (in-memory ring buffer for Ghost Mode)
+
+**Evidence:** 16-BRAIN-OUTPUTS.md lines 49, 72-79, 177, 188, 229

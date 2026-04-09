@@ -68,3 +68,35 @@
 - 📅 Chain Progress bar/breadcrumb (Zeigarnik pattern) in Command Center header — Phase 12/v3.0 candidate. Required state: orchestratorStore extended with chainSteps: Step[] where Step = {brainId, label, status}. No backend contract change needed if brain_routing events include step sequence.
 - 📅 BrainTile memory count badge (progressive disclosure for experiences) — Phase 12/v3.0 candidate. Source: GET /api/experiences/{brain_id} count field. Max 1 API call per brain on hover (TanStack Query cache, staleTime 30s covers session).
 - 📅 "Routing reason" label on Nexus edges — show the implication type (frontend/backend/ux) on the animated edge — Phase 12/v3.0 candidate. Requires: React Flow edge data prop + HybridFlowEdge extended to render an SVG foreignObject label.
+
+## 2026-04-06 — Onboarding Visual Proposal Evaluation (Paperclip CLI → GUI)
+
+### Verified Insights
+
+- **CLI-based onboarding es REAL problem para non-technical users.** Evidencia: Paperclip UX_RESEARCH_ANALYSIS.json encontró "Curva de aprendizaje alta" (CRITICAL) + "CLI-first perception" (HIGH). Usuario no-técnico ve `npx paperclipai onboard --yes` sin affordances/signifiers — Golfo de Ejecución sin puente (Norman).
+
+- **Reconocimiento > Recuerdo para business users.** CLI depende de memoria de trabajo (recuerda flags, sintaxis); GUI depende de reconocimiento (inputs visuales, botones, estados). Miller's Law: 7±2 chunks. Un comando CLI con múltiples flags rompe este límite si el usuario no entiende la sintaxis, generando "Mistakes" (errores de modelo mental) no "Slips".
+
+- **Onboarding visual NO rompe War Room si aplica Heurística H7.** H7 (Nielsen): Flexibilidad y eficiencia. Visual onboarding para nuevo usuario business + CLI disponible como acelerador para developer. No es reemplazo, es camino paralelo de entrada.
+
+- **Respetar estética War Room en onboarding.** Status Dashboard de alta densidad (no "Welcome"), luces de estado (mapeo natural verde/rojo), logs estilo terminal DENTRO del GUI. Zero happy talk — ir directo a la utilidad (Krug: "Users don't read, they scan").
+
+- **Happy Path debe ser end-to-end, no solo setup.** 5 pasos: (1) Welcome + business goal, (2) System Readiness Check (auto), (3) Knowledge Mapping (upload doc o contexto), (4) First Consultation (Brain #1), (5) Dashboard Handoff (Strategy Vault). Miller's Law: 5 pasos (7±2 chunks). Zeigarnik Effect: First consultation incomplete → urge a completar.
+
+- **Progressive Disclosure en The Nexus para first-run users.** Mostrar SOLO brains relevantes para el problema del usuario (ej: "mejorar UX" → brains #1, #2, #3). "Explore all brains" button para ver otros 21. H5: Prevención de errores — no abrumar con choices irrelevantes.
+
+### Deferred Items
+
+- 📅 **Dual onboarding paths por persona** — Phase 15/v3.0.1. Landing pregunta: "developer or business leader?" → Developer skip to Command Center (CLI: `npx mastermind-cli configure`), Business leader entra en visual onboarding (5-step flow). Requiere: landing page redesign + persona detection logic.
+
+- 📅 **Engine Room como System Readiness dashboard** — Phase 15/v3.0.1. Extender Engine Room con "First Run Mode" que muestre status lights de dependencias + "Fix automatically" button. Ventajas: zero nuevo código, usuario aprende Engine Room desde inicio, consistencia (setup + monitoreo mismo panel).
+
+- 📅 **Paper prototype + Figma validation** — Phase 14.5 (pre-build). Plan: (1) Paper prototype con 5 usuarios LATAM (>80% completion), (2) Figma clickable con 10 usuarios (time-to-first-success < 5 min), (3) A/B test Visual vs. CLI (2x completion rate target), (4) SUS survey (>68 target). SI CUALQUIER fase falla → iterar o pivotar antes de código.
+
+- 📅 **Guided Tour dismissible para War Room panels** — Phase 15/v3.0.1. Post-onboarding: Tooltips para Command Center, Nexus, Vault, Engine Room. Dismissible después de primera interacción. Progressive disclosure: explicar panel cuando usuario lo necesita.
+
+### Decisions Logged
+
+- **Onboarding visual = CONDITIONAL APPROVAL.** Válido y alineado con v3.0 shift, PERO requiere: (1) Definir "non-technical user persona" con 3+ entrevistas LATAM, (2) Especificar flujo completo 5 pasos (inputs/validaciones), (3) Validar con paper prototype (5 usuarios, >80% completion), (4) Definir métricas: time-to-first-success, error rate, SUS score. Una vez cumplidas → APPROVED con PRIORIDAD MEDIA (no blocking para MVP v3.0).
+
+- **No reemplazar CLI, agregar camino paralelo.** CLI sigue funcional para usuarios técnicos. Onboarding visual es entrada alternativa para business users. Respeta H7 (flexibilidad) sin alienar audiencia existente.

@@ -268,3 +268,58 @@ If only 3 metrics for v1 dashboard, these are the MOST valuable (ranked by outco
 2. **Brain #6:** How do we A/B test "memory enabled" vs. "memory disabled" to prove T1 improvement? Feature flag in brain_memory.py?
 3. **Brain #7:** What's the exact evaluation rubric for template worthiness? Is `quality_score >= 0.8` sufficient, or need additional criteria (e.g., session contained architectural decision)?
 
+
+---
+
+## 2026-04-06 — MCP Configuration UI Proposal — Product Strategy Evaluation
+
+### Context
+**Proposal:** UI-based MCP server configuration (replacing manual settings.json editing)
+**Codebase State:** Zero MCP config UI exists. Grep confirms no mcp/settings/integration UI in apps/web/src/
+**Current User:** Builder = technical developer/architect who ALREADY knows how to configure MCP manually
+**Knowledge Base:** NotebookLM f276ccb3-0bce-4069-8b55-eae8693dbe75 (Cagan, Torres, Ries)
+
+### Verified Insights
+
+**Verdict: DEFERRED — Build Trap signal confirmed by knowledge base + codebase verification**
+
+**Risk map (Cagan 4 dimensions):**
+
+1. **Value Risk — CRITICAL FAIL:** Builder already has MCP working (notebooklm, Gmail, Notion). No friction reported. Information delta added by UI = ZERO. The problem being solved ("configuring MCP is hard") does not exist for the current user.
+
+2. **Usability Risk — NOT APPLICABLE:** No usage pattern to observe. Feature doesn't exist, pain not reported. For technical users, CLI/config files are often FASTER than UI forms.
+
+3. **Feasibility Risk — LOW:** Next.js 16 + shadcn/ui + Zustand validated. Zero technical risk. But feasibility is never a reason to build something with no value.
+
+4. **Viability Risk — HIGH BUILD TRAP:** Every hour on MCP UI steals time from Phase 15 (Rust Control Plane) — the critical path for v3.0 enterprise platform. Measuring success by output (UI shipped) not outcome (platform capability).
+
+**Torres OST position:** Valid opportunity node = "Reduce configuration barrier for non-technical users" — but that node DOESN'T EXIST because no non-technical users are validated. Marketplace is CONDITIONAL (3 interviews + 1 LOI) for this exact reason.
+
+**Cagan Build Trap signals:**
+- Solution proposed without evidence of user pain (builder can already configure MCP)
+- Feature request ≠ user need (Jobs-to-be-done: configurability IS satisfied today)
+- Prioritizing output (UI) over outcome (platform capability)
+
+**Correct sequence from knowledge base:**
+1. Validate external user demand (Concierge MVP: configure MCP manually for them)
+2. Measure activation rate (do they actually need self-service?)
+3. Fake Door Test (landing page "configure MCP with clicks" → measure clicks)
+4. Only THEN build UI if demand confirmed
+
+### Deferred Items
+
+📅 **v3.1+ — MCP Configuration UI** — APPROVED for future IF:
+- [ ] 3+ LATAM SME interviews validate "configuring integrations is blocker"
+- [ ] 1 LOI/paid pilot confirmed
+- [ ] Marketplace activated (original roadmap Phase 6)
+
+**Outcome metrics for future implementation:**
+- "% non-technical users configuring MCP without help" > 80%
+- "Configuration time" < 2 min for simple server
+- "Support tickets for configuration" reduced 50%
+
+**Alternative for v3.0:** CLI helper (`npx mastermind mcp add --server notebooklm --url ...`) if pain is "hate editing JSON" (not reported). Cost: 1 day vs 2-3 weeks for full UI.
+
+### Deferred Items (Related)
+
+📅 **Phase 15 takes priority** — Rust Control Plane is v3.0 critical path. MCP UI is a v3.1+ feature when target user shifts from "builder technical" to "SME non-technical."
