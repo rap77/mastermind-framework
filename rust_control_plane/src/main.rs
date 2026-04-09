@@ -12,7 +12,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
-use tracing::{info, error};
 
 mod db;
 mod handlers;
@@ -24,6 +23,8 @@ mod tracing;
 mod health;
 mod websocket;
 mod metrics;
+// mod proto;  // TODO: Add proto files before enabling
+// mod grpc;   // TODO: Add proto files before enabling
 
 use tracing::inject_trace_middleware;
 
@@ -31,7 +32,6 @@ use db::connect_pool;
 use auth::auth_middleware;
 use state::AppState;
 use websocket::WebSocketHub;
-use axum::Json;
 
 /// Ghost Mode replay endpoint - returns last 100 events
 async fn ghost_replay_handler(
@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
         anyhow::bail!("JWT_SECRET must be at least 32 characters");
     }
 
-    info!("JWT_SECRET validated (length: {})", jwt_secret.len());
+    ::tracing::info!("JWT_SECRET validated (length: {})", jwt_secret.len());
 
     // Create application state
     let websocket_hub = Arc::new(WebSocketHub::new());
@@ -95,15 +95,15 @@ async fn main() -> Result<()> {
             state.clone(),
             auth_middleware,
         ))
-        .layer(inject_trace_middleware) // Add trace injection middleware
+        .layer(middleware::from_fn(inject_trace_middleware)) // Add trace injection middleware
         .with_state(state);
 
     // Create TCP listener
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     let listener = TcpListener::bind(addr).await?;
 
-    info!("Rust Control Plane listening on {}", addr);
-    info!("PostgreSQL connected: {}", database_url);
+    ::tracing::info!("Rust Control Plane listening on {}", addr);
+    ::tracing::info!("PostgreSQL connected: {}", database_url);
 
     // Serve the application with graceful shutdown
     axum::serve(listener, app)
@@ -122,16 +122,16 @@ async fn connect_with_retry(database_url: &str, max_attempts: u32) -> Result<db:
         attempt += 1;
         match connect_pool(database_url).await {
             Ok(pool) => {
-                info!("Connected to PostgreSQL (attempt {})", attempt);
+                ::tracing::info!("Connected to PostgreSQL (attempt {})", attempt);
                 return Ok(pool);
             }
             Err(e) if attempt < max_attempts => {
-                error!("Failed to connect (attempt {}/{}): {}", attempt, max_attempts, e);
+                ::tracing::error!("Failed to connect (attempt {}/{}): {}", attempt, max_attempts, e);
                 tokio::time::sleep(delay).await;
                 delay *= 2; // Exponential backoff
             }
             Err(e) => {
-                error!("Failed to connect after {} attempts: {}", max_attempts, e);
+                ::tracing::error!("Failed to connect after {} attempts: {}", max_attempts, e);
                 return Err(e);
             }
         }
@@ -159,10 +159,10 @@ async fn shutdown_signal() {
 
     tokio::select! {
         _ = ctrl_c => {
-            info!("Ctrl+C received, shutting down gracefully");
+            ::tracing::info!("Ctrl+C received, shutting down gracefully");
         },
         _ = terminate => {
-            info!("Terminate signal received, shutting down gracefully");
+            ::tracing::info!("Terminate signal received, shutting down gracefully");
         },
     }
 }

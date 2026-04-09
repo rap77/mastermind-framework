@@ -9,7 +9,7 @@ pub struct BrainEvent {
     pub brain_id: String,
     pub event_type: BrainEventType,
     pub payload: serde_json::Value,
-    pub created_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]

@@ -1,10 +1,10 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use serde_json::json;
 use axum::http::StatusCode;
-use crate::db::PgPool;
+use crate::state::AppState;
 
-async fn check_postgres(pool: &PgPool) -> Result<(), String> {
-    pool.acquire().await
+async fn check_postgres(state: &AppState) -> Result<(), String> {
+    state.pool.acquire().await
         .map(|_| ())
         .map_err(|e| format!("PostgreSQL: {}", e))
 }
@@ -14,9 +14,9 @@ async fn check_grpc_python() -> Result<(), String> {
     Ok(())
 }
 
-pub async fn readiness_check(State(pool): State<PgPool>) -> impl IntoResponse {
+pub async fn readiness_check(State(state): State<AppState>) -> impl IntoResponse {
     let checks = tokio::join!(
-        check_postgres(&pool),
+        check_postgres(&state),
         check_grpc_python(),
     );
 

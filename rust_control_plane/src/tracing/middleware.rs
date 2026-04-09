@@ -1,4 +1,4 @@
-use axum::{extract::Request, http::StatusCode, response::Response, Extension, Next};
+use axum::{extract::Request, http::StatusCode, response::Response, Extension, middleware::Next};
 use uuid::Uuid;
 use crate::tracing::metadata::TraceMetadata;
 use crate::metrics::record_http_request;

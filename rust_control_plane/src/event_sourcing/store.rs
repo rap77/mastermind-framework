@@ -40,7 +40,7 @@ impl EventStore {
             brain_id: brain_id.to_string(),
             event_type: event_type_clone,
             payload,
-            created_at,
+            created_at: Some(created_at),
         })
     }
 

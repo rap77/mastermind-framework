@@ -1,5 +1,6 @@
 use tracing_subscriber::{Registry, EnvFilter};
-use tracing_subscriber::fmt::layer;
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
 
 pub mod metadata;
 pub mod middleware;
@@ -17,7 +18,7 @@ pub fn init_tracing() {
 
     let subscriber = Registry::default()
         .with(env_filter)
-        .with(layer().json());
+        .with(fmt::layer().json());
 
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set tracing subscriber");

@@ -80,9 +80,11 @@ impl WebSocketHub {
     pub async fn connect(&self, user_id: UserId) -> Result<(mpsc::Receiver<ClientMessage>, Vec<StoredEvent>), &'static str> {
         let mut count = self.active_count.lock().await;
         if *count >= MAX_CONNECTIONS {
+            tracing::warn!("Connection rejected: {}/{} max connections", *count, MAX_CONNECTIONS);
             return Err("Max connections exceeded (2000 limit)");
         }
         *count += 1;
+        tracing::info!("Connection accepted: {}/{} max connections", *count, MAX_CONNECTIONS);
 
         let (tx, rx) = mpsc::channel(CHANNEL_BUFFER);
         self.connections.insert(user_id, tx);

@@ -4,6 +4,7 @@ use axum::{
         State, WebSocketUpgrade,
     },
     response::IntoResponse,
+    http::StatusCode,
 };
 use futures_util::{stream::StreamExt, SinkExt};
 use uuid::Uuid;
@@ -15,6 +16,8 @@ pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
+    // Connection limit is enforced in WebSocketHub::connect() with proper mutex locking
+    // This avoids race conditions from checking here before the upgrade
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
@@ -22,11 +25,14 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     // Generate a unique ID for this connection
     let user_id = Uuid::new_v4();
 
-    // Connect to the hub
+    // Connect to the hub (enforces MAX_CONNECTIONS limit)
     let (mut rx, replay) = match state.websocket_hub.connect(user_id).await {
         Ok(result) => result,
-        Err(_) => {
-            tracing::error!("Failed to connect user {:?} to WebSocket hub", user_id);
+        Err(e) => {
+            tracing::warn!("Connection rejected for user {:?}: {}", user_id, e);
+            // Close the connection immediately - limit exceeded
+            let mut socket = socket;
+            let _ = socket.close().await;
             return;
         }
     };

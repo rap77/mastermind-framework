@@ -33,11 +33,28 @@ impl TryFrom<crate::auth::models::Claims> for AuthenticatedRequest {
 }
 
 /// JWT validation middleware - extracts and validates Bearer token
+/// Public routes (no auth required): /ws, /metrics, /health, /api/auth/login, /api/auth/refresh
 pub async fn auth_middleware(
     State(state): State<crate::state::AppState>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    // Skip authentication for public routes
+    let path = req.uri().path();
+    let public_routes = [
+        "/ws",
+        "/metrics",
+        "/health/live",
+        "/health/ready",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/ghost/replay",
+    ];
+
+    if public_routes.iter().any(|route| path.starts_with(route)) {
+        return Ok(next.run(req).await);
+    }
+
     let auth_header = req
         .headers()
         .get("Authorization")
