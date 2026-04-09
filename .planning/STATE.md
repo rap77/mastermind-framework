@@ -4,7 +4,7 @@ milestone: v3.0
 milestone_name: milestone
 current_phase: 17
 status: in_progress
-last_updated: "2026-04-09T02:45:00.000Z"
+last_updated: "2026-04-09T23:10:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 3
@@ -16,7 +16,7 @@ progress:
 
 **Milestone:** Enterprise Agent Orchestration Platform with Knowledge Distillation for LATAM
 **Current Phase:** 17
-**Last Updated:** 2026-04-09 02:45
+**Last Updated:** 2026-04-09 23:10
 
 ## Progress Bar
 
@@ -44,9 +44,9 @@ Overall: [████████░░] 97% (22/25 requirements met, Phase 17.
 - ✅ CSS variables — New color system for layout
 - ✅ Protected layout — Integrated three-column structure
 - ✅ httpOnly cookies — Backend cookie implementation
-- ✅ Server Actions fix — Dynamic import for SSR compatibility
+- ✅ API route migration — Replaced Server Actions with POST /api/auth/login for Next.js 16 standalone
 **Tests:** 439/439 passing (+32 new tests)
-**Commit:** `03118d1` — feat(17-01): implement three-column layout foundation
+**Commit:** `57b799c` — feat(17-01): three-column layout + login API route fix
 **See:** `.planning/phases/17-ui-evolution/17-01-SUMMARY.md`
 **Active Branch:** `master`
 
