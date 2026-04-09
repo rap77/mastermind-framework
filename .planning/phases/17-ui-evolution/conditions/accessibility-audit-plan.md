@@ -38,7 +38,7 @@ test.describe('Accessibility - Automated', () => {
   test('War Room homepage has no accessibility violations', async ({ page }) => {
     await page.goto('/war-room');
     await page.waitForSelector('[data-testid="brain-grid"]');
-    
+
     await checkA11y(page, null, {
       detailedReport: true,
       detailedReportOptions: { html: true },
@@ -49,7 +49,7 @@ test.describe('Accessibility - Automated', () => {
     await page.goto('/war-room');
     await page.click('[data-testid="brain-card-0"]');
     await page.waitForSelector('[data-testid="brain-detail-panel"]');
-    
+
     // Check only the detail panel (not entire page)
     await checkA11y(page, '[data-testid="brain-detail-panel"]', {
       detailedReport: true,
@@ -60,20 +60,20 @@ test.describe('Accessibility - Automated', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/war-room');
     await page.waitForSelector('[data-testid="mobile-brain-list"]');
-    
+
     await checkA11y(page);
   });
 
   test('Swipe actions are keyboard accessible', async ({ page }) => {
     await page.goto('/war-room');
-    
+
     // Tab to first brain card
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter'); // Activate
-    
+
     // Check that action menu is accessible
     await expect(page.locator('[data-testid="brain-menu"]')).toBeVisible();
-    
+
     await checkA11y(page, '[data-testid="brain-menu"]');
   });
 });
@@ -95,23 +95,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-      
+
       - name: Run accessibility tests
         run: npx playwright test e2e/accessibility/axe-core.spec.ts
-      
+
       - name: Upload accessibility report
         if: always()
         uses: actions/upload-artifact@v3

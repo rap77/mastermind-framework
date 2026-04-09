@@ -36,18 +36,18 @@ devices: [
 test('swipe left to reveal brain actions', async ({ page }) => {
   await page.goto('/war-room');
   const panel = page.locator('[data-testid="brain-panel-1"]');
-  
+
   await panel.evaluate((el) => {
     const startX = el.getBoundingClientRect().right - 50;
     const startY = el.getBoundingClientRect().top + 50;
     const endX = el.getBoundingClientRect().left + 50;
-    
+
     // Simulate swipe
     el.dispatchEvent('touchstart', { touches: [{ clientX: startX, clientY: startY }] });
     el.dispatchEvent('touchmove', { touches: [{ clientX: endX, clientY: startY }] });
     el.dispatchEvent('touchend');
   });
-  
+
   await expect(page.locator('[data-testid="brain-actions"]')).toBeVisible();
 });
 ```
@@ -151,22 +151,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-      
+
       - name: Run BrowserStack tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: npx playwright test --project=browserstack-*
-      
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v3

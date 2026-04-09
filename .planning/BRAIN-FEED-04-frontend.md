@@ -142,3 +142,225 @@ Sync: Error response standard — [SYNC: BF-05-004] → BRAIN-FEED-05-backend.md
 📅 When Phase 15 migrates ALL paths to Rust, consider removing FASTAPI_URL entirely and unifying on RUST_GATEWAY_URL
 📅 When proto-generated types grow complex (multiple services), evaluate Zod schema auto-generation from .proto definitions
 📅 TanStack Query's staleTime (30s for brains, 60s for executions) may need adjustment when Rust gateway introduces latency — measure and tune in Phase 16
+
+## 2026-04-08 — Phase 17 Frontend Architecture Consultation
+
+### Verified Insights
+
+**1. Multi-tenant State (companyStore) — localStorage sync + Tab coordination**
+- Use Zustand `persist` middleware with `createJSONStorage` (handles JSON serialization)
+- Cross-tab sync: Listen to browser `storage` event in store initialization, merge on `company-context` key changes
+- Active company switching: `activeCompanyId` update → `queryClient.invalidateQueries({ queryKey: ['company-context'] })` → TanStack Query refetches all dependent queries
+- Pattern follows `layoutStore.ts`: Immer + persist + targeted selectors (`useActiveCompany()`, `useCompanyList()`)
+- State structure: `Map<companyId, CompanyState>` wrapped in Immer for O(1) lookups without cascade re-renders
+
+**2. Drag-and-Drop (@dnd-kit) — Isolate from React Flow pan/zoom**
+- `@dnd-kit` NOT in package.json — requires pnpm add (no npm violation)
+- Critical isolation: Sortable container needs `touch-action: none` + `stopPropagation` on pointer events to prevent React Flow canvas interaction
+- Performance at 24+ companies: Wrap reordering logic in `useTransition()` (React 19 concurrent feature) — keeps UI responsive while DOM reflows in background
+- Note: React 19 concurrent features NOT yet used in codebase (grep verified zero `useTransition`/`useDeferredValue`) — this is new for Phase 17
+
+**3. ActiveAgentsPanel Performance — Extend brainStore RAF pattern**
+- Reuse existing `brainStore.ts` RAF batching: 16ms drain cycle, max 24 events per frame
+- Each agent row uses `useBrainState(id)` targeted selector — O(1) Map lookup prevents cascade re-renders across 24 rows
+- NO separate RAF loop needed — extend existing `_drainQueue()` to handle agent panel events
+- Render budget: 60fps = 16.67ms per frame. 24 brain updates × ~0.5ms each = ~12ms total, safe within budget
+
+**4. Cost Data Sourcing — Rust event sourcing, not Python API**
+- Source from Rust `activity_log` table (event-sourced, consistent with agent actions)
+- Avoid Python aggregation layer — introduces latency vs direct Rust reads
+- Caching: TanStack Query with `staleTime: 30s` + `refetchInterval: 60s` for quota-critical metrics
+- SWR pattern: Show cached MetricCard immediately, background refetch updates when data arrives
+- Existing `react-query.tsx` already configured: staleTime 30s, gcTime 5min, refetchOnWindowFocus false
+
+**5. Command Palette (Cmd+K) — Radix Command + async indexing**
+- Radix UI components: `@base-ui/react` v1.3.0 already in package.json (Base UI, not Radix UI — shadcn Nova preset uses Base UI primitives)
+- For Command component specifically: Need to verify if Command exists in Base UI or use `cmdk` library (not in package.json today)
+- Keyboard shortcut: Global `useEffect` with `addEventListener('keydown')`, MUST include cleanup function to prevent memory leaks
+- Async indexing: If content > 1000 items, use Web Worker for search index building — prevents main thread jank
+- Search input: Use `useDeferredValue` (React 19) to prioritize typing responsiveness over list updates
+
+**6. Mobile Gestures — Pointer Events + touch-action isolation**
+- Use Pointer Events (not Touch Events) for unified mouse/touch/stylus handling
+- React Flow conflict resolution: `touch-action: pan-y` on side panels, `touch-action: none` on drag handles
+- Prevent viewport scroll interference: Block `wheel`/`touchmove` propagation when user interacts with graph canvas
+- Animations: CSS transforms + opacity only (GPU compositor) — never width/height (causes layout reflow)
+- Existing `touch-action` usage found in `NexusPage.tsx` + button/input components — pattern established
+
+### Implementation Gaps (Verified via Grep)
+
+🔴 **Missing libraries for Phase 17:**
+- `@dnd-kit` — Not in package.json, requires pnpm add
+- Command palette library — `cmdk` or Radix Command not in package.json. Base UI v1.3.0 exists but Command component availability unknown
+- `useTransition`/`useDeferredValue` — Zero usage in codebase today, new React 19 concurrent features for Phase 17
+
+🔴 **Cross-tab sync pattern NOT established:**
+- `layoutStore.ts` uses `persist` middleware but NO `storage` event listener for cross-tab sync
+- Phase 17 companyStore must implement this pattern (not copy existing layoutStore)
+
+✅ **Existing patterns confirmed:**
+- RAF batching: `brainStore.ts` lines 44-66 — queue, drain, 16ms cycle
+- Targeted selectors: `useBrainState(id)` pattern in brainStore, `useSidebarCollapsed()` in layoutStore
+- TanStack Query: 12 files use `useQuery`/`useMutation`, provider configured in `react-query.tsx`
+- Zustand + Immer: 6 stores use this pattern (brainStore, layoutStore, wsStore, orchestratorStore, logFilterStore, replayStore)
+
+### Performance Observables
+
+For each Phase 17 feature, measure before/after:
+
+**Multi-tenant company switcher:**
+- Metric: Time from company switch click to first data render (target < 100ms)
+- Tool: React DevTools Profiler + `performance.now()` timestamps in store action
+
+**Drag-and-drop company ordering:**
+- Metric: Frames dropped during drag operation (target: 0 dropped frames at 60fps)
+- Tool: Chrome DevTools Performance tab, record drag session, check "Frames" timeline
+
+**ActiveAgentsPanel with 24 brains:**
+- Metric: FPS during 24-brain simultaneous update (target: 60fps sustained)
+- Tool: `console.time()` around `_drainQueue()` + React DevTools Profiler
+
+**Cost dashboard (MetricCard + QuotaBar):**
+- Metric: Time to interactive (TTI) with cached data (target < 50ms)
+- Tool: Lighthouse "Performance" score + Chrome DevTools Network panel (verify SWR background refetch)
+
+**Command palette:**
+- Metric: Input lag when typing search query (target < 16ms per keystroke)
+- Tool: `performance.mark()` before/after search filter, Chrome DevTools Performance "Main" thread
+
+**Mobile gestures:**
+- Metric: Gesture response time (target < 100ms from touchstart to visual feedback)
+- Tool: Chrome DevTools Performance tab, record gesture, check "Event Timing" section
+
+### Anti-Pattern Alerts
+
+❌ **Don't use npm for @dnd-kit** — pnpm only (Stack Hard-Lock violation if using npm)
+
+❌ **Don't create new RAF loop for agent panel** — reuse existing `brainStore._drainQueue()` pattern. Multiple RAF loops = frame budget fragmentation
+
+❌ **Don't invalidate all queries on company switch** — use scoped `queryKey: ['company-context']` only. Broad invalidation = unnecessary refetch waterfall
+
+❌ **Don't block main thread for command palette indexing** — if > 1000 items, use Web Worker. Main thread indexing = typing jank
+
+❌ **Don't use width/height animations for mobile gestures** — transforms + opacity only (GPU compositor). Layout animations = reflow = dropped frames
+
+❌ **Don't let React Flow capture all pointer events** — `stopPropagation()` on dnd-kit handlers, `touch-action` CSS on containers. Conflict = unusable drag/drop
+
+### Sync Cross-References
+
+[SYNC: BF-05-005] → BRAIN-FEED-05-backend.md > Cost Data Sources. Frontend needs Rust activity_log endpoint contract (shape, pagination, auth). Owner: Brain #5 Backend.
+
+[SYNC: BF-05-006] → BRAIN-FEED-05-backend.md > Company Context API. Frontend needs `/api/companies` endpoint for multi-tenant list + active company switching. Owner: Brain #5 Backend.
+
+[SYNC: BF-05-007] → BRAIN-FEED-05-backend.md > Real-time Cost Events. Should cost quota updates come via WS (from Rust event sourcing) or polling? Owner: Brain #5 Backend.
+
+## 2026-04-08 — Phase 17 Frontend Architecture Consultation
+
+### Verified Insights
+
+**1. Multi-tenant State (companyStore) — localStorage sync + Tab coordination**
+- Use Zustand `persist` middleware with `createJSONStorage` (handles JSON serialization)
+- Cross-tab sync: Listen to browser `storage` event in store initialization, merge on `company-context` key changes
+- Active company switching: `activeCompanyId` update → `queryClient.invalidateQueries({ queryKey: ['company-context'] })` → TanStack Query refetches all dependent queries
+- Pattern follows `layoutStore.ts`: Immer + persist + targeted selectors (`useActiveCompany()`, `useCompanyList()`)
+- State structure: `Map<companyId, CompanyState>` wrapped in Immer for O(1) lookups without cascade re-renders
+
+**2. Drag-and-Drop (@dnd-kit) — Isolate from React Flow pan/zoom**
+- `@dnd-kit` NOT in package.json — requires pnpm add (no npm violation)
+- Critical isolation: Sortable container needs `touch-action: none` + `stopPropagation` on pointer events to prevent React Flow canvas interaction
+- Performance at 24+ companies: Wrap reordering logic in `useTransition()` (React 19 concurrent feature) — keeps UI responsive while DOM reflows in background
+- Note: React 19 concurrent features NOT yet used in codebase (grep verified zero `useTransition`/`useDeferredValue`) — this is new for Phase 17
+
+**3. ActiveAgentsPanel Performance — Extend brainStore RAF pattern**
+- Reuse existing `brainStore.ts` RAF batching: 16ms drain cycle, max 24 events per frame
+- Each agent row uses `useBrainState(id)` targeted selector — O(1) Map lookup prevents cascade re-renders across 24 rows
+- NO separate RAF loop needed — extend existing `_drainQueue()` to handle agent panel events
+- Render budget: 60fps = 16.67ms per frame. 24 brain updates × ~0.5ms each = ~12ms total, safe within budget
+
+**4. Cost Data Sourcing — Rust event sourcing, not Python API**
+- Source from Rust `activity_log` table (event-sourced, consistent with agent actions)
+- Avoid Python aggregation layer — introduces latency vs direct Rust reads
+- Caching: TanStack Query with `staleTime: 30s` + `refetchInterval: 60s` for quota-critical metrics
+- SWR pattern: Show cached MetricCard immediately, background refetch updates when data arrives
+- Existing `react-query.tsx` already configured: staleTime 30s, gcTime 5min, refetchOnWindowFocus false
+
+**5. Command Palette (Cmd+K) — Radix Command + async indexing**
+- Radix UI components: `@base-ui/react` v1.3.0 already in package.json (Base UI, not Radix UI — shadcn Nova preset uses Base UI primitives)
+- For Command component specifically: Need to verify if Command exists in Base UI or use `cmdk` library (not in package.json today)
+- Keyboard shortcut: Global `useEffect` with `addEventListener('keydown')`, MUST include cleanup function to prevent memory leaks
+- Async indexing: If content > 1000 items, use Web Worker for search index building — prevents main thread jank
+- Search input: Use `useDeferredValue` (React 19) to prioritize typing responsiveness over list updates
+
+**6. Mobile Gestures — Pointer Events + touch-action isolation**
+- Use Pointer Events (not Touch Events) for unified mouse/touch/stylus handling
+- React Flow conflict resolution: `touch-action: pan-y` on side panels, `touch-action: none` on drag handles
+- Prevent viewport scroll interference: Block `wheel`/`touchmove` propagation when user interacts with graph canvas
+- Animations: CSS transforms + opacity only (GPU compositor) — never width/height (causes layout reflow)
+- Existing `touch-action` usage found in `NexusPage.tsx` + button/input components — pattern established
+
+### Implementation Gaps (Verified via Grep)
+
+🔴 **Missing libraries for Phase 17:**
+- `@dnd-kit` — Not in package.json, requires pnpm add
+- Command palette library — `cmdk` or Radix Command not in package.json. Base UI v1.3.0 exists but Command component availability unknown
+- `useTransition`/`useDeferredValue` — Zero usage in codebase today, new React 19 concurrent features for Phase 17
+
+🔴 **Cross-tab sync pattern NOT established:**
+- `layoutStore.ts` uses `persist` middleware but NO `storage` event listener for cross-tab sync
+- Phase 17 companyStore must implement this pattern (not copy existing layoutStore)
+
+✅ **Existing patterns confirmed:**
+- RAF batching: `brainStore.ts` lines 44-66 — queue, drain, 16ms cycle
+- Targeted selectors: `useBrainState(id)` pattern in brainStore, `useSidebarCollapsed()` in layoutStore
+- TanStack Query: 12 files use `useQuery`/`useMutation`, provider configured in `react-query.tsx`
+- Zustand + Immer: 6 stores use this pattern (brainStore, layoutStore, wsStore, orchestratorStore, logFilterStore, replayStore)
+
+### Performance Observables
+
+For each Phase 17 feature, measure before/after:
+
+**Multi-tenant company switcher:**
+- Metric: Time from company switch click to first data render (target < 100ms)
+- Tool: React DevTools Profiler + `performance.now()` timestamps in store action
+
+**Drag-and-drop company ordering:**
+- Metric: Frames dropped during drag operation (target: 0 dropped frames at 60fps)
+- Tool: Chrome DevTools Performance tab, record drag session, check "Frames" timeline
+
+**ActiveAgentsPanel with 24 brains:**
+- Metric: FPS during 24-brain simultaneous update (target: 60fps sustained)
+- Tool: `console.time()` around `_drainQueue()` + React DevTools Profiler
+
+**Cost dashboard (MetricCard + QuotaBar):**
+- Metric: Time to interactive (TTI) with cached data (target < 50ms)
+- Tool: Lighthouse "Performance" score + Chrome DevTools Network panel (verify SWR background refetch)
+
+**Command palette:**
+- Metric: Input lag when typing search query (target < 16ms per keystroke)
+- Tool: `performance.mark()` before/after search filter, Chrome DevTools Performance "Main" thread
+
+**Mobile gestures:**
+- Metric: Gesture response time (target < 100ms from touchstart to visual feedback)
+- Tool: Chrome DevTools Performance tab, record gesture, check "Event Timing" section
+
+### Anti-Pattern Alerts
+
+❌ **Don't use npm for @dnd-kit** — pnpm only (Stack Hard-Lock violation if using npm)
+
+❌ **Don't create new RAF loop for agent panel** — reuse existing `brainStore._drainQueue()` pattern. Multiple RAF loops = frame budget fragmentation
+
+❌ **Don't invalidate all queries on company switch** — use scoped `queryKey: ['company-context']` only. Broad invalidation = unnecessary refetch waterfall
+
+❌ **Don't block main thread for command palette indexing** — if > 1000 items, use Web Worker. Main thread indexing = typing jank
+
+❌ **Don't use width/height animations for mobile gestures** — transforms + opacity only (GPU compositor). Layout animations = reflow = dropped frames
+
+❌ **Don't let React Flow capture all pointer events** — `stopPropagation()` on dnd-kit handlers, `touch-action` CSS on containers. Conflict = unusable drag/drop
+
+### Sync Cross-References
+
+[SYNC: BF-05-005] → BRAIN-FEED-05-backend.md > Cost Data Sources. Frontend needs Rust activity_log endpoint contract (shape, pagination, auth). Owner: Brain #5 Backend.
+
+[SYNC: BF-05-006] → BRAIN-FEED-05-backend.md > Company Context API. Frontend needs `/api/companies` endpoint for multi-tenant list + active company switching. Owner: Brain #5 Backend.
+
+[SYNC: BF-05-007] → BRAIN-FEED-05-backend.md > Real-time Cost Events. Should cost quota updates come via WS (from Rust event sourcing) or polling? Owner: Brain #5 Backend.

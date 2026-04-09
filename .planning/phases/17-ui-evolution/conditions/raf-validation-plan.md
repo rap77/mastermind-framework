@@ -114,12 +114,12 @@ export class RAFMonitor {
     if (!this.isRecording) return;
 
     const start = performance.now();
-    
+
     requestAnimationFrame(() => {
       const end = performance.now();
       const frameTime = end - start;
       this.frameTimings.push(frameTime);
-      
+
       if (this.frameTimings.length < 300) { // 5 seconds @ 60fps
         this.measureFrame();
       } else {
@@ -161,7 +161,7 @@ const monitor = new RAFMonitor();
 
 const triggerBurstUpdate = () => {
   monitor.startRecording();
-  
+
   // Trigger 24-brain update
   setBrainStatuses(prev => prev.map(brain => ({
     ...brain,
@@ -179,7 +179,7 @@ import { RAFMonitor } from '@/utils/raf-monitor';
 
 test('24-brain burst maintains 60fps', async ({ page }) => {
   await page.goto('/war-room');
-  
+
   // Inject RAF monitor
   await page.evaluate(() => {
     window.rafMonitor = new RAFMonitor();
@@ -262,7 +262,7 @@ import { startTransition, useDeferredValue } from 'react';
 
 const WarRoom = () => {
   const [brains, setBrains] = useState<Brain[]>([]);
-  
+
   // Defer non-critical updates
   const deferredBrains = useDeferredValue(brains);
 
@@ -335,16 +335,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Build
         run: pnpm build
-      
+
       - name: Start server
         run: ppm start &
 

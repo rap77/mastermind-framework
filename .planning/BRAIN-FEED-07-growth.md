@@ -2,6 +2,170 @@
 
 > Written by Brain #7 (Growth/Data). Read-only for other agents.
 > Orchestrator reads this after all domain feeds to write BRAIN-FEED.md (global synthesis).
+> Last updated: 2026-04-08
+
+---
+
+## 2026-04-08 — Phase 17 UI Evolution — Meta-Evaluation of: Brains #2 #3 #4 #6
+
+### Cross-Domain Synthesis
+
+**Domain Brain Outputs Received:**
+- Brain #2 (UX Research): Information architecture, mobile responsiveness, density modes for 24 brains, ICE scoring for animations
+- Brain #3 (UI Design): Component hierarchy, CSS variables, 5-state system, accessibility compliance, animation specs
+- Brain #4 (Frontend): 3 Zustand stores (layout, brain extension, cost), WebSocket integration, RAF batching preservation, @dnd-kit selection
+- Brain #6 (QA): Testing strategy (+50 frontend, +5 E2E), performance SLOs (60fps for 24-brain burst), CI/CD workflow
+
+**Points of Agreement:**
+1. Three-column layout with CSS Grid
+2. Density modes (compact/normal/detailed) for 24-brain monitoring
+3. Cost dashboard with Rust event sourcing + WebSocket updates
+4. @dnd-kit for drag-and-drop (not custom)
+5. Mobile bottom nav: 4 items (Command Center, Nexus, Vault, Engine Room)
+6. Accessibility: WCAG 2.1 AA compliance
+7. Performance target: 60fps for 24-brain burst (RAF batching preserved)
+
+**Points of Tension:**
+- Animation vs Performance: Layout transitions rejected (ICE 6.7 < 15) — CONFLICT RESOLVED: Performance wins
+- Information Density vs Cognitive Load: Density modes required — CONFLICT RESOLVED: All 4 brains aligned on 3-mode approach
+- Custom vs Library DnD: @dnd-kit chosen (Brain #3 + #4) — CONFLICT RESOLVED: Library wins
+- Rust vs Python for Cost: Rust chosen (Brain #4) — CONFLICT RESOLVED: Performance wins
+
+**Shared Assumptions (Never Questioned):**
+1. "24-brain burst is a common scenario" — NO DATA from production usage to support this
+2. "Users need 3 density modes" — NO USER RESEARCH to validate this need
+3. "Rust for cost dashboard is necessary" — NO LOAD TESTING to prove Python insufficient
+4. "60fps = success" — NO OEC defined to balance speed with value
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Performance → Load Spiral (Reinforcing):**
+High-performance UI (60fps) incentivará usuarios a monitorear más cerebros simultáneamente → Increased WebSocket traffic + Rust backend load → Eventually degrades initial performance → User frustration con "why is it slow now?" → Churn. Balfour: "Product Management is Systems Thinking, not feature shipping."
+
+**FEEDBACK LOOP — Density Modes → Learning Delay (Balancing):**
+24 brains visible (information overload) → Users switch density modes → Speed of Learning delay (must learn 3 paradigms) → Increased Time to Value (>1 hour benchmark risk) → Reduced activation rate → Lower growth loop velocity.
+
+**CASCADE FAILURE — Lollapalooza Effect (Munger):**
+Convergence of 4 technical systems: 3 Zustand stores + WebSocket + Rust + RAF batching. Not linear complexity — EXPONENTIAL edge cases. Si RAF batching falla bajo 24-brain burst → Cross-store desynchronization → UI shows stale data → User makes decision on wrong info → Business outcome negative.
+
+**SYSTEMIC INERTIA — Feature Factory Trap (Balfour):**
+Optimizing for technical sophistication (60fps, Rust, 3 density modes) sin validar user need = Feature Factory behavior. Output metrics (test count, fps) ≠ Outcome metrics (activation rate, retention). Kohavi: "Speed without value is vanity."
+
+**WYSIATI RISK — Inside View Dominance (Kahneman):**
+All 4 brains used "Inside View" (estimating from specific plan) without "Outside View" (reference class forecasting). No comparison to similar high-density UI projects that failed. Planning Fallacy: baseline 210-270s T1 suggests this stack combination has never been measured in wild.
+
+**OMISSION BIAS — Missing Overall Evaluation Criteria (Kohavi):**
+NO OEC defined. Without OEC, team will "P-hack" success (cherry-pick 60fps metric while ignoring CPU usage spike). Kohavi's non-negotiable: OEC must be defined BEFORE launch, not after.
+
+**OMISSION BIAS — Missing Guardrail Metrics:**
+Performance SLOs defined (60fps) but no guardrails:
+- WebSocket error rate (what if 1% of WS connections drop under 24-brain burst?)
+- Cross-store synchronization latency (what if layoutStore updates but brainStore lags 50ms?)
+- CPU usage ceiling (60fps is useless if client CPU hits 40% sustained)
+
+**OVER-ENGINEERING — Rust for Cost Dashboard:**
+Cost data updates at low frequency (per brain completion, not per second). Volume doesn't justify Rust's performance. Munger's "Circle of Competence" question: "Is this the best use of our Rust expertise?" VERDICT: Build in Python first, measure actual load, migrate to Rust ONLY if data shows need.
+
+**OVER-ENGINEERING — Triple Density Mode:**
+Building 3 modes before observing real "Power User" behavior = premature optimization. Balfour: "Users don't know what they want until they see it." Prediction: Normal mode 80%, Compact 15%, Detailed 5%. VERDICT: Launch Normal mode only, A/B test Compact/Detailed later.
+
+**OVER-ENGINEERING — Three Separate Stores:**
+layoutStore + brainStore + costStore = 3 synchronization points. Race condition risk: layout collapses but brain store hasn't updated yet. VERDICT: Consider single `uiStore` with namespaced sub-states to reduce cross-store sync bugs.
+
+### Metric Proposals
+
+**SLI-1 (Overall Evaluation Criteria - OEC):**
+Users monitor 5+ brains per session within 1 hour of signup. Balance technical performance (60fps) with user behavior (activation rate). Kohavi: OEC must be defined BEFORE launch.
+
+**SLI-2 (WebSocket Error Rate):**
+WebSocket error rate <0.5% P99. If exceeds → HALT and investigate. Guardrail for performance optimization.
+
+**SLI-3 (Client CPU Usage):**
+Client CPU usage <15% sustained. 60fps is useless if CPU spikes to 40%. Prevents "fast but unusable" scenario.
+
+**SLI-4 (Cross-Store Sync Latency):**
+Cross-store synchronization latency <50ms P95. Prevents stale data bugs (layout collapsed but brain state stale).
+
+**SLI-5 (Time to Value):**
+Time to Value <1 hour (benchmark SaaS excellence). Density modes add learning delay — must not exceed 1 hour benchmark.
+
+**OKR (Density Mode Validation):**
+Fake Door test on Compact/Detailed modes. "Switch to Compact View" button (deshabilitado o "Coming soon") — measure CTR. If CTR <10% → drop those modes entirely.
+
+**OKR (Rust Migration Trigger):**
+Build Cost Dashboard in Python first. Migrate to Rust ONLY if: API P99 latency >200ms OR data volume >10k events/day. Data-driven decision, not assumption-driven.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Delta-Velocity Rating 3.5 (Peer/Senior boundary)
+
+**Confianza:** 75%
+
+**Razonamiento:**
+
+Domain brains executed their roles well — UX Research applied Hick's Law, UI Design specified accessibility, Frontend preserved RAF batching, QA defined SLOs. However, from systems perspective (Balfour/Kohavi/Munger), the consensus has **three critical gaps** that create cascade risk:
+
+1. **Missing Overall Evaluation Criteria (OEC)** — Kohavi's non-negotiable for trustworthy experimentation. Without OEC, team will optimize output metrics (60fps, test count) instead of outcome metrics (user behavior change, activation rate).
+
+2. **Rust for Cost Dashboard = Premature Optimization** — Munger's "Circle of Competence" violation. Cost data is low-frequency; volume doesn't justify Rust's complexity. This is **Feature Factory behavior** — optimizing for technical sophistication instead of validated user need.
+
+3. **Triple Density Mode Without User Validation** — Balfour's principle: "Users don't know what they want until they see it." Building 3 UI paradigms before observing real behavior wastes 2-3 weeks. Launch Normal mode only, A/B test others later.
+
+**Condiciones para aprobación:**
+
+1. **[MANDATORY] Define OEC Before Implementation:**
+   - Example OEC: "Users monitor 5+ brains per session within 1 hour of signup"
+   - Balance technical performance (60fps) with user behavior (activation rate)
+   - Cited in: 17-BRAIN-OUTPUTS.md > Brain #6 QA > Performance SLOs
+
+2. **[MANDATORY] Add Guardrail Metrics:**
+   - WebSocket error rate <0.5% P99
+   - Client CPU usage <15% sustained
+   - Cross-store sync latency <50ms P95
+   - Cited in: 17-BRAIN-OUTPUTS.md > Brain #4 Frontend > RAF Batching Preservation
+
+3. **[MANDATORY] Rust Migration Trigger:**
+   - Build Cost Dashboard in Python first
+   - Migrate to Rust ONLY if: API P99 latency >200ms OR data volume >10k events/day
+   - Cited in: 17-BRAIN-OUTPUTS.md > Brain #4 Frontend > Q2 Cost Data Source
+
+4. **[RECOMMENDED] Simplify Density Modes:**
+   - Phase 17.1: Normal mode only
+   - Phase 17.2: A/B test Compact mode (measure usage rate)
+   - Phase 17.3: Add Detailed mode ONLY if power users request it
+   - Cited in: 17-BRAIN-OUTPUTS.md > Brain #2 UX Research > Density Modes
+
+5. **[RECOMMENDED] Pre-Mortem Session:**
+   - Team answers: "Phase 17 failed 6 months from now. What was the cause?"
+   - Top 3 hypotheses: (1) RAF batching bugs under load, (2) Users couldn't process 24 brains, (3) WebSocket cascading failures
+   - Cited in: 17-BRAIN-OUTPUTS.md > Cross-Brain Consensus > Risks Highlighted
+
+**Alternative si condiciones rechazadas:** DEFER to Phase 18, run 1-week Fake Door test on density modes (button "Switch to Compact View" que muestra "Coming soon" — measure CTR). Si CTR <10%, drop Compact/Detailed modes entirely.
+
+**Global Rating: 72/100**
+
+**Breakdown:**
+- Domain Consensus Quality: 85/100 (4 brains aligned, clear decisions)
+- Systems Thinking: 60/100 (WYSIATI bias, missing OEC, no guardrails)
+- Planning Realism: 65/100 (Inside View, Rust over-engineering, triple density premature)
+- Acceptance Criteria: 70/100 (technically verifiable but output-focused, missing guardrails)
+- Cascade Risk Awareness: 80/100 (brains identified RAF batching risk but no fallback plan)
+
+**Penalty:** -28 points for (1) missing OEC, (2) Rust for low-frequency data, (3) triple density without user validation, (4) no graceful degradation plan.
+
+**Fuentes:**
+
+- Domain outputs: `.planning/phases/17-ui-evolution/17-BRAIN-OUTPUTS.md`
+- NotebookLM: Balfour (Growth Loops), Kohavi (Experimentation), Munger (Mental Models), Kahneman (WYSIATI, Inside/Outside View)
+- Brain #4 feed: RAF batching invariant preserved
+- Brain #6 feed: Performance SLOs defined but guardrails missing
+
+---
+
+# BRAIN-FEED-07 — Growth/Data Domain Feed
+
+> Written by Brain #7 (Growth/Data). Read-only for other agents.
+> Orchestrator reads this after all domain feeds to write BRAIN-FEED.md (global synthesis).
 > Last updated: 2026-04-06
 
 ---
