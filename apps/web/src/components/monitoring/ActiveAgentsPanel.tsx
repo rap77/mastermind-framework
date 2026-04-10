@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useLayoutStore } from '@/stores/layoutStore'
+import { useDensityModeSync } from '@/hooks/useDensityModeSync'
 import { StatusBadge } from './StatusBadge'
 import { BrainCard } from './BrainCard'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,9 @@ export function ActiveAgentsPanel({ brains }: ActiveAgentsPanelProps) {
   const densityMode = useLayoutStore(state => state.densityMode)
   const setDensityMode = useLayoutStore(state => state.setDensityMode)
   const [filter, setFilter] = useState<'all' | 'active'>('active')
+
+  // Auto-switch density mode based on viewport (Brain #7 Condition 2)
+  useDensityModeSync()
 
   // Filter brains based on active status
   const filteredBrains = filter === 'active'
