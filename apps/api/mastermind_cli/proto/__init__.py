@@ -3,7 +3,6 @@
 # Setup blocker: buf CLI and protoc not available, documented in velocity-baseline.md
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass

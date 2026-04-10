@@ -28,15 +28,15 @@ test.describe('Brain Panel Mobile Swipe Gestures', () => {
     await brainCard.evaluate((el) => {
       const touchStart = new TouchEvent('touchstart', {
         bubbles: true,
-        touches: [{ clientX: 300, clientY: 100 }] as any
+        touches: [{ clientX: 300, clientY: 100 }] as unknown as Touch[]
       })
       const touchMove = new TouchEvent('touchmove', {
         bubbles: true,
-        touches: [{ clientX: 100, clientY: 100 }] as any
+        touches: [{ clientX: 100, clientY: 100 }] as unknown as Touch[]
       })
       const touchEnd = new TouchEvent('touchend', {
         bubbles: true,
-        changedTouches: [{ clientX: 100, clientY: 100 }] as any
+        changedTouches: [{ clientX: 100, clientY: 100 }] as unknown as Touch[]
       })
 
       el.dispatchEvent(touchStart)
@@ -80,15 +80,15 @@ test.describe('Brain Panel Mobile Swipe Gestures', () => {
       await brainCard.evaluate((el) => {
         const touchStart = new TouchEvent('touchstart', {
           bubbles: true,
-          touches: [{ clientX: 300, clientY: 100 }] as any
+          touches: [{ clientX: 300, clientY: 100 }] as unknown as Touch[]
         })
         const touchMove = new TouchEvent('touchmove', {
           bubbles: true,
-          touches: [{ clientX: 100, clientY: 100 }] as any
+          touches: [{ clientX: 100, clientY: 100 }] as unknown as Touch[]
         })
         const touchEnd = new TouchEvent('touchend', {
           bubbles: true,
-          changedTouches: [{ clientX: 100, clientY: 100 }] as any
+          changedTouches: [{ clientX: 100, clientY: 100 }] as unknown as Touch[]
         })
 
         el.dispatchEvent(touchStart)
@@ -108,15 +108,15 @@ test.describe('Brain Panel Mobile Swipe Gestures', () => {
       await brainCard.evaluate((el) => {
         const touchStart = new TouchEvent('touchstart', {
           bubbles: true,
-          touches: [{ clientX: 100, clientY: 100 }] as any
+          touches: [{ clientX: 100, clientY: 100 }] as unknown as Touch[]
         })
         const touchMove = new TouchEvent('touchmove', {
           bubbles: true,
-          touches: [{ clientX: 300, clientY: 100 }] as any
+          touches: [{ clientX: 300, clientY: 100 }] as unknown as Touch[]
         })
         const touchEnd = new TouchEvent('touchend', {
           bubbles: true,
-          changedTouches: [{ clientX: 300, clientY: 100 }] as any
+          changedTouches: [{ clientX: 300, clientY: 100 }] as unknown as Touch[]
         })
 
         el.dispatchEvent(touchStart)

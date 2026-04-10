@@ -28,6 +28,7 @@ from mastermind_cli.api.routes.keys import (
     _limiter as keys_limiter,
 )
 from mastermind_cli.api.websocket import router as websocket_router
+from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.state.database import DatabaseConnection
 
 _WEB_DIR = Path(__file__).parent.parent / "web"
@@ -55,7 +56,9 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Configure CORS with explicit origins (Pitfall 7: wildcard + credentials is invalid)
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3001,http://localhost:3000").split(",")
+    allowed_origins = os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:3001,http://localhost:3000"
+    ).split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,  # Explicit origins required when allow_credentials=True
@@ -124,6 +127,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(keys_router, prefix="/api/keys", tags=["API Keys"])
     app.include_router(analytics.router)  # Analytics endpoints
     app.include_router(websocket_router, tags=["WebSocket"])
+    app.include_router(companies_router)  # Companies with tenant isolation
 
     # Serve dashboard HTML
     @app.get("/dashboard", include_in_schema=False)

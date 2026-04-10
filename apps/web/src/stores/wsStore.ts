@@ -118,3 +118,43 @@ export const useWSStore = create<WSState>((set, get) => ({
 
   setError: (error) => set({ error }),
 }))
+
+/**
+ * Cost updates channel — real-time cost metric streaming.
+ *
+ * **Context:** Phase 17-04 - Task 5a
+ *
+ * **Event Type:** 'cost_updates'
+ * **Payload:** CostUpdateEvent with brain cost metrics
+ * **Debounce:** 100ms in useCostWebSocket (prevents re-render flood)
+ */
+export interface CostUpdateEvent {
+  brainId: string
+  totalTokens: number
+  totalDuration: number
+  totalCost: number
+  lastActivityAt: string
+  successRate: number
+}
+
+/**
+ * Subscribe to cost updates for real-time metric streaming.
+ *
+ * **Usage:**
+ * ```tsx
+ * import { subscribeToCostUpdates } from '@/stores/wsStore';
+ *
+ * useEffect(() => {
+ *   const unsubscribe = subscribeToCostUpdates((data) => {
+ *     console.log(`Brain ${data.brainId} cost: $${data.totalCost}`);
+ *   });
+ *   return unsubscribe;
+ * }, []);
+ * ```
+ *
+ * **Performance:** Debounced in useCostWebSocket (100ms) to prevent
+ * cascade re-renders during 24-brain burst updates.
+ */
+export const subscribeToCostUpdates = (callback: (data: CostUpdateEvent) => void) => {
+  return useWSStore.getState().subscribe('cost_updates', callback)
+}

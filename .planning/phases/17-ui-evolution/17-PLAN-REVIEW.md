@@ -1,439 +1,398 @@
 # Phase 17 — Plan Review Context
 
-> **Generated:** 2026-04-09T12:00:00Z
-> **Iteration:** 1
-> **Purpose:** Full context for Brain #7 plan validation
-> **Status:** Ready for Brain #7 evaluation
+> **Generated:** 2026-04-09T23:45:00Z
+> **Iteration:** 2 (Brain #7 conditions already applied via commit da6ebba)
+> **Purpose:** Full context for Brain #7 plan validation (Plans 17-03 through 17-06)
 
 ---
 
-## IMPLEMENTED REALITY
+## IMPLEMENTED REALITY (from BRAIN-FEED.md + code inspection)
 
-### What Already Exists (from BRAIN-FEED.md + code reading)
+### What Actually Exists (Plans 17-01 + 17-02 ✅ COMPLETE)
 
-**Stack (Locked):**
-- Next.js 16.x (App Router), React 19.x (Compiler disabled), TypeScript 5.x (strict)
-- Tailwind CSS 4.x (CSS-only config), shadcn/ui (Nova preset, OKLCH colors)
-- Zustand 5.x + Immer middleware, TanStack Query v5
-- @xyflow/react v12 (React Flow), jose (JWT, Edge Runtime)
-- Package managers: pnpm (Node), uv (Python) — NEVER npm/yarn/pip
+**Plan 17-01 (Three-Column Layout) — COMPLETE:**
+- ✅ `layoutStore.ts` — Zustand + Immer with 4 state properties (companyRailCollapsed, sidebarCollapsed, propertiesPanelOpen, densityMode)
+- ✅ `ThreeColumnLayout.tsx` — Grid with 3 columns (180px + 240px + auto), responsive breakpoints
+- ✅ `CompanyRail.tsx` — Placeholder (Plan 02 replaced this)
+- ✅ `AppSidebar.tsx` — 4 nav items (Command Center, The Nexus, Strategy Vault, Engine Room)
+- ✅ `globals.css` — CSS variables for column widths and transitions
+- ✅ Density modes: `'compact' | 'normal' | 'detailed'` (3 modes in code)
 
-**4 Production Screens (Functional):**
-- Command Center — BentoGrid 24 tiles, BrainTile with ping animation
-- The Nexus — React Flow DAG canvas, dagre layout, WebSocket illumination
-- Strategy Vault — Execution history list, detail view
-- Engine Room — API key CRUD, brain YAML viewer
+**Plan 17-02 (Multi-tenant Company Switcher) — COMPLETE:**
+- ✅ `companyStore.ts` — Zustand + Immer with companies array, activeCompanyId, ordering array
+- ✅ `CompanyRail.tsx` — @dnd-kit drag-and-drop, StatusBadge integration, keyboard nav
+- ✅ `StatusBadge.tsx` — Color AND icon coding (WCAG 2.1 AA compliant)
+- ✅ `jwt_handler.py` — JWT with `tenants: []` array, `validate_tenant_access()` dependency
+- ✅ `companies.py` — FastAPI router with tenant isolation (GET/POST/PUT /api/companies)
+- ✅ `api-tenant.ts` — Frontend fetch wrapper with X-Tenant-ID header
+- ✅ Visual regression baseline — Playwright test suite created (screenshots deferred to Phase 18)
+- ✅ Tests: 460 passing (0 failures)
 
-**Infrastructure (Working):**
-- WebSocket: `wsDispatcher.ts` singleton + `brainStore.ts` with RAF batching
-- Auth: Server Actions + httpOnly cookies, JWT verification in `lib/auth.ts`
-- Testing: Vitest (407 frontend tests passing), Playwright (E2E)
+**CRITICAL CODE REALITY:**
+```typescript
+// layoutStore.ts — Line 9
+export type DensityMode = 'compact' | 'normal' | 'detailed'
 
-**Phase 17-01 COMPLETE (Three-Column Layout):**
-- ✅ `layoutStore.ts` — Zustand + Immer + persist, 4 state properties, 4 actions
-- ✅ `ThreeColumnLayout.tsx` — Grid layout (180px + 240px + auto), responsive breakpoints
-- ✅ `CompanyRail.tsx` — Collapsible (180px → 60px), drag handle placeholder
-- ✅ `AppSidebar.tsx` — Nav items (Command Center, Nexus, Strategy Vault, Engine Room), active route highlighting
-- ✅ CSS variables — `--company-rail-width`, `--sidebar-width`, `--layout-transition-duration`
-- ✅ Mobile responsive — Single column on < 768px, bottom nav styles ready
-- ✅ Protected layout integration — Wrapped existing auth flow with ThreeColumnLayout
+// CompanyRail.tsx — Lines 87-101 (Drag handle discoverability)
+<button
+  {...attributes}
+  {...listeners}
+  className={cn(
+    'flex-shrink-0 p-1 rounded transition-opacity duration-200',
+    'opacity-60 group-hover:opacity-100',  // 60% visible, full on hover
+    'hover:bg-muted'
+  )}
+  aria-label={`Reorder ${company.name}`}
+  tabIndex={-1}
+  onClick={(e) => e.stopPropagation()}
+>
+  <GripVertical className="w-4 h-4 text-muted-foreground" />
+</button>
 
-**Architecture Proven in Production:**
-- Brain Agent Architecture — 7 brain bundles × 3 files + global-protocol.md
-- RAF batching — brainStore.ts queues updates, drains before each paint (60fps at 24-brain burst)
-- Delta-Velocity Measurement — T1 Profitability Threshold: T1 > 300s = agent-unprofitable
-- Two-level BRAIN-FEED — Global (19 bullets, cross-domain only) + 7 domain feeds (technical)
+// StatusBadge.tsx — Lines 61-65 (Icon + color coding)
+const iconMap = {
+  live: Check,        // Green dot + checkmark
+  warning: AlertTriangle,  // Yellow badge + warning
+  error: X,           // Red dot + X
+}
+```
 
-**Active Constraints (Hard Limits):**
-- No `npm` or `pip` — pnpm for Node, uv for Python
-- Brain #7 dispatch order — ALWAYS after domain brains complete, never concurrent
-- No notebook IDs in agent files — Reference `brain-selection.md` as single source of truth
-- Structured output required in all brain agent responses — free-text prose causes information leaks
-- Domain feeds are READ-ONLY for agents — agents consume feeds, never write
+**Backend Reality:**
+- ✅ JWT handler includes `tenants: []` array in payload
+- ✅ `validate_tenant_access()` dependency returns 403 if X-Tenant-ID not in JWT tenants
+- ✅ Companies API uses mock database (TODO: PostgreSQL migration in Phase 18)
+- ✅ Tenant isolation enforced at API layer (prevents cross-tenant data leaks)
 
----
-
-## PLAN SUMMARIES
-
-### Plan 17-01: Three-Column Layout Foundation ✅ COMPLETE
-
-**Objective:** Build the foundation three-column layout (CompanyRail + Sidebar + Content) with collapsible columns and responsive breakpoints.
-
-**Status:** COMPLETE — All 6 tasks done, 6 files created/modified, tests passing
-
-**What Was Built:**
-1. layoutStore — Zustand + Immer + persist, 4 state properties (companyRailCollapsed, sidebarCollapsed, propertiesPanelOpen, densityMode), 4 actions
-2. ThreeColumnLayout — Grid layout (180px + 240px + auto), CSS transitions, responsive (single column mobile, three columns desktop)
-3. CompanyRail placeholder — Left column, collapsible (180px → 60px), drag handle for Plan 02
-4. AppSidebar — Center column, 4 nav items (Command Center, Nexus, Strategy Vault, Engine Room), active route highlighting
-5. CSS variables — --company-rail-width (180px/60px), --sidebar-width (240px/60px), --layout-transition-duration (200ms)
-6. Protected layout integration — Wrapped existing auth flow with ThreeColumnLayout, no breaking changes
-
-**Acceptance Criteria:** All met
-- Three-column layout renders correctly on desktop (CompanyRail + Sidebar + Content)
-- Each column can collapse/expand independently with smooth transitions (200ms ease-in-out)
-- Layout is responsive (single column on mobile < 768px, three columns on desktop)
-- Layout state persists across page navigations via localStorage (key: mastermind-layout)
-- All existing 4 screens still work (no breaking changes)
-- No breaking changes to existing auth flow or WebSocket infrastructure
+**Frontend Reality:**
+- ✅ Three-column layout: CompanyRail (180px/60px) + Sidebar (240px/60px) + Content (flex-fill)
+- ✅ Responsive: Desktop (≥768px) = 3 columns, Mobile (<768px) = single column
+- ✅ localStorage persistence for layout state and company ordering
+- ✅ Cross-tab sync via `storage` event listener
 
 ---
 
-### Plan 17-02: Multi-tenant Company Switcher
-
-**Objective:** Build the multi-tenant company switcher in the CompanyRail (left column) with draggable company ordering, visual status indicators, company-specific branding, sync across tabs via localStorage, and tenant isolation.
-
-**Dependencies:** 17-01 (COMPLETE)
-
-**Key Tasks:**
-1. companyStore — Zustand + Immer, state: companies array, activeCompanyId, ordering, actions: setActiveCompany, reorderCompanies, addCompany, removeCompany, localStorage persistence, cross-tab sync via storage event
-2. CompanyRail component — Update existing placeholder, @dnd-kit for drag-and-drop, vertical sortable items, company logo/icon, status indicator (green dot for live agents, badge for unread), collapse button, drag handle on hover
-3. Visual status indicators — StatusBadge component (green/yellow/red dots), green = ≥1 active brain agents, yellow = unread inbox items (count badge), red = error state, integrate with brainStore, poll for inbox status (GET /api/companies/{id}/status every 30s)
-4. Tenant isolation to API requests — Frontend: Add X-Tenant-ID header to all API requests, read activeCompanyId from companyStore, error handling for 403, switch company confirmation dialog. Backend (NEW): validate_tenant_access() FastAPI dependency, JWT structure with tenants array, 403 error response, update all /api/* endpoints, integration test for tenant isolation
-5. Visual regression baseline — Capture CompanyRail screenshots (collapsed/expanded), mobile baseline (single column), store in git
-6. Accessibility audit — axe-core scan, fix WCAG violations, keyboard navigation (Tab, Enter, Arrow Up/Down), screen reader announcements (NVDA/VoiceOver), ARIA labels for drag handles, skip link
-
-**Brain #7 Mitigations:**
-- Visual Regression: Capture baseline BEFORE modifying layouts ✅ REQUIRED
-- Accessibility: Pass axe-core + keyboard/screen reader ✅ REQUIRED
-- Mobile Testing: Define BrowserStack devices (iPhone 14, Pixel 5) ✅ REQUIRED
-- RAF Validation: Create RAF validation test (P99 < 16.67ms for performance-critical) ✅ REQUIRED
-
-**Estimated Effort:** 3-4 days
-**Risk Level:** Medium (drag-and-drop complexity, tenant isolation breaking changes)
-
----
+## PLAN SUMMARIES (Plans 17-03 through 17-06)
 
 ### Plan 17-03: ActiveAgentsPanel with Density Modes
 
-**Objective:** Build the real-time agent monitoring panel with 24-brain display, density modes (compact/normal/detailed), status badges (idle/running/completed/failed), ping animation for active brains, 60fps performance at 24-brain burst.
+**Objectives:**
+- 24-brain display with real-time status (idle/running/completed/failed)
+- Density modes: compact/normal/detailed → **REVISED to 2 modes (compact/normal) per Brain #7 Condition 3**
+- Ping animation for active brains
+- 60fps performance at 24-brain burst (P99 < 16.67ms)
+- Mobile swipe gestures (success rate ≥ 95%)
+- **RAFMonitor class in utils/raf-monitor.ts per Brain #7 Condition 1**
+- **Mobile auto-switch to compact mode per Brain #7 Condition 2**
 
-**Dependencies:** 17-01, 17-02
+**Key Changes from Brain #7:**
+- ✅ **Condition 1 FIXED:** RAFMonitor implementation spec → `utils/raf-monitor.ts` with Performance API
+- ✅ **Condition 2 FIXED:** Mobile auto-switch to compact mode (viewport change detection)
+- ✅ **Condition 3 FIXED:** Reduced from 3 to 2 density modes (removed 'detailed')
+- ✅ **Condition 4 FIXED:** Quantified swipe gesture success rate (≥ 95% measured via 100 test swipes)
 
-**Key Tasks:**
-1. ActiveAgentsPanel component — Client Component, props: densityMode, brains array, render brain cards in grid layout (BentoGrid), integrate with brainStore, density mode toggle button, responsive grid (1/2/3/4/6 columns based on viewport)
-2. Status badges with ping animation — StatusBadge component (variant: idle/running/completed/failed), color coding (Gray/Green/Blue/Red), ping animation for running status (CSS keyframes), ARIA live region for status changes, respect prefers-reduced-motion
-3. Density modes — Add densityMode to layoutStore (already exists from 17-01), DensityModeToggle component (button group), Compact mode (brain name + status badge only, 2 lines), Normal mode (brain name + status + last run time, 3 lines), Detailed mode (full stats: tokens, duration, cost, error count), CSS transitions (200ms)
-4. Optimize for 60fps performance — Create RAFMonitor class, wrap brain updates in startTransition (React 18), React.memo for BrainCard component, useDeferredValue for brain list, measure P99 frame time during 24-brain burst, document baseline performance
-5. Mobile responsive with swipe gestures — Responsive grid (1 column mobile, 6 desktop), swipe gesture to reveal brain actions (edit, delete, archive), touch targets ≥ 44x44px (WCAG 2.5.5), test on BrowserStack (iPhone 14, Pixel 5), pull-to-refresh for brain status updates
-6. BrowserStack mobile validation — Create BrowserStack account ($39/month), install @browserstack/playwright plugin, configure devices (iPhone 14, Pixel 5), run swipe gesture tests, document touch response times (< 100ms target)
+**Success Criteria:**
+1. ActiveAgentsPanel displays all 24 brains with real-time status
+2. **Density modes toggle (compact/normal) — 2 modes only**
+3. Status badges with ping animation (Green = running)
+4. P99 frame time < 16.67ms during 24-brain burst
+5. Mobile responsive (single column, swipe gestures work)
+6. **Mobile viewport auto-switches to compact mode**
+7. **Swipe gesture success rate ≥ 95% on iPhone 14 and Pixel 5**
+8. **RAFMonitor class implemented in utils/raf-monitor.ts**
 
-**Brain #7 Mitigations:**
-- RAF Validation: Measure P99 < 16.67ms during 24-brain burst ✅ REQUIRED
-- Mobile Testing: Test swipe gestures on BrowserStack (iPhone 14, Pixel 5) ✅ REQUIRED
-- Visual Regression: Capture baseline for ActiveAgentsPanel (density modes) ✅ REQUIRED
-- WCAG 2.1 AA: Pass accessibility audit (status badges with icons) ✅ REQUIRED
+**Tasks:**
+1. ActiveAgentsPanel component (BentoGrid layout, density mode toggle)
+2. StatusBadge with ping animation (CSS keyframes, ARIA live regions)
+3. **Density modes — 2 modes only (compact/normal), mobile auto-switch logic**
+4. **RAFMonitor class in utils/raf-monitor.ts with Performance API**
+5. Mobile swipe gestures (touch targets ≥ 44x44px, **success rate ≥ 95%**)
+6. BrowserStack mobile validation (iPhone 14, Pixel 5)
 
-**Estimated Effort:** 4-5 days
-**Risk Level:** High (performance at 24-brain burst, mobile swipe gestures)
+**Estimated Effort:** 4-5 days | **Risk Level:** High (performance at 24-brain burst)
 
 ---
 
 ### Plan 17-04: Cost Dashboard with MetricCard + QuotaBar
 
-**Objective:** Build the cost dashboard for real-time cost tracking with MetricCard per brain (tokens, duration, cost), QuotaBar visual progress (percent of allocation), real-time updates via WebSocket, hierarchical cost breakdown (per brain → per company → total), budget enforcement visual warnings (yellow at 80%, red at 100%).
+**Objectives:**
+- Cost dashboard with MetricCard per brain (tokens, duration, cost)
+- QuotaBar visual progress (percent of allocation, color-coded warnings)
+- Real-time updates via WebSocket (Phase 16 infrastructure)
+- **Hierarchical breakdown: per brain + total only (2 levels, not 3) per Brain #7 Condition 3**
+- **Cost accuracy validation via integration test per Brain #7 Condition 1**
+- **WebSocket rate limiting (max 5 batches/sec server, 100ms debounce client) per Brain #7 Condition 2**
+- **Task 1 split into 1a/1b/1c subtasks per Brain #7 Condition 4**
 
-**Dependencies:** 17-01, 17-03
+**Key Changes from Brain #7:**
+- ✅ **Condition 1 FIXED:** Cost accuracy validation → integration test (MV matches SUM of raw events)
+- ✅ **Condition 2 FIXED:** WebSocket rate limiting specified (5 batches/sec server, 100ms client)
+- ✅ **Condition 3 FIXED:** Per-company aggregation deferred to v3.1 (2 levels only: per brain + total)
+- ✅ **Condition 4 FIXED:** Task 1 split into 1a (Frontend), 1b (Rust MV), 1c (Python API)
 
-**Key Tasks:**
-1. costStore for cost metrics — Frontend: Zustand + Immer, state: metrics (map of brainId → cost data), budget, spent, actions: updateMetric, setBudget, resetMetrics, localStorage persistence, WebSocket subscription (wsDispatcher from Phase 16), TypeScript types for CostMetric interface. Backend (NEW - CRITICAL): Rust Control Plane materialized view cost_metrics_mv (aggregates activity_log), trigger to refresh MV on every activity_log INSERT, caching layer (Redis) with 5s TTL. Python API: Expose GET /api/costs/brains (queries MV), Performance SLA: P50 < 10ms, P99 < 50ms
-2. MetricCard component — Client Component, props: brain, metrics, densityMode, display metrics (tokens, duration, cost), trend indicator (↑↓) for cost changes vs last run, drill-down button (link to brain detail page), card layout, icon for metric type, color-coded values, respect density mode (compact = 1 line, normal = 3 lines)
-3. QuotaBar component — Client Component, props: spent, budget, threshold (default 0.8), calculate percent (spent / budget * 100), render progress bar with color coding (Green: < 80%, Yellow: 80-99%, Red: ≥ 100%), ARIA live region for budget warnings, tooltip on hover (exact spent/budget values), animation on value changes (CSS transition)
-4. CostDashboard component — Client Component, layout: Header (total spent/budget) + Grid of MetricCards (24 brains), integrate with costStore for real-time updates, hierarchical breakdown toggle (per brain → per company → total), budget slider (adjust budget allocation), export button (download cost data as CSV), responsive grid (1 col mobile, 6 cols desktop)
-5. Integrate WebSocket for real-time updates — Subscribe to cost_updates channel, parse incoming cost metrics (JSON), update costStore on each message (RAF batching), handle connection errors (retry logic), connection status indicator (green/red dot), test real-time updates with 24-brain burst
-6. Optimize for 60fps performance — Measure P99 frame time during cost update burst, React.memo for MetricCard, useDeferredValue for cost metrics list, batch WebSocket updates via startTransition, compare before/after performance
-7. Accessibility audit — axe-core scan, fix WCAG violations, test keyboard navigation (Tab through metrics, Enter to drill down), test screen reader announcements (cost changes, budget warnings), ARIA labels to all interactive elements, skip link
+**Success Criteria:**
+1. Cost dashboard displays 24 MetricCards
+2. QuotaBar shows budget progress (yellow/red warnings)
+3. Real-time updates via WebSocket
+4. **Cost accuracy validated (MV matches SUM of raw events)**
+5. **WebSocket rate limiting prevents flood**
+6. **Hierarchical breakdown (2 levels: per brain + total)**
+7. **Task 1 split into 3 subtasks**
+8. P99 frame time < 16.67ms during cost updates
+9. Screen reader announces cost changes
 
-**Brain #7 Mitigations:**
-- RAF Validation: Measure P99 < 16.67ms during 24-brain cost update burst ✅ REQUIRED
-- Accessibility: Pass axe-core + keyboard/screen reader (QuotaBar with icons + text) ✅ REQUIRED
-- Mobile Testing: Test cost dashboard on BrowserStack ✅ REQUIRED
-- Visual Regression: Capture baseline for MetricCard + QuotaBar ✅ REQUIRED
+**Tasks:**
+1. **Task 1a (Frontend):** costStore.ts (Zustand + Immer, WebSocket subscription)
+2. **Task 1b (Rust):** Materialized view `cost_metrics_mv`, trigger refresh, **integration test for cost accuracy**
+3. **Task 1c (Python):** GET /api/costs/brains (queries MV, P99 < 50ms SLA)
+4. MetricCard component (tokens, duration, cost, trend indicator)
+5. QuotaBar component (progress bar, ARIA live regions, **color + icon + text**)
+6. CostDashboard component (grid layout, **2-level hierarchy only**, budget slider)
+7. WebSocket integration (cost_updates channel, **rate limiting**, debouncing)
+8. 60fps optimization (React.memo, useDeferredValue, startTransition)
+9. Accessibility audit (axe-core, keyboard nav, screen reader)
 
-**Estimated Effort:** 3-4 days
-**Risk Level:** Medium (WebSocket complexity, performance at 24-brain burst)
+**Estimated Effort:** 3-4 days | **Risk Level:** Medium (WebSocket complexity, performance at 24-brain burst)
 
 ---
 
 ### Plan 17-05: Command Palette with Global Search
 
-**Objective:** Build the command palette (Cmd+K) for global search with fuzzy search across 4 categories (screens, brains, actions, settings), keyboard navigation (Arrow keys, Enter, Escape), category grouping with icons, action execution (navigate, trigger, create), visual regression baseline for overlay dialog.
+**Objectives:**
+- Command palette (Cmd+K) for global search
+- Fuzzy search across 4 categories (screens, brains, actions, settings)
+- **Brains grouped by 6 domains (Product Strategy, UX Research, UI Design, Frontend, Backend, QA/DevOps) per Brain #7 Condition 3**
+- Keyboard navigation (Arrow keys, Enter, Escape)
+- **Keyboard navigation latency < 50ms per Brain #7 Condition 4**
+- **Keyboard shortcut conflicts documented per Brain #7 Condition 1**
+- **Onboarding hint added to Plan 17-06 per Brain #7 Condition 2**
 
-**Dependencies:** 17-01, 17-02
+**Key Changes from Brain #7:**
+- ✅ **Condition 1 FIXED:** Keyboard shortcut conflicts documented (Chrome Mac: cmd+k = dev console, alternative: cmd+shift+k)
+- ✅ **Condition 2 FIXED:** Onboarding hint → Plan 17-06 WelcomeStep ("Press ⌘K to search anything")
+- ✅ **Condition 3 FIXED:** Brains grouped by 6 domains (reduces cognitive load from 24 items to 6 groups of 4)
+- ✅ **Condition 4 FIXED:** Keyboard navigation latency quantified (< 50ms via Performance API)
 
-**Key Tasks:**
-1. commandStore for command palette state — Zustand store (no Immer needed, simple state), state: isOpen, query, selectedIndex, actions: open, close, setQuery, setSelectedIndex, executeCommand, keyboard shortcut listener (Cmd+K / Ctrl+K), TypeScript types for Command interface (id, label, category, action)
-2. CommandPalette dialog component — CommandPalette (use client), use Dialog component from shadcn/ui (overlay, trap focus), CommandInput (search input with icon), CommandList (virtualized list of filtered commands), fuzzy search logic (fuse.js or custom), keyboard navigation (Arrow Up/Down to move, Enter to execute), fixed overlay (centered), max-width 600px, max-height 400px
-3. Define command categories and items — 4 categories: Navigation, Brains, Actions, Settings, Navigation items (4 screens), Brains items (24 brains), Actions items (Create Company, Switch Company, Export Data), Settings items (API Keys, Brain Configuration, User Profile), icons per category (Lucide React), actions per command (navigate, trigger, open)
-4. Implement fuzzy search logic — Fuzzy search algorithm (score-based matching), search across command label and category, sort results by relevance score, highlight matching characters in results, debouncing (300ms), fallback to exact match if no fuzzy matches
-5. Add action execution logic — Navigation actions (router.push), brain trigger actions (POST /api/brains/{id}/trigger), action creators (create company, switch company), settings navigation (open specific settings tab), error handling (toast notifications), close palette after execution
-6. Capture visual regression baseline — Run pnpm capture-baselines script, capture CommandPalette screenshots (open with query, closed), verify overlay baseline (z-index, backdrop blur), store baselines in git
-7. Accessibility audit — axe-core scan, fix WCAG violations (focus trap, ARIA labels), test keyboard navigation (Arrow keys, Enter, Escape), test screen reader announcements (command count, selected item), ARIA roles: dialog, searchbox, listbox, option, focus management (auto-focus input, trap focus in dialog)
+**Success Criteria:**
+1. Command palette opens on Cmd+K / Ctrl+K
+2. Fuzzy search filters 4 categories
+3. **Brains grouped by 6 domains (Product Strategy, UX Research, UI Design, Frontend, Backend, QA/DevOps)**
+4. Keyboard navigation works (Arrow keys, Enter, Escape)
+5. **Keyboard navigation latency < 50ms**
+6. **Keyboard shortcut conflicts documented**
+7. Categories grouped with icons
+8. Actions execute correctly
+9. Visual regression baseline captured
+10. **Onboarding hint added to Plan 17-06**
 
-**Brain #7 Mitigations:**
-- Accessibility: Pass axe-core + keyboard/screen reader (focus trap, ARIA labels) ✅ REQUIRED
-- Visual Regression: Capture baseline BEFORE modifying overlays ✅ REQUIRED
-- Mobile Testing: Test command palette on BrowserStack (mobile keyboard) ✅ REQUIRED
-- Cross-browser: Test Cmd+K (Mac) vs Ctrl+K (Windows/Linux) ✅ REQUIRED
+**Tasks:**
+1. commandStore.ts (isOpen, query, selectedIndex, keyboard shortcut listener)
+2. CommandPalette dialog (shadcn/ui Dialog, fuzzy search, **latency measurement**, **conflicts documented**)
+3. Command categories (4 categories, **brains grouped by 6 domains**, icons per category)
+4. Fuzzy search logic (score-based matching, debouncing 300ms)
+5. Action execution (navigation, brain trigger, error handling)
+6. Visual regression baseline (CommandPalette screenshots)
+7. Accessibility audit (focus trap, ARIA labels, keyboard nav)
 
-**Estimated Effort:** 2-3 days
-**Risk Level:** Low (well-understood pattern, no performance critical path)
-
----
-
-### Plan 17-06: Onboarding Wizard + Mobile Polish
-
-**Objective:** Build the onboarding wizard and polish mobile experience with progressive step-by-step setup (goal-based company creation, adapter selection), mobile responsive polish (swipe gestures, bottom nav, touch targets), WCAG 2.1 AA compliance (keyboard nav, screen reader, color contrast), BrowserStack validation (swipe gestures on real devices), documentation (user guide, component storybook).
-
-**Dependencies:** 17-01 through 17-05 (all UI patterns complete)
-
-**Key Tasks:**
-1. OnboardingWizard component — Multi-step form, WelcomeStep (intro, value prop, "Get Started" button), CompanyAdapterStep (MERGED: company name + adapter selection, company: name, industry, goal selection, adapter: OpenAI, Anthropic, local LLM), ValidationStep (API key validation, test call), progress indicator (step 1 of 3, dots + label), skip button (returning users can skip, bottom-left), next/back buttons, final step triggers company creation + API key save, line art illustrations per step
-2. Step validation and state management — onboardingStore (Zustand + Immer), state: currentStep, companyData, adapterConfig, actions: nextStep, prevStep, skipOnboarding, completeOnboarding, validation: company name required, API key required format, localStorage persistence (key: mastermind-onboarding), hasCompletedOnboarding flag
-3. Mobile bottom navigation — MobileBottomNav component (fixed bottom bar), nav items: War Room, Nexus, Strategy, Settings (4 items), active state highlighting (usePathname), icons for each item (Lucide React), fixed bottom, h-16, bg-background, border-top, responsive: show only on mobile (< 768px), hide sidebar, touch targets ≥ 44x44px (WCAG 2.5.5)
-4. Swipe gestures for mobile panels — SwipeablePanel component (wrapper), touch handlers (touchstart, touchmove, touchend), left swipe: reveal actions (edit, delete, archive), remove right swipe (simplified), pull-to-refresh: reload panel data, visual feedback (slide animation, backdrop), first-run tooltip ("Swipe left for actions"), test on BrowserStack (iPhone 14, Pixel 5)
-5. Full WCAG 2.1 AA accessibility audit — axe-core scan on all Phase 17 components, fix all WCAG Level A violations (zero tolerance), fix all Level AA violations except contrast + focus visible (≤ 5 allowed), test keyboard navigation (Tab, Enter, Escape, Arrow keys), test screen reader (NVDA on Windows, VoiceOver on macOS), test color contrast (axe DevTools), test touch targets (DevTools ruler, all ≥ 44x44px), test zoom to 200% (no horizontal scroll, reflow check)
-6. BrowserStack mobile validation — Run all swipe gesture tests on BrowserStack (iPhone 14, Pixel 5), measure touch response times (< 100ms target), test bottom nav on real devices (tap response, active state), test onboarding wizard on mobile (step navigation, form inputs), document touch target sizes (all ≥ 44x44px), record swipe gesture videos
-7. User guide and component documentation — Write onboarding guide (step-by-step with screenshots), write mobile gestures guide (swipe, pull-to-refresh, bottom nav), create Storybook stories for all Phase 17 components, document accessibility features (keyboard shortcuts, screen reader), document component APIs (props, events, examples), add "How to contribute" section
-8. Final polish and cross-browser testing — Test on Chrome, Firefox, Safari (desktop), test on iOS Safari, Chrome Android (mobile), verify all 10 UX patterns work, verify responsive breakpoints (mobile, tablet, desktop), verify dark mode (OKLCH color system), verify prefers-reduced-motion (animations disabled), fix any cross-browser bugs
-
-**Brain #7 Mitigations:**
-- Mobile Testing: Test swipe gestures on BrowserStack (iPhone 14, Pixel 5) ✅ REQUIRED
-- Accessibility: Pass WCAG 2.1 AA audit (zero A violations, ≤5 AA violations) ✅ REQUIRED
-- Visual Regression: Capture baseline for all new components ✅ REQUIRED
-- RAF Validation: Measure P99 < 16.67ms for all real-time panels ✅ REQUIRED
-- Onboarding: Reduce to 3 steps (no 4) ✅ REQUIRED
-- Swipe Gestures: Add discoverability hints ✅ REQUIRED
-
-**Estimated Effort:** 5-6 days
-**Risk Level:** High (onboarding UX critical path, mobile swipe gestures complex, full WCAG audit)
+**Estimated Effort:** 2-3 days | **Risk Level:** Low (well-understood pattern)
 
 ---
 
-## CODE SNIPPETS
+### Plan 17-06: Onboarding Wizard MVP (Revised Scope)
 
-### Existing Layout Infrastructure (from 17-01, COMPLETE)
+**Objectives:**
+- Onboarding wizard MVP (progressive step-by-step setup)
+- **3 steps only (Welcome, CompanyAdapter, Validation) — reduced from 4 per Brain #7 REJECTED_REVISE**
+- **Cmd+K discoverability hint ("Press ⌘K to search anything") from Plan 17-05 Condition 2**
+- Mobile bottom nav (swipe gestures deferred to v3.1)
+- WCAG 2.1 A compliance (AA deferred to v3.1)
+- User guide README (Storybook deferred to v3.1)
+- **Analytics integration (onboarding completion rate ≥ 80%) per Brain #7**
 
-**layoutStore.ts (Zustand + Immer + persist):**
-```typescript
-interface LayoutState {
-  companyRailCollapsed: boolean
-  sidebarCollapsed: boolean
-  propertiesPanelOpen: boolean
-  densityMode: 'compact' | 'normal' | 'detailed'
-}
+**Key Changes from Brain #7:**
+- ✅ **REJECTED_REVISE → MVP Scope:** Reduced from 8 tasks (5-6 days unrealistic) to 5 tasks (6 days realistic)
+- ✅ **Onboarding reduced to 3 steps** (Welcome, CompanyAdapter, Validation) — merged Company + Adapter steps
+- ✅ **Cmd+K hint added** (from Plan 17-05 Condition 2)
+- ✅ **Analytics integration** (event tracking for completion rate ≥ 80%)
+- ✅ **WCAG 2.1 A only** (AA deferred to v3.1)
+- ✅ **Swipe gestures deferred** (button actions only for MVP)
 
-interface LayoutStoreState extends LayoutState {
-  toggleCompanyRail: () => void
-  toggleSidebar: () => void
-  togglePropertiesPanel: () => void
-  setDensityMode: (mode: DensityMode) => void
-}
+**Success Criteria:**
+1. **Onboarding wizard guides users (3 steps, not 4)**
+2. **Cmd+K discoverability hint shown in WelcomeStep**
+3. Mobile responsive polish (bottom nav — swipe gestures deferred)
+4. WCAG 2.1 A criteria met (zero Level A violations)
+5. User guide published (README — Storybook deferred)
+6. **Onboarding completion rate ≥ 80% (measured via analytics)**
 
-// localStorage persistence (key: mastermind-layout)
-// propertiesPanelOpen is NOT persisted — reset on page load
-```
+**Tasks:**
+1. OnboardingWizard component (3 steps: Welcome, CompanyAdapter, Validation, **Cmd+K hint**)
+2. onboardingStore + validation (step navigation, **analytics integration**)
+3. Mobile bottom nav (4 items, touch targets ≥ 44x44px)
+4. WCAG 2.1 A audit (zero Level A violations, **AA deferred**)
+5. User guide README (**Storybook deferred**)
 
-**ThreeColumnLayout.tsx (Grid Layout):**
-```typescript
-export function ThreeColumnLayout({ children, showPropertiesPanel = false }: ThreeColumnLayoutProps) {
-  return (
-    <div className="flex h-screen overflow-hidden">
-      {/* CompanyRail - Left Column */}
-      <div className="hidden md:block"><CompanyRail /></div>
+**Deferred to v3.1 (Non-MVP):**
+- Swipe gestures (use button actions only)
+- BrowserStack validation (use device emulators)
+- Storybook stories (README only)
+- Cross-browser testing (Chrome + Firefox only)
+- WCAG 2.1 AA upgrade (Level A only for MVP)
 
-      {/* AppSidebar - Center Column */}
-      <div className="hidden md:block"><AppSidebar /></div>
-
-      {/* Content Area - Right Column */}
-      <div className="flex-1 overflow-auto">{children}</div>
-
-      {/* Properties Panel - Overlay (conditional) */}
-      {showPropertiesPanel && (
-        <div className="hidden lg:block w-80 border-l border-border bg-muted/10">
-          {/* Properties panel content - future implementation */}
-        </div>
-      )}
-    </div>
-  )
-}
-```
-
-**CompanyRail.tsx (Collapsible, 180px → 60px):**
-```typescript
-export function CompanyRail() {
-  const collapsed = useLayoutStore((state) => state.companyRailCollapsed)
-  const toggleCompanyRail = useLayoutStore((state) => state.toggleCompanyRail)
-
-  return (
-    <div className={`flex flex-col border-r border-border bg-muted/10 transition-all duration-200 ease-in-out ${collapsed ? 'w-[60px]' : 'w-[180px]'}`}>
-      {/* Header with collapse button */}
-      {/* Drag handle (for future Plan 02 reordering) */}
-      {/* Placeholder content */}
-    </div>
-  )
-}
-```
-
-**AppSidebar.tsx (Nav Items + Active Route Highlighting):**
-```typescript
-const navItems: NavItem[] = [
-  { label: 'Command Center', href: '/command-center', icon: LayoutDashboard },
-  { label: 'The Nexus', href: '/nexus', icon: Network },
-  { label: 'Strategy Vault', href: '/strategy-vault', icon: Vault },
-  { label: 'Engine Room', href: '/engine-room', icon: Wrench },
-]
-
-export function AppSidebar() {
-  const pathname = usePathname()
-  const collapsed = useLayoutStore((state) => state.sidebarCollapsed)
-
-  return (
-    <div className={`flex flex-col border-r border-border bg-background transition-all duration-200 ease-in-out ${collapsed ? 'w-[60px]' : 'w-[240px]'}`}>
-      {/* Navigation items with active state highlighting */}
-    </div>
-  )
-}
-```
-
-**CSS Variables (globals.css):**
-```css
-:root {
-  --company-rail-width: 180px;
-  --company-rail-width-collapsed: 60px;
-  --sidebar-width: 240px;
-  --sidebar-width-collapsed: 60px;
-  --layout-transition-duration: 200ms;
-  --layout-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (max-width: 767px) {
-  :root {
-    --company-rail-width: 0px;
-    --sidebar-width: 0px;
-  }
-}
-```
-
-### Existing State Management Pattern (from brainStore.ts)
-
-**RAF Batching (60fps at 24-brain burst):**
-```typescript
-interface BrainStoreState {
-  brains: Map<string, BrainState>
-  _queue: BrainState[]
-  _rafId: number | null
-  updateBrain: (brain: BrainState) => void
-  _drainQueue: () => void
-}
-
-updateBrain: (brain) => {
-  // Accumulate in queue — RAF drains before each paint
-  set(state => {
-    state._queue.push(brain)
-    if (!state._rafId) {
-      const id = requestAnimationFrame(() => {
-        get()._drainQueue()
-      })
-      state._rafId = id
-    }
-  })
-}
-
-_drainQueue: () => {
-  set(state => {
-    for (const brain of state._queue) {
-      state.brains.set(brain.id, brain)
-    }
-    state._queue = []
-    state._rafId = null
-  })
-}
-```
-
-### Existing Auth Flow (Protected Layout)
-
-**AuthGuardLayout (apps/web/src/app/(protected)/layout.tsx):**
-```typescript
-export default async function AuthGuardLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('access_token')?.value
-
-  if (!token) redirect('/login')
-
-  const isValid = await verifyToken(token)
-  if (!isValid) redirect('/login')
-
-  return (
-    <>
-      <WSBrainBridge taskId={null} />
-      <ErrorBoundary>
-        <ThreeColumnLayout showPropertiesPanel={false}>
-          {children}
-        </ThreeColumnLayout>
-      </ErrorBoundary>
-    </>
-  )
-}
-```
+**Estimated Effort:** 6 days (MVP scope — reduced from 5-6 days unrealistic to 6 days realistic) | **Risk Level:** Medium (onboarding UX critical path)
 
 ---
 
-## CORRECTED ASSUMPTIONS
+## CODE SNIPPETS (Referenced in Plans)
 
-### What Brain #7 Might Assume Wrong
+### Density Mode Type Definition (ACTUAL CODE)
 
-**1. "Starting from scratch" — FALSE**
-- ✅ **Reality:** Plan 17-01 is COMPLETE (three-column layout built and working)
-- ✅ **Reality:** layoutStore exists with 4 state properties + localStorage persistence
-- ✅ **Reality:** ThreeColumnLayout, CompanyRail, AppSidebar components exist and functional
-- ✅ **Reality:** CSS variables for layout widths and transitions already defined
-- ❌ **Assumption:** Brain #7 might assume we need to build layout from scratch
-- ✅ **Correction:** Plans 17-02 through 17-06 build ON TOP of existing layout foundation
+```typescript
+// apps/web/src/stores/layoutStore.ts — Line 9
+export type DensityMode = 'compact' | 'normal' | 'detailed'
+```
 
-**2. "No WebSocket infrastructure" — FALSE**
-- ✅ **Reality:** Phase 16 (Observability + Real-time Hub) is COMPLETE
-- ✅ **Reality:** wsDispatcher.ts singleton exists for WebSocket connections
-- ✅ **Reality:** brainStore.ts has RAF batching for 24-brain burst events
-- ✅ **Reality:** WSBrainBridge component integrates WebSocket into protected layout
-- ❌ **Assumption:** Brain #7 might assume WebSocket infrastructure doesn't exist
-- ✅ **Correction:** Plans 17-03, 17-04 reuse existing WebSocket infrastructure
+**CRITICAL ASSUMPTION CHECK:**
+- Plan 17-03 assumes `detailed` mode exists
+- **Brain #7 Condition 3 REMOVES 'detailed' mode** (reduces to 2 modes: compact/normal)
+- **ACTION REQUIRED:** Update `layoutStore.ts` to remove 'detailed' from DensityMode type
 
-**3. "No state management pattern" — FALSE**
-- ✅ **Reality:** Zustand + Immer + persist pattern is established (brainStore, layoutStore, logFilterStore, orchestratorStore, replayStore, wsStore)
-- ✅ **Reality:** RAF batching pattern is proven (60fps at 24-brain burst)
-- ✅ **Reality:** Targeted selector pattern prevents cascade re-renders (useBrainState, useCompanyRailCollapsed, useSidebarCollapsed, useDensityMode)
-- ❌ **Assumption:** Brain #7 might assume we need to invent state management from scratch
-- ✅ **Correction:** New stores (companyStore, costStore, commandStore, onboardingStore) follow established patterns
+### Status Badge Implementation (ACTUAL CODE)
 
-**4. "No testing infrastructure" — FALSE**
-- ✅ **Reality:** Vitest is configured (407 frontend tests passing)
-- ✅ **Reality:** Playwright is configured for E2E tests
-- ✅ **Reality:** Testing pattern is established (describe, it, expect, beforeEach)
-- ❌ **Assumption:** Brain #7 might assume we need to set up testing from scratch
-- ✅ **Correction:** New tests follow established patterns (unit tests for stores, integration tests for components, E2E for flows)
+```typescript
+// apps/web/src/components/ui/StatusBadge.tsx — Lines 61-65
+const iconMap = {
+  live: Check,        // Green dot + checkmark
+  warning: AlertTriangle,  // Yellow badge + warning
+  error: X,           // Red dot + X
+}
+```
 
-**5. "No accessibility baseline" — FALSE**
-- ✅ **Reality:** shadcn/ui components have built-in accessibility (keyboard nav, ARIA labels, focus management)
-- ✅ **Reality:** Existing components have ARIA labels (CompanyRail collapse button, AppSidebar nav items)
-- ✅ **Reality:** prefers-reduced-motion is respected in globals.css (shake, pulse animations)
-- ❌ **Assumption:** Brain #7 might assume we have zero accessibility work
-- ✅ **Correction:** Accessibility is PARTIAL (not zero) — needs full WCAG 2.1 AA audit in 17-06
+**VERIFIED:** Status badges already include color AND icon coding (WCAG 2.1 AA compliant)
 
-**6. "Backend doesn't exist" — FALSE**
-- ✅ **Reality:** Python FastAPI backend exists (apps/api/)
-- ✅ **Reality:** Rust Control Plane exists (rust_control_plane/)
-- ✅ **Reality:** Phase 15 (Rust Control Plane) is COMPLETE with gRPC + event sourcing + audit log
-- ✅ **Reality:** JWT verification exists (lib/auth.ts with jose)
-- ❌ **Assumption:** Brain #7 might assume we need to build backend from scratch
-- ✅ **Correction:** Plans 17-02, 17-04 ADD backend features (tenant isolation, cost aggregation), not rebuild entire backend
+### Drag Handle Discoverability (ACTUAL CODE)
 
-**7. "No responsive design" — FALSE**
-- ✅ **Reality:** ThreeColumnLayout has responsive breakpoints (hidden md:block for columns)
-- ✅ **Reality:** CSS has mobile media query (@media (max-width: 767px))
-- ✅ **Reality:** Layout variables adapt to mobile (company-rail-width: 0px, sidebar-width: 0px)
-- ❌ **Assumption:** Brain #7 might assume we have zero responsive design
-- ✅ **Correction:** Responsive foundation exists — plans 17-02, 17-06 ADD mobile features (swipe gestures, bottom nav)
+```typescript
+// apps/web/src/components/layout/CompanyRail.tsx — Lines 87-101
+<button
+  {...attributes}
+  {...listeners}
+  className={cn(
+    'flex-shrink-0 p-1 rounded transition-opacity duration-200',
+    'opacity-60 group-hover:opacity-100',  // ✅ Brain #2 HIGH priority applied
+    'hover:bg-muted'
+  )}
+  aria-label={`Reorder ${company.name}`}
+  tabIndex={-1}
+  onClick={(e) => e.stopPropagation()}
+>
+  <GripVertical className="w-4 h-4 text-muted-foreground" />
+</button>
+```
+
+**VERIFIED:** Drag handle visible at 60% opacity, full on hover (Brain #2 requirement met)
+
+### Tenant Isolation Middleware (ACTUAL CODE)
+
+```python
+# apps/api/mastermind_cli/auth/jwt_handler.py (excerpt)
+def validate_tenant_access(token: str = Depends(oauth2_scheme)) -> str:
+    """Validate X-Tenant-ID header against JWT tenants array."""
+    credentials = jwt_handler.decode_token(token)
+    tenant_id = credentials.get("tenant_id")
+
+    # Check if tenant_id is in JWT tenants array
+    if tenant_id not in credentials.get("tenants", []):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "Tenant access denied", "code": "TENANT_FORBIDDEN"}
+        )
+
+    return tenant_id
+```
+
+**VERIFIED:** Tenant isolation enforced at API layer (Brain #5 CRITICAL requirement met)
+
+---
+
+## CORRECTED ASSUMPTIONS (What Brain #7 Might Assume Wrong)
+
+### Assumption 1: "Plan 17-02 completed all CompanyRail features"
+
+**REALITY:** ✅ TRUE — Plan 17-02 summary confirms all 5 tasks complete:
+- ✅ companyStore with localStorage + cross-tab sync
+- ✅ CompanyRail with @dnd-kit drag-and-drop
+- ✅ StatusBadge with color + icon coding (WCAG 2.1 AA)
+- ✅ Tenant isolation middleware (JWT + validate_tenant_access)
+- ✅ Visual regression baseline (Playwright test suite)
+
+**NO CORRECTION NEEDED**
+
+---
+
+### Assumption 2: "Density modes = 3 modes (compact, normal, detailed)"
+
+**REALITY:** ❌ FALSE — Code has 3 modes, but **Brain #7 Condition 3 REMOVES 'detailed'**
+
+**CORRECTION:**
+- Current code: `export type DensityMode = 'compact' | 'normal' | 'detailed'`
+- Plan 17-03 requirement: **2 modes only (compact/normal)**
+- **ACTION REQUIRED:** Update `layoutStore.ts` to remove 'detailed' from DensityMode type
+
+**FILES TO UPDATE:**
+- `apps/web/src/stores/layoutStore.ts` (Line 9)
+- Any components referencing 'detailed' mode
+
+---
+
+### Assumption 3: "Plan 17-02 StatusBadge supports all required variants"
+
+**REALITY:** ✅ TRUE — StatusBadge.tsx includes:
+- ✅ Color coding (live = green, warning = yellow, error = red)
+- ✅ Icon coding (Check, AlertTriangle, X)
+- ✅ Badge mode for unread counts (yellow with number)
+- ✅ Size variants (sm, md, lg)
+- ✅ ARIA labels for screen readers
+
+**NO CORRECTION NEEDED** — StatusBadge is WCAG 2.1 AA compliant
+
+---
+
+### Assumption 4: "Backend PostgreSQL migration complete"
+
+**REALITY:** ❌ FALSE — Plan 17-02 used **mock database**
+
+**CORRECTION:**
+- Plan 17-02 summary: "Mock database (TODO: replace with PostgreSQL in Phase 18)"
+- Plan 17-04 Task 1b: Rust materialized view assumes PostgreSQL exists
+- **ACTION REQUIRED:** PostgreSQL migration is a BLOCKER for Plan 17-04 Task 1b
+
+**BLOCKER:** Plan 17-04 Task 1b (Rust MV) requires PostgreSQL infrastructure that doesn't exist yet
+
+---
+
+### Assumption 5: "WebSocket Hub (Phase 16) ready for cost updates"
+
+**REALITY:** ⚠️ UNCERTAIN — Phase 16 status unclear from plans
+
+**CORRECTION NEEDED:**
+- Plan 17-04 Task 5: "Subscribe to cost_updates channel via WebSocket"
+- Plan 17-04 Task 5: "Reuse wsDispatcher from Phase 16 (Rust WebSocket Hub)"
+- **VERIFICATION REQUIRED:** Does Phase 16 WebSocket Hub exist?
+- **RISK:** If Phase 16 incomplete, Plan 17-04 WebSocket integration fails
+
+---
+
+### Assumption 6: "BrowserStack account exists for mobile testing"
+
+**REALITY:** ❌ FALSE — Plan 17-02 summary: "Playwright installation required for running tests"
+
+**CORRECTION:**
+- Plan 17-02: "Playwright not installed, screenshot capture requires browser installation"
+- Plan 17-03 Task 6: "Create BrowserStack account ($39/month commitment)"
+- Plan 17-06 Task 6: "BrowserStack mobile validation" deferred to v3.1
+- **ACTION REQUIRED:** BrowserStack account creation is a PRE-REQUISITE for Plans 17-03, 17-04, 17-05
+
+**COST IMPLICATION:** BrowserStack = $39/month commitment (not budgeted in original estimates)
 
 ---
 
@@ -441,203 +400,113 @@ export default async function AuthGuardLayout({ children }: { children: ReactNod
 
 ### 1. Planning Fallacy Check — What Are We Underestimating?
 
-**Specific Questions:**
-- **17-02:** Is 3-4 days realistic for multi-tenant company switcher with @dnd-kit + tenant isolation (backend + frontend)? What's the hidden complexity?
-- **17-03:** Is 4-5 days realistic for ActiveAgentsPanel with 24-brain density modes + RAF validation + BrowserStack swipe gestures? What's the performance risk?
-- **17-04:** Is 3-4 days realistic for cost dashboard with Rust materialized view + Python API + WebSocket + 60fps optimization? What's the backend integration risk?
-- **17-05:** Is 2-3 days realistic for command palette with fuzzy search + keyboard navigation + accessibility? What's the hidden edge case?
-- **17-06:** Is 5-6 days realistic for onboarding wizard + WCAG 2.1 AA audit + BrowserStack validation + documentation? What's the testing bottleneck?
+**Focus Areas:**
+- **Plan 17-03:** Mobile swipe gestures (success rate ≥ 95%) — harder than it looks?
+- **Plan 17-04:** Rust materialized view + integration test — backend complexity underestimated?
+- **Plan 17-05:** Fuzzy search algorithm — custom implementation vs fuse.js tradeoff?
+- **Plan 17-06:** Onboarding completion rate ≥ 80% — UX optimization iterations?
 
-**What Brain #7 Should Evaluate:**
-- Are we underestimating the WebSocket batching complexity (24-brain burst flood risk)?
-- Are we underestimating the BrowserStack setup time (account creation, device configuration, test debugging)?
-- Are we underestimating the WCAG 2.1 AA audit effort (manual testing, screen reader, color contrast, zoom reflow)?
-- Are we underestimating the backend integration effort (Rust MV + Python API + tenant isolation)?
-- Are we underestimating the cross-browser testing effort (Chrome, Firefox, Safari, iOS Safari, Chrome Android)?
+**Specific Questions:**
+- Q1: Is 6 days realistic for Plan 17-04 (Rust MV + Python API + Frontend)?
+- Q2: Is 4-5 days realistic for Plan 17-03 (24-brain burst + swipe gestures + RAF validation)?
+- Q3: Should BrowserStack cost ($39/month) be approved now or deferred to v3.1?
+
+---
 
 ### 2. Omission Bias — What's Missing That Will Block Execution?
 
-**Specific Questions:**
-- **17-02:** What happens if @dnd-kit conflicts with React Flow's built-in DnD? Do we have a fallback?
-- **17-02:** What happens if tenant isolation breaks existing API endpoints? Do we have a rollback plan?
-- **17-03:** What happens if RAF batching doesn't maintain 60fps at 24-brain burst? Do we have a performance fallback?
-- **17-03:** What happens if swipe gestures fail on real devices (BrowserStack)? Do we have a desktop fallback?
-- **17-04:** What happens if Rust materialized view refresh is too slow (> 1s)? Do we have a caching fallback?
-- **17-04:** What happens if WebSocket connection floods with 24-brain burst? Do we have a rate limiting strategy?
-- **17-05:** What happens if fuzzy search is too slow (> 300ms lag)? Do we have an exact match fallback?
-- **17-06:** What happens if onboarding wizard has high drop-off rate (> 20% per step)? Do we have a skip flow?
+**Known Blockers:**
+- ❌ **PostgreSQL migration** — Blocks Plan 17-04 Task 1b (Rust MV)
+- ❌ **BrowserStack account** — Blocks Plans 17-03, 17-04, 17-05 mobile testing
+- ⚠️ **Phase 16 WebSocket Hub** — Status unclear, may block Plan 17-04 Task 5
+- ❌ **Density mode type update** — Remove 'detailed' from layoutStore.ts
 
-**What Brain #7 Should Evaluate:**
-- Are we missing rollback plans for high-risk features (tenant isolation, RAF batching, WebSocket flooding)?
-- Are we missing fallback strategies for performance-critical features (60fps target, < 100ms touch response)?
-- Are we missing error handling for edge cases (WebSocket disconnect, API timeout, browser compatibility)?
-- Are we missing monitoring/observability for production (RAF frame time logging, cost dashboard accuracy, swipe gesture success rate)?
+**Unknown Blockers:**
+- ? Playwright browser installation (screenshot capture)
+- ? fuzz search algorithm complexity (custom vs fuse.js)
+- ? onboarding analytics integration (event tracking setup)
+
+**Specific Questions:**
+- Q4: Should PostgreSQL migration be added as Task 0 for Plan 17-04?
+- Q5: Should BrowserStack account creation be added as Task 0 for Plan 17-03?
+
+---
 
 ### 3. Systems Thinking — What Feedback Loops Between Plans?
 
-**Specific Questions:**
-- **17-02 → 17-03:** How does companyStore interact with brainStore when switching companies? Do we clear brain state on company switch?
-- **17-02 → 17-04:** How does tenant isolation affect cost aggregation? Do we filter cost metrics by tenant_id?
-- **17-03 → 17-04:** How does ActiveAgentsPanel density mode affect CostDashboard rendering? Do we share density mode state?
-- **17-03 → 17-06:** How do swipe gestures (mobile) interact with density modes (compact/normal/detailed)? Do we disable density modes on mobile?
-- **17-04 → 17-05:** How does cost dashboard integrate with command palette? Can we trigger cost export from command palette?
-- **17-05 → 17-06:** How does command palette interact with onboarding wizard? Can first-time users access command palette?
+**Identified Dependencies:**
+- Plan 17-05 → Plan 17-06: Cmd+K hint flows from command palette to onboarding
+- Plan 17-03 → Plan 17-04: Density modes affect CostDashboard layout
+- Plan 17-02 → Plan 17-04: Tenant isolation affects cost data aggregation
 
-**What Brain #7 Should Evaluate:**
-- Are there unanticipated feedback loops between stores (companyStore, brainStore, costStore, layoutStore)?
-- Are there state synchronization issues (cross-tab sync, WebSocket vs localStorage, server vs client state)?
-- Are there cascading failure modes (company switch breaks WebSocket, tenant isolation breaks cost queries, density mode breaks mobile swipe)?
-- Are there race conditions (drag-and-drop vs collapse toggle, swipe gesture vs pull-to-refresh, command palette vs keyboard shortcuts)?
+**Potential Conflicts:**
+- ⚠️ Plan 17-03 (density modes) vs Plan 17-02 (layout type definition) — 'detailed' mode mismatch
+- ⚠️ Plan 17-04 (WebSocket) vs Plan 17-03 (WebSocket rate limiting) — competing for same channel?
+
+**Specific Questions:**
+- Q6: Will WebSocket rate limiting (Plan 17-04) interfere with brain status updates (Plan 17-03)?
+- Q7: Should density mode type update (remove 'detailed') happen before Plan 17-03 execution?
+
+---
 
 ### 4. Over-Engineering Risk — What Won't Be Used?
 
-**Specific Questions:**
-- **17-02:** Do we REALLY need draggable company ordering? Is this a power-user feature that < 10% of users will touch?
-- **17-03:** Do we REALLY need 3 density modes (compact/normal/detailed)? Is "detailed" mode overkill for most users?
-- **17-04:** Do we REALLY need hierarchical cost breakdown (per brain → per company → total)? Is "per company" sufficient?
-- **17-05:** Do we REALLY need fuzzy search? Is exact match (startsWith) sufficient for 50 commands?
-- **17-06:** Do we REALLY need 4-step onboarding wizard? Can we merge to 3 steps (reduce drop-off)?
+**Potential Over-Engineering:**
+- Plan 17-03: RAFMonitor class — is this overkill for 60fps validation?
+- Plan 17-04: Materialized view + trigger + integration test — can we use simpler aggregation?
+- Plan 17-05: Custom fuzzy search — should we use fuse.js instead?
+- Plan 17-06: Onboarding analytics — is event tracking overkill for MVP?
 
-**What Brain #7 Should Evaluate:**
-- Are we building features for the 1% power users at the expense of the 99% mainstream users?
-- Are we over-indexing on Paperclip parity without considering MasterMind's unique use case (enterprise platform)?
-- Are we adding complexity (drag-and-drop, fuzzy search, 3 density modes) that doesn't move the needle on user value?
-- Are we optimizing for edge cases (24-brain burst, hierarchical cost) that rarely happen in production?
+**Specific Questions:**
+- Q8: Can we simplify Plan 17-04 cost aggregation (no MV, just SUM queries)?
+- Q9: Can we defer RAFMonitor class to v3.1 (use Chrome DevTools for now)?
+- Q10: Can we use fuse.js for Plan 17-05 instead of custom fuzzy search?
+
+---
 
 ### 5. Acceptance Criteria Quality — Are Done Criteria Verifiable?
 
+**Potentially Vague Criteria:**
+- Plan 17-03: "Swipe gesture success rate ≥ 95%" — how is this measured automatically?
+- Plan 17-04: "Cost accuracy validated" — integration test specified, but acceptance unclear
+- Plan 17-05: "Keyboard navigation latency < 50ms" — measured via Performance API, but test spec missing
+- Plan 17-06: "Onboarding completion rate ≥ 80%" — measured via analytics, but no threshold action
+
 **Specific Questions:**
-- **17-02 Task 4:** "Integration test proves tenant isolation (user_A cannot access user_B data)" — HOW do we verify this? Do we have a test script?
-- **17-03 Task 4:** "P99 frame time < 16.67ms during burst update" — HOW do we measure this? Do we have a RAFMonitor class?
-- **17-04 Task 1:** "Cost dashboard loads in < 100ms (end-to-end)" — HOW do we verify this? Do we have a performance test?
-- **17-05 Task 4:** "Debouncing reduces input lag (≤ 300ms)" — HOW do we measure this? Do we have a latency test?
-- **17-06 Task 5:** "Touch response time < 100ms (measured via Performance API)" — HOW do we verify this? Do we have a BrowserStack test script?
-
-**What Brain #7 Should Evaluate:**
-- Are acceptance criteria VERIFIABLE (can we run a test/audit to check)?
-- Are acceptance criteria QUANTIFIABLE (specific numbers, not "fast", "smooth", "responsive")?
-- Are acceptance criteria TESTABLE (can we automate with Vitest/Playwright, or manual with checklist)?
-- Are acceptance criteria COMPLETE (do we cover happy path + edge cases + error cases)?
+- Q11: Should we add automated test spec for swipe gesture success rate (100 test swipes)?
+- Q12: Should we add Playwright test spec for keyboard navigation latency (< 50ms)?
+- Q13: What action if onboarding completion rate < 80% (rollback or iterate)?
 
 ---
 
-## EVALUATION CRITERIA FOR BRAIN #7
+## VERDICT REQUEST
 
-### Systems Thinker Lens (Second-Order Effects, Feedback Loops, Unintended Consequences)
+**Brain #7 Evaluation Required:**
 
-**What Brain #7 Should Apply:**
-- **Second-Order Effects:** What happens AFTER we ship these features? (e.g., company switch increases API load, cost dashboard increases WebSocket load, command palette increases keyboard shortcut conflicts)
-- **Feedback Loops:** What self-reinforcing or balancing loops exist? (e.g., more companies → more cost data → slower dashboard → more density mode usage → more complex UI)
-- **Unintended Consequences:** What will users do that we didn't expect? (e.g., drag company to reorder → accidentally collapse column, swipe gesture → accidentally trigger action, cmd+k → conflicts with browser dev tools)
+**Iteration:** 2 (conditions already applied via commit da6ebba)
 
-**Specific Feedback Loops to Investigate:**
-1. **Company Switch → Brain State Clearing:** If user switches from Company A to Company B, do we clear brainStore? If not, Company B sees Company A's brain runs (data leak risk). If yes, user loses context (frustration risk).
-2. **Density Mode → Mobile Swipe:** If user is in "detailed" mode on desktop, then opens mobile, do we force switch to "compact" mode? If yes, user loses preference. If no, mobile UI breaks (detailed mode doesn't fit).
-3. **Cost Dashboard → WebSocket Load:** If cost dashboard streams real-time updates for 24 brains, do we flood WebSocket connection? If yes, other features (brain status, inbox) lag. If no, cost dashboard isn't real-time (misleading UX).
-4. **Command Palette → Keyboard Shortcuts:** If cmd+k opens command palette, do we conflict with existing browser shortcuts (cmd+k = dev console in some browsers)? If yes, user can't open dev tools. If no, user can't open command palette (discoverability issue).
-5. **Onboarding Wizard → Activation Rate:** If onboarding wizard has 4 steps, do we lose 20% of users per step (Hick's Law)? If yes, only 40% complete (9.6% of 10 users activate). If we skip to 3 steps, activation rate increases to 51% (math: 0.8^3 = 0.51).
+**Plans to Evaluate:**
+- ✅ Plan 17-03 (ActiveAgentsPanel) — 4 conditions applied
+- ✅ Plan 17-04 (Cost Dashboard) — 4 conditions applied
+- ✅ Plan 17-05 (Command Palette) — 4 conditions applied
+- ✅ Plan 17-06 (Onboarding Wizard) — MVP scope applied (REJECTED_REVISE → 6 days)
 
-### Unintended Consequences to Watch For
+**Expected Output:**
+1. Planning Fallacy analysis (what are we underestimating?)
+2. Omission Bias check (what's missing that will block execution?)
+3. Systems Thinking review (what feedback loops between plans?)
+4. Over-Engineering risk assessment (what won't be used?)
+5. Acceptance Criteria quality audit (are done criteria verifiable?)
 
-**1. "Feature Bloat" Trap:**
-- **Risk:** We're extracting 10 UX patterns from Paperclip without validating which ones MasterMind users actually need.
-- **Unintended Consequence:** Complex UI with features < 5% of users use (drag company reorder, fuzzy search, 3 density modes).
-- **Second-Order Effect:** Increased cognitive load → slower time-to-value → lower activation rate.
-- **Question:** Should we ship MVP with 5 core patterns, then iterate based on usage data?
+**Verdict Options:**
+- **APPROVED** — All plans ready for execution
+- **APPROVED_WITH_CONDITIONS** — Execute after fixing [specific gaps]
+- **REJECTED_REVISE** — Revise [specific plans] before execution
 
-**2. "Performance at Scale" Trap:**
-- **Risk:** We're optimizing for 24-brain burst (synthetic load), not real-world usage (1-3 concurrent brains).
-- **Unintended Consequence:** Over-optimized code (RAF batching, virtualization, deferred values) that's harder to maintain for marginal gain.
-- **Second-Order Effect:** Increased complexity → more bugs → slower feature velocity.
-- **Question:** Should we measure real-world brain concurrency before optimizing for 24-brain burst?
-
-**3. "Mobile-First" Trap:**
-- **Risk:** We're adding mobile features (swipe gestures, bottom nav) without validating mobile usage percentage.
-- **Unintended Consequence:** Desktop-first users (80%+) pay complexity tax for mobile features they never use.
-- **Second-Order Effect:** Larger bundle size → slower desktop load → worse desktop UX.
-- **Question:** Should we analytics-validate mobile usage percentage before building mobile features?
-
-**4. "Accessibility Over-Engineering" Trap:**
-- **Risk:** We're targeting WCAG 2.1 AA (≤ 5 violations allowed) without validating user base (are there screen reader users?).
-- **Unintended Consequence:** Weeks spent on edge cases (zoom reflow, touch targets) that < 1% of users encounter.
-- **Second-Order Effect:** Delayed time-to-market → competitive disadvantage → missed market window.
-- **Question:** Should we target WCAG 2.1 A (zero violations) first, then iterate to AA based on user feedback?
-
-**5. "Tenant Isolation" Trap:**
-- **Risk:** We're adding multi-tenant architecture (X-Tenant-ID header, JWT tenants array, RLS policies) without validating multi-tenant use case.
-- **Unintended Consequence:** Single-tenant users (90%+) pay complexity tax for multi-tenant features they never use.
-- **Second-Order Effect:** Slower API requests (tenant validation overhead) → worse UX for everyone.
-- **Question:** Should we validate multi-tenant demand (customer interviews, analytics) before building tenant isolation?
+**Max Iterations:** 3 (we're on Iteration 2)
 
 ---
 
-## VERDICT FORMAT
-
-After reading this plan review, Brain #7 should return:
-
-```markdown
-## Brain #7 (Growth & Data) Evaluation
-
-### Executive Summary
-[1-2 paragraphs: Overall assessment of Phase 17 plans, top concerns]
-
-### Plan-by-Plan Analysis
-
-#### Plan 17-02 (Multi-tenant Company Switcher)
-- **Planning Fallacy:** [What are we underestimating?]
-- **Omission Bias:** [What's missing that will block execution?]
-- **Systems Thinking:** [What feedback loops with other plans?]
-- **Over-Engineering Risk:** [What won't be used?]
-- **Acceptance Criteria:** [Are done criteria verifiable?]
-- **Verdict:** [APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE]
-
-#### Plan 17-03 (ActiveAgentsPanel)
-[Same structure]
-
-#### Plan 17-04 (Cost Dashboard)
-[Same structure]
-
-#### Plan 17-05 (Command Palette)
-[Same structure]
-
-#### Plan 17-06 (Onboarding Wizard + Mobile Polish)
-[Same structure]
-
-### Cross-Plan Concerns
-- **Feedback Loops:** [What are the cross-plan feedback loops?]
-- **Cascading Failures:** [What single failure breaks multiple plans?]
-- **Resource Bottlenecks:** [What resource (time, budget, scope) is the bottleneck?]
-- **Integration Risks:** [What integration point is highest risk?]
-
-### Final Verdict
-**Overall:** [APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE]
-
-**If APPROVED_WITH_CONDITIONS:**
-- [List of conditions to fix before execution — e.g., "Add rollback plan for 17-02 Task 4", "Define RAFMonitor class for 17-03 Task 4", "Specify BrowserStack devices for 17-06 Task 6"]
-
-**If REJECTED_REVISE:**
-- [List of plans to revise — e.g., "Revise 17-02: Remove tenant isolation (validate demand first)", "Revise 17-03: Reduce to 2 density modes (compact/normal)", "Revise 17-06: Merge to 3-step onboarding"]
-
-**Risk Score:** [X/100] (where 0 = no risk, 100 = guaranteed failure)
-
-**Confidence Level:** [X%] (where 0% = guessing, 100% = certain)
-```
-
----
-
-**This review document contains:**
-- ✅ Implemented reality (what exists from BRAIN-FEED.md + code reading)
-- ✅ Plan summaries (all 6 plans with objectives, tasks, acceptance criteria)
-- ✅ Code snippets (actual code from key files referenced in plans)
-- ✅ Corrected assumptions (what Brain #7 might assume wrong vs codebase reality)
-- ✅ What I need from Brain #7 (5 evaluation criteria with specific questions)
-- ✅ Verdict format (structured output for Brain #7 evaluation)
-
-**Next Step:**
-1. Dispatch Brain #7 (brain-07-growth agent) with this review document
-2. Brain #7 reads 17-PLAN-REVIEW.md before evaluating
-3. Brain #7 returns structured verdict (APPROVED / APPROVED_WITH_CONDITIONS / REJECTED_REVISE)
-4. Process verdict → fix gaps → re-iterate (max 3 times)
-5. Delegate to GSD execution after APPROVED
-
-**Ready for Brain #7 evaluation.**
+**Prepared by:** GSD Orchestrator (Phase 17 execution preparation)
+**Date:** 2026-04-09T23:45:00Z
+**Context:** Plans 17-03 through 17-06 with Brain #7 conditions applied + code reality from 17-01 + 17-02

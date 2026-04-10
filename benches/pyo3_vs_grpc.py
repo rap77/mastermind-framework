@@ -23,7 +23,7 @@ import statistics
 import sys
 import os
 import tracemalloc
-from typing import Dict, List, Tuple
+from typing import Dict
 import json
 
 # Test briefs for benchmarking
@@ -55,11 +55,19 @@ class PyO3Benchmark:
         """Import and initialize PyO3 module."""
         try:
             # Import the PyO3 module
-            sys.path.insert(0, os.path.join(
-                os.path.dirname(__file__),
-                '..', 'apps', 'control-plane', 'target', 'release'
-            ))
+            sys.path.insert(
+                0,
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "apps",
+                    "control-plane",
+                    "target",
+                    "release",
+                ),
+            )
             import mastermind_control_plane
+
             self.module = mastermind_control_plane
             self.detector = mastermind_control_plane.FlowDetector()
             return True
@@ -107,8 +115,12 @@ class PyO3Benchmark:
             "median_latency_ms": statistics.median(latencies),
             "min_latency_ms": min(latencies),
             "max_latency_ms": max(latencies),
-            "p95_latency_ms": statistics.quantiles(latencies, n=20)[18] if len(latencies) > 20 else max(latencies),
-            "p99_latency_ms": statistics.quantiles(latencies, n=100)[98] if len(latencies) > 100 else max(latencies),
+            "p95_latency_ms": statistics.quantiles(latencies, n=20)[18]
+            if len(latencies) > 20
+            else max(latencies),
+            "p99_latency_ms": statistics.quantiles(latencies, n=100)[98]
+            if len(latencies) > 100
+            else max(latencies),
             "memory_mb": peak / 1024 / 1024,
         }
 
@@ -166,8 +178,12 @@ class GRPCBenchmark:
             "median_latency_ms": statistics.median(latencies),
             "min_latency_ms": min(latencies),
             "max_latency_ms": max(latencies),
-            "p95_latency_ms": statistics.quantiles(latencies, n=20)[18] if len(latencies) > 20 else max(latencies),
-            "p99_latency_ms": statistics.quantiles(latencies, n=100)[98] if len(latencies) > 100 else max(latencies),
+            "p95_latency_ms": statistics.quantiles(latencies, n=20)[18]
+            if len(latencies) > 20
+            else max(latencies),
+            "p99_latency_ms": statistics.quantiles(latencies, n=100)[98]
+            if len(latencies) > 100
+            else max(latencies),
             "memory_mb": peak / 1024 / 1024,
         }
 
@@ -209,51 +225,55 @@ def print_comparison_table(pyo3_results: Dict, grpc_results: Dict):
 def analyze_results(pyo3_results: Dict, grpc_results: Dict) -> Dict:
     """Analyze results and generate recommendation."""
     speedup = grpc_results["avg_latency_ms"] / pyo3_results["avg_latency_ms"]
-    throughput_improvement = pyo3_results["throughput_ops_per_sec"] / grpc_results["throughput_ops_per_sec"]
+    throughput_improvement = (
+        pyo3_results["throughput_ops_per_sec"] / grpc_results["throughput_ops_per_sec"]
+    )
 
     print("\n" + "=" * 80)
     print("ANALYSIS & RECOMMENDATION")
     print("=" * 80)
 
-    print(f"\n📊 Key Findings:")
+    print("\n📊 Key Findings:")
     print(f"   • PyO3 is {speedup:.2f}x faster than gRPC in latency")
     print(f"   • PyO3 achieves {throughput_improvement:.2f}x higher throughput")
-    print(f"   • Memory difference: {abs(pyo3_results['memory_mb'] - grpc_results['memory_mb']):.2f} MB")
+    print(
+        f"   • Memory difference: {abs(pyo3_results['memory_mb'] - grpc_results['memory_mb']):.2f} MB"
+    )
 
     # Decision criteria
-    print(f"\n🎯 Decision Criteria:")
+    print("\n🎯 Decision Criteria:")
     print(f"   • Speedup > 2.0x: {'✓ YES' if speedup > 2.0 else '✗ NO'}")
-    print(f"   • Complexity increase < 1.5x: ✓ YES (both use same Rust core)")
+    print("   • Complexity increase < 1.5x: ✓ YES (both use same Rust core)")
 
     # Recommendation
-    print(f"\n💡 Recommendation:")
+    print("\n💡 Recommendation:")
     if speedup > 2.0:
-        print(f"   → ADOPT PyO3 for v4.0+")
-        print(f"   → Performance gain justifies the migration effort")
-        print(f"   → Keep gRPC for cross-language scenarios (Go, Java, etc.)")
+        print("   → ADOPT PyO3 for v4.0+")
+        print("   → Performance gain justifies the migration effort")
+        print("   → Keep gRPC for cross-language scenarios (Go, Java, etc.)")
         decision = "ADOPT_PYO3"
     elif speedup > 1.5:
-        print(f"   → CONSIDER PyO3 for v4.0+")
-        print(f"   → Performance gain is moderate")
-        print(f"   → Evaluate tradeoffs based on use case")
+        print("   → CONSIDER PyO3 for v4.0+")
+        print("   → Performance gain is moderate")
+        print("   → Evaluate tradeoffs based on use case")
         decision = "CONSIDER_PYO3"
     else:
-        print(f"   → STAY with gRPC")
-        print(f"   → Performance gain doesn't justify migration")
-        print(f"   → gRPC provides better language flexibility")
+        print("   → STAY with gRPC")
+        print("   → Performance gain doesn't justify migration")
+        print("   → gRPC provides better language flexibility")
         decision = "STAY_GRPC"
 
     # Tradeoffs
-    print(f"\n⚖️ Tradeoffs:")
-    print(f"   PyO3 Advantages:")
-    print(f"      • Lower latency (no network overhead)")
-    print(f"      • Higher throughput")
-    print(f"      • Simpler deployment (no separate gRPC server)")
-    print(f"      • Type safety via bindings")
-    print(f"   PyO3 Disadvantages:")
-    print(f"      • Python-specific (not language-agnostic)")
-    print(f"      • Requires rebuild when changing Rust code")
-    print(f"      • More complex build setup")
+    print("\n⚖️ Tradeoffs:")
+    print("   PyO3 Advantages:")
+    print("      • Lower latency (no network overhead)")
+    print("      • Higher throughput")
+    print("      • Simpler deployment (no separate gRPC server)")
+    print("      • Type safety via bindings")
+    print("   PyO3 Disadvantages:")
+    print("      • Python-specific (not language-agnostic)")
+    print("      • Requires rebuild when changing Rust code")
+    print("      • More complex build setup")
 
     return {
         "decision": decision,
@@ -272,10 +292,7 @@ def save_results(pyo3_results: Dict, grpc_results: Dict, analysis: Dict):
         "analysis": analysis,
     }
 
-    output_file = os.path.join(
-        os.path.dirname(__file__),
-        "pyo3_vs_grpc_results.json"
-    )
+    output_file = os.path.join(os.path.dirname(__file__), "pyo3_vs_grpc_results.json")
 
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
@@ -295,7 +312,9 @@ def main():
     pyo3_bench = PyO3Benchmark()
     if not pyo3_bench.setup():
         print("\n❌ Cannot run PyO3 benchmark - module not built")
-        print("Build with: cd apps/control-plane && cargo build --release --features pyo3")
+        print(
+            "Build with: cd apps/control-plane && cargo build --release --features pyo3"
+        )
         return 1
 
     pyo3_results = pyo3_bench.run_benchmark()

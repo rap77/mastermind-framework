@@ -1,6 +1,5 @@
 """Tests for quality score calculation module (Hormozi value equation)."""
 
-import pytest
 from mastermind_cli.experience.scoring import (
     calculate_quality_score,
     _has_structure,
@@ -25,7 +24,9 @@ class TestQualityScoreCalculation:
             output_text="## High quality output\n- Clear insights\n- Avoid mistakes\n1. First step\n2. Second step",
         )
 
-        assert score >= 3.0, f"Expected score >= 3.0 for high-quality output, got {score}"
+        assert (
+            score >= 3.0
+        ), f"Expected score >= 3.0 for high-quality output, got {score}"
 
     def test_medium_quality_output_provides_record_score(self):
         """Test 2: Medium-quality output produces score >= 1.0 (experience record).
@@ -41,8 +42,12 @@ class TestQualityScoreCalculation:
             output_text="## Decent output\n- Some insights\n- Avoid pitfalls",
         )
 
-        assert score >= 1.0, f"Expected score >= 1.0 for medium-quality output, got {score}"
-        assert score < 3.0, f"Expected score < 3.0 for medium-quality output, got {score}"
+        assert (
+            score >= 1.0
+        ), f"Expected score >= 1.0 for medium-quality output, got {score}"
+        assert (
+            score < 3.0
+        ), f"Expected score < 3.0 for medium-quality output, got {score}"
 
     def test_low_quality_output_provides_discard_score(self):
         """Test 3: Low-quality output produces score < 1.0 (discard).
@@ -106,8 +111,10 @@ class TestQualityScoreCalculation:
         without_inversion = "Here is what you should do: follow these steps"
 
         # Output with inversion phrases
-        with_inversion = "Here is what you should do: follow these steps. " \
-                         "Avoid these common pitfalls. Never skip this step."
+        with_inversion = (
+            "Here is what you should do: follow these steps. "
+            "Avoid these common pitfalls. Never skip this step."
+        )
 
         without_score = calculate_quality_score(
             precision=0.80,

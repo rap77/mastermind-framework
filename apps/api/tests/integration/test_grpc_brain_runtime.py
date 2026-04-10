@@ -9,8 +9,6 @@ Tests follow TDD pattern:
 import pytest
 import time
 from datetime import datetime
-from grpclib.client import Channel
-from grpclib.testing import ChannelFor
 
 # These imports will work once we create the gRPC server
 # For now, they'll fail — that's the RED phase
@@ -41,9 +39,7 @@ class TestBrainRuntimeGrpcServer:
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
 
         request = DispatchTaskRequest(
-            brief="Test brief for gRPC",
-            user_id="test-user-123",
-            flow="validation_only"
+            brief="Test brief for gRPC", user_id="test-user-123", flow="validation_only"
         )
 
         # Call DispatchTask method directly
@@ -54,8 +50,14 @@ class TestBrainRuntimeGrpcServer:
 
             # Verify response has required fields
             assert response.task_id, "task_id should be present"
-            assert response.status in ["pending", "running", "completed"], f"Invalid status: {response.status}"
-            assert response.accepted_at_unix_ms > 0, "accepted_at_unix_ms should be positive"
+            assert response.status in [
+                "pending",
+                "running",
+                "completed",
+            ], f"Invalid status: {response.status}"
+            assert (
+                response.accepted_at_unix_ms > 0
+            ), "accepted_at_unix_ms should be positive"
         except Exception as e:
             pytest.fail(f"DispatchTask failed: {e}")
 
@@ -69,7 +71,7 @@ class TestBrainRuntimeGrpcServer:
         request = DispatchTaskRequest(
             brief="validar esta idea por favor",
             user_id="test-user-123",
-            flow="auto"  # "auto" triggers auto-detect
+            flow="auto",  # "auto" triggers auto-detect
         )
 
         servicer = BrainRuntimeServicer()
@@ -89,7 +91,7 @@ class TestBrainRuntimeGrpcServer:
         request = DispatchTaskRequest(
             brief="Test SQLite persistence",
             user_id="test-user-sqlite",
-            flow="validation_only"
+            flow="validation_only",
         )
 
         servicer = BrainRuntimeServicer()
@@ -100,12 +102,13 @@ class TestBrainRuntimeGrpcServer:
         db_path = os.getenv("MM_DB_PATH", "mastermind.db")
         async with DatabaseConnection(db_path) as db:
             cursor = await db.conn.execute(
-                "SELECT * FROM executions WHERE id = ?",
-                [response.task_id]
+                "SELECT * FROM executions WHERE id = ?", [response.task_id]
             )
             row = await cursor.fetchone()
 
-            assert row is not None, f"Execution record not found for task_id: {response.task_id}"
+            assert (
+                row is not None
+            ), f"Execution record not found for task_id: {response.task_id}"
             assert row[2] == "Test SQLite persistence", "Brief should match (row[2])"
             assert row[5] == "test-user-sqlite", "user_id should match (row[5])"
 
@@ -118,7 +121,7 @@ class TestBrainRuntimeGrpcServer:
         request = DispatchTaskRequest(
             brief="Test timestamp",
             user_id="test-user-timestamp",
-            flow="validation_only"
+            flow="validation_only",
         )
 
         before_ms = int(time.time() * 1000)
@@ -130,8 +133,12 @@ class TestBrainRuntimeGrpcServer:
             after_ms = int(time.time() * 1000)
 
             # Verify timestamp is reasonable
-            assert response.accepted_at_unix_ms >= before_ms, "Timestamp should be after request start"
-            assert response.accepted_at_unix_ms <= after_ms, "Timestamp should be before request end"
+            assert (
+                response.accepted_at_unix_ms >= before_ms
+            ), "Timestamp should be after request start"
+            assert (
+                response.accepted_at_unix_ms <= after_ms
+            ), "Timestamp should be before request end"
 
             # Verify it's a valid Unix timestamp in milliseconds
             dt = datetime.fromtimestamp(response.accepted_at_unix_ms / 1000)

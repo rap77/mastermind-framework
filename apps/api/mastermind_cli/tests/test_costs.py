@@ -2,9 +2,10 @@
 
 This module tests the cost metrics endpoints that query PostgreSQL.
 """
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from typing import AsyncGenerator
@@ -16,12 +17,13 @@ from mastermind_cli.api.costs import router as costs_router
 
 # ===== FIXTURES =====
 
+
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     """Create test client with costs router."""
     app = create_app()
     app.include_router(costs_router)
-    
+
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -35,16 +37,18 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 class TestGetBrainCosts:
     """Tests for GET /api/costs/brains endpoint."""
 
-    async def test_returns_empty_list_when_no_metrics(self, client: AsyncClient) -> None:
+    async def test_returns_empty_list_when_no_metrics(
+        self, client: AsyncClient
+    ) -> None:
         """Should return empty list when MV has no data."""
         with patch("mastermind_cli.api.costs.asyncpg.connect") as mock_connect:
             # Mock empty result
             mock_conn = AsyncMock()
             mock_conn.fetch.return_value = []
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
-            
+
             assert response.status_code == 200
             assert response.json() == []
 
@@ -74,12 +78,12 @@ class TestGetBrainCosts:
                 },
             ]
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
-            
+
             assert response.status_code == 200
             data = response.json()
-            
+
             assert len(data) == 2
             assert data[0]["brain_id"] == "brain-01"
             assert data[0]["success_rate"] > 0.6
@@ -101,13 +105,13 @@ class TestGetBrainCosts:
                 },
             ]
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
-            
+
             assert response.status_code == 200
             data = response.json()
             brain = data[0]
-            
+
             assert "brain_id" in brain
             assert "total_requests" in brain
             assert "completed_requests" in brain
@@ -122,9 +126,9 @@ class TestGetBrainCosts:
         with patch("mastermind_cli.api.costs.asyncpg.connect") as mock_connect:
             # Mock connection error
             mock_connect.side_effect = Exception("Connection refused")
-            
+
             response = await client.get("/api/costs/brains")
-            
+
             assert response.status_code == 503
             assert "Database connection failed" in response.json()["detail"]
 
@@ -139,9 +143,9 @@ class TestRefreshCostMetrics:
             mock_conn = AsyncMock()
             mock_conn.execute.return_value = None
             mock_connect.return_value = mock_conn
-            
+
             response = await client.post("/api/costs/refresh")
-            
+
             assert response.status_code == 200
             assert response.json()["status"] == "success"
 
@@ -151,9 +155,9 @@ class TestRefreshCostMetrics:
             mock_conn = AsyncMock()
             mock_conn.execute.side_effect = Exception("Refresh failed")
             mock_connect.return_value = mock_conn
-            
+
             response = await client.post("/api/costs/refresh")
-            
+
             assert response.status_code == 500
             assert "Refresh failed" in response.json()["detail"]
 
@@ -168,9 +172,9 @@ class TestCostMetricsHealth:
             mock_conn = AsyncMock()
             mock_conn.fetchval.return_value = 5  # 5 rows in MV
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/health")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "healthy"
@@ -181,9 +185,9 @@ class TestCostMetricsHealth:
         """Should return unhealthy status when DB is disconnected."""
         with patch("mastermind_cli.api.costs.asyncpg.connect") as mock_connect:
             mock_connect.side_effect = Exception("Connection refused")
-            
+
             response = await client.get("/api/costs/health")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "unhealthy"
@@ -195,9 +199,9 @@ class TestCostMetricsHealth:
             mock_conn = AsyncMock()
             mock_conn.fetchval.side_effect = Exception("Table not found")
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/health")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "unhealthy"
@@ -224,18 +228,16 @@ class TestCostMetricCalculations:
                 },
             ]
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
             data = response.json()
-            
+
             assert data[0]["success_rate"] == 0.75
 
-    async def test_last_activity_timestamp_format(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_last_activity_timestamp_format(self, client: AsyncClient) -> None:
         """last_activity_at should be ISO 8601 string."""
         from datetime import datetime
-        
+
         with patch("mastermind_cli.api.costs.asyncpg.connect") as mock_connect:
             test_time = datetime(2026, 4, 10, 12, 0, 0)
             mock_conn = AsyncMock()
@@ -250,15 +252,13 @@ class TestCostMetricCalculations:
                 },
             ]
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
             data = response.json()
-            
+
             assert data[0]["last_activity_at"] == "2026-04-10T12:00:00"
 
-    async def test_last_activity_null_when_no_data(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_last_activity_null_when_no_data(self, client: AsyncClient) -> None:
         """last_activity_at should be None when no activity."""
         with patch("mastermind_cli.api.costs.asyncpg.connect") as mock_connect:
             mock_conn = AsyncMock()
@@ -273,8 +273,8 @@ class TestCostMetricCalculations:
                 },
             ]
             mock_connect.return_value = mock_conn
-            
+
             response = await client.get("/api/costs/brains")
             data = response.json()
-            
+
             assert data[0]["last_activity_at"] is None

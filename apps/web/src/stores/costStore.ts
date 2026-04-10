@@ -15,12 +15,14 @@ interface CostState {
   metrics: Record<string, CostMetric>
   budget: number
   spent: number
-  
+  connectionStatus: 'connected' | 'disconnected' | 'error'
+
   // Actions
   updateMetric: (brainId: string, metric: CostMetric) => void
   setBudget: (budget: number) => void
   resetMetrics: () => void
   getCostState: (brainId: string) => CostMetric | undefined
+  setConnectionStatus: (status: 'connected' | 'disconnected' | 'error') => void
 }
 
 export const useCostStore = create<CostState>()(
@@ -29,7 +31,8 @@ export const useCostStore = create<CostState>()(
       metrics: {},
       budget: 100, // Default $100 budget
       spent: 0,
-      
+      connectionStatus: 'disconnected',
+
       updateMetric: (brainId, metric) =>
         set((state) => {
           state.metrics[brainId] = metric
@@ -37,12 +40,17 @@ export const useCostStore = create<CostState>()(
           state.spent = Object.values(state.metrics)
             .reduce((sum, m) => sum + m.totalCost, 0)
         }),
-      
+
       setBudget: (budget) =>
         set((state) => {
           state.budget = budget
         }),
-      
+
+      setConnectionStatus: (status) =>
+        set((state) => {
+          state.connectionStatus = status
+        }),
+
       resetMetrics: () =>
         set((state) => {
           state.metrics = {}
@@ -53,13 +61,14 @@ export const useCostStore = create<CostState>()(
         return get().metrics[brainId]
       },
     })),
-    { 
+    {
       name: 'mastermind-costs',
       // Only persist these fields (not getCostState function)
       partialize: (state) => ({
         metrics: state.metrics,
         budget: state.budget,
         spent: state.spent,
+        // Don't persist connectionStatus — it's transient
       }),
     }
   )

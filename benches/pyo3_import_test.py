@@ -8,15 +8,14 @@ import os
 
 # Add the release directory to Python path
 so_dir = os.path.join(
-    os.path.dirname(__file__),
-    '..', 'apps', 'control-plane', 'target', 'release'
+    os.path.dirname(__file__), "..", "apps", "control-plane", "target", "release"
 )
 sys.path.insert(0, so_dir)
 
 print(f"Searching for module in: {so_dir}")
-print(f"Files in directory:")
+print("Files in directory:")
 for f in os.listdir(so_dir):
-    if f.startswith('libmastermind'):
+    if f.startswith("libmastermind"):
         print(f"  - {f}")
 
 try:
@@ -30,7 +29,7 @@ try:
 
     # Test detect_flow_with_metadata_py
     metadata = mastermind_control_plane.detect_flow_with_metadata_py("Tell me a joke")
-    print(f"✅ detect_flow_with_metadata_py('Tell me a joke'):")
+    print("✅ detect_flow_with_metadata_py('Tell me a joke'):")
     for key, value in metadata.items():
         print(f"    {key}: {value}")
 
@@ -47,5 +46,6 @@ except ImportError as e:
 except Exception as e:
     print(f"\n❌ Error: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)

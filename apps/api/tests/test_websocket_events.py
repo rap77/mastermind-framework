@@ -6,11 +6,12 @@ Validates:
 - P95 replay latency < 500ms (SLI-1)
 - All events contain trace_id (SLI-3)
 """
+
 import asyncio
 import pytest
 import json
-from datetime import datetime, timedelta
-from typing import List, Dict
+from datetime import datetime
+from typing import List
 
 import websockets
 from websockets.exceptions import ConnectionClosed
@@ -38,7 +39,9 @@ async def test_websocket_ghost_mode_replay():
                     event = json.loads(message)
 
                     if event.get("type") == "ghost_replay":
-                        latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                        latency_ms = (
+                            datetime.now() - start_time
+                        ).total_seconds() * 1000
                         latencies.append(latency_ms)
                         event_count += 1
 
@@ -57,7 +60,9 @@ async def test_websocket_ghost_mode_replay():
         p95_latency = latencies[p95_index]
 
         # SLI-1: P95 < 500ms
-        assert p95_latency < 500, f"SLI-1 FAILED: P95 latency {p95_latency:.2f}ms >= 500ms"
+        assert (
+            p95_latency < 500
+        ), f"SLI-1 FAILED: P95 latency {p95_latency:.2f}ms >= 500ms"
         print(f"SLI-1 PASSED: P95 latency = {p95_latency:.2f}ms < 500ms")
     else:
         pytest.skip("No events received for latency measurement")
@@ -99,8 +104,12 @@ async def test_websocket_trace_id_propagation():
     # SLI-3: 100% of events should have trace_id
     if total_events > 0:
         trace_propagation_rate = (total_events - events_without_trace_id) / total_events
-        assert trace_propagation_rate == 1.0, f"SLI-3 FAILED: {trace_propagation_rate * 100:.1f}% < 100%"
-        print(f"SLI-3 PASSED: {trace_propagation_rate * 100:.1f}% of events have trace_id")
+        assert (
+            trace_propagation_rate == 1.0
+        ), f"SLI-3 FAILED: {trace_propagation_rate * 100:.1f}% < 100%"
+        print(
+            f"SLI-3 PASSED: {trace_propagation_rate * 100:.1f}% of events have trace_id"
+        )
     else:
         pytest.skip("No events received for trace_id validation")
 
@@ -130,8 +139,12 @@ async def test_websocket_connection_stability():
         success_rate = successful_connections / num_connections
 
         # Expect at least 95% success rate
-        assert success_rate >= 0.95, f"Only {success_rate * 100:.1f}% connections succeeded"
-        print(f"Connection stability: {successful_connections}/{num_connections} ({success_rate * 100:.1f}%)")
+        assert (
+            success_rate >= 0.95
+        ), f"Only {success_rate * 100:.1f}% connections succeeded"
+        print(
+            f"Connection stability: {successful_connections}/{num_connections} ({success_rate * 100:.1f}%)"
+        )
 
     except ConnectionRefusedError:
         pytest.skip("WebSocket server not running")
