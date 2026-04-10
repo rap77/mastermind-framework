@@ -4,4 +4,3 @@
 **Source:** .claude/domain-config.json
 
 ---
-
