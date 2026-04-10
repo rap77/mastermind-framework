@@ -1,0 +1,1 @@
+{"rustc":5470738401306409665,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[15476062585195976761,"build_script_build",false,15759995287599617864]],"local":[{"RerunIfChanged":{"output":"release/build/rust_control_plane-51a157ace4159908/output","paths":["../proto/events.proto","../proto"]}}],"rustflags":[],"config":0,"compile_kind":0}

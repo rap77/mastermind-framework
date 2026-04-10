@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error in development for debugging
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console -- Development-only error logging
+
       console.error('[ErrorBoundary]', error, errorInfo)
     }
   }

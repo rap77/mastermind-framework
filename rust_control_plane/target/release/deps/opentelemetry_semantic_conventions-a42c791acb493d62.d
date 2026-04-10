@@ -1,0 +1,9 @@
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/opentelemetry_semantic_conventions-a42c791acb493d62.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/resource.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/trace.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libopentelemetry_semantic_conventions-a42c791acb493d62.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/resource.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/trace.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libopentelemetry_semantic_conventions-a42c791acb493d62.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/resource.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/trace.rs
+
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/lib.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/resource.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-semantic-conventions-0.14.0/src/trace.rs:

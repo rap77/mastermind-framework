@@ -1,0 +1,14 @@
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/serde-5ac6e88e102119cc.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/rust_control_plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libserde-5ac6e88e102119cc.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/rust_control_plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libserde-5ac6e88e102119cc.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/rpadron/proy/mastermind/rust_control_plane/target/release/build/serde-9efbb96b1957166b/out/private.rs
+
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/build/serde-9efbb96b1957166b/out/private.rs:
+
+# env-dep:OUT_DIR=/home/rpadron/proy/mastermind/rust_control_plane/target/release/build/serde-9efbb96b1957166b/out

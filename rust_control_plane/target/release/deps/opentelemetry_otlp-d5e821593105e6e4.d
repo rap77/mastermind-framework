@@ -1,0 +1,13 @@
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/opentelemetry_otlp-d5e821593105e6e4.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/trace.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/span.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libopentelemetry_otlp-d5e821593105e6e4.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/trace.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/span.rs
+
+/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libopentelemetry_otlp-d5e821593105e6e4.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/mod.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/trace.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/span.rs
+
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/lib.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/mod.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/mod.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/exporter/tonic/trace.rs:
+/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/opentelemetry-otlp-0.14.0/src/span.rs:
+
+# env-dep:CARGO_PKG_VERSION=0.14.0

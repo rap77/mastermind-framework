@@ -27,7 +27,7 @@ export async function verifyToken(token: string): Promise<boolean> {
   } catch (error) {
     // Log in development for debugging
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console -- Development-only error logging
+
       console.error('[verifyToken] JWT verification failed:', error)
     }
     return false

@@ -1,0 +1,22 @@
+{
+  "project": {
+    "name": "My Project",
+    "description": "Project description",
+    "core_value": "Value proposition",
+    "version": "v1.0"
+  },
+  "business_domain": {
+    "type": "B2B SaaS",
+    "model": "Subscription",
+    "target_market": "Global"
+  },
+  "niche": {
+    "current": "general",
+    "name": "General",
+    "description": "General purpose SaaS platform"
+  },
+  "user_personas": [],
+  "outcome_metrics": [],
+  "tech_stack": {},
+  "current_milestone": {}
+}

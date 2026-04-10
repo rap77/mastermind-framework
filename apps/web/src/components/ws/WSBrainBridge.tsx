@@ -82,7 +82,7 @@ export function WSBrainBridge({ taskId }: { taskId: string | null }) {
   // Log error in development for debugging
   useEffect(() => {
     if (error && process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console -- Development-only error logging
+
       console.error('[WSBrainBridge]', error)
     }
   }, [error])
