@@ -6,7 +6,7 @@ import { persist } from 'zustand/middleware'
 // Enable Immer MapSet plugin — required for Map.get/set/iteration inside set() callbacks
 enableMapSet()
 
-export type DensityMode = 'compact' | 'normal' | 'detailed'
+export type DensityMode = 'compact' | 'normal'
 
 interface LayoutState {
   companyRailCollapsed: boolean
