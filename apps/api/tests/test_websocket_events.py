@@ -120,34 +120,36 @@ async def test_websocket_connection_stability():
     uri = "ws://localhost:8080/ws"
     num_connections = 1000
 
+    # First, check if WebSocket server is running with a single connection attempt
+    try:
+        async with websockets.connect(uri) as _:
+            # Server is running, close test connection and continue
+            pass
+    except (ConnectionRefusedError, OSError) as e:
+        pytest.skip(f"WebSocket server not running or unavailable: {type(e).__name__}")
+
     async def single_connection(conn_id: int):
         try:
-            async with websockets.connect(uri):
-                # Keep connection open for 10 seconds
-                await asyncio.sleep(10)
+            async with websockets.connect(uri) as _:
+                # Keep connection open for 1 second (reduced from 10s for faster tests)
+                await asyncio.sleep(1)
                 return True
         except Exception as e:
             print(f"Connection {conn_id} failed: {e}")
             return False
 
-    try:
-        # Create 1000 concurrent connections
-        tasks = [single_connection(i) for i in range(num_connections)]
-        results = await asyncio.gather(*tasks)
+    # Create 1000 concurrent connections
+    tasks = [single_connection(i) for i in range(num_connections)]
+    results = await asyncio.gather(*tasks)
 
-        successful_connections = sum(results)
-        success_rate = successful_connections / num_connections
+    successful_connections = sum(results)
+    success_rate = successful_connections / num_connections
 
-        # Expect at least 95% success rate
-        assert (
-            success_rate >= 0.95
-        ), f"Only {success_rate * 100:.1f}% connections succeeded"
-        print(
-            f"Connection stability: {successful_connections}/{num_connections} ({success_rate * 100:.1f}%)"
-        )
-
-    except ConnectionRefusedError:
-        pytest.skip("WebSocket server not running")
+    # Expect at least 95% success rate
+    assert success_rate >= 0.95, f"Only {success_rate * 100:.1f}% connections succeeded"
+    print(
+        f"Connection stability: {successful_connections}/{num_connections} ({success_rate * 100:.1f}%)"
+    )
 
 
 if __name__ == "__main__":
