@@ -59,15 +59,16 @@ pub fn increment_rejection_counter() {
 }
 
 /// Start background metrics updater (syncs queue state to Prometheus every 100ms)
-pub fn start_metrics_updater(queue: Arc<tokio::sync::mpsc::Receiver<crate::queue::WebhookEvent>>, capacity: usize) {
+pub fn start_metrics_updater(webhook_queue: Arc<crate::queue::WebhookQueue>) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
 
         loop {
             interval.tick().await;
 
-            let pending = queue.capacity() - queue.len();
-            let depth_percent = (pending as f64 / capacity as f64) * 100.0;
+            let depth_percent = webhook_queue.queue_depth_percent();
+            let capacity = webhook_queue.capacity();
+            let pending = webhook_queue.len();
 
             update_queue_metrics(depth_percent, capacity, pending);
         }
