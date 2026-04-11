@@ -7,3 +7,4 @@ pub mod event_sourcing;
 pub mod websocket;
 pub mod metrics;
 pub mod queue;
+pub mod dlq;
