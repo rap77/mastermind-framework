@@ -8,3 +8,4 @@ pub mod websocket;
 pub mod metrics;
 pub mod queue;
 pub mod dlq;
+pub mod observability;
