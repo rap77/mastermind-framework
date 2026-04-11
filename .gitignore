@@ -51,3 +51,4 @@ dist/
 .serena/
 .claude/checkpoints/
 .worktrees/
+rust_control_plane/target/
