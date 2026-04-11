@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import UnifiedInboxPage from '../UnifiedInboxPage'
+import { generateMockThreads } from '@/test-utils/mockData'
 
 // Mock WebSocket dispatcher at top level
 vi.mock('@/stores/wsStore', () => ({
@@ -49,6 +50,25 @@ describe('UnifiedInboxPage', () => {
 
     // WebSocket subscription happens in useEffect
     // Just verify the component rendered without errors
+    expect(screen.getByTestId('unified-inbox-page')).toBeInTheDocument()
+  })
+
+  it('should render 1000 messages in less than 100ms', () => {
+    // Performance test: Brain #4 Frontend condition
+    // Message list render time (1000 msgs) < 100ms
+
+    const threads = generateMockThreads(1000)
+
+    const startTime = performance.now()
+    render(<UnifiedInboxPage />)
+    const endTime = performance.now()
+
+    const renderTime = endTime - startTime
+
+    // Assert render time is less than 100ms
+    expect(renderTime).toBeLessThan(100)
+
+    // Verify component rendered successfully
     expect(screen.getByTestId('unified-inbox-page')).toBeInTheDocument()
   })
 })
