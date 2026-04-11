@@ -5,6 +5,7 @@
 //! Brain #7 Condition #6: DLQ Retry Backoff Strategy
 
 use crate::dlq::DeadLetterQueue;
+use crate::grpc::AiWorkerClient;
 use crate::observability::LatencyTracker;
 use crate::queue::WebhookEvent;
 use serde_json::Value;
@@ -21,6 +22,7 @@ pub struct WebhookWorker {
     webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     dlq: DeadLetterQueue,
     latency_tracker: Arc<LatencyTracker>,
+    ai_worker_client: Option<Arc<AiWorkerClient>>,
 }
 
 impl WebhookWorker {
@@ -30,6 +32,7 @@ impl WebhookWorker {
         webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
         webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
         latency_tracker: Arc<LatencyTracker>,
+        ai_worker_client: Option<Arc<AiWorkerClient>>,
     ) -> Self {
         let dlq = DeadLetterQueue::new(db.clone());
         Self {
@@ -38,6 +41,7 @@ impl WebhookWorker {
             webhook_sender,
             dlq,
             latency_tracker,
+            ai_worker_client,
         }
     }
 
@@ -268,18 +272,21 @@ impl WebhookWorker {
             "Sending to AI worker via gRPC"
         );
 
-        // For now, simulate success (gRPC client integration in next step)
-        // TODO: Add ai_worker_client field to WebhookWorker struct
-        // let response = self.ai_worker_client
-        //     .process_webhook(
-        //         event.trace_id.clone(),
-        //         event.channel.clone(),
-        //         event.payload.to_string(),
-        //     )
-        //     .await
-        //     .map_err(|e| anyhow::anyhow!("AI worker communication failed: {}", e))?;
+        let client = self.ai_worker_client.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("AI worker client not initialized"))?;
 
-        // info!(ai_response = %response, "AI worker processing complete");
+        let response = client.process_webhook(
+            event.trace_id.clone(),
+            event.channel.clone(),
+            event.payload.to_string(),
+        ).await
+        .map_err(|e| anyhow::anyhow!("AI worker communication failed: {}", e))?;
+
+        info!(
+            ai_response = %response,
+            processing_duration_ms = response.len(), // Using response length as proxy for duration
+            "AI worker processing complete"
+        );
 
         Ok(())
     }
@@ -291,9 +298,10 @@ pub fn start_worker(
     receiver: tokio::sync::mpsc::Receiver<WebhookEvent>,
     sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     latency_tracker: Arc<LatencyTracker>,
+    ai_worker_client: Option<Arc<AiWorkerClient>>,
 ) {
     tokio::spawn(async move {
-        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker);
+        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker, ai_worker_client);
         worker.start().await;
     });
 }
