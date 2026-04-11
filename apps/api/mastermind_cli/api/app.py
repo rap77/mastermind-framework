@@ -10,7 +10,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +30,19 @@ from mastermind_cli.api.routes.keys import (
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.state.database import DatabaseConnection
+
+# Channel routers for multi-channel gateway
+instagram_router: Optional[Any] = None
+whatsapp_router: Optional[Any] = None
+
+try:
+    from routers import instagram, whatsapp
+
+    instagram_router = instagram.router
+    whatsapp_router = whatsapp.router
+except ImportError:
+    # Fallback if routers not available
+    pass
 
 _WEB_DIR = Path(__file__).parent.parent / "web"
 
@@ -128,6 +141,12 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(analytics.router)  # Analytics endpoints
     app.include_router(websocket_router, tags=["WebSocket"])
     app.include_router(companies_router)  # Companies with tenant isolation
+
+    # Channel routers for multi-channel gateway (Phase 18)
+    if instagram_router:
+        app.include_router(instagram_router, tags=["Instagram"])
+    if whatsapp_router:
+        app.include_router(whatsapp_router, tags=["WhatsApp"])
 
     # Serve dashboard HTML
     @app.get("/dashboard", include_in_schema=False)
