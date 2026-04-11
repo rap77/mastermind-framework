@@ -5,6 +5,7 @@
 //! Brain #7 Condition #6: DLQ Retry Backoff Strategy
 
 use crate::dlq::DeadLetterQueue;
+use crate::observability::LatencyTracker;
 use crate::queue::WebhookEvent;
 use serde_json::Value;
 use sqlx::PgPool;
@@ -19,6 +20,7 @@ pub struct WebhookWorker {
     webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
     webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     dlq: DeadLetterQueue,
+    latency_tracker: Arc<LatencyTracker>,
 }
 
 impl WebhookWorker {
@@ -27,6 +29,7 @@ impl WebhookWorker {
         db: PgPool,
         webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
         webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
+        latency_tracker: Arc<LatencyTracker>,
     ) -> Self {
         let dlq = DeadLetterQueue::new(db.clone());
         Self {
@@ -34,6 +37,7 @@ impl WebhookWorker {
             webhook_queue,
             webhook_sender,
             dlq,
+            latency_tracker,
         }
     }
 
@@ -86,6 +90,11 @@ impl WebhookWorker {
         // Process webhook (send to AI worker via gRPC)
         match self.process_webhook_with_retry(&event, &external_id).await {
             Ok(_) => {
+                // Record E2E latency (Brain #7 Condition #3)
+                if let Some(duration) = self.latency_tracker.record_latency(&event.trace_id, &event.channel) {
+                    crate::metrics::record_e2e_latency(&event.channel, duration);
+                }
+
                 // Success: update status to 'completed'
                 sqlx::query("UPDATE messages SET status = 'completed' WHERE external_message_id = $1")
                     .bind(&external_id)
@@ -102,6 +111,9 @@ impl WebhookWorker {
                 Ok(Some(()))
             }
             Err(e) => {
+                // Cleanup latency timer on failure
+                self.latency_tracker.cleanup_timer(&event.trace_id);
+
                 // Failure: handle retry or move to DLQ
                 self.handle_retry_or_dlq(&event, &external_id, &e.to_string()).await?;
                 Ok(Some(()))
@@ -271,9 +283,10 @@ pub fn start_worker(
     db: PgPool,
     receiver: tokio::sync::mpsc::Receiver<WebhookEvent>,
     sender: tokio::sync::mpsc::Sender<WebhookEvent>,
+    latency_tracker: Arc<LatencyTracker>,
 ) {
     tokio::spawn(async move {
-        let mut worker = WebhookWorker::new(db, receiver, sender);
+        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker);
         worker.start().await;
     });
 }

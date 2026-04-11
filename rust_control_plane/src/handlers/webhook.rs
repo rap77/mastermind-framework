@@ -18,6 +18,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
+use crate::observability::LatencyTracker;
 use crate::queue::{WebhookQueue, WebhookEvent};
 
 /// Application state for webhook handler
@@ -25,6 +26,7 @@ use crate::queue::{WebhookQueue, WebhookEvent};
 pub struct WebhookState {
     pub db: PgPool,
     pub webhook_queue: Arc<WebhookQueue>,
+    pub latency_tracker: Arc<LatencyTracker>,
 }
 
 /// Verify HMAC signature from webhook provider
@@ -185,6 +187,9 @@ pub async fn webhook_receiver(
 
     // Generate trace ID
     let trace_id = uuid::Uuid::new_v4().to_string();
+
+    // Start E2E latency timer (Brain #7 Condition #3)
+    state.latency_tracker.start_timer(&trace_id, &channel);
 
     // Insert into messages table (status: pending)
     sqlx::query(
