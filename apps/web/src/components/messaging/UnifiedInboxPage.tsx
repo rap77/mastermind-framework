@@ -7,6 +7,8 @@ import { useMessageStore } from '@/stores/messageStore'
 import { MessageState } from '@/stores/messageStore'
 import { logger } from '@/lib/logger'
 
+type MessagesResponse = Thread[]
+
 interface ThreadUpdateEvent {
   thread_id: string
   thread: Thread
@@ -16,20 +18,42 @@ export default function UnifiedInboxPage() {
   const [selectedChannel, setSelectedChannel] = useState('all')
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Initialize with mock data for testing
+  // Fetch threads from API
   useEffect(() => {
-    const mockThreads: Thread[] = Array.from({ length: 1000 }, (_, i) => ({
-      id: `thread-${i}`,
-      channel: ['whatsapp', 'instagram', 'email'][i % 3] as Thread['channel'],
-      subject: `Test Thread ${i + 1}`,
-      preview: `This is a preview message for thread ${i + 1}...`,
-      timestamp: Date.now() - i * 60000, // 1 minute apart
-      unread: i % 5 === 0,
-      status: 'active',
-    }))
-    setThreads(mockThreads)
-  }, [])
+    const fetchThreads = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch(`/api/messages?channel=${selectedChannel}&limit=1000`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch threads: ${response.statusText}`)
+        }
+        const data: MessagesResponse = await response.json()
+        setThreads(data)
+      } catch (err) {
+        console.error('Error fetching threads:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load threads')
+        // Fallback to mock data if API fails
+        const mockThreads: Thread[] = Array.from({ length: 1000 }, (_, i) => ({
+          id: `thread-${i}`,
+          channel: ['whatsapp', 'instagram', 'email'][i % 3] as Thread['channel'],
+          subject: `Test Thread ${i + 1}`,
+          preview: `This is a preview message for thread ${i + 1}...`,
+          timestamp: Date.now() - i * 60000,
+          unread: i % 5 === 0,
+          status: 'active',
+        }))
+        setThreads(mockThreads)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchThreads()
+  }, [selectedChannel])
 
   // Thread merge state
   const selectedThreads = useMessageStore((state) => state.selectedThreads)
@@ -103,17 +127,30 @@ export default function UnifiedInboxPage() {
 
   return (
     <div className="unified-inbox-page" data-testid="unified-inbox-page">
+      {error && (
+        <div className="error-banner" data-testid="error-banner">
+          <span>{error}</span>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      )}
       <div className="inbox-layout">
         <ChannelRail selectedChannel={selectedChannel} onChannelSelect={setSelectedChannel} />
-        <ThreadList
-          threads={threads}
-          selectedThreadId={selectedThreadId}
-          onThreadSelect={handleThreadSelect}
-          filterChannel={selectedChannel}
-          selectedThreads={selectedThreads}
-          onToggleThreadSelection={toggleThreadSelection}
-          onMergeThreads={handleMerge}
-        />
+        {isLoading ? (
+          <div className="loading-state" data-testid="loading-state">
+            <div className="spinner" />
+            <p>Loading threads...</p>
+          </div>
+        ) : (
+          <ThreadList
+            threads={threads}
+            selectedThreadId={selectedThreadId}
+            onThreadSelect={handleThreadSelect}
+            filterChannel={selectedChannel}
+            selectedThreads={selectedThreads}
+            onToggleThreadSelection={toggleThreadSelection}
+            onMergeThreads={handleMerge}
+          />
+        )}
         {selectedThread ? (
           <ThreadDetail thread={selectedThread} onMerge={handleMerge} />
         ) : (
@@ -144,6 +181,50 @@ export default function UnifiedInboxPage() {
           justify-content: center;
           color: #666;
           font-size: 14px;
+        }
+
+        .error-banner {
+          padding: 12px 16px;
+          background: #ffebee;
+          border-bottom: 1px solid #ef5350;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          color: #c62828;
+        }
+
+        .error-banner button {
+          padding: 6px 12px;
+          background: #ef5350;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        .loading-state {
+          width: 300px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 40px;
+          color: #666;
+        }
+
+        .spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid #f0f0f0;
+          border-top-color: #2196f3;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>
