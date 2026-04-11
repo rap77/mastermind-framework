@@ -268,6 +268,54 @@ mod tests {
         assert_eq!(parsed.media_url, Some("https://example.com/image.jpg".to_string()));
     }
 
+/// Download media from WhatsApp Media URL
+///
+/// TODO: Implement full media download logic for MVP
+/// - Download media from WhatsApp Media API
+/// - Store media in S3 or local storage
+/// - Return stored media URL
+///
+/// Args:
+///     media_url: Media URL from WhatsApp webhook
+///
+/// Returns:
+///     Stored media URL or original URL if not implemented
+pub async fn download_media(media_url: &str) -> Result<String> {
+    // MVP STUB: Return original URL
+    // TODO: Implement media download and storage
+    ::tracing::warn!("WhatsApp media download not implemented yet (MVP stub)");
+    Ok(media_url.to_string())
+}
+
+/// Store media file from WhatsApp
+///
+/// TODO: Implement full media storage logic for MVP
+/// - Download media from URL
+/// - Generate unique filename
+/// - Store in configured storage backend (S3, local, etc.)
+/// - Return stored media URL
+///
+/// Args:
+///     media_url: Media URL from WhatsApp webhook
+///     message_id: Message ID for filename generation
+///
+/// Returns:
+///     Stored media URL
+pub async fn store_media(media_url: &str, message_id: &str) -> Result<String> {
+    // MVP STUB: Return original URL with message_id prefix
+    // TODO: Implement media storage
+    ::tracing::warn!(
+        "WhatsApp media storage not implemented yet (MVP stub): url={}, message_id={}",
+        media_url,
+        message_id
+    );
+    Ok(format!("{}#{}", media_url, message_id))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
     #[test]
     fn test_parse_audio_message() {
         let payload = json!({

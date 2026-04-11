@@ -318,6 +318,30 @@ mod tests {
         assert!(is_comment_webhook(&payload));
     }
 
+/// Download media from Instagram Media URL
+///
+/// TODO: Implement full media download logic for MVP
+/// - Download media from Instagram Graph API
+/// - Handle authentication with access token
+/// - Store media in S3 or local storage
+/// - Return stored media URL
+///
+/// Args:
+///     media_url: Media URL from Instagram webhook
+///
+/// Returns:
+///     Stored media URL or original URL if not implemented
+pub async fn download_instagram_media(media_url: &str) -> Result<String> {
+    // MVP STUB: Return original URL
+    // TODO: Implement media download and storage
+    ::tracing::warn!("Instagram media download not implemented yet (MVP stub)");
+    Ok(media_url.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
     #[test]
     fn test_is_comment_webhook_false_like() {
         let payload = json!({
