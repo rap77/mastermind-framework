@@ -11,4 +11,5 @@ pub mod dlq;
 pub mod observability;
 pub mod channels;
 pub mod grpc;
+pub mod proto;
 pub mod mastermind;
