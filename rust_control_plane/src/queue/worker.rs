@@ -261,18 +261,25 @@ impl WebhookWorker {
     }
 
     /// Send webhook to Python AI worker via gRPC
-    ///
-    /// TODO: Implement actual gRPC call to Python worker
     async fn send_to_ai_worker(&self, event: &WebhookEvent) -> anyhow::Result<()> {
-        // Simulate processing (replace with actual gRPC call)
         info!(
             channel = %event.channel,
             trace_id = %event.trace_id,
             "Sending to AI worker via gRPC"
         );
 
-        // TODO: Implement gRPC client call to Python worker
-        // let response = grpc_client.process_webhook(event).await?;
+        // For now, simulate success (gRPC client integration in next step)
+        // TODO: Add ai_worker_client field to WebhookWorker struct
+        // let response = self.ai_worker_client
+        //     .process_webhook(
+        //         event.trace_id.clone(),
+        //         event.channel.clone(),
+        //         event.payload.to_string(),
+        //     )
+        //     .await
+        //     .map_err(|e| anyhow::anyhow!("AI worker communication failed: {}", e))?;
+
+        // info!(ai_response = %response, "AI worker processing complete");
 
         Ok(())
     }

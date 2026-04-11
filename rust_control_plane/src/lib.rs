@@ -9,3 +9,6 @@ pub mod metrics;
 pub mod queue;
 pub mod dlq;
 pub mod observability;
+pub mod channels;
+pub mod grpc;
+pub mod mastermind;
