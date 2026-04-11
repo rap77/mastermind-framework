@@ -15,7 +15,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { BriefInputModal } from "./BriefInputModal"
+import { BriefInputModal } from "@/components/command-center/BriefInputModal"
 // Don't import Server Action statically - causes 403 error during SSR
 // import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"

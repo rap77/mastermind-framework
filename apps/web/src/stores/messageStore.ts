@@ -64,7 +64,7 @@ const LOCAL_STORAGE_QUOTA_LIMIT = 5 * 1024 * 1024 // 5MB default
 
 // RAF batching for message updates
 let rafId: number | null = null
-const eventQueue: Array<{ type: string; message: MessageState }> = []
+const eventQueue: Array<{ type: string; message: ChannelMessage }> = []
 
 function processEventQueue() {
   eventQueue.splice(0, eventQueue.length)

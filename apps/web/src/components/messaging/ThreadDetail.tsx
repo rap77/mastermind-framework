@@ -31,7 +31,8 @@ export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
 
   useEffect(() => {
     // Subscribe to WebSocket updates
-    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: ThreadUpdateEvent) => {
+    const unsubscribe = wsDispatcher.subscribe('thread_updates', (data: unknown) => {
+      const event = data as ThreadUpdateEvent
       if (event.thread_id === thread.id) {
         setMessages((prev) => [...prev, event.message])
       }

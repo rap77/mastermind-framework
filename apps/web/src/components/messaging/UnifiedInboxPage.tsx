@@ -87,7 +87,8 @@ export default function UnifiedInboxPage() {
 
   // WebSocket integration
   useEffect(() => {
-    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: ThreadUpdateEvent) => {
+    const unsubscribe = wsDispatcher.subscribe('thread_updates', (data: unknown) => {
+      const event = data as ThreadUpdateEvent
       // Update threads in real-time
       setThreads((prev) => {
         const existing = prev.find((t) => t.id === event.thread_id)
@@ -115,6 +116,14 @@ export default function UnifiedInboxPage() {
       logger.error('Failed to merge threads:', error)
     }
   }, [mergeThreads])
+
+  // Wrapper to merge a single thread (for ThreadDetail component)
+  const handleMergeSingle = useCallback(
+    (threadId: string) => {
+      handleMerge([threadId])
+    },
+    [handleMerge]
+  )
 
   // Mock thread data for selected thread
   const selectedThread = selectedThreadId
@@ -154,7 +163,7 @@ export default function UnifiedInboxPage() {
           />
         )}
         {selectedThread ? (
-          <ThreadDetail thread={selectedThread} onMerge={handleMerge} />
+          <ThreadDetail thread={selectedThread} onMerge={handleMergeSingle} />
         ) : (
           <div className="empty-state" data-testid="thread-detail">
             <p>Select a thread to view messages</p>

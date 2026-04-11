@@ -23,7 +23,7 @@ import { subscribeToCostUpdates, type CostUpdateEvent } from '@/stores/wsStore'
 export const useCostWebSocket = () => {
   const updateMetric = useCostStore((state) => state.updateMetric)
   const setConnectionStatus = useCostStore((state) => state.setConnectionStatus)
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     const unsubscribe = subscribeToCostUpdates((data: CostUpdateEvent) => {

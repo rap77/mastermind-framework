@@ -160,5 +160,7 @@ export interface CostUpdateEvent {
  * cascade re-renders during 24-brain burst updates.
  */
 export const subscribeToCostUpdates = (callback: (data: CostUpdateEvent) => void) => {
-  return useWSStore.getState().subscribe('cost_updates', callback)
+  return useWSStore.getState().subscribe('cost_updates', (data: unknown) => {
+    callback(data as CostUpdateEvent)
+  })
 }

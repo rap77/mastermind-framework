@@ -97,7 +97,7 @@ export default function ThreadList({
       <Virtuoso
         style={{ height: onMergeThreads && selectedThreads.size >= 2 ? 'calc(100% - 50px)' : '100%' }}
         data={filteredThreads}
-        defaultItemCount={100}
+        initialItemCount={100}
         overscan={200}
         itemContent={(index, thread) => (
           <ThreadItem

@@ -448,3 +448,29 @@ export const COMMANDS: Command[] = [
 export function initCommandRouter(router: { push: (path: string) => void }) {
   navigate = (path: string) => router.push(path);
 }
+
+/**
+ * Register a keyboard shortcut for command palette
+ *
+ * @param onTrigger - Callback function to execute when shortcut is triggered
+ * @returns Cleanup function to remove event listener
+ *
+ * Shortcut: Cmd/Ctrl + Enter
+ * Purpose: Open brief input modal for task creation
+ */
+export function registerCommandShortcut(onTrigger: () => void): () => void {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Check for Cmd/Ctrl + Enter
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      onTrigger();
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyDown);
+
+  // Return cleanup function
+  return () => {
+    document.removeEventListener('keydown', handleKeyDown);
+  };
+}
