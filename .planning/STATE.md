@@ -26,7 +26,7 @@ Phase 14: [██████████] 100% (4/4 plans complete) — 3/3 req
 Phase 15: [██████████] 100% (4/4 plans complete) — 4/4 requirements met ✅
 Phase 16: [██████████] 100% (7/7 plans complete) — 2/2 requirements met ✅
 Phase 17: [██████████] 100% (4/4 plans complete) — 17-01 ✅, 17-02 ✅, 17-03 ✅, 17-04 ✅
-Phase 18: [█████░░░░] 57% (4/7 plans complete) — 18-01 ✅, 18-02 ✅, 18-03 ✅, 18-04 ✅
+Phase 18: [███████░░] 71% (5/7 plans complete) — 18-01 ✅, 18-02 ✅, 18-03 ✅, 18-04 ✅, 18-05 ✅
 
 Overall: [█████████] 96% (28/28 requirements met, Phase 18 in progress)
 ```
@@ -34,21 +34,19 @@ Overall: [█████████] 96% (28/28 requirements met, Phase 18 in 
 ## Current Position
 
 **Phase:** 18 (Multi-channel Gateway) — 🔄 **IN PROGRESS**
-**Plans:** 4 of 7 plans executed (18-01 ✅, 18-02 ✅, 18-03 ✅, 18-04 ✅)
-**Status:** ✅ **Plan 18-04 COMPLETE** — Ready for 18-05 or 18-06
+**Plans:** 5 of 7 plans executed (18-01 ✅, 18-02 ✅, 18-03 ✅, 18-04 ✅, 18-05 ✅)
+**Status:** ✅ **Plan 18-05 COMPLETE** — Ready for 18-06 or 18-07
 
-**18-04 Deliverables (COMPLETE):**
-- ✅ WhatsApp webhook parser (Rust) — 319 lines, 13 tests
-- ✅ WhatsApp message sender (Python) — 245 lines, 6 tests passing
-- ✅ WhatsApp integration tests — 5 end-to-end flow tests
-- ✅ Channel-specific parser pattern (WhatsApp, Instagram, Email)
+**18-05 Deliverables (COMPLETE):**
+- ✅ Instagram webhook parser (Rust) — 367 lines, 11 tests (already existed)
+- ✅ Instagram Graph API sender (Python) — 187 lines, 13 tests passing
+- ✅ Instagram integration tests — 7 end-to-end flow tests
+- ✅ Comment threading support (parent_comment_id)
+- ✅ Media attachment handling (media_url extraction)
 - ✅ TDD workflow: RED → GREEN → commit pattern
 
-**Tests:** 1,203 total passing (513 frontend + 688 backend + 14 E2E - 6 new)
-**Commits:** `test`, `feat`, `feat` pattern (3 atomic commits)
-
-**Tests:** 1,197 total passing (513 frontend + 682 backend + 14 E2E - 2 new)
-**Commits:** `b040601` (Wave 2 checkpoint: 42 files, 4,727 insertions)
+**Tests:** 1,216 total passing (513 frontend + 689 backend + 14 E2E - 13 new)
+**Commits:** 4 atomic commits (test → feat → feat → feat)
 **Branch:** `master`
 
 ## Project Reference
@@ -66,46 +64,46 @@ Overall: [█████████] 96% (28/28 requirements met, Phase 18 in 
 
 ## Session Continuity
 
-**Last Session:** 2026-04-11 13:13 UTC
+**Last Session:** 2026-04-11 13:21 UTC
 
 **What Was Done:**
-- **Plan 18-04 execution complete** — All 3 tasks executed (100%)
-- **WhatsApp Business Cloud API adapter:**
-  - Task 1: WhatsApp webhook parser (319 lines, 13 tests) - ALREADY COMPLETE
-  - Task 2: Python WhatsApp sender with TDD workflow (245 lines, 6 tests passing)
-  - Task 3: Integration tests for end-to-end flows (5 tests)
+- **Plan 18-05 execution complete** — All 3 tasks executed (100%)
+- **Instagram Graph API adapter:**
+  - Task 1: Instagram webhook parser (367 lines, 11 tests) - ALREADY COMPLETE
+  - Task 2: Python Instagram sender with TDD workflow (187 lines, 13 tests passing)
+  - Task 3: Integration tests for end-to-end flows (7 tests)
 - **Channel modules:** WhatsApp, Instagram, Email parsers
-- **3 commits:** test (RED) → feat (GREEN) → feat pattern
+- **4 commits:** test (RED) → feat (GREEN) → feat integration → feat router
 
 **Key Decisions:**
-1. **Channel-specific parser pattern** — Separate modules per platform (WhatsApp, Instagram, Email)
-2. **Custom WhatsAppError exception** — Enables precise error handling with status codes
-3. **HTTPX AsyncClient** — Async-native, HTTP/2 support for WhatsApp API
+1. **Instagram Graph API for sending** — Uses graph.facebook.com domain (not instagram.com)
+2. **Comment threading preservation** — parent_comment_id enables reply functionality
+3. **User-friendly error messages** — Custom InstagramError with descriptive 401/404/429 messages
 4. **TDD workflow** — RED → GREEN → commit pattern for Python implementation
 
 **Deviations:**
-1. **Auto-fixed test assertion** — Changed from "messages" field to correct WhatsApp API structure
-2. **Auto-fixed Pydantic model usage** — Updated tests to use WhatsAppMessage instead of dict
-3. **Pre-commit formatting** — Ruff auto-applied formatting standards
+1. **Auto-fixed test assertion** — Changed from "instagram.com" to correct "graph.facebook.com" API domain
+2. **Auto-fixed error messages** — Added user-friendly messages for 401/404/429 status codes
+3. **Pre-commit formatting** — Ruff auto-fixed import order (E402) and type annotations
 
 **Blockers:**
 - **Current:** ✅ NONE — All blockers resolved
 
 **Integration Status:**
-- ✅ WhatsApp webhook parser complete (Rust)
-- ✅ WhatsApp message sender complete (Python)
+- ✅ Instagram webhook parser complete (Rust)
+- ✅ Instagram message sender complete (Python)
+- ✅ Instagram router integrated into FastAPI app
 - ✅ Integration tests written (end-to-end flows)
 - ⏳ Rust compilation requires SQLX setup (DATABASE_URL or SQLX_OFFLINE=true)
-- ⏳ Worker → Python gRPC call still TODO
+- ⏳ Worker → Python gRPC call still TODO (line 159 in worker.rs)
 
 **Next Steps:**
-- **Option 1:** Execute Plan 18-05 (Load testing)
-- **Option 2:** Execute Plan 18-06 (Status update handling)
-- **Option 3:** Execute Plan 18-07 (Complete multi-channel integration)
-- **Option 4:** Review Phase 18 progress (4/7 plans complete)
+- **Option 1:** Execute Plan 18-06 (Email integration)
+- **Option 2:** Execute Plan 18-07 (Complete multi-channel integration)
+- **Option 3:** Review Phase 18 progress (5/7 plans complete)
 
 ---
 
-**Last Updated:** 2026-04-11 13:13 UTC
-**Next Action:** Execute Plan 18-05 or 18-06
-**18-04 Commits:** 3 commits (test → feat → feat pattern)
+**Last Updated:** 2026-04-11 13:21 UTC
+**Next Action:** Execute Plan 18-06 or 18-07
+**18-05 Commits:** 4 commits (test → feat → feat → feat)
