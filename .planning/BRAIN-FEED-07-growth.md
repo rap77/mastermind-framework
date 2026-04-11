@@ -1141,3 +1141,279 @@ Capturar prompt_tokens + completion_tokens requiere integración con LLM provide
 6. Add thundering herd mitigation (in-memory ring buffer for Ghost Mode)
 
 **Evidence:** 16-BRAIN-OUTPUTS.md lines 49, 72-79, 177, 188, 229
+
+---
+
+## 2026-04-10 — Phase 18 Multi-Channel Gateway — Meta-Evaluation of: Brains #2 #4 #5 #6
+
+### Cross-Domain Synthesis
+
+**Domain Brain Outputs Received:**
+- Brain #2 (UX Research): 3-pane inbox (Channels → Thread List → Active Thread), keyboard-first navigation (J/K), color-coded channel signifiers, chunking over filtering (7±2 threads), DLQ retry inline
+- Brain #4 (Frontend): MessageStore (Zustand + Immer + persist), react-virtuoso for 1000+ messages, Web Worker for Email HTML parsing, targeted selector useMessage(id), RAF batching
+- Brain #5 (Backend): Rust webhook gatekeeper (Axum + HMAC), in-memory tokio::sync::mpsc queue, DLQ with retry worker, idempotency via UNIQUE constraint, ACL pattern, gRPC to Python
+- Brain #6 (QA): Idempotency tests, DLQ retry tests, load tests (1000 webhooks/sec, p99 < 200ms), soak tests (1-hour), SLO: 99.9% webhook ACK within 200ms
+
+**Points of Agreement:**
+1. DLQ is critical, not optional
+2. Idempotency is mandatory (duplicate webhooks WILL occur)
+3. Rust handles webhooks/routing, Python handles AI
+4. Channel-specific UI components (not generic)
+5. Webhook verification (HMAC) is security-critical
+
+**Points of Tension:**
+- Frontend wants Web Worker for Email HTML parsing (NEW infrastructure — zero Worker pattern in codebase today)
+- Backend wants in-memory queue (MVP) but QA wants 99.9% reliability — in-memory queue loses data on crash
+- UX wants keyboard navigation (J/K) but Frontend hasn't specified keyboard event handling
+- Backend proposes ACL pattern but doesn't specify WHO owns the Protobuf schema (Rust? Python? Shared?)
+
+**Shared Assumptions (Never Questioned):**
+1. WebSocket hub from Phase 16 will handle real-time updates (no one verified if ws/hub.rs can scale to 1000+ webhooks/sec)
+2. Python AI worker exists and can consume via gRPC (no one verified if gRPC server in apps/api can handle webhook volume)
+3. PostgreSQL can handle idempotency UNIQUE constraint at 1000 webhooks/sec (no benchmark data)
+4. "Unified inbox" means single UI, but no one specified cross-channel threading (same customer on WhatsApp + Instagram = 1 thread or 2?)
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Queue Backup → Webhook Storm (Reinforcing):**
+Rust webhook receiver → tokio::sync::mpsc queue → Python AI worker → response. If Python worker is slow (AI processing), queue fills up → Rust webhook receiver blocks → external APIs (WhatsApp/Instagram) timeout → webhook storms (they retry furiously). This is a POSITIVE feedback loop that creates cascade failure. Balfour: "Design for failure, not for success."
+
+**FEEDBACK LOOP — LocalStorage Quota → Silent Data Loss (Hidden Failure):**
+Frontend MessageStore with persist → localStorage has 5-10MB limit. If user has 1000+ threads with rich HTML email bodies, localStorage fills → persistence fails → user loses drafts on refresh. This is a HIDDEN failure mode (localStorage quota is silent, not loud). Munger: "Inversion — what would cause silent data loss?"
+
+**FEEDBACK LOOP — DLQ Thundering Herd (Reinforcing):**
+DLQ retry worker → if backend has transient bug (e.g., schema migration in progress), ALL messages fail → DLQ fills → retry worker keeps retrying → thundering herd problem. No exponential backoff strategy specified. Kohavi: "Without backoff, you amplify failure."
+
+**CASCADE FAILURE — Rust Crash → 100% Message Loss:**
+If Rust Control Plane crashes (OOM, panic), in-memory queue is LOST → 100% message loss. No recovery mechanism specified. This violates Brain #5's "Zero Message Loss" success criterion. Munger: "Never bet the ranch on a single point of failure."
+
+**CASCADE FAILURE — PostgreSQL UNIQUE Constraint Violation → Infinite Loop:**
+If UNIQUE constraint on (external_message_id, channel) is violated (race condition), webhook fails → DLQ → retry → same violation → infinite loop. No conflict resolution strategy. Kohavi: "Idempotency without conflict resolution is half a solution."
+
+**CASCADE FAILURE — WhatsApp Rate Limit → Memory Exhaustion:**
+WhatsApp API has strict rate limits (1000 messages/day for some tiers). Rust keeps accepting webhooks → queue backs up → DLQ fills → memory exhaustion. No rate limiting at ingress specified. Balfour: "Growth systems must have rate limits built-in, not bolted on."
+
+**SYSTEMIC GAP — Frontend O(n) Grouping:**
+UX wants "group by agent ownership" NOT just channel. Frontend proposed O(1) useMessage(id) selector, but grouping is O(n) per render if done in frontend. No one specified WHERE the grouping happens (frontend vs backend). Tradeoff: Frontend grouping = fast but scales poorly. Backend grouping = scalable but new API endpoint. No decision made.
+
+**SYSTEMIC GAP — Stateless Rust vs Stateful Python:**
+Backend optimized for stateless webhook receivers (good for scaling) but Python AI worker needs to maintain conversation context (stateful). If Python crashes, conversation context is LOST. No persistence strategy for conversation state. Balfour: "Stateless ingress + stateful processing = state persistence requirement."
+
+**SYSTEMIC GAP — Cross-Channel Thread Merge Logic:**
+"Unified inbox" value prop is cross-channel threading (same customer on WhatsApp + Instagram = 1 thread). NO ONE specified how this works. Heuristic? Customer ID mapping? Manual merge? This is the CORE value prop and it's completely undefined. Kohavi: "If you can't measure it, you can't build it."
+
+**METRIC BLINDSPOT — Queue Depth (Early Warning):**
+NO ONE proposed measuring "queue depth" (tokio::sync::mpsc channel capacity usage). Queue filling up = early warning of Python worker bottleneck. Without this, you don't know you're failing until webhooks start timing out. Balfour: "Leading indicators > Lagging indicators."
+
+**METRIC BLINDSPOT — End-to-End Latency (User-Facing):**
+NO ONE proposed measuring "time from webhook received to AI response sent" (not just webhook ACK latency). Webhook ACK <100ms is meaningless if AI response takes 30 seconds. Kohavi: "Optimize the metric the user cares about, not the metric the system exposes."
+
+**METRIC BLINDSPOT — LocalStorage Quota (Silent Failure):**
+NO ONE proposed measuring "localStorage quota usage" (MB used vs MB available). This is a silent failure mode — you don't know it's broken until users lose data. Munger: "Measure what can kill you, even if it's unlikely."
+
+**METRIC BLINDSPOT — DLQ Recovery Success Rate:**
+NO ONE proposed measuring "DLQ recovery success rate" (what % of DLQ messages actually recover after retry?). DLQ without recovery = dead letter graveyard, not recovery queue. Kohavi: "A queue that never empties is a bug, not a feature."
+
+**METRIC BLINDSPOT — Cross-Channel Thread Merge Accuracy:**
+NO ONE proposed measuring "cross-channel thread merge accuracy" (if customer A on WhatsApp = customer A on Instagram, do we show 1 thread or 2?). This is the CORE value prop of "unified inbox" and it's unmeasured. Balfour: "If you can't measure your differentiation, you don't have a product."
+
+### Metric Proposals
+
+**SLI-1 (Overall Evaluation Criteria - OEC):**
+Users respond to multi-channel messages within 5 minutes (webhook received → AI response sent → user reply). Balance technical reliability (99.9% webhook ACK) with user behavior (response time). Kohavi: OEC must be defined BEFORE launch.
+
+**SLI-2 (Queue Depth - Early Warning):**
+Queue depth <50% of tokio::sync::mpsc capacity P95. If exceeds → HALT new webhooks (return 503) or scale Python workers. Leading indicator of cascade failure.
+
+**SLI-3 (End-to-End Latency - User-Facing):**
+Webhook received → AI response sent <30 seconds P95. NOT just webhook ACK <100ms. This is the metric users actually experience.
+
+**SLI-4 (LocalStorage Quota - Silent Failure):**
+LocalStorage usage <80% of available quota (5-10MB). Alert at 80%, block persistence at 90%. Prevents silent data loss.
+
+**SLI-5 (DLQ Recovery Success Rate):**
+DLQ recovery success rate >80% (messages that recover after 1 retry). If <50% → DLQ is broken, not recovering. Investigate root cause instead of retrying endlessly.
+
+**SLI-6 (Cross-Channel Thread Merge Accuracy):**
+Cross-channel thread merge accuracy >90% (same customer on WhatsApp + Instagram = 1 thread). If <70% → "unified inbox" is broken. Manual merge fallback required.
+
+**OKR (Web Worker Validation):**
+Fake Door test on Email HTML parsing. Show "Email preview generating..." loading state (no Worker) vs actual parsed preview (Worker). Measure user perception difference. If <10% notice → drop Worker complexity.
+
+**OKR (Queue Persistence Trigger):**
+Launch in-memory queue (MVP). Measure crash frequency (Rust OOM/panic). If >1 crash/week → migrate to Redis Streams for durability. Data-driven decision, not assumption-driven.
+
+**OKR (Cross-Channel Threading MVP):**
+Launch with MANUAL thread merge first (user selects "Merge threads"). Measure merge frequency. If <5% of users merge → cross-channel threading is NOT a core need. Drop "unified" differentiator, focus on single-channel excellence.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Delta-Velocity Rating 3.0 (Junior/Peer boundary)
+
+**Evidence Citation:**
+- Brain #2 UX: 3-pane layout, keyboard navigation, DLQ inline (✅ strong user experience foundation)
+- Brain #4 Frontend: MessageStore, react-virtuoso, RAF batching (✅ performance patterns proven in Phase 17)
+- Brain #5 Backend: Rust webhook gatekeeper, ACL pattern, idempotency (✅ reliability patterns sound)
+- Brain #6 QA: Load tests, DLQ tests, SLOs (✅ measurement strategy comprehensive)
+
+**Conditions (Must-Address Before Launch):**
+
+1. **DEFINE Cross-Channel Thread Merge Logic:** This is the CORE value prop and it's completely undefined. Manual merge? Heuristic? Customer ID mapping? Launch with manual merge first, measure frequency, automate if >20% usage.
+
+2. **IMPLEMENT Queue Depth Monitoring:** Queue depth <50% capacity P95. Alert at 75%, reject webhooks at 90%. Without this, you're flying blind into cascade failure.
+
+3. **ADD End-to-End Latency SLI:** Webhook → AI response <30s P95. NOT just webhook ACK <100ms. This is the user-facing metric.
+
+4. **ADD LocalStorage Quota Monitoring:** <80% usage alert, block persistence at 90%. Prevents silent data loss disaster.
+
+5. **DECIDE Frontend vs Backend Grouping:** UX wants "group by agent ownership" — WHERE does this happen? Frontend O(n) or backend O(1)? Tradeoff decision required before implementation.
+
+6. **DEFIN DLQ Retry Backoff Strategy:** No exponential backoff specified → thundering herd risk. Implement: retry 1 (1s), retry 2 (5s), retry 3 (30s), then DLQ.
+
+7. **BENCHMARK PostgreSQL UNIQUE Constraint:** 1000 webhooks/sec with UNIQUE constraint on (external_message_id, channel) — no proof this works. Run k6 test BEFORE launch.
+
+**Defer to Later Phase (Non-Blocking):**
+- Web Worker for Email HTML parsing (Fake Door test first — if <10% notice, drop complexity)
+- Redis Streams migration (trigger: >1 Rust crash/week)
+- Automated cross-channel threading (trigger: >20% manual merge usage)
+
+**Anti-Mediocre Synthesis — Conflict Resolution:**
+- CONFLICT: Frontend wants Web Worker (new infrastructure) vs Brain #7 wants simplicity. Winner: Brain #7 — Fake Door test first. If users don't notice parsing difference, Worker is over-engineering.
+- CONFLICT: Backend wants in-memory queue (MVP) vs QA wants 99.9% reliability. Winner: Backend — launch in-memory, add queue depth monitoring, migrate to Redis ONLY if crash data shows need.
+- CONFLICT: UX wants keyboard navigation vs Frontend hasn't specified event handling. Winner: UX — keyboard navigation is P0 for expert efficiency (Brain #2's 5s Time-to-First-Response target). Frontend MUST implement keyboard event handling.
+
+**Second-Order Risk Assessment:**
+- Queue backup → webhook storm loop: 🔴 HIGH RISK (unaddressed by all brains)
+- LocalStorage quota silent failure: 🔴 HIGH RISK (unaddressed by all brains)
+- DLQ thundering herd: 🟡 MEDIUM RISK (partially addressed by Brain #5, missing backoff)
+- Rust crash → 100% message loss: 🔴 HIGH RISK (unaddressed by all brains)
+
+**Pareto Prioritization (MVP Scope):**
+- 20% of work = 80% of value:
+  1. Rust webhook gatekeeper with HMAC verification (Security)
+  2. Idempotency via UNIQUE constraint (Reliability)
+  3. DLQ with manual retry (Recovery)
+  4. 3-pane inbox UI (UX foundation)
+  5. Channel-specific message components (Visual differentiation)
+- Defer to post-MVP:
+  - Web Worker for Email HTML (measure first)
+  - Automated cross-channel threading (manual first)
+  - Redis Streams (in-memory first)
+  - Keyboard navigation (can add later)
+
+**Final Recommendation:**
+APPROVE with 7 must-address conditions. The domain brains did excellent work on first-order architecture (webhook flow, UI layout, testing). However, second-order effects (queue backup loops, localStorage quota, DLQ thundering herd) are unaddressed. Implement the 7 conditions above, measure SLIs, and iterate post-launch. This is a SOLID 3.0/5.0 — better than junior, not yet peer-level due to missing second-order analysis.
+
+
+---
+
+## 2026-04-11 — Phase 18 Multi-Channel Gateway — Evaluation of: Brains #2 #4 #5 #6
+
+### Cross-Domain Synthesis
+
+**Domain Brain Outputs Received:**
+- Brain #2 (UX Research): 3-pane inbox layout, keyboard navigation (J/K), DLQ retry inline, progressive disclosure for channel-specific tools
+- Brain #4 (Frontend): messageStore with Map + Immer + RAF batching, react-virtuoso for 1000+ messages, Web Worker for Email HTML parsing, O(1) targeted selectors
+- Brain #5 (Backend): Rust webhook receiver with HMAC verification, tokio::sync::mpsc bounded queue for MVP, PostgreSQL UNIQUE constraint for idempotency, DLQ with exponential backoff (1s → 5s → 30s)
+- Brain #6 (QA/DevOps): k6 load testing (1000 webhooks/sec), DLQ retry testing with chaos pattern, Prometheus metrics, SLO: 99.9% webhooks acknowledged within 200ms p99
+
+**Points of Agreement:**
+1. Rust for webhook receiver (high-performance gateway)
+2. In-memory queue for MVP (tokio::sync::mpsc)
+3. PostgreSQL UNIQUE constraint for idempotency
+4. DLQ with exponential backoff (1s → 5s → 30s)
+5. messageStore with RAF batching pattern
+6. react-virtuoso for virtualization
+7. k6 load testing before launch
+
+**Points of Tension (RESOLVED):**
+- Queue architecture: Brain #5 wins — in-memory MVP acceptable with migration path
+- Frontend filtering: Brain #4 wins — O(n) MVP acceptable with measurement trigger
+- DLQ retry: Brain #5 wins — 3 retries hardcoded for MVP (simplicity)
+
+**Shared Assumptions (Never Questioned):**
+1. "In-memory queue is acceptable for MVP" — NO DATA on crash frequency
+2. "Frontend O(n) filtering will work for <1K threads" — NO LOAD TESTING to prove this
+3. "WhatsApp/Instagram/Email APIs are similar enough to share infrastructure" — NO PROOF that unified schema won't leak
+4. "Manual cross-channel threading is sufficient for MVP" — NO USER RESEARCH to validate this
+5. "LocalStorage quota won't be a problem" — NO MEASUREMENT of actual quota usage
+6. "tokio::sync::mpsc exists in the codebase" — **FALSE** (CODEBASE VERIFICATION FAILED)
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP #1 — Efficiency-Fragility Loop (Reinforcing):**
+High-speed ingress (1000 webhooks/sec) → PostgreSQL bottleneck (UNIQUE constraint) → In-memory queue swells → Crash → Data loss spiral. CRITICAL GAP: No alerting when queue rejection rate spikes → Silent data loss. When queue rejects webhooks, external providers retry with EXPONENTIAL backoff → Thundering herd 30-60 minutes later → Perpetual DLQ cycle.
+
+**FEEDBACK LOOP #2 — Draft Persistence → Churn Loop (Balancing):**
+LocalStorage quota fills → Draft save fails → User re-types complex message → Perceived effort increases → Churn. Users learn NOT to trust the system → Abandon long-form composition → Feature atrophy.
+
+**FEEDBACK LOOP #3 — O(n) Filter → Backend Migration Loop (Reinforcing):**
+Frontend O(n) filtering → Thread count grows → Render time >500ms → Backend migration → Unexpected complexity → Delay. Migration complexity underestimated (requires backend API, cursor pagination, cache invalidation) → Frontend blocked → User-visible regression.
+
+**CASCADE FAILURE #1 — Schema Leak (Lollapalooza Effect):**
+Unified message schema → Email attachment field → WhatsApp logic breaks → Cross-channel contamination. "Unified schema" becomes leaky abstraction → Every new channel requires breaking changes → Technical velocity degrades O(n²) with channel count.
+
+**CASCADE FAILURE #2 — In-Memory Queue Crash → Business Impact:**
+Pod crash → 1000 pending webhooks lost → Business impact measurement → User trust erosion. "High reliability" perception masks "Low durability" reality → Users discover system is unreliable when it matters most → Trust erosion permanent.
+
+**OMISSION BIAS — Missing OEC (Kohavi):**
+NO OEC defined. Without OEC, team will "P-hack" success (cherry-pick 99.9% acknowledgment metric while ignoring draft loss rate). Kohavi's non-negotiable: OEC must be defined BEFORE launch.
+
+**OMISSION BIAS — Missing Guardrail Metrics:**
+Queue rejection rate, draft save error rate, pending webhook count — NONE of these in plan. Vanity metrics (99.9% acknowledgment) hide systemic risks.
+
+**CRITICAL IMPLEMENTATION BLOCKER:**
+Plan 18-01 Task 2 assumes tokio::sync::mpsc exists in codebase. CODEBASE VERIFICATION: ZERO matches. This is a BLOCKER for execution.
+
+### Metric Proposals
+
+**SLI-1 (Queue Rejection Rate — Guardrail):**
+`webhook_queue_rejection_total{channel} / webhook_received_total{channel} < 0.05` → Alert immediately. Prevents silent data loss.
+
+**SLI-2 (Draft Save Error Rate — Guardrail):**
+`draft_save_error_total / draft_save_attempt_total < 0.01` → Alert immediately. Prevents draft loss churn.
+
+**SLI-3 (Pending Webhook Ratio — State Recovery):**
+`webhook_pending_total{state="memory"} / webhook_received_total < 0.05` → If exceeds, trigger Redis Streams migration. Dashboard this metric.
+
+**SLI-4 (Channel If/Else Ratio — Schema Leak):**
+`channel_if_else_ratio = lines_of("if channel == whatsapp") / total_lines < 0.20` → Alert if schema becomes leaky.
+
+**SLI-5 (Thread List Render P99 — Migration Trigger):**
+`thread_list_render_p99_ms < 500` → If exceeds, trigger backend O(1) filtering migration.
+
+**OEC (Overall Evaluation Criteria):**
+Users successfully merge/reply to cross-channel threads within 10 minutes of first login. Balances technical metrics (99.9% acknowledgment) with user outcomes (activation rate).
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Delta-Velocity Rating 3.0 (Junior-Senior boundary)
+
+**Why not APPROVED (4.0+)?**
+- Critical implementation blocker: tokio::sync::mpsc NOT in codebase
+- Missing guardrail metrics: Queue rejection rate, draft save error rate, pending webhook count
+- Schema leak risk: Unified message abstraction not validated
+- Omission Bias: No OEC defined
+
+**Why not REJECTED_REVISE (2.0-)?**
+- Strong domain consensus (4 brains aligned)
+- Proven patterns (RAF batching verified, WebSocket hub verified)
+- Explicit migration triggers (O(n) → O(1), in-memory → Redis)
+- Measurable acceptance criteria
+
+**Conditions (Must Fix Before Execution):**
+1. **CRITICAL:** Verify tokio::sync::mpsc dependency exists (Plan 18-01 Task 2)
+2. **HIGH:** Add guardrail metrics (queue rejection rate, pending webhook count, draft save error rate)
+3. **HIGH:** Add LocalStorage error handling with in-memory fallback (Plan 18-07 Task 1)
+4. **MEDIUM:** Add channel-specific message structs (Plans 18-04/18-05/18-06)
+5. **LOW:** Define OEC before launch
+
+**Evidence Citations:**
+- Domain outputs: 18-BRAIN-OUTPUTS.md lines 6-356
+- Codebase verification: brainStore.ts lines 44-66 (RAF batching VERIFIED), tokio::sync::mpsc (NOT FOUND)
+- NotebookLM analysis: Efficiency-Fragility Loop, Draft Persistence → Churn, Schema Leak
+
+**Anti-Mediocre Synthesis Applied:**
+- TENSION #1 (Queue): Brain #5 wins — in-memory MVP acceptable
+- TENSION #2 (Filtering): Brain #4 wins — O(n) MVP acceptable
+- TENSION #3 (DLQ Retry): Brain #5 wins — 3 retries hardcoded for MVP

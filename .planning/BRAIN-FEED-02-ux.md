@@ -2,7 +2,7 @@
 
 > Written by Brain #2 (UX Research). Read-only for other agents.
 > Orchestrator reads this after all domain feeds to write BRAIN-FEED.md (global synthesis).
-> Last updated: 2026-03-28
+> Last updated: 2026-04-10
 
 ---
 
@@ -52,15 +52,10 @@
 ### Verified Insights
 
 - **Mental Model Shift: "Invoke → Await" to "Trigger → Observe Chain".** This is a Norman conceptual model change, not just a feature addition. The War Room UI must expose the reasoning path — not just that Brain #4 is running, but *why* (Brain #1 detected frontend_implications). Without this, the Gulf of Evaluation widens: user sees motion but cannot close the feedback loop.
-
 - **HybridFlowEdge already handles the brain_routing signal — no new component needed.** Edge state machine (idle/active/complete/error) reads from brainStore on every render. When brain_routing WebSocket event updates source brain status to 'active', edges in the Nexus animate automatically. ICE check: this is orientation (user understands which branch is executing live) — ICE >= 15 confirmed. NOT decoration.
-
 - **brain_routing is a new WS event type — wsStore.subscribe() already supports arbitrary event types.** The routing signal surfaces in The Nexus only (DAG is the correct affordance for directional flow). Command Center BrainTiles show individual brain status (already works). No new subscriber architecture needed, only new event type registration.
-
 - **Strategy Vault owns brain experiences (GET /api/experiences/{brain_id}).** It already owns execution history (GET /api/executions/history). Mental model: Vault = "what the system knows and has done." Adding experiences is additive, not a panel redesign. Progressive disclosure: BrainTile hover/click can surface a memory count badge, but the full experience log belongs in the Vault.
-
 - **Focus Mode anxiety management for multi-minute chains.** Current isFocusMode activates on task start, deactivates on complete. With chained agents, "complete" may not arrive for 2-5 minutes. Missing feedback pattern: a Chain Progress indicator showing "Brain 2 of 4 — Frontend Analysis" uses the Zeigarnik Effect (incomplete task stays salient) and prevents anxiety from silence. This is NOT an animation — it is functional status text.
-
 - **Routing transparency rule: label the WHY, not just the WHAT.** When brain_routing fires, the system must surface "Brain #4 dispatched — frontend_implications detected in Brain #1 output." This text belongs in the Engine Room LiveLogPanel (already has live log infrastructure). The Nexus shows it visually; the Engine Room shows it textually. Two-channel feedback = expert confidence.
 
 ### Deferred Items
@@ -74,31 +69,22 @@
 ### Verified Insights
 
 - **CLI-based onboarding es REAL problem para non-technical users.** Evidencia: Paperclip UX_RESEARCH_ANALYSIS.json encontró "Curva de aprendizaje alta" (CRITICAL) + "CLI-first perception" (HIGH). Usuario no-técnico ve `npx paperclipai onboard --yes` sin affordances/signifiers — Golfo de Ejecución sin puente (Norman).
-
 - **Reconocimiento > Recuerdo para business users.** CLI depende de memoria de trabajo (recuerda flags, sintaxis); GUI depende de reconocimiento (inputs visuales, botones, estados). Miller's Law: 7±2 chunks. Un comando CLI con múltiples flags rompe este límite si el usuario no entiende la sintaxis, generando "Mistakes" (errores de modelo mental) no "Slips".
-
 - **Onboarding visual NO rompe War Room si aplica Heurística H7.** H7 (Nielsen): Flexibilidad y eficiencia. Visual onboarding para nuevo usuario business + CLI disponible como acelerador para developer. No es reemplazo, es camino paralelo de entrada.
-
 - **Respetar estética War Room en onboarding.** Status Dashboard de alta densidad (no "Welcome"), luces de estado (mapeo natural verde/rojo), logs estilo terminal DENTRO del GUI. Zero happy talk — ir directo a la utilidad (Krug: "Users don't read, they scan").
-
 - **Happy Path debe ser end-to-end, no solo setup.** 5 pasos: (1) Welcome + business goal, (2) System Readiness Check (auto), (3) Knowledge Mapping (upload doc o contexto), (4) First Consultation (Brain #1), (5) Dashboard Handoff (Strategy Vault). Miller's Law: 5 pasos (7±2 chunks). Zeigarnik Effect: First consultation incomplete → urge a completar.
-
 - **Progressive Disclosure en The Nexus para first-run users.** Mostrar SOLO brains relevantes para el problema del usuario (ej: "mejorar UX" → brains #1, #2, #3). "Explore all brains" button para ver otros 21. H5: Prevención de errores — no abrumar con choices irrelevantes.
 
 ### Deferred Items
 
 - 📅 **Dual onboarding paths por persona** — Phase 15/v3.0.1. Landing pregunta: "developer or business leader?" → Developer skip to Command Center (CLI: `npx mastermind-cli configure`), Business leader entra en visual onboarding (5-step flow). Requiere: landing page redesign + persona detection logic.
-
 - 📅 **Engine Room como System Readiness dashboard** — Phase 15/v3.0.1. Extender Engine Room con "First Run Mode" que muestre status lights de dependencias + "Fix automatically" button. Ventajas: zero nuevo código, usuario aprende Engine Room desde inicio, consistencia (setup + monitoreo mismo panel).
-
 - 📅 **Paper prototype + Figma validation** — Phase 14.5 (pre-build). Plan: (1) Paper prototype con 5 usuarios LATAM (>80% completion), (2) Figma clickable con 10 usuarios (time-to-first-success < 5 min), (3) A/B test Visual vs. CLI (2x completion rate target), (4) SUS survey (>68 target). SI CUALQUIER fase falla → iterar o pivotar antes de código.
-
 - 📅 **Guided Tour dismissible para War Room panels** — Phase 15/v3.0.1. Post-onboarding: Tooltips para Command Center, Nexus, Vault, Engine Room. Dismissible después de primera interacción. Progressive disclosure: explicar panel cuando usuario lo necesita.
 
 ### Decisions Logged
 
 - **Onboarding visual = CONDITIONAL APPROVAL.** Válido y alineado con v3.0 shift, PERO requiere: (1) Definir "non-technical user persona" con 3+ entrevistas LATAM, (2) Especificar flujo completo 5 pasos (inputs/validaciones), (3) Validar con paper prototype (5 usuarios, >80% completion), (4) Definir métricas: time-to-first-success, error rate, SUS score. Una vez cumplidas → APPROVED con PRIORIDAD MEDIA (no blocking para MVP v3.0).
-
 - **No reemplazar CLI, agregar camino paralelo.** CLI sigue funcional para usuarios técnicos. Onboarding visual es entrada alternativa para business users. Respeta H7 (flexibilidad) sin alienar audiencia existente.
 
 ---
@@ -348,3 +334,297 @@
 - **Command Palette (Cmd+K) APPROVED.** Signifier persistente en AppSidebar ("Search commands... (Cmd+K)"). Dos canales: keyboard (expert) + click (discoverability). Fuzzy search sobre cache existente (no new API).
 - **Quick Setup Onboarding APPROVED.** Drag & Drop de config file (manifest injection), no wizard multi-step. Zero happy talk, direct utility. Config validation inmediata con signifiers rojos.
 - **Accessibility (WCAG AA) APPROVED as baseline.** Focus visible (shadcn/ui ya lo tiene), ARIA Live Regions para WebSocket updates, `?` shortcut para help map. No es "feature", es requisito baseline.
+
+---
+
+## 2026-04-10 — Phase 18 Multi-Channel Gateway UX Analysis
+
+### Verified Insights
+
+#### 1. Multi-Channel UX Core Principles
+
+**Principle 1: Recognition Over Recall (Jakob's Law)**
+- **Channel affordances must be instantly recognizable** via color-coded signifiers (WhatsApp green, Instagram gradient, Email blue/gray)
+- No scanning for channel metadata — visual recognition in <100ms per Norman's affordance theory
+- Alignment with Slack/Discord patterns: sidebar of channels → thread list → detail view
+
+**Principle 2: Chunking Over Filtering (Miller's Law)**
+- **7±2 threads visible per view** to respect working memory limits
+- Group by "agent ownership" NOT just channel — this is an orchestration platform, not a community manager tool
+- Filter by intent: "Requires Manual Intervention", "AI Processed", "DLQ Errors" — these are meaningful chunks for expert users
+
+**Principle 3: Natural Mapping for Status (Norman)**
+- **Webhook status colors are universal mappings**: Red = DLQ/error, Yellow = retrying, Green = delivered
+- No legend needed — the affordance is the mapping itself (green = go, red = stop)
+- Status column MUST be always-visible (no scroll-to-see-status) — closes the Gulf of Evaluation
+
+**Principle 4: Progressive Disclosure for Channel Capabilities**
+- **Show only relevant tools per channel** in composition panel (WhatsApp Quick Replies vs Email Subject field)
+- Hick's Law: irrelevant options increase decision time logarithmically
+- Channel-specific tools appear ONLY when that channel is active — reduces visual noise
+
+**Principle 5: Error Recovery as First-Class Interaction (Nielsen H3)**
+- **DLQ items need "Retry" button inline** — not hidden in a separate error screen
+- Webhook failures must provide escape hatch: manual retry + reason for failure
+- Recovery in ≤2 actions: click thread → click retry (not: navigate to errors → find message → click retry)
+
+#### 2. Unified Inbox Layout Pattern
+
+**Three-Pane Layout (Slack/Discord Alignment)**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Channels (WA│IG│Email)  │  Thread List (7±2 visible)  │  Active Thread  │
+│ [Unread: 12] [3] [5]   │  ◉ Customer A (WA)        │  [Message bubbles] │
+│                        │  ○ Customer B (IG)        │  [Agent status]    │
+│ [Filter: All]          │  ○ Support Ticket #123    │  [Compose box]     │
+│ [Requires Manual: 3]   │  [DLQ: 2 errors]         │                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Cognitive Load**: Single viewport scan captures channels + threads + active context — no tab switching
+
+**Interaction Pattern**:
+- `J/K` to navigate threads (Vim/IDE pattern — Jakob's Law for expert users)
+- `Enter` to focus thread detail
+- `Esc` to return to thread list
+
+**Feedback Specification**:
+- 100ms: Thread row highlights on selection
+- 1s: Thread detail loads with full message history
+- 10s: Timeout if thread detail fails to load
+
+**Recovery Path**:
+- `Esc` to return to thread list (universal undo)
+- `Backspace` in thread detail to return to list (alternative)
+
+#### 3. Message Threading with Nexus Integration
+
+**Every thread is a node in The Nexus DAG** — shows which AI agent is processing the conversation
+- Live agent status in thread row: "Brain #3 (UX) analyzing..."
+- Threading shows MESSAGE CONTEXT, not just messages — user sees "why this agent is involved"
+
+**Feedback Specification**:
+- 100ms: Agent badge appears when WebSocket `agent_routing` event fires
+- 1s: Thread row updates with agent status badge
+- 10s: Timeout warning if agent hangs ("Stuck — click to force close")
+
+**War Room Context**:
+- Affects **The Nexus** — add thread nodes as DAG vertices
+- Affects **UnifiedInbox** — new component for Phase 18
+- Integration via WebSocket events (existing infrastructure)
+
+**Grep Verification**:
+- ✅ `wsStore.ts` exists — extend with `thread_updates` channel
+- ❌ `UnifiedInbox` component — NO existe, crear en Phase 18
+- ✅ `NexusCanvas` exists — add thread node visualization
+
+#### 4. Channel Signifiers (Von Restorff Effect)
+
+**Only ERROR/DLQ threads break the visual grid** (bold border, red accent)
+- Normal state: opacity reduced for non-critical threads (vigilance decrement prevention)
+- Channel icon + colored dot next to sender name (instant recognition, no reading required)
+
+**Implementation**:
+```tsx
+<div className="flex items-center gap-2">
+  <WhatsAppIcon className="text-green-500" /> {/* Signifier */}
+  <span>John Doe</span>
+  <StatusBadge status="delivered" /> {/* Green dot */}
+</div>
+```
+
+**Grep Verification**:
+- ✅ `lucide-react` icons available — use for channel icons
+- ✅ Tailwind color utilities — use for channel-specific colors
+- ❌ Channel-specific components — crear en Phase 18
+
+#### 5. Command Palette Extensions
+
+**Reuse existing CommandPalette infrastructure** (already built in Phase 17):
+- **`/channel wa`** — Jump to WhatsApp threads
+- **`/filter manual`** — Show only threads requiring manual intervention
+- **`/vault search [query]`** — Insert Strategy Vault snippet into compose
+- **`/retry dlq`** — Bulk retry all DLQ messages
+
+**Data Source**: TanStack Query cache — no new API calls
+
+**Grep Verification**:
+- ✅ `CommandPalette.tsx` exists — extend with channel commands
+- ✅ `commandStore.ts` exists — add channel command definitions
+- ✅ TanStack Query cache — already populated with thread data
+
+#### 6. Composition Panel with Channel Validation
+
+**Features**:
+- Character counter with color gradient (green → yellow → red)
+- Channel-specific tools (WhatsApp Quick Replies, Email BCC/CC)
+- Template validation (prevent 500-word email from being sent via WhatsApp)
+- Progressive disclosure (show only relevant tools for active channel)
+
+**Error Prevention**:
+```tsx
+{channel === 'whatsapp' && messageLength > 4096 && (
+  <div className="text-red-500 text-sm">
+    Message too long for WhatsApp ({messageLength}/4096). Use Email instead.
+  </div>
+)}
+```
+
+**Grep Verification**:
+- ❌ `ComposePanel` component — NO existe, crear en Phase 18
+- ✅ `ToastProvider` exists — reuse for validation errors
+- ✅ shadcn/ui Input/Textarea components — use for message input
+
+#### 7. Webhook Reliability UX
+
+**Status Feedback (Nielsen H1)**:
+- **100ms**: Status icon updates when webhook event received
+- **1s**: Thread row shows "Sending..." state during webhook processing
+- **10s**: Timeout warning + retry option if webhook fails
+
+**DLQ Recovery**:
+- Inline "Retry" button in thread detail (not separate screen)
+- Error message: "Failed to send: [technical reason]"
+- Recovery in ≤2 actions: click thread → click retry
+
+**War Room Context**:
+- Affects **Engine Room** — add webhook latency mini-graph
+- Affects **UnifiedInbox** — show DLQ threads with error badges
+- Integration via WebSocket events (existing infrastructure)
+
+**Grep Verification**:
+- ✅ `wsStore.ts` exists — extend with webhook status events
+- ✅ `ToastProvider` exists — reuse for retry success/failure
+- ❌ Webhook latency graph — agregar en Phase 18
+
+### Anti-Patterns Identified
+
+**Anti-Pattern 3.1: "Unified" Means "Identical"**
+- **WRONG**: Treat all channels the same (ignore WhatsApp limits, email conventions)
+- **RIGHT**: Respect channel constraints — progressive disclosure shows relevant tools only
+- **Violation**: Sending email-style paragraphs via WhatsApp = user mistake, not system error
+
+**Anti-Pattern 3.2: Hidden Status Information**
+- **WRONG**: Status icons only visible on hover or in separate detail view
+- **RIGHT**: Status column always visible, no scrolling required
+- **Violation**: Norman's Gulf of Evaluation — user can't see system state
+
+**Anti-Pattern 3.3: Filter-Only Navigation**
+- **WRONG**: 10+ filter options requiring dropdown menus (Hick's Law violation)
+- **RIGHT**: Smart chunks: "All", "Manual", "AI Processed", "DLQ" — max 4 options
+- **Violation**: Scanning mode on every context switch
+
+**Anti-Pattern 3.4: No Keyboard Navigation**
+- **WRONG**: Mouse-only thread navigation (violates expert efficiency)
+- **RIGHT**: `J/K` for threads, `Enter` for detail, `Esc` to close (Vim/IDE standard)
+- **Violation**: Jakob's Law — experts expect keyboard-first in IDE-like tools
+
+**Anti-Pattern 3.5: Error Recovery Buried**
+- **WRONG**: DLQ items only visible in separate "Error Queue" screen
+- **RIGHT**: DLQ badge on thread row + inline "Retry" button
+- **Violation**: Nielsen H3 (User Control) — recovery in ≤2 actions
+
+### Success Criteria
+
+**Criterion 4.1: Time-to-First-Response < 5 seconds**
+- **Measurement**: User lands on inbox → identifies channel → selects thread → starts composing
+- **Target**: <5s for first-time users, <2s for experts (keyboard shortcuts)
+- **Validation**: Usability test with 5 users (paper prototype or Figma)
+
+**Criterion 4.2: Error Recovery Time < 10 seconds**
+- **Measurement**: DLQ message detected → user initiates retry → message resubmitted
+- **Target**: <10s (inline retry, not navigation to separate screen)
+- **Validation**: Synthetic failure test (simulated webhook timeout)
+
+**Criterion 4.3: Channel Recognition Accuracy > 95%**
+- **Measurement**: Users correctly identify message source without reading text
+- **Target**: >95% accuracy (color + icon signifiers)
+- **Validation**: A/B test with/without color coding
+
+**Criterion 4.4: Zero Mistake Errors (Channel Violations)**
+- **Measurement**: Number of times users attempt to send invalid content for channel
+- **Target**: 0 mistakes (system prevents invalid sends)
+- **Validation**: Log validation failures — should be 0 with progressive disclosure
+
+**Criterion 4.5: Keyboard Navigation Usage > 50% (Expert Users)**
+- **Measurement**: Percentage of thread navigations via keyboard vs mouse
+- **Target**: >50% for users with >10 sessions (expert threshold)
+- **Validation**: Analytics tracking `j/k/enter` keypresses
+
+### Concrete Recommendations
+
+**Recommendation 5.1: Create `UnifiedInbox` Component (NEW)**
+- **Location**: `apps/web/src/components/messaging/UnifiedInbox.tsx`
+- **Structure**: Three-pane layout (Channel Rail → Thread List → Thread Detail)
+- **Grep Verification**: ❌ No existing component — this is NEW for Phase 18
+
+**Recommendation 5.2: Extend `CommandPalette` with Channel Commands**
+- **File**: `apps/web/src/stores/commandStore.ts` (extend existing)
+- **New Commands**: `/channel wa`, `/filter manual`, `/retry dlq`, `/vault insert`
+- **Grep Verification**: ✅ `commandStore.ts` exists — extend with channel commands
+
+**Recommendation 5.3: WebSocket Events for Real-Time Thread Updates**
+- **File**: `apps/web/src/stores/wsStore.ts` (extend existing)
+- **New Event Types**: `thread_updates` (status changes, agent routing)
+- **Grep Verification**: ✅ `wsStore.ts` exists — extend with `thread_updates` channel
+
+**Recommendation 5.4: Create `ComposePanel` with Channel Validation**
+- **File**: `apps/web/src/components/messaging/ComposePanel.tsx` (NEW)
+- **Features**: Character counter, channel-specific tools, template validation
+- **Grep Verification**: ❌ No existing compose component — this is NEW for Phase 18
+
+**Recommendation 5.5: DLQ Retry Inline (Not Separate Screen)**
+- **Location**: Within `ThreadDetail` component
+- **UI**: Inline error message + "Retry Now" button
+- **Grep Verification**: ✅ `ToastProvider` exists — reuse for retry notifications
+
+### Implementation Priority
+
+**P0 (Blocking for Phase 18)**:
+1. `UnifiedInbox` component (3-pane layout)
+2. WebSocket `thread_updates` channel
+3. `ComposePanel` with channel validation
+4. DLQ retry inline
+
+**P1 (Post-MVP, Same Phase)**:
+1. Command Palette channel commands
+2. `J/K` keyboard navigation
+3. Nexus integration (thread nodes in DAG)
+
+**P2 (Future Phase)**:
+1. Thread analytics (response time, resolution rate)
+2. Bulk operations (bulk close, bulk assign)
+3. Advanced filtering (date range, custom tags)
+
+### War Room Context
+
+**Affected Panels**:
+- **Command Center**: Add "Messaging" tile to BentoGrid (launches UnifiedInbox)
+- **The Nexus**: Add thread nodes as DAG vertices (show agent routing flow)
+- **Strategy Vault**: Add response templates (insert via ComposePanel)
+- **Engine Room**: Add webhook latency mini-graph (real-time monitoring)
+
+**New Route**: `/messaging` (protected route, requires auth)
+
+**Stack Alignment**:
+- ✅ Next.js 16 App Router (new route)
+- ✅ Zustand stores (extend `wsStore`, create `threadStore`)
+- ✅ shadcn/ui components (Button, Input, ScrollArea)
+- ✅ WebSocket (existing infrastructure)
+- ✅ TanStack Query (cache thread list, staleTime 30s)
+
+### Decisions Logged
+
+- **Three-Pane Inbox Layout APPROVED.** Alineado con Slack/Discord (Jakob's Law). Channel Rail (60px) → Thread List (350px) → Thread Detail (flex-1). 7±2 threads visible (Miller's Law).
+- **Channel Signifiers with Von Restorff Effect APPROVED.** Solo ERROR/DLQ rompen la cuadrícula visual. Channel icon + colored dot para reconocimiento instantáneo (<100ms).
+- **Keyboard-First Navigation APPROVED.** `J/K` para threads, `Enter` para detail, `Esc` para close (Vim/IDE standard). Expert efficiency > mouse-only patterns.
+- **Progressive Disclosure for Channel Capabilities APPROVED.** Mostrar solo herramientas relevantes por canal (WhatsApp Quick Replies vs Email Subject). Hick's Law: irrelevant options aumentan tiempo de decisión.
+- **DLQ Retry Inline APPROVED.** Recovery en ≤2 acciones (click thread → click retry). NO separar en pantalla de errores (Nielsen H3 violation).
+- **Webhook Status Feedback APPROVED.** 100ms status icon update, 1s "Sending..." state, 10s timeout warning. Cierra Golfo de Evaluación (Norman).
+
+### Deferred Items
+
+- 📅 **Nexus thread node integration** — Phase 18.1 candidate. Requiere: extender NexusCanvas para mostrar thread nodes como vértices DAG, visualizar flujo de agent routing.
+- 📅 **Command Palette channel commands** — Phase 18 P1 candidate. Requiere: extender commandStore con comandos `/channel wa`, `/filter manual`, `/retry dlq`.
+- 📅 **Webhook latency mini-graph in Engine Room** — Phase 18 P2 candidate. Requiere: nuevo componente en Engine Room, integración con métricas de webhook en tiempo real.
+- 📅 **Thread analytics dashboard** — Future Phase candidate. Requiere: métricas de response time, resolution rate, agent participation por thread.

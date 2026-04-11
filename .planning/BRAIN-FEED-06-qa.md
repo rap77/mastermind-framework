@@ -676,7 +676,7 @@ class TestQualityScoreFormula:
             tokens=3000,
             output_text="Word " * 2500  # > 2000 words, no structure
         )
-        
+
         # Same input with structure should be 2x higher
         structured_score = calculate_quality_score(
             precision=0.80,
@@ -685,7 +685,7 @@ class TestQualityScoreFormula:
             tokens=3000,
             output_text="## Section 1\nContent\n## Section 2\nContent"
         )
-        
+
         assert base_score < structured_score, "Twaddle penalty not applied"
         assert base_score * 2 >= structured_score * 0.9, "Penalty should be ~50%"
 
@@ -699,7 +699,7 @@ class TestQualityScoreFormula:
             tokens=1500,
             output_text="Do this. Then do that. Finally this."
         )
-        
+
         # Output with inversion (what to avoid)
         with_inversion_score = calculate_quality_score(
             precision=0.75,
@@ -708,7 +708,7 @@ class TestQualityScoreFormula:
             tokens=1500,
             output_text="Do this. Avoid that common pitfall. Then this."
         )
-        
+
         assert no_inversion_score < with_inversion_score, "Inversion check penalty not applied"
         assert no_inversion_score * 1.3 >= with_inversion_score * 0.9, "Penalty should be ~30%"
 
@@ -818,7 +818,7 @@ class TestRejectionLogging:
     async def test_log_rejected_execution(self, async_db):
         """Rejected execution stores quality_score=0 and status='rejected'."""
         logger = ExperienceLogger(async_db)
-        
+
         record_id = await logger.log_execution(
             brain_id="brain-01",
             input_json={"query": "test"},
@@ -827,7 +827,7 @@ class TestRejectionLogging:
             status="rejected",
             custom_metadata={"quality_score": 0.0}
         )
-        
+
         # Verify record exists
         record = await logger.get_by_id(record_id)
         assert record.status == "rejected"
@@ -836,7 +836,7 @@ class TestRejectionLogging:
     async def test_log_approved_execution(self, async_db):
         """Approved execution stores quality_score >= 1.0."""
         logger = ExperienceLogger(async_db)
-        
+
         record_id = await logger.log_execution(
             brain_id="brain-01",
             input_json={"query": "test"},
@@ -845,7 +845,7 @@ class TestRejectionLogging:
             status="success",
             custom_metadata={"quality_score": 3.5}
         )
-        
+
         record = await logger.get_by_id(record_id)
         assert record.status == "success"
         assert record.custom_metadata["quality_score"] >= 1.0
@@ -858,7 +858,7 @@ class TestRejectionFilter:
     async def test_rejected_records_not_retrieved(self, async_db):
         """Mix of approved + rejected records → only approved returned."""
         logger = ExperienceLogger(async_db)
-        
+
         # Seed database with mix
         await logger.log_execution(
             brain_id="brain-01",
@@ -868,7 +868,7 @@ class TestRejectionFilter:
             status="success",
             custom_metadata={"quality_score": 3.0}
         )
-        
+
         await logger.log_execution(
             brain_id="brain-01",
             input_json={"q": "2"},
@@ -877,7 +877,7 @@ class TestRejectionFilter:
             status="rejected",
             custom_metadata={"quality_score": 0.0}
         )
-        
+
         await logger.log_execution(
             brain_id="brain-01",
             input_json={"q": "3"},
@@ -886,10 +886,10 @@ class TestRejectionFilter:
             status="success",
             custom_metadata={"quality_score": 2.5}
         )
-        
+
         # Query recent records
         records = await logger.get_recent_by_brain("brain-01", limit=10)
-        
+
         # ASSERT: Only 2 approved records returned
         assert len(records) == 2, f"Expected 2 records, got {len(records)}"
         assert all(r.status != "rejected" for r in records), "Rejected record leaked"
@@ -898,7 +898,7 @@ class TestRejectionFilter:
     async def test_quality_score_threshold_filter(self, async_db):
         """Records with quality_score < 1.0 not retrieved."""
         logger = ExperienceLogger(async_db)
-        
+
         # Seed with varying quality scores
         for score in [0.5, 0.9, 1.0, 1.5, 2.0, 3.0]:
             await logger.log_execution(
@@ -909,9 +909,9 @@ class TestRejectionFilter:
                 status="success",
                 custom_metadata={"quality_score": score}
             )
-        
+
         records = await logger.get_recent_by_brain("brain-07", limit=10)
-        
+
         # ASSERT: Only scores >= 1.0 returned
         assert len(records) == 4, f"Expected 4 records, got {len(records)}"
         assert all(r.custom_metadata["quality_score"] >= 1.0 for r in records)
@@ -919,7 +919,7 @@ class TestRejectionFilter:
     async def test_combined_filters(self, async_db):
         """Both status='rejected' AND quality_score < 1.0 filtered together."""
         logger = ExperienceLogger(async_db)
-        
+
         # Rejected with score 0
         await logger.log_execution(
             brain_id="brain-05",
@@ -929,7 +929,7 @@ class TestRejectionFilter:
             status="rejected",
             custom_metadata={"quality_score": 0.0}
         )
-        
+
         # Success with score 0.5 (edge case)
         await logger.log_execution(
             brain_id="brain-05",
@@ -939,7 +939,7 @@ class TestRejectionFilter:
             status="success",
             custom_metadata={"quality_score": 0.5}
         )
-        
+
         # Success with score 2.0 (should return)
         await logger.log_execution(
             brain_id="brain-05",
@@ -949,9 +949,9 @@ class TestRejectionFilter:
             status="success",
             custom_metadata={"quality_score": 2.0}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-05", limit=10)
-        
+
         # ASSERT: Only the 2.0 score record returns
         assert len(records) == 1
         assert records[0].custom_metadata["quality_score"] == 2.0
@@ -960,7 +960,7 @@ class TestRejectionFilter:
         """1000 rejected + 100 approved → retrieval still fast (< 50ms)."""
         import time
         logger = ExperienceLogger(async_db)
-        
+
         # Seed 1000 rejected
         for i in range(1000):
             await logger.log_execution(
@@ -971,7 +971,7 @@ class TestRejectionFilter:
                 status="rejected",
                 custom_metadata={"quality_score": 0.0}
             )
-        
+
         # Seed 100 approved
         for i in range(100):
             await logger.log_execution(
@@ -982,12 +982,12 @@ class TestRejectionFilter:
                 status="success",
                 custom_metadata={"quality_score": 2.0 + (i % 10) * 0.1}
             )
-        
+
         # Measure retrieval time
         start = time.perf_counter()
         records = await logger.get_recent_by_brain("brain-01", limit=100)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         # ASSERT: Only approved records returned AND fast
         assert len(records) == 100
         assert elapsed_ms < 50, f"Retrieval took {elapsed_ms}ms, too slow"
@@ -1059,7 +1059,7 @@ class TestRelevanceCeiling:
     async def test_expired_record_not_retrieved(self, async_db):
         """Record with expires_at in past excluded from results."""
         logger = ExperienceLogger(async_db)
-        
+
         # Insert expired record (yesterday)
         yesterday = (datetime.now() - timedelta(days=1)).isoformat()
         await logger.log_execution(
@@ -1070,7 +1070,7 @@ class TestRelevanceCeiling:
             status="success",
             custom_metadata={"quality_score": 2.0, "expires_at": yesterday}
         )
-        
+
         # Insert fresh record (today)
         await logger.log_execution(
             brain_id="brain-01",
@@ -1080,9 +1080,9 @@ class TestRelevanceCeiling:
             status="success",
             custom_metadata={"quality_score": 2.0, "expires_at": None}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-01", limit=10)
-        
+
         # ASSERT: Only fresh record returned
         assert len(records) == 1
         assert records[0].input_json["q"] == "fresh"
@@ -1090,7 +1090,7 @@ class TestRelevanceCeiling:
     async def test_future_expiry_record_retrieved(self, async_db):
         """Record with expires_at in future still retrieved."""
         logger = ExperienceLogger(async_db)
-        
+
         # Insert record expiring in 90 days
         future = (datetime.now() + timedelta(days=90)).isoformat()
         await logger.log_execution(
@@ -1101,16 +1101,16 @@ class TestRelevanceCeiling:
             status="success",
             custom_metadata={"quality_score": 2.0, "expires_at": future}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-01", limit=10)
-        
+
         assert len(records) == 1
         assert records[0].input_json["q"] == "future"
 
     async def test_null_expires_at_treated_as_valid(self, async_db):
         """Records with expires_at=NULL never expire."""
         logger = ExperienceLogger(async_db)
-        
+
         await logger.log_execution(
             brain_id="brain-01",
             input_json={"q": "permanent"},
@@ -1119,9 +1119,9 @@ class TestRelevanceCeiling:
             status="success",
             custom_metadata={"quality_score": 2.0, "expires_at": None}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-01", limit=10)
-        
+
         assert len(records) == 1
 
     async def test_ttl_cleanup_job(self, async_db):
@@ -1129,7 +1129,7 @@ class TestRelevanceCeiling:
         # This tests the cleanup job, not required for BLOCKER
         # but useful for maintenance
         logger = ExperienceLogger(async_db)
-        
+
         # Insert 1000 expired records
         yesterday = (datetime.now() - timedelta(days=1)).isoformat()
         for i in range(1000):
@@ -1141,10 +1141,10 @@ class TestRelevanceCeiling:
                 status="success",
                 custom_metadata={"quality_score": 2.0, "expires_at": yesterday}
             )
-        
+
         # Run cleanup (if implemented)
         # await logger.cleanup_expired_records()
-        
+
         # Verify cleanup worked
         records = await logger.get_recent_by_brain("brain-01", limit=1000)
         assert len(records) == 0, "Expired records not cleaned up"
@@ -1157,7 +1157,7 @@ class TestTTLGeneration:
     async def test_high_quality_template_gets_90_day_ttl(self, async_db):
         """Templates (score >= 3.0) get 90-day expiry."""
         logger = ExperienceLogger(async_db)
-        
+
         await logger.log_execution(
             brain_id="brain-01",
             input_json={"q": "template"},
@@ -1166,12 +1166,12 @@ class TestTTLGeneration:
             status="success",
             custom_metadata={"quality_score": 3.5}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-01", limit=1)
         expires_at = records[0].custom_metadata.get("expires_at")
-        
+
         assert expires_at is not None, "Template should have expiry"
-        
+
         # Parse and verify ~90 days from now
         expiry_date = datetime.fromisoformat(expires_at)
         expected_min = datetime.now() + timedelta(days=89)
@@ -1181,7 +1181,7 @@ class TestTTLGeneration:
     async def test_low_quality_record_gets_30_day_ttl(self, async_db):
         """Experience records (1.0 <= score < 3.0) get 30-day expiry."""
         logger = ExperienceLogger(async_db)
-        
+
         await logger.log_execution(
             brain_id="brain-01",
             input_json={"q": "experience"},
@@ -1190,12 +1190,12 @@ class TestTTLGeneration:
             status="success",
             custom_metadata={"quality_score": 1.5}
         )
-        
+
         records = await logger.get_recent_by_brain("brain-01", limit=1)
         expires_at = records[0].custom_metadata.get("expires_at")
-        
+
         assert expires_at is not None
-        
+
         expiry_date = datetime.fromisoformat(expires_at)
         expected_min = datetime.now() + timedelta(days=29)
         expected_max = datetime.now() + timedelta(days=31)
@@ -1217,11 +1217,11 @@ async def log_execution(
     custom_metadata: Dict[str, Any] | None = None,
 ) -> str:
     # ... existing record creation ...
-    
+
     # AUTO-SET TTL based on quality_score
     quality_score = custom_metadata.get("quality_score", 0.0) if custom_metadata else 0.0
     expires_at = None
-    
+
     if quality_score >= 3.0:
         # Templates: 90 days
         expires_at = (datetime.now() + timedelta(days=90)).isoformat()
@@ -1229,11 +1229,11 @@ async def log_execution(
         # Experience records: 30 days
         expires_at = (datetime.now() + timedelta(days=30)).isoformat()
     # else: score < 1.0, no TTL (will be filtered anyway)
-    
+
     if custom_metadata is None:
         custom_metadata = {}
     custom_metadata["expires_at"] = expires_at
-    
+
     # ... existing INSERT with expires_at in custom_metadata ...
 ```
 
@@ -1267,7 +1267,7 @@ class TestHighValueDetection:
     def test_duration_over_5_minutes_triggers_evaluation(self):
         """Session > 5 minutes (300s) = high value."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-1",
             brain_ids=["brain-01"],
@@ -1278,13 +1278,13 @@ class TestHighValueDetection:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         assert service._is_high_value_session(task) is True
 
     def test_duration_under_5_minutes_no_trigger(self):
         """Session < 5 minutes = NOT high value (unless other criteria met)."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-2",
             brain_ids=["brain-01"],
@@ -1295,13 +1295,13 @@ class TestHighValueDetection:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         assert service._is_high_value_session(task) is False
 
     def test_planning_score_change_triggers_evaluation(self):
         """Brain #7's planning score changed = high value (pivot detected)."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-3",
             brain_ids=["brain-01", "brain-07"],
@@ -1312,13 +1312,13 @@ class TestHighValueDetection:
             planning_score_delta=1,  # Planning score changed
             invocation_method="mm:execute-phase"
         )
-        
+
         assert service._is_high_value_session(task) is True
 
     def test_complete_phase_invocation_triggers_evaluation(self):
         """User invoked /mm:complete-phase = high value (commitment signal)."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-4",
             brain_ids=["brain-01"],
@@ -1329,13 +1329,13 @@ class TestHighValueDetection:
             planning_score_delta=0,
             invocation_method="mm:complete-phase"  # KEY SIGNAL
         )
-        
+
         assert service._is_high_value_session(task) is True
 
     def test_all_criteria_false_no_trigger(self):
         """Short duration + no pivot + execute-phase = NOT high value."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-5",
             brain_ids=["brain-01"],
@@ -1346,13 +1346,13 @@ class TestHighValueDetection:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         assert service._is_high_value_session(task) is False
 
     def test_multiple_criteria_true_still_triggers(self):
         """Duration + pivot + complete-phase = still True (not double-counted)."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-6",
             brain_ids=["brain-01", "brain-07"],
@@ -1363,13 +1363,13 @@ class TestHighValueDetection:
             planning_score_delta=2,  # Significant pivot
             invocation_method="mm:complete-phase"
         )
-        
+
         assert service._is_high_value_session(task) is True
 
     def test_exact_5_minute_boundary(self):
         """Exactly 300 seconds = high value (boundary condition)."""
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         task = DistillationTask(
             session_id="test-7",
             brain_ids=["brain-01"],
@@ -1380,7 +1380,7 @@ class TestHighValueDetection:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         assert service._is_high_value_session(task) is True
 
 
@@ -1399,7 +1399,7 @@ class TestDistillationTaskModel:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         assert task.session_id == "test"
         assert task.execution_end_ms - task.execution_start_ms == 1000
         assert task.planning_score_delta == 0
@@ -1417,7 +1417,7 @@ class TestDistillationTaskModel:
             planning_score_delta=0,
             invocation_method="mm:execute-phase"
         )
-        
+
         duration_sec = (task.execution_end_ms - task.execution_start_ms) / 1000
         assert duration_sec == 350  # 5m 50s
 
@@ -1429,12 +1429,12 @@ class TestBackgroundExecution:
     async def test_distillation_service_runs_in_background(self, async_db):
         """trigger_evaluation_and_distillation() returns immediately."""
         from unittest.mock import AsyncMock
-        
+
         service = KnowledgeDistillationService(db_path=":memory:")
-        
+
         # Mock Brain #7 evaluation
         service._evaluate_with_brain_7 = AsyncMock(return_value={"quality_score": 3.5})
-        
+
         task = DistillationTask(
             session_id="test-bg",
             brain_ids=["brain-01"],
@@ -1445,12 +1445,12 @@ class TestBackgroundExecution:
             planning_score_delta=0,
             invocation_method="mm:complete-phase"
         )
-        
+
         # Should return immediately (not wait for evaluation)
         start = pytest.importorskip("time").perf_counter()
         await service.trigger_evaluation_and_distillation(task)
         elapsed = pytest.importorskip("time").perf_counter() - start
-        
+
         # ASSERT: Fast return (< 100ms), evaluation happens in background
         assert elapsed < 0.1, f"Function took {elapsed}s, should be non-blocking"
 ```
@@ -1574,3 +1574,119 @@ Before Phase 14 closes:
 3. logger.py filters implemented
 4. CI/CD gate passes on PR
 
+
+---
+
+## 2026-04-10 — Phase 18 Webhook Reliability: QA Strategy Consultation
+
+### Context
+Phase 18 (Multi-channel Gateway) requires webhook reliability testing for WhatsApp/Instagram/Email integration. Consulted NotebookLM Brain #6 (Humble, Majors, Feathers) for expert patterns.
+
+### Verified Insights
+
+**1. WEBHOOK TESTING PATTERNS — Idempotency & Deduplication**
+- Test pattern: Send exact same payload twice with unique `transaction_id` header
+- Success criteria: Second call returns `200 OK` or `204 No Content`, database verification ensures no duplicate agent tasks created
+- Implementation: Use "seams" (Michael Feathers) to inject transaction IDs, isolate external provider dependencies
+- File reference: Phase 16's `k6-websocket-load.js` provides template for load test structure with custom metrics (Trend, Rate)
+
+**2. DLQ TESTING — Retry Logic Validation**
+- Fault injection pattern: Mock transient `503 Service Unavailable` from backend
+- Flow validation: Message transitions to DLQ → trigger "Retry Worker" → verify message re-queued and processed when service recovers
+- Critical anti-pattern: "Silent Drop" — returning `200 OK` to provider before message is safely persisted in queue/database
+- Test location: `apps/api/tests/integration/test_webhook_dlq.py` (new file needed)
+
+**3. LOAD TESTING FOR WEBHOOK THROUGHPUT — k6 Scripts**
+- Extend Phase 16's k6 setup: `rust_control_plane/tests/k6-websocket-load.js` → `k6-webhook-load.js`
+- Target: 1000+ webhooks/second with p99 latency < 200ms (SLI from Brain #6)
+- Soak testing: 1 hour at peak load to identify memory leaks in Rust/Python tracing layers
+- Metrics: Use k6 Thresholds with `abortOnFail: true` for SLI enforcement
+- Command: `k6 run rust_control_plane/tests/k6-webhook-load.js`
+
+**4. MONITORING PATTERNS — SLO-Based Alerting**
+- Error budget burn rate alerts (Charity Majors' ODD): If webhook failures will exhaust 99.9% reliability goal in 4 hours → immediate notification
+- High-cardinality data in structured logs: `provider_response_code`, `payload_size_bytes`, `trace_id` in every event
+- Distributed tracing: Ensure `trace_id` propagates from webhook gateway → PostgreSQL dual-write → agent response
+- Prometheus metrics: `webhook_received_total`, `webhook_dlq_total`, `webhook_processing_duration_seconds` (histogram)
+
+**5. SUCCESS CRITERIA — Measurable Reliability Outcomes**
+- DORA Elite: Lead Time for Changes < 1 hour, Change Failure Rate < 15% for Phase 18
+- Reliability SLO: 99.9% webhooks acknowledged + queued within 200ms (p99)
+- MTTR: < 1 hour to recover/rollback from routing failure
+- Infrastructure idempotence: Recreate webhook gateway from IaC in < 15 minutes
+
+**6. CROSS-CHANNEL MESSAGE ROUTING TESTS**
+- Test: WhatsApp message → routed to agent → response sent via WhatsApp (not Instagram/Email)
+- Test: Channel Router brain agent selects optimal channel based on context
+- Mock strategy: Use `respx` (Python) or `httpx_mock` to isolate external provider APIs
+- No live MCP calls: All WhatsApp/Instagram API tests must use mocked responses
+
+### Deferred Items
+
+- Deferred: Circuit breaker implementation (Phase 18 design decision — Graceful degradation under stress)
+- Deferred: Blameless postmortem template (after first load test failure)
+- Deferred: Wheel of Misfortune training exercise (after initial k6 results)
+
+### Corrected Assumptions (Always Include)
+
+```
+❌ "npm test is the test command" → ✅ pnpm --prefix apps/web test run (frontend) and cd apps/api && uv run pytest (backend)
+❌ "pre-commit hooks run from apps/api/" → ✅ .pre-commit-config.yaml in ROOT; hooks run from repo root via bash -c 'cd apps/api && uv run ...'
+❌ "docker compose runs from apps/api/" → ✅ docker compose up from ROOT only
+❌ "Tests can have pre-existing failures" → ✅ ZERO tolerance for pre-existing failures. Suite must be 0 failures before any phase closes.
+❌ "Integration tests require live MCP" → ✅ MCP calls must be mockable in tests — no test that requires live NotebookLM
+```
+
+### Test Layer Strategy (Phase 18)
+
+| Layer | What | Tool | Count Target | Offline? |
+|-------|------|------|-------------|----------|
+| Webhook unit tests | Idempotency, deduplication, DLQ transitions | pytest | 15-20 | Yes |
+| Provider contract tests | WhatsApp/Instagram API mock contracts | pytest + respx | 8-12 | Yes |
+| Cross-channel routing tests | Channel Router brain agent selection | pytest | 5-8 | Yes |
+| Load tests (k6) | 1000 webhooks/second, p99 latency < 200ms | k6 | 3-5 scripts | No (needs running gateway) |
+| Soak tests | 1-hour endurance for memory leaks | k6 | 1-2 scripts | No (needs running gateway) |
+| Integration tests | End-to-end webhook → agent → response | Docker Compose + pytest | 3-5 | No (needs all services) |
+
+### Regression Impact
+
+- Current baseline: 682 backend + 575 frontend = 1,257 total tests (as of Phase 16 completion)
+- Phase 18 adds: ~50 new tests (webhook unit + contract + routing + load)
+- No breaking changes to existing test suite
+- New test files: `apps/api/tests/integration/test_webhook_*.py`, `rust_control_plane/tests/k6-webhook-*.js`
+
+### Run Commands (Exact Paths)
+
+```bash
+# Backend webhook tests (from ROOT — per .pre-commit-config.yaml pattern)
+cd apps/api && uv run pytest tests/integration/test_webhook_idempotency.py -v
+cd apps/api && uv run pytest tests/integration/test_webhook_dlq.py -v
+cd apps/api && uv run pytest tests/integration/test_cross_channel_routing.py -v
+
+# Load tests (from ROOT — k6 scripts in rust_control_plane/tests/)
+k6 run rust_control_plane/tests/k6-webhook-load.js
+k6 run rust_control_plane/tests/k6-webhook-soak.js
+
+# Full backend suite (baseline preservation)
+cd apps/api && uv run pytest --cov=mastermind_cli --cov-report=xml
+
+# Verify no regressions
+pnpm --prefix apps/web test run
+```
+
+### Offline Guarantee
+
+All webhook tests run without live network calls:
+- Provider APIs mocked via `respx` or `httpx_mock`
+- WhatsApp Business Cloud API → mock `https://graph.facebook.com` endpoints
+- Instagram Graph API → mock `https://graph.instagram.com` endpoints
+- Email sending → mock `aiosmtplib` via `pytest.mock.patch`
+- DLQ tests use in-memory queue, no PostgreSQL dependency for unit layer
+
+### Next Steps for Phase 18 Planning
+
+1. Define webhook SLIs in `18-01-PLAN.md` (latency, throughput, error rate)
+2. Create `apps/api/tests/integration/test_webhook_idempotency.py` with duplicate payload test
+3. Create `rust_control_plane/tests/k6-webhook-load.js` based on Phase 16's WebSocket load test template
+4. Add Prometheus metrics for webhook DLQ + processing duration
+5. Implement circuit breaker pattern in Rust webhook handler (graceful degradation)

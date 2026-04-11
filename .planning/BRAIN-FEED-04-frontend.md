@@ -364,3 +364,282 @@ For each Phase 17 feature, measure before/after:
 [SYNC: BF-05-006] → BRAIN-FEED-05-backend.md > Company Context API. Frontend needs `/api/companies` endpoint for multi-tenant list + active company switching. Owner: Brain #5 Backend.
 
 [SYNC: BF-05-007] → BRAIN-FEED-05-backend.md > Real-time Cost Events. Should cost quota updates come via WS (from Rust event sourcing) or polling? Owner: Brain #5 Backend.
+# Phase 18 — Multi-channel Gateway (Frontend Architecture)
+
+> Date: 2026-04-10
+> Context: Brain #4 consultation for unified inbox UI (WhatsApp + Instagram + Email)
+> Sources: NotebookLM query + codebase verification
+
+---
+
+## Verified Insights
+
+### 1. Message List Virtualization (1000+ messages)
+
+**Pattern: react-virtuoso (already in package.json)**
+- ✅ `react-virtuoso: ^4.18.3` exists in apps/web/package.json
+- ✅ LiveLogPanel.tsx demonstrates Virtuoso pattern with WS integration
+- Use Virtuoso instead of react-window — better TypeScript support + auto-scaling
+- Targeted selector: `useMessage(id)` → O(1) Map lookup, prevents cascade re-renders
+- Append-only updates: new messages prepend to array, Virtuoso handles scroll anchoring automatically
+
+**Scroll Management: Intersection Observer (native API)**
+- ✅ Zero existing usage — NEW pattern for Phase 18
+- More efficient than `onScroll` listeners (fires 100+ times/sec → causes jank)
+- Implement infinite scroll: trigger load when sentinel element intersects viewport
+- Existing pattern: none (grep verified) — this is a new addition
+
+**RAF Batching: Extend brainStore pattern**
+- ✅ Existing RAF drain cycle in brainStore.ts (lines 44-66) — 16ms window, max 24 events
+- ✅ CostDashboard.tsx demonstrates 100ms debounce pattern for WS updates
+- NO separate RAF loop needed — extend existing `_drainQueue()` to handle message events
+- Message burst handling: queue incoming WS messages, drain before paint (16ms budget)
+
+### 2. Channel-Specific Message Components
+
+**Type-Safe Discriminated Union Pattern**
+- Define message types: `type Channel = 'whatsapp' | 'instagram' | 'email'`
+- Each message has `channel` literal field for type narrowing
+- Components: `WhatsAppMessage`, `InstagramMessage`, `EmailMessage` (not one mega-component)
+- Render via switch statement or object map — fully type-safe, no runtime errors
+
+**Compound Components Pattern**
+- Share common UI: timestamp, status icons, avatar via `MessageContainer` wrapper
+- Channel-specific body: `WhatsAppMessage.Body`, `InstagramMediaGrid`, `EmailThreadView`
+- Reduces bundle size vs three separate full components (shared CSS + layout logic)
+
+**Layout: CSS Grid for Email, Flexbox for bubbles**
+- Email threads: CSS Grid for complex layout (headers + nested replies)
+- WhatsApp bubbles: Flexbox 1D layout (simple left/right alignment)
+- Avoid "specificity wars" — Tailwind 4 utility classes handle layout without custom CSS
+
+### 3. WebSocket Message Handling (3 Concurrent Streams)
+
+**Concurrency: Web Worker for heavy message processing**
+- ✅ Zero Web Worker usage today (grep verified)
+- NEW for Phase 18: if Email HTML > 16ms parse time, delegate to Worker
+- Keep main thread free for rendering — prevents INP (Interaction to Next Paint) degradation
+- Pattern: `new Worker('/workers/email-parser.js')` → postMessage → onMessage
+
+**useTransition for non-critical updates**
+- ✅ CostDashboard.tsx demonstrates `useTransition` pattern (line 67+)
+- Use for: typing indicators, read receipts, message status updates
+- High-priority: message rendering (no transition wrapping)
+- Low-priority: peripheral UI (counts, badges, status)
+
+**Deduplication: Stability Keys (message IDs)**
+- ✅ TanStack Query uses `queryKey` pattern for cache deduplication
+- WS dispatcher must check: `if (messages.has(id)) return` before adding
+- Prevents duplicate renders if webhook + WS both deliver same message
+- Use `Map<messageId, MessageState>` structure — O(1) deduplication check
+
+### 4. Message Composition UI Patterns
+
+**Draft Persistence: Zustand + persist middleware**
+- ✅ layoutStore.ts demonstrates `persist` + `createJSONStorage` pattern
+- NEW messageStore with same pattern: drafts saved to localStorage
+- Cross-tab sync: listen to `storage` event, merge on `message-drafts` key change
+- Per-channel drafts: `Map<channelId, DraftState>` structure
+
+**Security: DOMPurify for Email composition**
+- ✅ DOMPurify exists: 4 files use it (smart-gfm.tsx, BriefInputModal, tasks.ts)
+- Email rich text preview: ALWAYS sanitize before render
+- Never use `dangerouslySetInnerHTML` without DOMPurify — XSS vector
+- Pattern: `DOMPurify.sanitize(html, { ALLOWED_TAGS: [...] })`
+
+**Input Management: useReducer for complex forms**
+- Email: subject + cc + bcc + body (4+ fields) → useReducer centralizes transitions
+- WhatsApp: single text input → useState sufficient
+- Instagram: media upload + caption → useReducer for file + text state
+- Avoid "state in highest level" anti-pattern — co-locate state with component
+
+### 5. Performance Anti-Patterns (Verified via Codebase)
+
+**❌ Server State Duplication**
+- Anti-pattern: Copy TanStack Query data to local useState → double source of truth
+- ✅ Correct: Use TanStack Query directly, derive UI state via selectors
+- Existing pattern: 12 files use `useQuery` / `useMutation` — zero duplication found
+
+**❌ Incorrect Animation Properties**
+- Anti-pattern: Animate `width`, `height`, `top` → forces layout reflow
+- ✅ Correct: Animate `opacity` + `transform` only (GPU compositor)
+- Existing pattern: `NexusPage.tsx` uses `touch-action` CSS, no layout animations
+
+**❌ Uncleaned WS Subscriptions**
+- Anti-pattern: Missing `useEffect` cleanup → memory leak after 30+ minutes
+- ✅ Correct: Always return cleanup function: `return () => ws.unsubscribe(id)`
+- Existing pattern: LiveLogPanel.tsx lines 77-82 demonstrate proper cleanup
+
+**❌ Synchronous Heavy Processing**
+- Anti-pattern: Parse 50MB CSV on main thread → freezes UI
+- ✅ Correct: Web Worker for heavy parsing, main thread for rendering only
+- Existing pattern: Zero Web Workers today — NEW for Phase 18 Email parsing
+
+---
+
+## Implementation Gaps (Verified via Grep)
+
+🔴 **Missing patterns for Phase 18:**
+- **Web Worker usage** — Zero files use `new Worker()` pattern. Email HTML parsing needs this
+- **Intersection Observer** — Zero files use IntersectionObserver API. Infinite scroll needs this
+- **MessageStore** — No message-specific store exists. Must create new Zustand store for Phase 18
+- **Channel-specific components** — No WhatsApp/Instagram/Email components exist. Must create from scratch
+
+✅ **Existing patterns confirmed:**
+- Virtualization: `react-virtuoso` v4.18.3 in package.json, LiveLogPanel demonstrates usage
+- RAF batching: brainStore.ts lines 44-66 — queue, drain, 16ms cycle
+- Targeted selectors: `useBrainState(id)` pattern in brainStore — apply to `useMessage(id)`
+- DOMPurify: 4 files use sanitization pattern — apply to Email composition
+- useTransition: CostDashboard.tsx demonstrates concurrent feature for Phase 18
+- Zustand + persist: layoutStore.ts shows localStorage sync + cross-tab pattern
+
+---
+
+## Performance Observables
+
+For Phase 18 multi-channel inbox, measure:
+
+**Message list rendering (1000+ messages):**
+- Metric: Time to render 1000 messages (target < 100ms)
+- Tool: `performance.now()` around Virtuoso render + React DevTools Profiler
+- Observable: Frames dropped during scroll (target: 0 at 60fps)
+
+**WebSocket message burst (3 channels, 50 msgs/sec):**
+- Metric: Main thread blocking time during burst (target < 16ms per frame)
+- Tool: Chrome DevTools Performance "Long Tasks" section
+- Observable: RAF drain cycle efficiency (should batch 24 msgs max)
+
+**Email composition (rich text preview):**
+- Metric: Time from paste to sanitized preview render (target < 50ms)
+- Tool: `performance.mark()` before/after DOMPurify
+- Observable: No XSS vulnerabilities (DOMPurify coverage in tests)
+
+**Draft persistence (localStorage write):**
+- Metric: Time to save draft on keypress (target < 16ms, non-blocking)
+- Tool: Chrome DevTools "Storage" panel + Performance timeline
+- Observable: Draft survives tab close/reopen (manual test)
+
+---
+
+## Anti-Pattern Alerts
+
+❌ **Don't create new RAF loop for messages** — extend brainStore._drainQueue(). Multiple RAF loops = frame budget fragmentation
+
+❌ **Don't use inline message filtering** — filter in store selector, not component. Inline filter = O(n) on every render
+
+❌ **Don't render all 1000+ messages** — use react-virtuoso viewport rendering. Full render = main thread freeze
+
+❌ **Don't share one MessageComponent for all channels** — discriminated union pattern prevents bundle bloat + type errors
+
+❌ **Don't use useState for complex Email forms** — useReducer centralizes transitions. Scattered useState = impossible to test
+
+❌ **Don't skip DOMPurify for Email previews** — XSS vulnerability. Always sanitize before innerHTML
+
+❌ **Don't block main thread for Email HTML parsing** — Web Worker for >16ms operations. Blocking = INP degradation
+
+---
+
+## Sync Cross-References
+
+[SYNC: BF-05-008] → BRAIN-FEED-05-backend.md > Multi-channel Webhook Schema. Frontend needs WS event shape for `message_received` (whatsapp/instagram/email). Owner: Brain #5 Backend.
+
+[SYNC: BF-05-009] → BRAIN-FEED-05-backend.md > Message Pagination API. Frontend needs cursor-based pagination contract (has_next_page, cursor). Owner: Brain #5 Backend.
+
+[SYNC: BF-05-010] → BRAIN-FEED-05-backend.md > Draft Persistence Endpoint. Frontend needs POST /api/drafts + GET /api/drafts/:channelId for cross-device sync. Owner: Brain #5 Backend.
+
+[SYNC: BF-05-011] → BRAIN-FEED-05-backend.md > Media Upload (Instagram). Frontend needs multipart/form-data contract for image/video uploads. Owner: Brain #5 Backend.
+
+---
+
+## Library Verification
+
+✅ **Already in package.json:**
+- `react-virtuoso: ^4.18.3` — Use for message list virtualization
+- `dompurify: ^3.2.3` — Use for Email sanitization
+- `@types/dompurify: ^3.2.0` — TypeScript types included
+- `@tanstack/react-query: ^5.64.0` — Use for message list queries
+
+🔴 **NOT in package.json (verify before Phase 18):**
+- Web Worker libraries — Native API sufficient, no package needed
+- Intersection Observer polyfill — Native API in all modern browsers, no package needed
+
+---
+
+## Architecture Recommendations
+
+### messageStore Structure (Zustand + Immer + persist)
+
+```typescript
+interface MessageState {
+  id: string
+  channel: 'whatsapp' | 'instagram' | 'email'
+  content: string
+  timestamp: number
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
+  senderId: string
+  metadata: Record<string, unknown> // channel-specific (media_url, email_headers, etc.)
+}
+
+interface MessageDraft {
+  channelId: string
+  content: string
+  metadata: Record<string, unknown>
+  updatedAt: number
+}
+
+interface MessageStore {
+  // O(1) lookups, no cascade re-renders
+  messages: Map<string, MessageState>
+  drafts: Map<string, MessageDraft>
+
+  // Actions
+  addMessage: (message: MessageState) => void
+  updateMessageStatus: (id: string, status: MessageState['status']) => void
+  saveDraft: (channelId: string, draft: Omit<MessageDraft, 'updatedAt'>) => void
+  clearDraft: (channelId: string) => void
+}
+
+// Targeted selector
+const useMessage = (id: string) =>
+  useMessageStore(state => state.messages.get(id))
+```
+
+### Component Hierarchy (Channel-Specific)
+
+```
+UnifiedInboxPage
+├── ChannelTabs (whatsapp | instagram | email)
+├── MessageList (Virtuoso virtualized)
+│   ├── WhatsAppMessage (channel === 'whatsapp')
+│   ├── InstagramMessage (channel === 'instagram')
+│   └── EmailMessage (channel === 'email')
+└── MessageComposer (per-channel UI)
+    ├── WhatsAppComposer (text input + emoji)
+    ├── InstagramComposer (media upload + caption)
+    └── EmailComposer (subject + cc + bcc + rich text)
+```
+
+### WS Event Flow (3 Channels)
+
+```
+Webhook (Rust) → WebSocket (wsDispatcher) → messageStore.addMessage()
+                                                     ↓
+                                            RAF batch queue
+                                                     ↓
+                                               drain (16ms)
+                                                     ↓
+                                        Virtuoso viewport update
+```
+
+---
+
+## Summary
+
+**Phase 18 introduces real-time messaging at scale.** Key frontend challenges:
+1. Virtualize 1000+ messages (react-virtuoso)
+2. Handle 3 concurrent WS streams without frame drops (extend RAF batching)
+3. Channel-specific UI (discriminated union, not mega-component)
+4. Draft persistence (Zustand + persist + cross-tab sync)
+5. Security (DOMPurify for Email)
+
+**All patterns verified against existing codebase.** Zero Stack Hard-Lock violations. Ready for Brain #7 validation.

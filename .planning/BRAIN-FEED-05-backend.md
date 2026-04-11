@@ -155,3 +155,95 @@ Fully async. `get_recent_by_brain(brain_id, limit)` exists and is index-backed o
 ### Deferred Items
 
 - 📅 Graceful shutdown / task registry — relevant when parallel dispatch (Phase 12) runs multiple background tasks simultaneously. Track pending tasks in a module-level set, await on shutdown signal.
+## 2026-04-10 — Phase 18 Multi-channel Gateway Backend Architecture
+
+### Verified Insights
+
+**Webhook Reliability Patterns (from NotebookLM consultation)**
+
+**1. Idempotency via External Message IDs (REAL GAP)**
+WhatsApp/Instagram provide unique message IDs — use as idempotency keys in Redis BEFORE queuing. Pattern: `SET external:msg:{id} "pending" NX EX 3600`. If exists, skip or deduplicate. This prevents duplicate processing when providers retry webhooks.
+
+**2. Anti-Corruption Layer (ACL) for External APIs (REAL GAP)**
+Do NOT let WhatsApp/Instagram JSON schemas contaminate your domain. Implement ACL in Rust Control Plane that translates external payloads to unified internal event format (Protobuf). Already have `mastermind.events.v1` proto — extend it for multi-channel events.
+
+**3. Dead Letter Queue (DLQ) Pattern (DEFERRED to Phase 18)**
+Messages failing after max retries must move to DLQ to prevent "poison pill" blocking. Current codebase has NO DLQ implementation. Rust `tokio::sync::mpsc` exists (ws/hub.rs:2) but NO retry logic or DLQ. This is new infrastructure for Phase 18.
+
+**4. Redis vs In-Memory Queue (CRITICAL DECISION REQUIRED)**
+NotebookLM recommends Redis for webhook queue (decoupling, durability, horizontal scaling). Current stack: **NO Redis dependency** in `rust_control_plane/Cargo.toml` or `apps/api/uv.lock`. Decision point: (a) Add Redis for Phase 18, or (b) Use in-memory `tokio::sync::mpsc` bounded channels (already proven in ws/hub.rs:89). Tradeoff: Redis = durable but adds dependency; in-memory = simple but loses messages on crash.
+
+**5. Circuit Breaker Pattern (DEFERRED to Phase 18)**
+If Python AI backend or external channel API (WhatsApp Cloud API) is down, circuit breaker opens to prevent wasting resources. NO circuit breaker exists in current codebase. Recommendation: Use `breaker` crate (Rust) or implement via `std::sync::atomic`.
+
+**6. Webhook Verification (Security MUST)**
+WhatsApp/Instagram webhooks require HMAC signature verification. Axum handlers MUST verify signatures BEFORE accepting payload. Pattern: Extract signature from headers, compute HMAC, compare using constant-time comparison. REJECT malformed payloads with 4xx immediately (Fail Fast).
+
+**7. Async Processing Pattern (Already Validated in Phase 16)**
+WebSocket Hub proves async pattern works: Rust receiver validates + queues, Python worker processes later. `tokio::sync::mpsc` bounded channels (256 buffer) prevent unbounded memory growth. Pattern: webhook receiver → channel → worker task → gRPC to Python.
+
+**8. Trace Propagation (Already Implemented in Phase 16)**
+`OpenTelemetry` + `gRPC interceptor` already propagate trace_id across services. Extend this to webhooks: extract/create trace_id in Rust receiver, propagate through queue to Python worker. Already have `tracing/interceptor.rs` — reuse pattern.
+
+### Deferred Items
+
+- [DEFERRED] Redis queue implementation — Phase 18 decision point: Redis vs in-memory `tokio::sync::mpsc`
+- [DEFERRED] DLQ infrastructure — new module in Rust Control Plane for failed webhook handling
+- [DEFERRED] Circuit breaker implementation — for WhatsApp/Instagram API downtime protection
+- [DEFERRED] WhatsApp Business Cloud API integration — provider selection (Twilio vs Meta direct)
+- [DEFERRED] Instagram Graph API integration — webhook verification + payload parsing
+
+### Real Gaps (Action Items for Phase 18)
+
+1. **No message queue infrastructure** — `tokio::sync::mpsc` exists but NO persistent queue (Redis/RabbitMQ)
+2. **No DLQ implementation** — failed webhooks will block or be lost
+3. **No idempotency layer** — duplicate webhooks WILL cause duplicate processing
+4. **No ACL implementation** — external API schemas will leak into domain if not translated
+5. **No circuit breaker** — cascading failures when external APIs go down
+6. **No webhook verification** — security vulnerability if signatures not checked
+7. **No rate limiting** — WhatsApp API has strict limits (1K-100K msgs/day), NO enforcement in codebase
+
+### Stack Alignment Decisions
+
+**Rust Control Plane (Axum + Tokio) for Webhook Receivers:**
+- Already have Axum 0.7 (Cargo.toml:8)
+- Already have `tokio::sync::mpsc` for async channels (ws/hub.rs:2)
+- Already have bounded channels proven (256 buffer, ws/hub.rs:11)
+- **Verdict:** Extend existing Axum handlers for WhatsApp/Instagram webhooks
+
+**Queue Architecture:**
+- Option A: Redis (recommended by NotebookLM) — durable, horizontal scaling, adds dependency
+- Option B: In-memory `tokio::sync::mpsc` — simple, proven in Phase 16, loses messages on crash
+- **Verdict:** Start with in-memory (reuse ws/hub.rs pattern), migrate to Redis if persistence needed
+
+**Python FastAPI for AI Processing:**
+- Already have gRPC client (tonic 0.11, Cargo.toml:10)
+- Already have trace propagation (grpc/interceptor.rs)
+- **Verdict:** Python workers consume from queue via gRPC, same pattern as Phase 16
+
+**Idempotency Store:**
+- Option A: Redis SET with NX flag (recommended)
+- Option B: PostgreSQL UNIQUE constraint (simpler, already have sqlx)
+- **Verdict:** Start with PostgreSQL UNIQUE index on `(external_message_id, channel)`, migrate to Redis if perf issue
+
+### Anti-Patterns to Avoid
+
+1. **Blocking the Tokio event loop** — Do NOT process AI logic in webhook handler. Queue + background task ONLY.
+2. **Tight coupling with external APIs** — Do NOT store WhatsApp/Instagram JSON directly. ACL translation required.
+3. **Swallowing errors** — Do NOT catch exceptions without logging/tracking. All errors must surface to DLQ.
+4. **Lack of idempotency** — Do NOT assume webhooks are unique. Duplicates ARE common.
+5. **Synchronous inter-service calls** — Do NOT wait for Python gRPC response before ACKing webhook. Queue + return 200 immediately.
+
+### Success Criteria (Measurable)
+
+1. **Zero Message Loss** — 100% webhooks either processed OR in DLQ (measure via DLQ size metrics)
+2. **Low Receiver Latency** — P95 < 100ms for webhook ACK (measure via OpenTelemetry histograms)
+3. **Idempotency Success Rate** — 0% duplicate entries for same external message_id (measure via DB unique constraint violations)
+4. **Effective Traceability** — 100% messages have trace_id from webhook → Python (measure via trace propagation rate)
+5. **High Concurrency** — 2000 concurrent webhooks without event loop degradation (reuse Phase 16 load tests)
+
+### Open Questions for Cross-Brain
+
+- **Brain #1:** Is WhatsApp Business API cost model viable? (USD 0.01-0.05/msg adds up fast)
+- **Brain #6:** How to load test webhook queue without real WhatsApp account? (Mock webhook generator needed)
+- **Brain #7:** What's the acceptable DLQ size before alerting? (100 msgs? 1000?)

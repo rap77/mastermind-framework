@@ -211,7 +211,7 @@ pub async fn webhook_receiver(
         .webhook_queue
         .send_with_backpressure(event)
         .await
-        .map_err(|_| {
+        .map_err(|_: tokio::sync::mpsc::error::SendError<WebhookEvent>| {
             warn!(
                 channel = %channel,
                 trace_id = %trace_id,
