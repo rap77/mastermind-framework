@@ -12,7 +12,7 @@
 - [x] **Phase 15: Rust Control Plane** — PostgreSQL + JWT auth + event sourcing (completed 2026-04-07)
 - [ ] **Phase 16: Observability + Real-time Hub** — Cross-service logging + WebSocket infrastructure
 - [ ] **Phase 17: UI Evolution** — Extract Paperclip UX patterns, rebuild in Next.js
-- [ ] **Phase 18: Multi-channel Gateway** — WhatsApp + Instagram + Email unified inbox
+- [x] **Phase 18: Multi-channel Gateway** — WhatsApp + Instagram + Email unified inbox (completed 2026-04-11)
 
 ## Phase Details
 
@@ -147,7 +147,7 @@
 3. Unified inbox UI across all channels — operators see WhatsApp, Instagram, and Email messages in one place
 4. Channel Router (new brain agent) selects optimal channel for responses — automatic channel selection based on context
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 ---
 
@@ -160,7 +160,7 @@
 | 15. Rust Control Plane | 6/4 | Complete    | 2026-04-07 |
 | 16. Observability + Real-time Hub | 0/7 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
-| 18. Multi-channel Gateway | 6/7 | In Progress|  |
+| 18. Multi-channel Gateway | 7/7 | Complete   | 2026-04-11 |
 
 **Overall Progress:** 3/15 requirements delivered (20%)
 
