@@ -147,8 +147,26 @@
 3. Unified inbox UI across all channels — operators see WhatsApp, Instagram, and Email messages in one place
 4. Channel Router (new brain agent) selects optimal channel for responses — automatic channel selection based on context
 
-**Plans:** 7/7 plans complete
+**Plans:** 10 total (7 complete + 3 gap closure)
 
+**Original Plans (Complete):**
+- [x] 18-01-PLAN.md — Webhook receiver with HMAC verification, queue depth monitoring
+- [x] 18-02-PLAN.md — DLQ with exponential backoff retry
+- [x] 18-03-PLAN.md — E2E latency SLI measurement
+- [x] 18-04-PLAN.md — WhatsApp adapter (parser + sender)
+- [x] 18-05-PLAN.md — Instagram adapter (parser + sender)
+- [x] 18-06-PLAN.md — Email adapter (parser + sender)
+- [x] 18-07-PLAN.md — Unified inbox UI (3-pane layout)
+
+**Gap Closure Plans (Created 2026-04-11):**
+- [ ] 18-08-PLAN.md — Fix queue depth monitoring, webhook route registration, SQLX compilation (gaps #1, #2, #3, #14)
+- [ ] 18-09-PLAN.md — Implement gRPC bridge, AI worker integration, delivery status tracking (gaps #4, #7, #10, #15)
+- [ ] 18-10-PLAN.md — DLQ API endpoints, DOMPurify, thread merge UI, Channel Router (gaps #5, #6, #8, #9, #11, #12, #13)
+
+**Gap Summary:** 15 verification gaps identified, grouped into 3 closure plans
+- **Wave 1 (18-08):** Critical infrastructure blockers (queue depth, route registration, compilation)
+- **Wave 2 (18-09):** gRPC bridge and integration gaps (AI worker, delivery status, E2E latency)
+- **Wave 3 (18-10):** Feature gaps and security (DLQ API, DOMPurify, thread merge, Channel Router)
 ---
 
 ## Progress
@@ -160,7 +178,7 @@
 | 15. Rust Control Plane | 6/4 | Complete    | 2026-04-07 |
 | 16. Observability + Real-time Hub | 0/7 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
-| 18. Multi-channel Gateway | 7/7 | Complete   | 2026-04-11 |
+| 18. Multi-channel Gateway | 7/10 | Gap Closure | 2026-04-11 |
 
 **Overall Progress:** 3/15 requirements delivered (20%)
 
