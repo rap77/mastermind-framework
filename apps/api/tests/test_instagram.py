@@ -84,7 +84,7 @@ class TestSendInstagramComment:
 
         # Verify request
         call_args = mock_httpx_client.post.call_args
-        assert "instagram.com" in call_args[0][0]
+        assert "graph.facebook.com" in call_args[0][0]
         assert call_args[1]["headers"]["Authorization"] == "Bearer test_access_token"
 
     @pytest.mark.asyncio
