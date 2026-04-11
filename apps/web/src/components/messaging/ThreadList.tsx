@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, memo } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 
 export interface Thread {
@@ -20,6 +20,46 @@ interface ThreadListProps {
   onToggleThreadSelection?: (threadId: string) => void
   onMergeThreads?: (threadIds: string[]) => void
 }
+
+interface ThreadItemProps {
+  thread: Thread
+  isSelected: boolean
+  isMergeSelected: boolean
+  onThreadSelect: (threadId: string) => void
+  onToggleThreadSelection?: (threadId: string) => void
+}
+
+const ThreadItem = memo(function ThreadItem({
+  thread,
+  isSelected,
+  isMergeSelected,
+  onThreadSelect,
+  onToggleThreadSelection,
+}: ThreadItemProps) {
+  return (
+    <div
+      data-testid={`thread-item-${thread.id}`}
+      className={`thread-item ${isSelected ? 'selected' : ''} ${thread.unread ? 'unread' : ''} ${isMergeSelected ? 'merge-selected' : ''}`}
+      onClick={() => onThreadSelect(thread.id)}
+    >
+      {onToggleThreadSelection && (
+        <input
+          type="checkbox"
+          checked={isMergeSelected}
+          onChange={() => onToggleThreadSelection(thread.id)}
+          className="thread-checkbox"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+      <div className="thread-header">
+        <span className="thread-channel">{thread.channel}</span>
+        <span className="thread-time">{new Date(thread.timestamp).toLocaleTimeString()}</span>
+      </div>
+      <div className="thread-subject">{thread.subject}</div>
+      <div className="thread-preview">{thread.preview}</div>
+    </div>
+  )
+})
 
 export default function ThreadList({
   threads,
@@ -55,29 +95,17 @@ export default function ThreadList({
       <Virtuoso
         style={{ height: onMergeThreads && selectedThreads.size >= 2 ? 'calc(100% - 50px)' : '100%' }}
         data={filteredThreads}
+        defaultItemCount={100}
+        overscan={200}
         itemContent={(index, thread) => (
-          <div
+          <ThreadItem
             key={thread.id}
-            data-testid={`thread-item-${thread.id}`}
-            className={`thread-item ${selectedThreadId === thread.id ? 'selected' : ''} ${thread.unread ? 'unread' : ''} ${selectedThreads.has(thread.id) ? 'merge-selected' : ''}`}
-            onClick={() => onThreadSelect(thread.id)}
-          >
-            {onToggleThreadSelection && (
-              <input
-                type="checkbox"
-                checked={selectedThreads.has(thread.id)}
-                onChange={() => onToggleThreadSelection(thread.id)}
-                className="thread-checkbox"
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
-            <div className="thread-header">
-              <span className="thread-channel">{thread.channel}</span>
-              <span className="thread-time">{new Date(thread.timestamp).toLocaleTimeString()}</span>
-            </div>
-            <div className="thread-subject">{thread.subject}</div>
-            <div className="thread-preview">{thread.preview}</div>
-          </div>
+            thread={thread}
+            isSelected={selectedThreadId === thread.id}
+            isMergeSelected={selectedThreads.has(thread.id)}
+            onThreadSelect={onThreadSelect}
+            onToggleThreadSelection={onToggleThreadSelection}
+          />
         )}
       />
       <style jsx>{`
