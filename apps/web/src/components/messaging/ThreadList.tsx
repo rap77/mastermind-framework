@@ -16,6 +16,9 @@ interface ThreadListProps {
   selectedThreadId: string | null
   onThreadSelect: (threadId: string) => void
   filterChannel?: string
+  selectedThreads?: Set<string>
+  onToggleThreadSelection?: (threadId: string) => void
+  onMergeThreads?: (threadIds: string[]) => void
 }
 
 export default function ThreadList({
@@ -23,6 +26,9 @@ export default function ThreadList({
   selectedThreadId,
   onThreadSelect,
   filterChannel = 'all',
+  selectedThreads = new Set(),
+  onToggleThreadSelection,
+  onMergeThreads,
 }: ThreadListProps) {
   // Filter and sort threads
   const filteredThreads = useMemo(() => {
@@ -30,18 +36,41 @@ export default function ThreadList({
     return filtered.sort((a, b) => b.timestamp - a.timestamp)
   }, [threads, filterChannel])
 
+  const handleMergeClick = () => {
+    if (onMergeThreads && selectedThreads.size >= 2) {
+      onMergeThreads(Array.from(selectedThreads))
+    }
+  }
+
   return (
     <div className="thread-list" data-testid="thread-list" data-channel={filterChannel}>
+      {onMergeThreads && selectedThreads.size >= 2 && (
+        <div className="thread-merge-bar">
+          <span className="selected-count">{selectedThreads.size} threads selected</span>
+          <button onClick={handleMergeClick} className="merge-button">
+            Merge
+          </button>
+        </div>
+      )}
       <Virtuoso
-        style={{ height: '100%' }}
+        style={{ height: onMergeThreads && selectedThreads.size >= 2 ? 'calc(100% - 50px)' : '100%' }}
         data={filteredThreads}
         itemContent={(index, thread) => (
           <div
             key={thread.id}
             data-testid={`thread-item-${thread.id}`}
-            className={`thread-item ${selectedThreadId === thread.id ? 'selected' : ''} ${thread.unread ? 'unread' : ''}`}
+            className={`thread-item ${selectedThreadId === thread.id ? 'selected' : ''} ${thread.unread ? 'unread' : ''} ${selectedThreads.has(thread.id) ? 'merge-selected' : ''}`}
             onClick={() => onThreadSelect(thread.id)}
           >
+            {onToggleThreadSelection && (
+              <input
+                type="checkbox"
+                checked={selectedThreads.has(thread.id)}
+                onChange={() => onToggleThreadSelection(thread.id)}
+                className="thread-checkbox"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
             <div className="thread-header">
               <span className="thread-channel">{thread.channel}</span>
               <span className="thread-time">{new Date(thread.timestamp).toLocaleTimeString()}</span>
@@ -59,11 +88,46 @@ export default function ThreadList({
           background: white;
         }
 
+        .thread-merge-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background: #e3f2fd;
+          border-bottom: 1px solid #2196f3;
+        }
+
+        .selected-count {
+          font-size: 13px;
+          font-weight: 500;
+          color: #1976d2;
+        }
+
+        .merge-button {
+          padding: 6px 12px;
+          background: #2196f3;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+
+        .merge-button:hover {
+          background: #1976d2;
+        }
+
         .thread-item {
           padding: 12px 16px;
           border-bottom: 1px solid #f0f0f0;
           cursor: pointer;
           transition: background 0.2s;
+          display: flex;
+          gap: 8px;
+        }
+
+        .thread-checkbox {
+          margin-top: 2px;
         }
 
         .thread-item:hover {
@@ -72,6 +136,10 @@ export default function ThreadList({
 
         .thread-item.selected {
           background: #e3f2fd;
+        }
+
+        .thread-item.merge-selected {
+          background: #fff3e0;
         }
 
         .thread-item.unread {

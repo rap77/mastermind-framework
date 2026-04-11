@@ -3,12 +3,25 @@ import ChannelRail from './ChannelRail'
 import ThreadList, { Thread } from './ThreadList'
 import ThreadDetail from './ThreadDetail'
 import { wsDispatcher } from '@/stores/wsStore'
+import { useMessageStore } from '@/stores/messageStore'
 import { MessageState } from '@/stores/messageStore'
+import { logger } from '@/lib/logger'
+
+interface ThreadUpdateEvent {
+  thread_id: string
+  thread: Thread
+}
 
 export default function UnifiedInboxPage() {
   const [selectedChannel, setSelectedChannel] = useState('all')
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
+
+  // Thread merge state
+  const selectedThreads = useMessageStore((state) => state.selectedThreads)
+  const toggleThreadSelection = useMessageStore((state) => state.toggleThreadSelection)
+  const clearThreadSelection = useMessageStore((state) => state.clearThreadSelection)
+  const mergeThreads = useMessageStore((state) => state.mergeThreads)
 
   // Keyboard navigation
   useEffect(() => {
@@ -34,7 +47,7 @@ export default function UnifiedInboxPage() {
 
   // WebSocket integration
   useEffect(() => {
-    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: any) => {
+    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: ThreadUpdateEvent) => {
       // Update threads in real-time
       setThreads((prev) => {
         const existing = prev.find((t) => t.id === event.thread_id)
@@ -53,10 +66,15 @@ export default function UnifiedInboxPage() {
     setSelectedThreadId(threadId)
   }, [])
 
-  const handleMerge = useCallback((threadId: string) => {
-    // TODO: Implement manual thread merge UI
-    console.log('Merge thread:', threadId)
-  }, [])
+  const handleMerge = useCallback(async (threadIds: string[]) => {
+    try {
+      await mergeThreads(threadIds)
+      // TODO: Refresh thread list after merge
+      logger.info('Threads merged successfully:', threadIds)
+    } catch (error) {
+      logger.error('Failed to merge threads:', error)
+    }
+  }, [mergeThreads])
 
   // Mock thread data for selected thread
   const selectedThread = selectedThreadId
@@ -78,6 +96,9 @@ export default function UnifiedInboxPage() {
           selectedThreadId={selectedThreadId}
           onThreadSelect={handleThreadSelect}
           filterChannel={selectedChannel}
+          selectedThreads={selectedThreads}
+          onToggleThreadSelection={toggleThreadSelection}
+          onMergeThreads={handleMerge}
         />
         {selectedThread ? (
           <ThreadDetail thread={selectedThread} onMerge={handleMerge} />
