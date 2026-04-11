@@ -6,6 +6,10 @@
 //! - Retry 3: 30 second delay (provider outage)
 //! - After 3 failures: Move to DLQ (manual inspection + retry)
 
+pub mod retry_worker;
+
+pub use retry_worker::{start_retry_worker, RetryWorker};
+
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use sqlx::{PgPool, Row};
