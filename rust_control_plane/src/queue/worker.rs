@@ -94,10 +94,21 @@ impl WebhookWorker {
         // Process webhook (send to AI worker via gRPC)
         match self.process_webhook_with_retry(&event, &external_id).await {
             Ok(_) => {
-                // Record E2E latency (Brain #7 Condition #3)
+                // Record E2E latency AFTER actual AI processing (Brain #7 Condition #3)
                 if let Some(duration) = self.latency_tracker.record_latency(&event.trace_id, &event.channel) {
                     crate::metrics::record_e2e_latency(&event.channel, duration);
                 }
+
+                // Get message_id for delivery status tracking
+                let message_id: uuid::Uuid = sqlx::query_scalar(
+                    "SELECT id FROM messages WHERE external_message_id = $1"
+                )
+                .bind(&external_id)
+                .fetch_one(&self.db)
+                .await?;
+
+                // Update delivery status to 'sent'
+                self.update_delivery_status(message_id, "sent", None, None).await?;
 
                 // Success: update status to 'completed'
                 sqlx::query("UPDATE messages SET status = 'completed' WHERE external_message_id = $1")
@@ -109,6 +120,7 @@ impl WebhookWorker {
                     channel = %event.channel,
                     trace_id = %event.trace_id,
                     external_id = %external_id,
+                    message_id = %message_id,
                     "Webhook processed successfully"
                 );
 
@@ -214,6 +226,17 @@ impl WebhookWorker {
                 "Webhook failed after 3 retries, moving to DLQ"
             );
 
+            // Get message_id for delivery status tracking
+            let message_id: uuid::Uuid = sqlx::query_scalar(
+                "SELECT id FROM messages WHERE external_message_id = $1"
+            )
+            .bind(external_id)
+            .fetch_one(&self.db)
+            .await?;
+
+            // Update delivery status to 'failed'
+            self.update_delivery_status(message_id, "failed", None, Some(error)).await?;
+
             self.dlq
                 .move_to_dlq(external_id, &event.channel, &event.payload, error)
                 .await?;
@@ -287,6 +310,30 @@ impl WebhookWorker {
             processing_duration_ms = response.len(), // Using response length as proxy for duration
             "AI worker processing complete"
         );
+
+        Ok(())
+    }
+
+    /// Update delivery status for a message
+    ///
+    /// Records delivery status (sent/delivered/read/failed) in message_delivery_status table.
+    async fn update_delivery_status(
+        &self,
+        message_id: uuid::Uuid,
+        status: &str,
+        provider_message_id: Option<&str>,
+        error_message: Option<&str>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            "INSERT INTO message_delivery_status (message_id, status, provider_message_id, error_message)
+             VALUES ($1, $2, $3, $4)"
+        )
+        .bind(message_id)
+        .bind(status)
+        .bind(provider_message_id)
+        .bind(error_message)
+        .execute(&self.db)
+        .await?;
 
         Ok(())
     }
