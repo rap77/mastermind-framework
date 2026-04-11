@@ -1,0 +1,108 @@
+import React, { useMemo } from 'react'
+import { Virtuoso } from 'react-virtuoso'
+
+export interface Thread {
+  id: string
+  channel: 'whatsapp' | 'instagram' | 'email'
+  subject: string
+  preview: string
+  timestamp: number
+  unread: boolean
+  status: string
+}
+
+interface ThreadListProps {
+  threads: Thread[]
+  selectedThreadId: string | null
+  onThreadSelect: (threadId: string) => void
+  filterChannel?: string
+}
+
+export default function ThreadList({
+  threads,
+  selectedThreadId,
+  onThreadSelect,
+  filterChannel = 'all',
+}: ThreadListProps) {
+  // Filter and sort threads
+  const filteredThreads = useMemo(() => {
+    let filtered = filterChannel === 'all' ? threads : threads.filter((t) => t.channel === filterChannel)
+    return filtered.sort((a, b) => b.timestamp - a.timestamp)
+  }, [threads, filterChannel])
+
+  return (
+    <div className="thread-list" data-testid="thread-list" data-channel={filterChannel}>
+      <Virtuoso
+        style={{ height: '100%' }}
+        data={filteredThreads}
+        itemContent={(index, thread) => (
+          <div
+            key={thread.id}
+            data-testid={`thread-item-${thread.id}`}
+            className={`thread-item ${selectedThreadId === thread.id ? 'selected' : ''} ${thread.unread ? 'unread' : ''}`}
+            onClick={() => onThreadSelect(thread.id)}
+          >
+            <div className="thread-header">
+              <span className="thread-channel">{thread.channel}</span>
+              <span className="thread-time">{new Date(thread.timestamp).toLocaleTimeString()}</span>
+            </div>
+            <div className="thread-subject">{thread.subject}</div>
+            <div className="thread-preview">{thread.preview}</div>
+          </div>
+        )}
+      />
+      <style jsx>{`
+        .thread-list {
+          width: 300px;
+          height: 100%;
+          border-right: 1px solid #e0e0e0;
+          background: white;
+        }
+
+        .thread-item {
+          padding: 12px 16px;
+          border-bottom: 1px solid #f0f0f0;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .thread-item:hover {
+          background: #f8f8f8;
+        }
+
+        .thread-item.selected {
+          background: #e3f2fd;
+        }
+
+        .thread-item.unread {
+          font-weight: 500;
+        }
+
+        .thread-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 4px;
+        }
+
+        .thread-channel {
+          text-transform: capitalize;
+        }
+
+        .thread-subject {
+          font-weight: 500;
+          margin-bottom: 4px;
+        }
+
+        .thread-preview {
+          font-size: 14px;
+          color: #666;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      `}</style>
+    </div>
+  )
+}
