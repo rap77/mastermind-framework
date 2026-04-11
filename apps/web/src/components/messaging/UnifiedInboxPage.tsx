@@ -17,6 +17,20 @@ export default function UnifiedInboxPage() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
 
+  // Initialize with mock data for testing
+  useEffect(() => {
+    const mockThreads: Thread[] = Array.from({ length: 1000 }, (_, i) => ({
+      id: `thread-${i}`,
+      channel: ['whatsapp', 'instagram', 'email'][i % 3] as Thread['channel'],
+      subject: `Test Thread ${i + 1}`,
+      preview: `This is a preview message for thread ${i + 1}...`,
+      timestamp: Date.now() - i * 60000, // 1 minute apart
+      unread: i % 5 === 0,
+      status: 'active',
+    }))
+    setThreads(mockThreads)
+  }, [])
+
   // Thread merge state
   const selectedThreads = useMessageStore((state) => state.selectedThreads)
   const toggleThreadSelection = useMessageStore((state) => state.toggleThreadSelection)
