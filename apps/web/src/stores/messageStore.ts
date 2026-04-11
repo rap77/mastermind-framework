@@ -28,6 +28,8 @@ export interface MessageDraft {
 interface MessageStore {
   messages: Map<string, MessageState>
   drafts: Map<string, MessageDraft>
+  inMemoryDrafts: Map<string, MessageDraft> // Fallback storage
+  localStorageError: boolean // Track quota exceeded
   localStorage_quota_percent: number
 
   // O(1) targeted selector
@@ -41,6 +43,7 @@ interface MessageStore {
   // Quota monitoring
   checkLocalStorageQuota: () => number
   calculateQuotaPercent: () => number
+  clearOldDrafts: () => void
 }
 
 const LOCAL_STORAGE_QUOTA_LIMIT = 5 * 1024 * 1024 // 5MB default
@@ -59,6 +62,8 @@ export const useMessageStore = create<MessageStore>()(
     immer((set, get) => ({
       messages: new Map(),
       drafts: new Map(),
+      inMemoryDrafts: new Map(),
+      localStorageError: false,
       localStorage_quota_percent: 0,
 
       useMessage: (id: string) => {
@@ -87,24 +92,26 @@ export const useMessageStore = create<MessageStore>()(
       },
 
       saveDraft: (channelId: string, draft: MessageDraft) => {
-        // Check localStorage quota before saving
-        const quotaPercent = get().checkLocalStorageQuota()
-
-        // Alert at 80%
-        if (quotaPercent > 80 && quotaPercent <= 90) {
-          console.warn(`localStorage quota at ${quotaPercent.toFixed(1)}% - approaching limit`)
-          // Could show toast notification here
-        }
-
-        // Block at 90%
-        if (quotaPercent > 90) {
-          console.error(`localStorage quota at ${quotaPercent.toFixed(1)}% - cannot save draft`)
-          alert('LocalStorage quota exceeded. Please clear old messages to continue.')
-          return
-        }
-
         set((state) => {
-          state.drafts.set(channelId, draft)
+          try {
+            state.drafts.set(channelId, draft)
+            state.localStorageError = false // Clear error on success
+          } catch (e: any) {
+            // Handle QuotaExceededError
+            if (e.name === 'QuotaExceededError' || e.code === 22) {
+              console.warn('[messageStore] LocalStorage quota exceeded, saving to in-memory fallback')
+              state.inMemoryDrafts.set(channelId, draft) // Fallback
+              state.localStorageError = true
+
+              // Track metric
+              if (typeof window !== 'undefined' && (window as any).gtag) {
+                ;(window as any).gtag('event', 'draft_save_error', {
+                  error_type: 'quota_exceeded',
+                  fallback_used: 'in_memory',
+                })
+              }
+            }
+          }
         })
       },
 
@@ -123,6 +130,16 @@ export const useMessageStore = create<MessageStore>()(
 
         return (totalSize / LOCAL_STORAGE_QUOTA_LIMIT) * 100
       },
+
+      clearOldDrafts: () => {
+        set((state) => {
+          const draftArray = Array.from(state.drafts.entries())
+          // Keep only the 10 most recent drafts
+          const recentDrafts = draftArray.slice(-10)
+          state.drafts = new Map(recentDrafts)
+          state.localStorageError = false
+        })
+      },
     })),
     {
       name: 'mastermind-messages',
@@ -130,6 +147,26 @@ export const useMessageStore = create<MessageStore>()(
         drafts: Array.from(state.drafts.entries()), // Persist only drafts
         localStorage_quota_percent: state.localStorage_quota_percent,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Handle quota exceeded on rehydration
+        if (!state) return
+
+        try {
+          const stored = localStorage.getItem('mastermind-messages')
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            if (parsed.drafts) {
+              state.drafts = new Map(parsed.drafts)
+            }
+          }
+        } catch (e: any) {
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.warn('[messageStore] LocalStorage quota exceeded on rehydration, using in-memory fallback')
+            state.localStorageError = true
+            state.inMemoryDrafts = new Map() // Initialize fallback
+          }
+        }
+      },
       merge: (persistedState: any, currentState: MessageStore) => {
         return {
           ...currentState,

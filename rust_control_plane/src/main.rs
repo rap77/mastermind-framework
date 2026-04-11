@@ -23,6 +23,8 @@ mod tracing;
 mod health;
 mod websocket;
 mod metrics;
+mod queue;
+mod observability;
 // mod proto;  // TODO: Add proto files before enabling
 // mod grpc;   // TODO: Add proto files before enabling
 
@@ -32,6 +34,8 @@ use db::connect_pool;
 use auth::auth_middleware;
 use state::AppState;
 use websocket::WebSocketHub;
+use queue::WebhookQueue;
+use observability::LatencyTracker;
 
 /// Ghost Mode replay endpoint - returns last 100 events
 async fn ghost_replay_handler(
@@ -66,10 +70,20 @@ async fn main() -> Result<()> {
 
     // Create application state
     let websocket_hub = Arc::new(WebSocketHub::new());
+    let webhook_queue = Arc::new(WebhookQueue::new(1000));
+    let latency_tracker = Arc::new(LatencyTracker::new());
+
     let state = AppState {
         pool,
         jwt_secret: Arc::new(jwt_secret),
         websocket_hub,
+    };
+
+    // Create webhook state
+    let webhook_state = handlers::webhook::WebhookState {
+        db: pool.clone(),
+        webhook_queue: webhook_queue.clone(),
+        latency_tracker: latency_tracker.clone(),
     };
 
     // Build our application with routes
@@ -83,6 +97,8 @@ async fn main() -> Result<()> {
         // Kubernetes-style health probes (public)
         .route("/health/live", get(health::live::liveness_probe))
         .route("/health/ready", get(health::ready::readiness_check))
+        // Webhook endpoint (public)
+        .route("/webhooks/:channel", post(handlers::webhook::webhook_receiver))
         // Auth routes (public)
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh))
@@ -91,6 +107,9 @@ async fn main() -> Result<()> {
         // Audit log routes (protected, admin-only)
         .route("/api/audit/activity", get(handlers::audit::get_activity_log))
         .route("/api/audit/brain/:brain_id", get(handlers::audit::get_brain_timeline))
+        // DLQ routes (protected, admin-only)
+        .route("/api/dlq", get(handlers::dlq::list_failed_webhooks))
+        .route("/api/dlq/:id/retry", post(handlers::dlq::retry_webhook))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

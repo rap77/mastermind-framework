@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package mastermind.worker;
+
+// Webhook processing service
+service Worker {
+  rpc ProcessWebhook(ProcessWebhookRequest) returns (ProcessWebhookResponse);
+}
+
+// Request message for webhook processing
+message ProcessWebhookRequest {
+  string trace_id = 1;        // Distributed tracing ID (UUID format)
+  string channel = 2;         // Target channel: "whatsapp", "instagram", "email"
+  string payload = 3;         // JSON webhook payload (stringified)
+  string sender_id = 4;       // Customer identifier (phone number, user ID, email)
+  string message_type = 5;    // Message type: "text", "image", "video", "audio", "file"
+}
+
+// Response message for webhook processing
+message ProcessWebhookResponse {
+  bool success = 1;                    // True if processing succeeded
+  string error_message = 2;            // Error details if success=false
+  string ai_response = 3;              // Generated AI response text
+  string suggested_channel = 4;        // Channel Router's suggested channel
+  int64 processing_duration_ms = 5;    // AI processing time in milliseconds
+}
