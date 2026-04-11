@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 import { wsDispatcher } from '@/stores/wsStore'
 import { MessageState } from '@/stores/messageStore'
+import WhatsAppMessage from './messages/WhatsAppMessage'
+import InstagramMessage from './messages/InstagramMessage'
+import EmailMessage from './messages/EmailMessage'
 
 interface ThreadDetailProps {
   thread: {
@@ -14,12 +17,18 @@ interface ThreadDetailProps {
   onMerge: (threadId: string) => void
 }
 
+interface ThreadUpdateEvent {
+  thread_id: string
+  message: MessageState
+}
+
 export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
   const [messages, setMessages] = useState<MessageState[]>(thread.messages)
+  const [messageText, setMessageText] = useState('')
 
   useEffect(() => {
     // Subscribe to WebSocket updates
-    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: any) => {
+    const unsubscribe = wsDispatcher.subscribe('thread_updates', (event: ThreadUpdateEvent) => {
       if (event.thread_id === thread.id) {
         setMessages((prev) => [...prev, event.message])
       }
@@ -49,19 +58,35 @@ export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
         <Virtuoso
           style={{ height: 'calc(100% - 120px)' }}
           data={messages}
-          itemContent={(index, message) => (
-            <div key={message.id} className={`message message-${message.status}`}>
-              <div className="message-sender">{message.sender}</div>
-              <div className="message-content">{message.content}</div>
-              <div className="message-time">{new Date(message.timestamp).toLocaleString()}</div>
-            </div>
-          )}
+          itemContent={(index, message) => {
+            // Render channel-specific message component
+            switch (message.channel) {
+              case 'whatsapp':
+                return <WhatsAppMessage key={message.id} message={message} />
+              case 'instagram':
+                return <InstagramMessage key={message.id} message={message} />
+              case 'email':
+                return <EmailMessage key={message.id} message={message} outgoing={message.sender === 'me'} />
+              default:
+                return (
+                  <div key={message.id} className={`message message-${message.status}`}>
+                    <div className="message-sender">{message.sender}</div>
+                    <div className="message-content">{message.content}</div>
+                    <div className="message-time">{new Date(message.timestamp).toLocaleString()}</div>
+                  </div>
+                )
+            }
+          }}
         />
       </div>
 
       <div className="message-composer">
-        <textarea placeholder="Type a message..." />
-        <button>Send</button>
+        <textarea
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+          placeholder="Type a message..."
+        />
+        <button onClick={() => console.log('Send message:', messageText)}>Send</button>
       </div>
 
       <style jsx>{`
