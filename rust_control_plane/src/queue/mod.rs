@@ -9,9 +9,12 @@
 
 pub mod worker;
 
+use crate::metrics::queue::WEBHOOK_QUEUE_REJECTION_TOTAL;
 use serde_json::Value;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio::sync::Semaphore;
 
 /// Webhook event from external providers
 #[derive(Debug, Clone)]
@@ -29,31 +32,38 @@ pub struct WebhookEvent {
 pub struct WebhookQueue {
     /// Inner mpsc channel
     sender: mpsc::Sender<WebhookEvent>,
+    /// Semaphore for tracking available permits (capacity)
+    capacity_semaphore: Arc<Semaphore>,
     /// Queue capacity (const)
     capacity: usize,
+    /// Rejection counter (Brain #7 Condition #1 - CRITICAL)
+    rejection_count: Arc<AtomicU64>,
 }
 
 impl WebhookQueue {
     /// Create new bounded queue with specified capacity
     pub fn new(capacity: usize) -> Self {
         let (sender, _receiver) = mpsc::channel(capacity);
+        let capacity_semaphore = Arc::new(Semaphore::new(capacity));
+        let rejection_count = Arc::new(AtomicU64::new(0));
 
         Self {
             sender,
+            capacity_semaphore,
             capacity,
+            rejection_count,
         }
     }
 
     /// Get current queue depth as percentage (0-100)
     pub fn queue_depth_percent(&self) -> f64 {
-        // Note: tokio::sync::mpsc::Sender doesn't provide remaining() method
-        // We'll approximate by using capacity() - semaphore_permits()
-        // For now, return 0 as a placeholder
-        // TODO: Implement proper queue depth tracking
         if self.capacity == 0 {
             return 0.0;
         }
-        0.0 // Placeholder - needs implementation
+
+        let available = self.capacity_semaphore.available_permits();
+        let used = self.capacity - available;
+        (used as f64 / self.capacity as f64) * 100.0
     }
 
     /// Send webhook with backpressure (rejects if depth > 90%)
@@ -63,6 +73,12 @@ impl WebhookQueue {
     ) -> Result<(), mpsc::error::SendError<WebhookEvent>> {
         // Reject if queue depth > 90% (Brain #7 Condition #2)
         if self.queue_depth_percent() > 90.0 {
+            // Increment rejection counter (Brain #7 Condition #1)
+            self.rejection_count.fetch_add(1, Ordering::Relaxed);
+
+            // Increment Prometheus metric (Brain #7 Condition #1)
+            WEBHOOK_QUEUE_REJECTION_TOTAL.inc();
+
             tracing::warn!(
                 channel = %event.channel,
                 trace_id = %event.trace_id,
@@ -72,6 +88,8 @@ impl WebhookQueue {
             return Err(mpsc::error::SendError(event));
         }
 
+        // Acquire permit before sending
+        let _permit = self.capacity_semaphore.acquire().await.unwrap();
         self.sender.send(event).await
     }
 
@@ -89,16 +107,17 @@ impl WebhookQueue {
 
     /// Get approximate current length
     pub fn len(&self) -> usize {
-        // Note: tokio::sync::mpsc::Sender doesn't provide remaining() method
-        // TODO: Implement proper queue length tracking
-        0 // Placeholder - needs implementation
+        self.capacity - self.capacity_semaphore.available_permits()
     }
 
     /// Check if queue is empty
     pub fn is_empty(&self) -> bool {
-        // Note: tokio::sync::mpsc::Sender doesn't provide is_empty() method
-        // TODO: Implement proper queue empty tracking
-        true // Placeholder - assumes empty
+        self.len() == 0
+    }
+
+    /// Get rejection count (Brain #7 Condition #1)
+    pub fn rejection_count(&self) -> u64 {
+        self.rejection_count.load(Ordering::Relaxed)
     }
 
     /// Get sender for channel ownership transfer
@@ -108,7 +127,12 @@ impl WebhookQueue {
 
     /// Create from existing sender (for worker)
     pub fn from_sender(sender: mpsc::Sender<WebhookEvent>, capacity: usize) -> Self {
-        Self { sender, capacity }
+        Self {
+            sender,
+            capacity_semaphore: Arc::new(Semaphore::new(capacity)),
+            capacity,
+            rejection_count: Arc::new(AtomicU64::new(0)),
+        }
     }
 }
 
