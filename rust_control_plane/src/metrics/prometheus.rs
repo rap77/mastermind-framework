@@ -1,4 +1,4 @@
-use prometheus::{Counter, Histogram, Gauge, Registry, TextEncoder, Opts, HistogramOpts};
+use prometheus::{Counter, Histogram, Gauge, Registry, TextEncoder, Opts, HistogramOpts, IntGauge};
 use lazy_static::lazy_static;
 use axum::{
     response::{IntoResponse, Response},
@@ -27,6 +27,32 @@ lazy_static! {
         REGISTRY.register(Box::new(gauge.clone())).unwrap();
         gauge
     };
+
+    // Brain #7 Condition #2: Queue Depth Monitoring
+    static ref WEBHOOK_QUEUE_DEPTH_PERCENT: IntGauge = {
+        let opts = Opts::new("webhook_queue_depth_percent", "Webhook queue depth as percentage (0-100)");
+        let gauge = IntGauge::with_opts(opts).unwrap();
+        REGISTRY.register(Box::new(gauge.clone())).unwrap();
+        gauge
+    };
+    static ref WEBHOOK_QUEUE_CAPACITY: IntGauge = {
+        let opts = Opts::new("webhook_queue_capacity", "Webhook queue total capacity");
+        let gauge = IntGauge::with_opts(opts).unwrap();
+        REGISTRY.register(Box::new(gauge.clone())).unwrap();
+        gauge
+    };
+    static ref WEBHOOK_QUEUE_REJECTION_TOTAL: IntGauge = {
+        let opts = Opts::new("webhook_queue_rejection_total", "Total webhooks rejected due to queue depth > 90%");
+        let gauge = IntGauge::with_opts(opts).unwrap();
+        REGISTRY.register(Box::new(gauge.clone())).unwrap();
+        gauge
+    };
+    static ref WEBHOOK_PENDING_TOTAL: IntGauge = {
+        let opts = Opts::new("webhook_pending_total", "Number of webhooks pending in memory queue");
+        let gauge = IntGauge::with_opts(opts).unwrap();
+        REGISTRY.register(Box::new(gauge.clone())).unwrap();
+        gauge
+    };
 }
 
 /// Record an HTTP request
@@ -43,6 +69,18 @@ pub fn inc_websocket_connections() {
 /// Decrement WebSocket connection count
 pub fn dec_websocket_connections() {
     WEBSOCKET_CONNECTIONS.dec();
+}
+
+/// Update queue depth metrics (Brain #7 Condition #2)
+pub fn update_queue_metrics(depth_percent: f64, capacity: usize, pending: usize) {
+    WEBHOOK_QUEUE_DEPTH_PERCENT.set(depth_percent as i64);
+    WEBHOOK_QUEUE_CAPACITY.set(capacity as i64);
+    WEBHOOK_PENDING_TOTAL.set(pending as i64);
+}
+
+/// Increment rejection counter (Brain #7 Condition #2)
+pub fn increment_rejection_counter() {
+    WEBHOOK_QUEUE_REJECTION_TOTAL.inc();
 }
 
 /// Metrics endpoint handler
