@@ -1,7 +1,10 @@
+'use client'
+
 import React, { useEffect, useState } from 'react'
 import { Virtuoso } from 'react-virtuoso'
-import { wsDispatcher } from '@/stores/wsStore'
+import { wsDispatcher } from '@/lib/wsDispatcher'
 import { MessageState } from '@/stores/messageStore'
+import { logger } from '@/lib/logger'
 import WhatsAppMessage from './messages/WhatsAppMessage'
 import InstagramMessage from './messages/InstagramMessage'
 import EmailMessage from './messages/EmailMessage'
@@ -86,7 +89,7 @@ export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
           onChange={(e) => setMessageText(e.target.value)}
           placeholder="Type a message..."
         />
-        <button onClick={() => console.log('Send message:', messageText)}>Send</button>
+        <button onClick={() => logger.info('Send message:', messageText)}>Send</button>
       </div>
 
       <style jsx>{`

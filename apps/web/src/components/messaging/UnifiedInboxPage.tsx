@@ -1,8 +1,10 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react'
 import ChannelRail from './ChannelRail'
 import ThreadList, { Thread } from './ThreadList'
 import ThreadDetail from './ThreadDetail'
-import { wsDispatcher } from '@/stores/wsStore'
+import { wsDispatcher } from '@/lib/wsDispatcher'
 import { useMessageStore } from '@/stores/messageStore'
 import { MessageState } from '@/stores/messageStore'
 import { logger } from '@/lib/logger'
@@ -34,7 +36,7 @@ export default function UnifiedInboxPage() {
         const data: MessagesResponse = await response.json()
         setThreads(data)
       } catch (err) {
-        console.error('Error fetching threads:', err)
+        logger.error('Error fetching threads:', err)
         setError(err instanceof Error ? err.message : 'Failed to load threads')
         // Fallback to mock data if API fails
         const mockThreads: Thread[] = Array.from({ length: 1000 }, (_, i) => ({

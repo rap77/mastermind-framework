@@ -14,12 +14,72 @@ Reference: https://aiosmtplib.readthedocs.io/
 
 import os
 from email.message import EmailMessage as StdEmailMessage
-from typing import Optional
+from typing import Optional, Set
 import aiosmtplib
-from pydantic import BaseModel, Field
+import nh3
+from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter()
+
+
+# Allowed HTML tags and attributes for email content
+ALLOWED_TAGS: Set[str] = {
+    "p",
+    "br",
+    "a",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "blockquote",
+    "code",
+    "pre",
+    "div",
+    "span",
+}
+
+# nh3 expects a set of allowed attributes
+ALLOWED_ATTRIBUTES: Set[str] = {
+    "href",
+    "title",
+    "class",
+    "id",
+}
+
+
+def sanitize_html(html_content: str) -> str:
+    """Sanitize HTML content to prevent XSS attacks using nh3.
+
+    Args:
+        html_content: Raw HTML content
+
+    Returns:
+        Sanitized HTML content with safe tags and attributes only
+
+    Examples:
+        >>> sanitize_html("<p>Hello</p><script>alert('xss')</script>")
+        '<p>Hello</p>'
+        >>> sanitize_html('<a href="https://example.com">Link</a>')
+        '<a href="https://example.com">Link</a>'
+    """
+    return nh3.clean(
+        html_content,
+        tags=ALLOWED_TAGS,
+        # Use nh3's default safe attributes (href, src, alt, title, etc.)
+        attributes=None,
+        url_schemes={"http", "https", "mailto"},
+    )
 
 
 class EmailMessage(BaseModel):
@@ -31,6 +91,14 @@ class EmailMessage(BaseModel):
     html_body: Optional[str] = Field(None, description="HTML body")
     thread_id: Optional[str] = Field(None, description="Thread ID (References header)")
     in_reply_to: Optional[str] = Field(None, description="In-Reply-To header")
+
+    @field_validator("html_body")
+    @classmethod
+    def sanitize_html_body(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize HTML content to prevent XSS attacks."""
+        if v is None:
+            return None
+        return sanitize_html(v)
 
 
 class EmailError(Exception):
@@ -90,7 +158,7 @@ async def send_email(message: EmailMessage) -> dict:
     if message.plain_text:
         email.set_content(message.plain_text)
 
-    # Add HTML body if present
+    # Add HTML body if present (already sanitized by validator)
     if message.html_body:
         if message.plain_text:
             # If both plain text and HTML, add as alternative

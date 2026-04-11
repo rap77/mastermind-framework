@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { wsDispatcher } from '@/lib/wsDispatcher'
 
 type Listener = (data: unknown) => void
 
@@ -75,6 +76,9 @@ export const useWSStore = create<WSState>((set, get) => ({
         const { listeners } = get()
         const handlers = listeners.get(msg.type)
         if (handlers) handlers.forEach(fn => fn(msg.data))
+
+        // Also dispatch to global wsDispatcher for components
+        wsDispatcher.dispatch(msg.type, msg.data)
       }
 
       set({ socket: ws, taskId, token, connected: false })

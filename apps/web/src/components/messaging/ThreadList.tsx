@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useMemo, memo } from 'react'
 import { Virtuoso } from 'react-virtuoso'
 
