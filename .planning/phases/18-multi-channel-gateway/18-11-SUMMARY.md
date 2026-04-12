@@ -15,7 +15,7 @@ Fix Phase 18 UAT frontend issues: (1) Create /messaging route with 3-pane layout
 - **Task 1: Created Next.js App Router route for /messaging**
   - Added `apps/web/src/app/(protected)/messaging/page.tsx` with metadata and UnifiedInboxPage import
   - Added `apps/web/src/app/(protected)/messaging/layout.tsx` with layout wrapper
-  - Route now accessible at http://localhost:3002/messaging (returns 200, not 404)
+  - Route now accessible at http://localhost:3001/messaging (returns 200, not 404)
 
 - **Task 2: Optimized ThreadList with react-virtuoso**
   - Updated `apps/web/src/components/messaging/ThreadList.tsx` to use react-virtuoso

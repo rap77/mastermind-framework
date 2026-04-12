@@ -34,7 +34,7 @@ Fix build errors in VirtualizedCommandList and CommandCenterWrapper components, 
 
 - **Task 4: Started dev server successfully**
   - Dev server now starts without build errors
-  - Server accessible at http://localhost:3002
+  - Server accessible at http://localhost:3001
   - /messaging route returns 200 (not 404)
 
 ## Files Modified
