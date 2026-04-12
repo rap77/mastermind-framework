@@ -391,3 +391,31 @@ async def logout(
         await db.conn.commit()
 
     return {"message": "Logged out"}
+
+
+@router.get("/verify")
+async def verify_token_endpoint(
+    request: Request,
+) -> dict[str, object]:
+    """Verify JWT token from httpOnly cookie.
+
+    Reads access_token from cookie and verifies it using python-jose.
+    Returns validation result and user_id if valid.
+
+    This avoids library incompatibility between python-jose (backend) and jose (frontend).
+    Frontend should call this endpoint instead of verifying JWT locally.
+    """
+    # Read token from httpOnly cookie
+    token = request.cookies.get("access_token")
+    if not token:
+        return {"valid": False, "user_id": None}
+
+    # Verify token using same library that generated it (python-jose)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            return {"valid": False, "user_id": None}
+        return {"valid": True, "user_id": user_id}
+    except JWTError:
+        return {"valid": False, "user_id": None}

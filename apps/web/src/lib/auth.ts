@@ -1,34 +1,36 @@
-import { jwtVerify } from 'jose'
 import 'server-only'
 
 /**
- * Retrieves the JWT secret key from environment.
- * @returns The secret key as a Uint8Array.
- * @throws Error if MM_SECRET_KEY is not set.
- */
-function getSecret(): Uint8Array {
-  const secretKey = process.env.MM_SECRET_KEY
-  if (!secretKey) {
-    throw new Error('MM_SECRET_KEY environment variable is required')
-  }
-  return new TextEncoder().encode(secretKey)
-}
-
-/**
- * Verifies a JWT token using the MM_SECRET_KEY.
- * @param token - The JWT string to verify.
+ * Verifies a JWT token by calling the backend /api/auth/verify endpoint.
+ *
+ * This avoids library incompatibility between python-jose (backend) and jose (frontend).
+ * The backend uses python-jose to generate tokens, so it should also verify them.
+ *
+ * @param token - The JWT string to verify (unused but kept for backward compatibility).
  * @returns True if token is valid, false otherwise.
  */
 export async function verifyToken(token: string): Promise<boolean> {
   try {
-    const secret = getSecret()
-    const result = await jwtVerify(token, secret)
-    return true
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+    const response = await fetch(`${apiUrl}/api/auth/verify`, {
+      method: 'GET',
+      credentials: 'include', // Send httpOnly cookies
+      cache: 'no-store', // Don't cache verification results
+    })
+
+    if (!response.ok) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[verifyToken] Backend verification failed:', response.status)
+      }
+      return false
+    }
+
+    const data = await response.json()
+    return data.valid === true
   } catch (error) {
     // Log in development for debugging
     if (process.env.NODE_ENV === 'development') {
-
-      console.error('[verifyToken] JWT verification failed:', error)
+      console.error('[verifyToken] Verification request failed:', error)
     }
     return false
   }

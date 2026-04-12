@@ -170,3 +170,44 @@ async def test_logout(client, auth_headers):
     """Logout returns 200."""
     response = await client.post("/api/auth/logout", headers=auth_headers)
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_verify_valid_token(client):
+    """Verify endpoint returns true for valid access_token in cookie."""
+    # Login to get token in cookie
+    login_resp = await client.post(
+        "/api/auth/login",
+        json={"username": TEST_USERNAME, "password": TEST_PASSWORD},
+    )
+    assert login_resp.status_code == 200
+
+    # Verify token via endpoint
+    verify_resp = await client.get("/api/auth/verify")
+    assert verify_resp.status_code == 200
+    data = verify_resp.json()
+    assert data["valid"] is True
+    assert data["user_id"] == TEST_USER_ID
+
+
+@pytest.mark.asyncio
+async def test_verify_no_token(client):
+    """Verify endpoint returns false when no token in cookie."""
+    verify_resp = await client.get("/api/auth/verify")
+    assert verify_resp.status_code == 200
+    data = verify_resp.json()
+    assert data["valid"] is False
+    assert data["user_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_verify_invalid_token(client):
+    """Verify endpoint returns false for invalid token."""
+    # Set invalid token in cookie
+    client.cookies.set("access_token", "invalid_token_string")
+
+    verify_resp = await client.get("/api/auth/verify")
+    assert verify_resp.status_code == 200
+    data = verify_resp.json()
+    assert data["valid"] is False
+    assert data["user_id"] is None
