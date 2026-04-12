@@ -12,12 +12,18 @@ Usage:
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, cast
 
-import click
-import psycopg2
-import psycopg2.extras
+# Setup Python path to find .mm-flow modules
+_MM_FLOW_PATH = Path(__file__).parent.parent
+if str(_MM_FLOW_PATH) not in sys.path:
+    sys.path.insert(0, str(_MM_FLOW_PATH))
+
+import click  # noqa: E402
+import psycopg2  # noqa: E402
+import psycopg2.extras  # noqa: E402
 
 # Context file location
 CONTEXT_FILE = Path.home() / ".mm-flow" / ".context.json"
@@ -39,7 +45,13 @@ def _save_context(ctx: dict) -> None:
 
 
 def _db_url() -> str:
-    from planning.mm_flow.config import POSTGRES_LOCAL  # type: ignore[import]
+    import sys
+    from pathlib import Path
+
+    mm_flow_path = Path(__file__).parent.parent
+    if str(mm_flow_path) not in sys.path:
+        sys.path.insert(0, str(mm_flow_path))
+    from config import POSTGRES_LOCAL  # type: ignore[import]
 
     return POSTGRES_LOCAL.connection_string
 
@@ -169,8 +181,8 @@ def status() -> None:
     """Show MM-Flow status with reset countdown per backend."""
     ctx = _load_context()
 
-    from planning.mm_flow.backend_scheduler import BackendScheduler  # type: ignore[import]
-    from planning.mm_flow.multi_backend_manager import MultiBackendManager  # type: ignore[import]
+    from backend_scheduler import BackendScheduler  # type: ignore[import]
+    from multi_backend_manager import MultiBackendManager  # type: ignore[import]
 
     db = _db_url()
     scheduler = BackendScheduler(
@@ -267,8 +279,8 @@ def execute_phase(phase: int) -> None:
     """Execute a phase using current context from ~/.mm-flow/.context.json"""
     ctx = _load_context()
 
-    from planning.mm_flow.multi_backend_manager import MultiBackendManager  # type: ignore[import]
-    from planning.mm_flow.state_machine import StateMachine  # type: ignore[import]
+    from multi_backend_manager import MultiBackendManager  # type: ignore[import]
+    from state_machine import StateMachine  # type: ignore[import]
 
     db = _db_url()
     mgr = MultiBackendManager(ctx["org_id"], ctx["project_id"], db)
@@ -327,7 +339,7 @@ def night_run(project: str, phase: int, max_hours: float) -> None:
             "Run 'mm-flow init' with the correct project first."
         )
 
-    from planning.mm_flow.night_mode import NightModeExecutor  # type: ignore[import]
+    from night_mode import NightModeExecutor  # type: ignore[import]
 
     executor = NightModeExecutor(
         org_id=ctx["org_id"],

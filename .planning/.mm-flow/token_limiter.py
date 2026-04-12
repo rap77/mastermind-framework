@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, cast
 import psycopg2
 import psycopg2.extras
 
-from .config import (
+from config import (
     BACKENDS,
     BACKEND_PRIORITY,
     CONTEXT_CHECKPOINT_INTERVAL,

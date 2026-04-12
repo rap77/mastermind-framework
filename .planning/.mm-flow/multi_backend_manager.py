@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, cast
 import psycopg2
 import psycopg2.extras
 
-from .config import BACKENDS, BACKEND_PRIORITY, MIN_TOKENS_FOR_SWITCH
+from config import BACKENDS, BACKEND_PRIORITY, MIN_TOKENS_FOR_SWITCH
 
 logger = logging.getLogger(__name__)
 

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, cast
 import psycopg2
 import psycopg2.extras
 
-from .config import PHASE_BRAIN_ROUTING
+from config import PHASE_BRAIN_ROUTING
 
 logger = logging.getLogger(__name__)
 

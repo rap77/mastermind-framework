@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, cast
 import psycopg2
 import psycopg2.extras
 
-from .config import BACKENDS
+from config import BACKENDS
 
 logger = logging.getLogger(__name__)
 
