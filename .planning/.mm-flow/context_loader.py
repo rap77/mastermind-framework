@@ -486,6 +486,7 @@ class EngramContextLoader:
 def generate_context_for_phase(
     project: str,
     phase_num: int,
+    output_path: Optional[Path] = None,
 ) -> Optional[Path]:
     """
     Convenience function: generate context for a phase.
@@ -495,11 +496,14 @@ def generate_context_for_phase(
     Args:
         project: Project name
         phase_num: Phase number
+        output_path: Optional override for output file path (default: auto-detect)
 
     Returns:
         Path to generated CONTEXT.md, or None if failed.
     """
     loader = EngramContextLoader(project=project, phase_num=phase_num)
+    # Note: output_path parameter reserved for future use
+    # Current implementation uses auto-detected phase directory
     return loader.generate_context_md()
 
 

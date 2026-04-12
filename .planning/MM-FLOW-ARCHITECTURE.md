@@ -47,7 +47,7 @@ $ mm-flow execute-phase 19
 
 ---
 
-## 3 Pillars of MM-Flow
+## 4 Pillars of MM-Flow
 
 ### Pillar 1: Temporal State (PostgreSQL + improved)
 
@@ -179,7 +179,115 @@ VERIFICATION_CHECKLIST = {
 
 ---
 
-## Pillar 4: Smart Multi-Backend Manager (NEW)
+### Pillar 4: Audit Trail & Governance (NEW)
+
+**Purpose:** Capture and persist complete development history for governance, compliance, and continuous improvement.
+
+**What we track:**
+- **Phase Executions:** Every phase run with duration, tokens, backend, output, git commit
+- **Decisions:** All technical/product/process decisions with rationale, alternatives, confidence, impact
+- **Verification Gates:** Brain #7 quality gates (tests, security, performance, contracts) with results
+- **Artifacts:** Generated plans, specs, tests, docs with file paths and git links
+- **Dev Sessions:** Development sessions with task completion, commits, discoveries, blockers
+- **Phase Metrics:** Niche-specific KPIs (software: test coverage, uptime; SaaS: deployment rate; hardware: yield)
+- **Audit Log:** Immutable log of all actions (for compliance)
+- **Brain Feedback:** Insights, risk flags, opportunities from brain agents (synced from Engram)
+
+**Database Schema (docker/postgres/mm-flow-audit.sql):**
+- 8 audit tables (phase_executions, decisions, dev_sessions, verification_gates, artifacts, phase_metrics, audit_log, brain_feedback)
+- 1 config table (niche_metrics_config — extensible per niche)
+- 2 views (phase_execution_timeline, session_summary)
+- All tables have RLS policies for org/project isolation
+
+**API Endpoints (apps/api/routers/audit.py):**
+- `GET /api/audit/projects/{project_id}/timeline` — Full development timeline
+- `GET /api/audit/projects/{project_id}/phase/{phase_num}/details` — Phase details with decisions, gates, artifacts
+- `POST /api/audit/projects/{project_id}/phase/{phase_num}/decision` — Record decision
+- `GET /api/audit/projects/{project_id}/decisions` — List decisions with filtering
+- `GET /api/audit/projects/{project_id}/phase/{phase_num}/gates` — Verification gates
+- `GET /api/audit/projects/{project_id}/sessions` — Development sessions
+- `GET /api/audit/projects/{project_id}/metrics` — Phase metrics by niche
+- `GET /api/audit/projects/{project_id}/artifacts` — Track plans, specs, tests, docs
+- `GET /api/audit/projects/{project_id}/audit-log` — Immutable audit trail (compliance)
+- `GET /api/audit/projects/{project_id}/summary` — Executive summary (health, progress)
+- `GET /api/audit/projects/{project_id}/brain-feedback` — Brain insights and feedback
+
+**Engram ↔ PostgreSQL Sync (apps/api/services/engram_sync.py):**
+- EngramSyncService: Query Engram for decisions (type=decision) and brain feedback, upsert to PostgreSQL
+- PhaseExecutionRecorder: Record phase execution at completion with metadata
+- Automatic linkage: decisions linked to phase_executions by timestamp + phase_number
+- Handles missing/partial data gracefully
+- Reference tracking: engram_link field connects DB records to Engram observations
+
+**Integration with State Machine:**
+- `record_phase_execution()` called after phase completion
+- Captures backend, tokens, git commit, output summary
+- Returns phase_execution_id for linking decisions/gates
+- Audit log entries auto-created for all phase transitions
+
+**Niche-Specific Metrics:**
+- **Software:** test_coverage (%), code_review_time (hours), cyclomatic_complexity (score), security_vulnerabilities (count)
+- **SaaS:** deployment_success_rate (%), uptime (%), mrr_impact ($)
+- **Hardware:** manufacturing_yield (%), defect_rate (ppm), time_to_production (weeks)
+- Extensible: add new niches via niche_metrics_config table
+
+**Example: Phase 18 Execution Flow**
+
+```
+Phase 18 starts:
+  ├─ state_machine.record_phase_execution(
+  │    phase=18, status='in_progress', backend='claude'
+  │  )
+  │  └─ Creates phase_executions row, audit_log entry
+  │
+Phase 18 executes:
+  ├─ Brain #1 makes product decision
+  │  └─ Decision recorded: decision_type='product', title='Async messaging strategy'
+  │
+  ├─ Brain #7 evaluates output
+  │  └─ Verification gate recorded: gate_type='brain_7_approval', status='passed'
+  │
+  ├─ Tests run: 95% coverage (recorded as phase_metric)
+  ├─ Security scan: 0 vulnerabilities (recorded as verification_gate)
+  ├─ Plans generated (recorded as artifact: plan_spec.md)
+  │
+Phase 18 completes:
+  ├─ state_machine.record_phase_execution(
+  │    phase=18, status='completed',
+  │    backend='claude', tokens_consumed=45000,
+  │    git_commit_hash='abc123...',
+  │    output_summary='Phase 18 Wave 3 complete'
+  │  )
+  │  └─ Updates phase_executions, creates audit_log entry
+  │
+End of session:
+  ├─ engram_sync.sync_decisions_to_db(org_id, project_id, phase=18)
+  │  └─ Queries Engram for decisions made during Phase 18
+  │  └─ Links each decision to phase_execution_id
+  │  └─ Upserts into decisions table with engram_link reference
+  │
+Timeline view now shows:
+  - Phase 18 started (09:00)
+  - Product decision: 'Async messaging strategy' (10:15, confidence: 85%)
+  - Verification gate: 'brain_7_approval' passed (11:30)
+  - Phase 18 completed (14:00, 45K tokens, commit abc123)
+```
+
+**Compliance & Audit:**
+- Immutable audit_log table (no updates, only appends)
+- All actions tracked with actor, timestamp, entity links
+- Useful for: audits, root cause analysis, compliance reporting
+- Time series: query timeline view for phase-over-phase trends
+
+**Cross-Session Wisdom (Engram ↔ PostgreSQL):**
+1. Brain makes decision during phase → stored in Engram via mem_save()
+2. Phase completes → engram_sync queries Engram for decisions
+3. Decisions upserted to PostgreSQL with engram_link tracking
+4. Next session: Brain can query both systems for complete context
+
+---
+
+## Pillar 5: Smart Multi-Backend Manager (NEW)
 
 **Problem:** Claude exhausts in 2h, manually switching to OpenRouter/z.ai loses context and is error-prone.
 
@@ -290,13 +398,24 @@ All backends at 90%+ capacity:
 │       ├── CONTRACTS.yaml
 │       └── ...
 │
-└── .mm-flow/
-    ├── brain-router.py                   # Auto-dispatch to brains
-    ├── verification-gates.py              # Auto-verify goals
-    ├── state-machine.py                  # Phase transition detection
-    └── hooks/                            # Git commit hooks
-        ├── post-commit
-        └── pre-phase
+├── .mm-flow/
+│   ├── brain-router.py                   # Auto-dispatch to brains
+│   ├── verification-gates.py              # Auto-verify goals
+│   ├── state-machine.py                  # Phase transition detection + audit trail
+│   ├── token_limiter.py                  # Token tracking
+│   ├── multi_backend_manager.py           # Backend selection
+│   └── config.py                         # Config: NICHE_METRICS, etc.
+│
+└── docker/postgres/
+    ├── mm-flow-schema.sql                # Multi-tenant state machine schema
+    └── mm-flow-audit.sql                 # Audit trail schema (NEW)
+
+apps/api/
+├── routers/
+│   └── audit.py                          # REST endpoints for timeline, metrics, gates (NEW)
+│
+└── services/
+    └── engram_sync.py                    # Engram ↔ PostgreSQL sync (NEW)
 ```
 
 ---
@@ -380,34 +499,66 @@ Your analysis feeds into Brain #1. Brain #7 makes the final call.
 
 ## Phase A: Scaffolding (Apr 15-18, ~4 days)
 
-### Day 1: Multi-Tenant Database + Credentials
+### Day 1: Multi-Tenant Database + Audit Trail Schema
 
 - [ ] Create PostgreSQL schema (multi-tenant)
-  - [ ] `organizations` table
-  - [ ] `projects` table
-  - [ ] `workspaces` table
-  - [ ] `mm_flow_state` table (multi-tenant)
-  - [ ] `backend_sessions` table (per-project tracking)
-  - [ ] `backend_capabilities` table (discovered limits)
-  - [ ] `context_checkpoints` table
-  - [ ] RLS policies (isolation enforcement)
+  - [x] `organizations` table
+  - [x] `projects` table
+  - [x] `workspaces` table
+  - [x] `mm_flow_state` table (multi-tenant)
+  - [x] `backend_sessions` table (per-project tracking)
+  - [x] `backend_capabilities` table (discovered limits)
+  - [x] `context_checkpoints` table
+  - [x] RLS policies (isolation enforcement)
+
+- [ ] Create Audit Trail schema (docker/postgres/mm-flow-audit.sql) — DONE
+  - [x] `phase_executions` — track each phase run
+  - [x] `decisions` — capture decisions with rationale, alternatives, confidence
+  - [x] `dev_sessions` — log development sessions with tasks, commits, discoveries
+  - [x] `verification_gates` — Brain #7 quality gates (test, security, performance)
+  - [x] `artifacts` — generated files (plans, specs, tests, docs) with git link
+  - [x] `phase_metrics` — niche-specific KPIs
+  - [x] `audit_log` — immutable compliance log
+  - [x] `brain_feedback` — Engram sync target for brain decisions
+  - [x] `niche_metrics_config` — define metrics per niche (software, saas, hardware)
+  - [x] Views: phase_execution_timeline, session_summary
+  - [x] RLS policies for org isolation
 
 - [ ] Generalize credentials (`.claude/backends.sh`)
   - [ ] Support Claude, OpenRouter, z.ai
   - [ ] Load from settings.local.json or env vars
   - [ ] Verify API keys work
 
-**Deliverable:** PostgreSQL schema ready, credentials configured
+**Deliverable:** PostgreSQL schemas ready (state + audit), credentials configured
 
-### Day 2-3: MM-Flow Core
+### Day 2-3: MM-Flow Core + Audit Integration
 
-- [ ] Create `.mm-flow/` directory
-  - [ ] `multi_backend_manager.py` (smart backend selection)
-  - [ ] `backend_scheduler.py` (reset cycle detection)
-  - [ ] `token_limiter.py` (token discovery + tracking)
-  - [ ] `state_machine.py` (phase transition detection)
-  - [ ] `brain_router.py` (parallel brain consultation)
-  - [ ] `verification_gates.py` (automated checks + Brain #7)
+- [x] `.mm-flow/` directory (exists)
+  - [x] `multi_backend_manager.py` (smart backend selection)
+  - [x] `backend_scheduler.py` (reset cycle detection)
+  - [x] `token_limiter.py` (token discovery + tracking)
+  - [x] `state_machine.py` (phase transition detection) — UPDATED with record_phase_execution()
+  - [x] `brain_router.py` (parallel brain consultation)
+  - [x] `verification_gates.py` (automated checks + Brain #7)
+
+- [ ] Create Audit API (apps/api/routers/audit.py) — DONE
+  - [x] `GET /api/audit/projects/{project_id}/timeline` — full timeline
+  - [x] `GET /api/audit/projects/{project_id}/phase/{phase_num}/details` — phase details
+  - [x] `POST /api/audit/projects/{project_id}/phase/{phase_num}/decision` — record decision
+  - [x] `GET /api/audit/projects/{project_id}/decisions` — list decisions
+  - [x] `GET /api/audit/projects/{project_id}/phase/{phase_num}/gates` — gates
+  - [x] `GET /api/audit/projects/{project_id}/sessions` — sessions
+  - [x] `GET /api/audit/projects/{project_id}/metrics` — metrics
+  - [x] `GET /api/audit/projects/{project_id}/artifacts` — artifacts
+  - [x] `GET /api/audit/projects/{project_id}/audit-log` — compliance log
+  - [x] `GET /api/audit/projects/{project_id}/summary` — executive summary
+  - [x] `GET /api/audit/projects/{project_id}/brain-feedback` — brain insights
+
+- [ ] Create Engram Sync Service (apps/api/services/engram_sync.py) — DONE
+  - [x] EngramSyncService — sync decisions from Engram to PostgreSQL
+  - [x] PhaseExecutionRecorder — record phase execution to audit trail
+  - [x] Brain feedback syncing
+  - [x] Timestamp-based linkage to phase_executions
 
 - [ ] Implement hooks
   - [ ] `mm-flow-context-monitor.js` (detects backend depletion)

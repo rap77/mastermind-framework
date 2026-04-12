@@ -167,3 +167,111 @@ PHASE_BRAIN_ROUTING = {
 MIN_TOKENS_FOR_SWITCH = 5_000  # Switch backends when < 5K tokens available
 CONTEXT_CHECKPOINT_INTERVAL = 10_000  # Save state every 10K tokens used
 MAX_ITERATIONS_PER_PHASE = 3  # Phase can retry up to 3x before escalating
+
+# ============================================================================
+# NICHE-SPECIFIC METRICS (Audit Trail)
+# ============================================================================
+
+NICHE_METRICS = {
+    "software": {
+        "description": "Software development (MasterMind, Paperclip, etc)",
+        "metrics": [
+            {
+                "name": "test_coverage",
+                "unit": "%",
+                "target": 80,
+                "weight": 0.3,
+                "description": "Code coverage percentage",
+            },
+            {
+                "name": "code_review_time",
+                "unit": "hours",
+                "target": 24,
+                "weight": 0.2,
+                "description": "Average time to complete code review",
+            },
+            {
+                "name": "cyclomatic_complexity",
+                "unit": "score",
+                "target": 10,
+                "weight": 0.2,
+                "description": "Average McCabe complexity per function",
+            },
+            {
+                "name": "security_vulnerabilities",
+                "unit": "count",
+                "target": 0,
+                "weight": 0.3,
+                "description": "Number of known vulnerabilities (critical+high)",
+            },
+        ],
+    },
+    "saas": {
+        "description": "SaaS/Web applications (Prosell, etc)",
+        "metrics": [
+            {
+                "name": "deployment_success_rate",
+                "unit": "%",
+                "target": 99,
+                "weight": 0.3,
+                "description": "Percentage of successful deployments",
+            },
+            {
+                "name": "uptime",
+                "unit": "%",
+                "target": 99.9,
+                "weight": 0.4,
+                "description": "Service availability percentage",
+            },
+            {
+                "name": "mrr_impact",
+                "unit": "$",
+                "target": 5000,
+                "weight": 0.3,
+                "description": "Monthly Recurring Revenue impact",
+            },
+        ],
+    },
+    "hardware": {
+        "description": "Hardware/IoT products",
+        "metrics": [
+            {
+                "name": "manufacturing_yield",
+                "unit": "%",
+                "target": 95,
+                "weight": 0.4,
+                "description": "Percentage of units passing QA",
+            },
+            {
+                "name": "defect_rate",
+                "unit": "ppm",
+                "target": 100,
+                "weight": 0.3,
+                "description": "Defects per million units",
+            },
+            {
+                "name": "time_to_production",
+                "unit": "weeks",
+                "target": 8,
+                "weight": 0.3,
+                "description": "Weeks from design to manufacturing",
+            },
+        ],
+    },
+}
+
+# ============================================================================
+# AUDIT TRAIL CONFIGURATION
+# ============================================================================
+
+# Maximum retries for verification gates before escalation
+MAX_GATE_RETRIES = 1
+
+# Email or Slack notification on gate failures
+GATE_FAILURE_NOTIFICATION_ENABLED = False
+GATE_FAILURE_NOTIFICATION_CHANNEL = "#mm-flow-alerts"
+
+# Engram sync settings
+ENGRAM_SYNC_ENABLED = True
+ENGRAM_SYNC_BATCH_SIZE = 100  # Sync up to 100 decisions per batch
+ENGRAM_SYNC_ON_PHASE_COMPLETION = True  # Auto-sync at phase end

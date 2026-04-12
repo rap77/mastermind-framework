@@ -209,8 +209,121 @@ class StateMachine:
             from_phase, "completed", current_state.get("state_data", {})
         )
         self.set_phase_context(to_phase, "pending", {})
+
+        # Record phase execution in audit trail (requires async call)
+        # This will be called by orchestrator after phase completion
         logger.info("Phase transition: %d → %d (pending)", from_phase, to_phase)
         return True
+
+    def record_phase_execution(
+        self,
+        phase_number: int,
+        status: str,
+        backend_used: Optional[str] = None,
+        tokens_consumed: int = 0,
+        tokens_input: int = 0,
+        tokens_output: int = 0,
+        output_summary: Optional[str] = None,
+        error_message: Optional[str] = None,
+        git_commit_hash: Optional[str] = None,
+        triggered_by: str = "system",
+    ) -> Optional[str]:
+        """
+        Record phase execution metadata to audit trail (phase_executions table).
+
+        Called by orchestrator to persist execution history:
+        - Before phase: status='in_progress'
+        - After phase: status='completed' with summary/commit
+        - On failure: status='failed' with error_message
+
+        Args:
+            phase_number: Phase number
+            status: in_progress | completed | failed
+            backend_used: Which backend was used
+            tokens_consumed: Total tokens used in phase
+            tokens_input: Input tokens
+            tokens_output: Output tokens
+            output_summary: Brief summary of phase output
+            error_message: If status='failed', error details
+            git_commit_hash: Commit hash at phase completion
+            triggered_by: Who triggered (user, scheduler, brain_7, etc)
+
+        Returns:
+            phase_execution_id (UUID string) for linking decisions/gates
+        """
+        # Import here to avoid circular dependency
+
+        with self._connect() as conn:
+            self._set_rls_context(conn)
+            with conn.cursor() as cur:
+                # Insert into phase_executions table
+                cur.execute(
+                    """
+                    INSERT INTO phase_executions
+                        (org_id, project_id, workspace_id, phase_number,
+                         status, backend_used, tokens_consumed,
+                         tokens_input, tokens_output, output_summary,
+                         error_message, git_commit_hash, triggered_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        self.org_id,
+                        self.project_id,
+                        self.workspace_id,
+                        phase_number,
+                        status,
+                        backend_used,
+                        tokens_consumed,
+                        tokens_input,
+                        tokens_output,
+                        output_summary,
+                        error_message,
+                        git_commit_hash,
+                        triggered_by,
+                    ),
+                )
+                result = cur.fetchone()
+                phase_exec_id = result[0] if result else None
+
+                if phase_exec_id:
+                    # Record in audit log
+                    action_type = {
+                        "in_progress": "phase_started",
+                        "completed": "phase_completed",
+                        "failed": "phase_failed",
+                    }.get(status, "phase_update")
+
+                    cur.execute(
+                        """
+                        INSERT INTO audit_log
+                            (org_id, project_id, action_type, actor, actor_type,
+                             description, phase_number, related_entity_type,
+                             related_entity_id, severity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            self.org_id,
+                            self.project_id,
+                            action_type,
+                            triggered_by,
+                            "system",
+                            f"Phase {phase_number} {status}",
+                            phase_number,
+                            "phase_execution",
+                            phase_exec_id,
+                            "error" if status == "failed" else "info",
+                        ),
+                    )
+
+                    logger.info(
+                        f"Recorded phase {phase_number} execution: "
+                        f"status={status}, tokens={tokens_consumed}, "
+                        f"execution_id={phase_exec_id}"
+                    )
+
+            conn.commit()
+            return str(phase_exec_id) if phase_exec_id else None
 
     # ------------------------------------------------------------------
     # Internal helpers
