@@ -7,8 +7,8 @@
 -- ============================================================================
 
 INSERT INTO organizations (id, slug, name) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'acme-corp',    'Acme Corp'),
-    ('a0000000-0000-0000-0000-000000000002', 'prosell-sass', 'Prosell SaaS')
+    ('a0000000-0000-0000-0000-000000000001', 'RAP-software',  'RAP Software'),
+    ('a0000000-0000-0000-0000-000000000002', 'Prosell-CA',    'Prosell C.A.')
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================================
@@ -26,9 +26,9 @@ INSERT INTO projects (id, org_id, slug, name, project_type) VALUES
     (
         'b0000000-0000-0000-0000-000000000002',
         'a0000000-0000-0000-0000-000000000002',
-        'paperclip-v3',
-        'Paperclip Clone v3.0',
-        'software'
+        'prosell-ecommerce',
+        'Prosell E-Commerce Platform (Multi-nicho: Vehículos, Electrónica, etc)',
+        'saas'
     )
 ON CONFLICT (org_id, slug) DO NOTHING;
 
@@ -104,5 +104,5 @@ ON CONFLICT (from_phase, to_phase) DO NOTHING;
 
 DO $$
 BEGIN
-    RAISE NOTICE 'MM-Flow seed data inserted: 2 orgs, 2 projects, 2 workspaces, 3 backends, 3 sessions';
+    RAISE NOTICE 'MM-Flow seed data inserted: RAP-software (mastermind) + Prosell-CA (prosell-ecommerce), 2 workspaces, 3 backends, 6 sessions';
 END $$;

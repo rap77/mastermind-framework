@@ -109,9 +109,9 @@ POSTGRES_LOCAL = PostgreSQLConfig(
 # ============================================================================
 
 CURRENT_PROJECTS = {
-    "acme-corp": {
-        "slug": "acme-corp",
-        "name": "Acme Corp",
+    "RAP-software": {
+        "slug": "RAP-software",
+        "name": "RAP Software",
         "projects": {
             "mastermind": {
                 "name": "MasterMind Framework",
@@ -119,13 +119,19 @@ CURRENT_PROJECTS = {
             }
         },
     },
-    "prosell-sass": {
-        "slug": "prosell-sass",
-        "name": "Prosell SaaS",
+    "Prosell-CA": {
+        "slug": "Prosell-CA",
+        "name": "Prosell C.A.",
         "projects": {
-            "paperclip-v3": {
-                "name": "Paperclip Clone v3.0",
-                "type": "software",
+            "prosell-ecommerce": {
+                "name": "Prosell E-Commerce Platform (Multi-nicho)",
+                "type": "saas",
+                "features": [
+                    "scraping",
+                    "price-evaluation",
+                    "market-analysis",
+                    "multi-niche",
+                ],
             }
         },
     },
