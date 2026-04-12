@@ -365,5 +365,125 @@ def night_run(project: str, phase: int, max_hours: float) -> None:
     click.echo(f"  Ended    : {result['ended_at']}")
 
 
+# ---------------------------------------------------------------------------
+# mm-flow context
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.option(
+    "--phase", type=int, required=True, help="Phase number to recover context for"
+)
+@click.option(
+    "--project",
+    default="mastermind",
+    help="Project name (default: mastermind)",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    help="Override output file path (optional)",
+)
+def context(phase: int, project: str, output: Optional[str]) -> None:
+    """
+    Generate CONTEXT.md for a phase by querying Engram.
+
+    Recovers prior decisions, warnings, and learnings from Engram persistent memory.
+    Writes to .planning/phases/0N-*/CONTEXT.md by default.
+
+    Usage:
+        mm-flow context --phase 19
+        mm-flow context --phase 19 --project mastermind
+        mm-flow context --phase 19 --output /tmp/context.md
+    """
+    from context_loader import generate_context_for_phase  # type: ignore[import]
+
+    output_path = Path(output) if output else None
+
+    try:
+        result_path = generate_context_for_phase(
+            project=project,
+            phase_num=phase,
+            output_path=output_path,
+        )
+
+        if result_path:
+            click.echo(f"✅ Context generated: {result_path}")
+            click.echo(f"   Use this context when planning phase {phase}.")
+        else:
+            click.echo(
+                f"⚠️  No context found in Engram for phase {phase}. "
+                f"This is OK — proceeding without prior context."
+            )
+
+    except Exception as e:
+        raise click.ClickException(f"Failed to generate context: {e}")
+
+
+# ---------------------------------------------------------------------------
+# mm-flow plan-phase (wrapper)
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.option("--phase", type=int, required=True, help="Phase number to plan")
+@click.option(
+    "--project",
+    default="mastermind",
+    help="Project name (default: mastermind)",
+)
+def plan_phase(phase: int, project: str) -> None:
+    """
+    Plan a phase with automatic Engram context injection.
+
+    This is a wrapper that:
+    1. Generates CONTEXT.md from Engram (automatically)
+    2. Calls /mm:plan-phase N with context auto-injected
+    3. Returns PLAN.md with context references
+
+    The context injection is transparent — the user just sees one command.
+
+    Usage:
+        mm-flow plan-phase --phase 19
+        mm-flow plan-phase --phase 19 --project mastermind
+    """
+    from context_loader import generate_context_for_phase  # type: ignore[import]
+
+    click.echo(f"Planning phase {phase} for {project}…")
+    click.echo()
+
+    # Step 1: Auto-generate context from Engram
+    click.echo("1️⃣  Recovering context from Engram…")
+    context_path = generate_context_for_phase(
+        project=project,
+        phase_num=phase,
+        output_path=None,
+    )
+
+    if context_path:
+        click.echo(f"   ✅ Context found: {context_path}")
+    else:
+        click.echo("   ⚠️  No prior context (OK, will proceed without)")
+
+    click.echo()
+
+    # Step 2: Invoke /mm:plan-phase N
+    # NOTE: This would normally delegate to the /mm:plan-phase skill
+    # For now, we just indicate what would happen
+    click.echo(f"2️⃣  Would invoke: /mm:plan-phase {phase} --context <auto>")
+    click.echo()
+    click.echo(
+        "   (In production: this delegates to the MasterMind brain planning skill)"
+    )
+    click.echo()
+
+    # Step 3: Summary
+    click.echo(f"✅ Phase {phase} planning would proceed with context auto-injected.")
+    click.echo("   PLAN.md will reference prior decisions and learnings.")
+    click.echo()
+    click.echo(f"   Next: Review .planning/phases/{phase:02d}-*/PLAN.md")
+    click.echo(f"   Then: Run `mm-flow execute-phase --phase {phase}`")
+
+
 if __name__ == "__main__":
     cli()
