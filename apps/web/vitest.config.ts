@@ -25,6 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'react-virtuoso': path.resolve(__dirname, './src/test/__mocks__/react-virtuoso.tsx'),
     },
   },
 })

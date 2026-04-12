@@ -38,21 +38,21 @@ describe('ThreadDetail', () => {
   })
 
   it('should show merge thread action', () => {
-    const onMerge = vi.fn()
-    render(<ThreadDetail thread={mockThread} onMerge={onMerge} />)
+    const onAddToMergeSelection = vi.fn()
+    render(<ThreadDetail thread={mockThread} onAddToMergeSelection={onAddToMergeSelection} />)
 
-    const mergeButton = screen.getByRole('button', { name: /merge thread/i })
+    const mergeButton = screen.getByRole('button', { name: /add to merge selection/i })
     expect(mergeButton).toBeInTheDocument()
   })
 
-  it('should call onMerge when merge button clicked', () => {
-    const onMerge = vi.fn()
-    render(<ThreadDetail thread={mockThread} onMerge={onMerge} />)
+  it('should call onAddToMergeSelection when merge button clicked', () => {
+    const onAddToMergeSelection = vi.fn()
+    render(<ThreadDetail thread={mockThread} onAddToMergeSelection={onAddToMergeSelection} />)
 
-    const mergeButton = screen.getByRole('button', { name: /merge thread/i })
+    const mergeButton = screen.getByRole('button', { name: /add to merge selection/i })
     fireEvent.click(mergeButton)
 
-    expect(onMerge).toHaveBeenCalledWith('thread-1')
+    expect(onAddToMergeSelection).toHaveBeenCalledWith('thread-1')
   })
 
   it('should integrate with WebSocket for real-time updates', () => {
