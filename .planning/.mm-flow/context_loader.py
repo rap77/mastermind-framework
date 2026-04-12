@@ -199,10 +199,7 @@ class EngramContextLoader:
             )
             return None
 
-        # Step 2: Categorize observations
-        categorized = self._categorize_observations()
-
-        # Step 3: Find phase directory
+        # Step 2: Find phase directory
         phase_folders = list(
             self.repo_root.glob(f".planning/phases/{self.phase_str}-*")
         )
@@ -216,7 +213,7 @@ class EngramContextLoader:
         context_file = phase_dir / "CONTEXT.md"
 
         # Step 4: Render and write CONTEXT.md
-        context_md = self._render_context_md(categorized)
+        context_md = self._render_context_md()
         context_file.write_text(context_md, encoding="utf-8")
 
         self.logger.info(f"✅ Context generated: {context_file}")
@@ -260,7 +257,7 @@ class EngramContextLoader:
             self.logger.error(f"Failed to query Engram: {e}")
             return False
 
-    def _try_engram_api_query(self, search_query: str) -> List[EngramObservation]:
+    def _try_engram_api_query(self, _search_query: str) -> List[EngramObservation]:
         """
         Attempt to query Engram using Python SDK or subprocess.
 
@@ -322,9 +319,7 @@ class EngramContextLoader:
 
         return categorized
 
-    def _render_context_md(
-        self, categorized: Dict[str, List[EngramObservation]]
-    ) -> str:
+    def _render_context_md(self) -> str:
         """
         Render CONTEXT.md with all sections.
 
@@ -347,9 +342,6 @@ class EngramContextLoader:
         ## Cross-Phase Contracts
         ...
         ```
-
-        Args:
-            categorized: Dict[category -> observations]
 
         Returns:
             Markdown string ready to write to file.
@@ -494,7 +486,6 @@ class EngramContextLoader:
 def generate_context_for_phase(
     project: str,
     phase_num: int,
-    output_path: Optional[Path] = None,
 ) -> Optional[Path]:
     """
     Convenience function: generate context for a phase.
@@ -504,7 +495,6 @@ def generate_context_for_phase(
     Args:
         project: Project name
         phase_num: Phase number
-        output_path: Optional override for output location
 
     Returns:
         Path to generated CONTEXT.md, or None if failed.
