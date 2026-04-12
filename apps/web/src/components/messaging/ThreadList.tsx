@@ -38,10 +38,22 @@ const ThreadItem = memo(function ThreadItem({
   onThreadSelect,
   onToggleThreadSelection,
 }: ThreadItemProps) {
+  // Compute background style based on state
+  const getBackgroundStyle = (): React.CSSProperties => {
+    if (isMergeSelected) {
+      return { backgroundColor: '#fff3e0', borderLeft: '3px solid #ff9800' }
+    }
+    if (isSelected) {
+      return { backgroundColor: '#e3f2fd', borderLeft: '3px solid #2196f3' }
+    }
+    return {}
+  }
+
   return (
     <div
       data-testid={`thread-item-${thread.id}`}
-      className={`thread-item ${isSelected ? 'selected' : ''} ${thread.unread ? 'unread' : ''} ${isMergeSelected ? 'merge-selected' : ''}`}
+      className={`thread-item ${thread.unread ? 'unread' : ''}`}
+      style={getBackgroundStyle()}
       onClick={() => onThreadSelect(thread.id)}
     >
       {onToggleThreadSelection && (

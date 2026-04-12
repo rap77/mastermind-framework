@@ -57,6 +57,13 @@ export default function UnifiedInboxPage() {
     fetchThreads()
   }, [selectedChannel])
 
+  // Initialize with first thread on mount (Bug #1 fix)
+  useEffect(() => {
+    if (threads.length > 0 && !selectedThreadId) {
+      setSelectedThreadId(threads[0].id)
+    }
+  }, [threads, selectedThreadId])
+
   // Thread merge state
   const selectedThreads = useMessageStore((state) => state.selectedThreads)
   const toggleThreadSelection = useMessageStore((state) => state.toggleThreadSelection)
@@ -66,17 +73,31 @@ export default function UnifiedInboxPage() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
       if (e.key === 'j' || e.key === 'J') {
+        e.preventDefault() // Prevent default scrolling
         // Navigate to next thread
         const currentIndex = threads.findIndex((t) => t.id === selectedThreadId)
-        if (currentIndex < threads.length - 1) {
+        if (currentIndex < threads.length - 1 && currentIndex >= 0) {
           setSelectedThreadId(threads[currentIndex + 1].id)
+          logger.info('Keyboard: Selected next thread', threads[currentIndex + 1].id)
         }
       } else if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault() // Prevent default scrolling
         // Navigate to previous thread
         const currentIndex = threads.findIndex((t) => t.id === selectedThreadId)
         if (currentIndex > 0) {
           setSelectedThreadId(threads[currentIndex - 1].id)
+          logger.info('Keyboard: Selected previous thread', threads[currentIndex - 1].id)
         }
       }
     }
@@ -117,12 +138,13 @@ export default function UnifiedInboxPage() {
     }
   }, [mergeThreads])
 
-  // Wrapper to merge a single thread (for ThreadDetail component)
-  const handleMergeSingle = useCallback(
+  // Wrapper to add current thread to merge selection (for ThreadDetail component)
+  const handleAddToMergeSelection = useCallback(
     (threadId: string) => {
-      handleMerge([threadId])
+      toggleThreadSelection(threadId)
+      logger.info('Thread added to merge selection:', threadId)
     },
-    [handleMerge]
+    [toggleThreadSelection]
   )
 
   // Mock thread data for selected thread
@@ -163,7 +185,7 @@ export default function UnifiedInboxPage() {
           />
         )}
         {selectedThread ? (
-          <ThreadDetail thread={selectedThread} onMerge={handleMergeSingle} />
+          <ThreadDetail thread={selectedThread} onAddToMergeSelection={handleAddToMergeSelection} />
         ) : (
           <div className="empty-state" data-testid="thread-detail">
             <p>Select a thread to view messages</p>

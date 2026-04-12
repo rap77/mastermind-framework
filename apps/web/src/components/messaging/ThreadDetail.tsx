@@ -17,7 +17,7 @@ interface ThreadDetailProps {
     participants: string[]
     messages: MessageState[]
   }
-  onMerge: (threadId: string) => void
+  onAddToMergeSelection: (threadId: string) => void
 }
 
 interface ThreadUpdateEvent {
@@ -25,7 +25,7 @@ interface ThreadUpdateEvent {
   message: MessageState
 }
 
-export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
+export default function ThreadDetail({ thread, onAddToMergeSelection }: ThreadDetailProps) {
   const [messages, setMessages] = useState<MessageState[]>(thread.messages)
   const [messageText, setMessageText] = useState('')
 
@@ -45,8 +45,12 @@ export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
     <div className="thread-detail" data-testid="thread-detail" data-selected-thread={thread.id}>
       <div className="thread-header">
         <h2 className="thread-subject">{thread.subject}</h2>
-        <button className="merge-button" onClick={() => onMerge(thread.id)}>
-          Merge Thread
+        <button
+          className="add-to-merge-button"
+          onClick={() => onAddToMergeSelection(thread.id)}
+          title="Add this thread to merge selection (select 2+ threads to merge)"
+        >
+          Add to Merge Selection
         </button>
       </div>
 
@@ -116,18 +120,19 @@ export default function ThreadDetail({ thread, onMerge }: ThreadDetailProps) {
           font-weight: 600;
         }
 
-        .merge-button {
+        .add-to-merge-button {
           padding: 8px 16px;
-          background: #007bff;
+          background: #6c757d;
           color: white;
           border: none;
           border-radius: 6px;
           cursor: pointer;
           font-weight: 500;
+          font-size: 13px;
         }
 
-        .merge-button:hover {
-          background: #0056b3;
+        .add-to-merge-button:hover {
+          background: #5a6268;
         }
 
         .thread-participants {
