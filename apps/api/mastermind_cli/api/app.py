@@ -31,6 +31,17 @@ from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.state.database import DatabaseConnection
 
+# Audit trail router (MM-Flow audit infrastructure)
+audit_router: Optional[Any] = None
+
+try:
+    from routers import audit as audit_router_module
+
+    audit_router = audit_router_module.router
+except ImportError:
+    # Fallback if audit router not available
+    pass
+
 # Channel routers for multi-channel gateway
 instagram_router: Optional[Any] = None
 whatsapp_router: Optional[Any] = None
@@ -142,6 +153,10 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(websocket_router, tags=["WebSocket"])
     app.include_router(companies_router)  # Companies with tenant isolation
 
+    # Audit trail router (MM-Flow infrastructure — Phase 16+)
+    if audit_router:
+        app.include_router(audit_router, tags=["Audit"])
+
     # Channel routers for multi-channel gateway (Phase 18)
     if instagram_router:
         app.include_router(instagram_router, tags=["Instagram"])
@@ -169,6 +184,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
             await db.create_execution_history_schema()
             await db.create_api_keys_v2_schema()
             await db.create_experience_schema()
+            await db.create_audit_trail_schema()
 
     return app
 

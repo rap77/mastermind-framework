@@ -392,6 +392,174 @@ class DatabaseConnection:
 
         await self.conn.commit()
 
+    async def create_audit_trail_schema(self) -> None:
+        """Create audit trail tables for MM-Flow (Phase 16+).
+
+        Audit Trail Schema (Phase 16 - Observability):
+            - phase_executions: Track each phase execution with timing and status
+            - decisions: Record architectural/technical decisions with rationale
+            - verification_gates: Track quality gate results
+            - artifacts: Track generated documents and plans
+            - brain_feedback: Capture feedback from brain agents
+            - dev_sessions: Track development sessions with task completion
+            - audit_log: Immutable compliance audit trail
+
+        These tables enable:
+            - Phase timeline reconstruction
+            - Decision history and traceability
+            - Quality metrics (gate pass rates, decision approval rates)
+            - Session continuity and velocity tracking
+            - Compliance and governance
+        """
+        # phase_executions: Track each phase execution
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS phase_executions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER NOT NULL,
+                execution_num INTEGER NOT NULL DEFAULT 1,
+                status TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                duration_seconds INTEGER,
+                backend_used TEXT,
+                tokens_consumed INTEGER DEFAULT 0,
+                tokens_input INTEGER DEFAULT 0,
+                tokens_output INTEGER DEFAULT 0,
+                output_summary TEXT,
+                git_commit_hash TEXT,
+                triggered_by TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # decisions: Record decisions made during phases
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS decisions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER NOT NULL,
+                decision_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                chosen_option TEXT NOT NULL,
+                alternatives TEXT,
+                confidence REAL DEFAULT 0.5,
+                impact_level TEXT NOT NULL,
+                impact_description TEXT,
+                status TEXT DEFAULT 'pending',
+                made_by TEXT NOT NULL,
+                approved_by TEXT,
+                tags TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # verification_gates: Track quality gates per phase
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS verification_gates (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER NOT NULL,
+                gate_type TEXT NOT NULL,
+                gate_name TEXT NOT NULL,
+                status TEXT NOT NULL,
+                score REAL,
+                result TEXT,
+                evaluation_notes TEXT,
+                evaluated_by TEXT,
+                completed_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # artifacts: Track generated plans, specs, etc.
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER NOT NULL,
+                artifact_type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                file_path TEXT,
+                created_by TEXT NOT NULL,
+                git_commit_hash TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # brain_feedback: Capture brain agent insights
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS brain_feedback (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER NOT NULL,
+                brain_id INTEGER NOT NULL,
+                feedback_text TEXT NOT NULL,
+                feedback_type TEXT,
+                confidence_score REAL DEFAULT 0.5,
+                impact_level TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # dev_sessions: Track development sessions
+        await self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS dev_sessions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                phase_num INTEGER,
+                session_date TEXT NOT NULL,
+                duration_minutes INTEGER,
+                status TEXT NOT NULL,
+                tasks_completed INTEGER DEFAULT 0,
+                tasks_total INTEGER DEFAULT 0,
+                commits_count INTEGER DEFAULT 0,
+                discoveries TEXT,
+                blockers TEXT,
+                next_steps TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Create indexes for common queries
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_phase_executions_project_phase "
+            "ON phase_executions(project_id, phase_num)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_decisions_project_phase "
+            "ON decisions(project_id, phase_num)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_decisions_created_at "
+            "ON decisions(project_id, created_at DESC)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_verification_gates_project_phase "
+            "ON verification_gates(project_id, phase_num)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_artifacts_project_phase "
+            "ON artifacts(project_id, phase_num)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_brain_feedback_project_brain "
+            "ON brain_feedback(project_id, brain_id)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_brain_feedback_created_at "
+            "ON brain_feedback(project_id, created_at DESC)"
+        )
+        await self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_dev_sessions_project_phase "
+            "ON dev_sessions(project_id, phase_num)"
+        )
+
+        await self.conn.commit()
+
     async def close(self) -> None:
         """Close database connection."""
         if self._conn:

@@ -1,8 +1,10 @@
 # Before-Skill Hook Implementation: Auto-Context Recovery
 
 **Date:** 2026-04-12
-**Status:** ✅ COMPLETE
+**Status:** ⏳ IN PROGRESS (UserPromptSubmit alternative)
 **Commits:** One commit to settings.json + hook scripts
+
+**CORRECTION (2026-04-12):** This document originally specified `BeforeSkillInvoke` which does not exist in Claude Code. We use `UserPromptSubmit` instead, which is a valid Claude Code hook event that achieves the same result.
 
 ---
 
@@ -24,7 +26,7 @@ Result: User sees zero difference, but context is automatically available.
 ### Files Modified/Created
 
 **Global (~/.claude/):**
-- `settings.json` — added `hooks.BeforeSkillInvoke` section for `mm:plan-phase`
+- `settings.json` — added `hooks.UserPromptSubmit` section for `mm:plan-phase`
 - `HOOKS-GUIDE.md` — comprehensive hook documentation
 - `hooks/mm-plan-phase-context.js` — hook script implementation
 
@@ -38,9 +40,9 @@ Result: User sees zero difference, but context is automatically available.
 ```json
 {
   "hooks": {
-    "BeforeSkillInvoke": [
+    "UserPromptSubmit": [
       {
-        "skill_pattern": "mm:plan-phase",
+        "matcher": "mm:plan-phase",
         "description": "Auto-generate Engram context before planning phase",
         "timeout_seconds": 30,
         "continue_on_error": true,
@@ -81,11 +83,11 @@ Result: User sees zero difference, but context is automatically available.
 ```
 User types: /mm:plan-phase --phase 19
     ↓
-Claude Code detects skill invocation
+Claude Code detects UserPromptSubmit
     ↓
-BeforeSkillInvoke hook triggered
+Hook matcher checks if prompt contains "mm:plan-phase"
     ↓
-Hook script receives: { skill_name: "mm:plan-phase", skill_args: { phase: 19 }, cwd: "...", session_id: "..." }
+Hook script receives prompt and phase number
     ↓
 Hook runs: mm-flow context --phase 19
     ↓
@@ -114,7 +116,7 @@ ls -la ~/.claude/hooks/mm-plan-phase-context.js
 ### Check 2: Settings.json has hook configured
 
 ```bash
-cat ~/.claude/settings.json | jq '.hooks.BeforeSkillInvoke'
+cat ~/.claude/settings.json | jq '.hooks.UserPromptSubmit'
 # Should show the mm:plan-phase hook entry
 ```
 
@@ -147,6 +149,7 @@ find .planning/phases/19-* -name CONTEXT.md -type f
 | Hook times out | Taking >30s to generate context | Increase `timeout_seconds` in settings.json |
 | /mm:plan-phase blocked by hook | Hook not respecting continue_on_error | Already set to true; hook exits gracefully |
 | Settings.json has JSON syntax error | Corrupt after manual edit | Run `cat ~/.claude/settings.json \| jq .` to validate |
+| UserPromptSubmit hook not recognized | Claude Code doesn't support UserPromptSubmit | Upgrade Claude Code to latest version; this is a valid hook event |
 
 ---
 
@@ -164,8 +167,8 @@ find .planning/phases/19-* -name CONTEXT.md -type f
 If the hook causes issues:
 
 ```bash
-# Temporarily disable by removing BeforeSkillInvoke from settings.json
-cat ~/.claude/settings.json | jq 'del(.hooks.BeforeSkillInvoke)' > /tmp/settings.json && mv /tmp/settings.json ~/.claude/settings.json
+# Temporarily disable by removing UserPromptSubmit from settings.json
+cat ~/.claude/settings.json | jq 'del(.hooks.UserPromptSubmit)' > /tmp/settings.json && mv /tmp/settings.json ~/.claude/settings.json
 
 # To re-enable: restore from git or add back to settings.json
 ```
@@ -175,7 +178,7 @@ cat ~/.claude/settings.json | jq 'del(.hooks.BeforeSkillInvoke)' > /tmp/settings
 To add hooks for other skills (e.g., `/mm:execute-phase`):
 
 1. Create a new hook script (copy and adapt mm-plan-phase-context.js)
-2. Add new entry to `hooks.BeforeSkillInvoke` in settings.json
+2. Add new entry to `hooks.UserPromptSubmit` in settings.json
 3. Update HOOKS-GUIDE.md with documentation
 
 ---
@@ -184,7 +187,7 @@ To add hooks for other skills (e.g., `/mm:execute-phase`):
 
 - **Hook location:** Global configuration in `~/.claude/settings.json` (not project-specific)
 - **Persistent across projects:** Applies to all Claude Code sessions
-- **Claude Code version:** Assumes BeforeSkillInvoke hook support (may be alpha/beta feature)
+- **Hook event:** UserPromptSubmit is a valid Claude Code hook event that fires when the user submits any prompt
 - **If hook support is dropped:** Fall back to `mm-flow plan-phase` wrapper command
 - **Integration test:** Run `/mm:plan-phase --phase 19` after each Claude Code update
 
