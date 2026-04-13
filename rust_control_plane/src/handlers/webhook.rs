@@ -21,14 +21,6 @@ use tracing::{error, info, warn};
 use crate::observability::LatencyTracker;
 use crate::queue::{WebhookQueue, WebhookEvent};
 
-/// Application state for webhook handler
-#[derive(Clone)]
-pub struct WebhookState {
-    pub db: PgPool,
-    pub webhook_queue: Arc<WebhookQueue>,
-    pub latency_tracker: Arc<LatencyTracker>,
-}
-
 /// Verify HMAC signature from webhook provider
 ///
 /// WhatsApp: X-Hub-Signature-256 (SHA256)
@@ -120,7 +112,7 @@ async fn is_duplicate(db: &PgPool, external_id: &str, channel: &str) -> anyhow::
 /// - 503 Service Unavailable: Queue depth > 90%
 pub async fn webhook_receiver(
     Path(channel): Path<String>,
-    State(state): State<WebhookState>,
+    State(state): State<crate::state::AppState>,
     headers: HeaderMap,
     Json(payload): Json<Value>,
 ) -> Result<StatusCode, StatusCode> {
@@ -169,7 +161,7 @@ pub async fn webhook_receiver(
     })?;
 
     // Check for duplicate (idempotency)
-    let duplicate = is_duplicate(&state.db, &external_id, &channel)
+    let duplicate = is_duplicate(&state.pool, &external_id, &channel)
         .await
         .map_err(|e| {
             error!(channel = %channel, error = %e, "Database error checking duplicate");
@@ -198,7 +190,7 @@ pub async fn webhook_receiver(
     .bind(&external_id)
     .bind(&channel)
     .bind(&payload)
-    .execute(&state.db)
+    .execute(&state.pool)
     .await
     .map_err(|e| {
         error!(channel = %channel, error = %e, "Failed to insert webhook");

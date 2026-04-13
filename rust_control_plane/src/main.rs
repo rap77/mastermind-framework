@@ -25,6 +25,7 @@ mod websocket;
 mod metrics;
 mod queue;
 mod observability;
+mod dlq;
 // mod proto;  // TODO: Add proto files before enabling
 // mod grpc;   // TODO: Add proto files before enabling
 
@@ -74,14 +75,9 @@ async fn main() -> Result<()> {
     let latency_tracker = Arc::new(LatencyTracker::new());
 
     let state = AppState {
-        pool,
+        pool: pool.clone(),
         jwt_secret: Arc::new(jwt_secret),
         websocket_hub,
-    };
-
-    // Create webhook state
-    let webhook_state = handlers::webhook::WebhookState {
-        db: pool.clone(),
         webhook_queue: webhook_queue.clone(),
         latency_tracker: latency_tracker.clone(),
     };

@@ -125,7 +125,7 @@ pub fn parse_instagram_webhook(payload: &Value) -> Result<InstagramComment> {
         .map(|s| s.to_string());
 
     // Determine webhook type
-    let webhook_type = if value.contains_key("conversation_id") {
+    let webhook_type = if value.get("conversation_id").is_some() {
         "message".to_string()
     } else {
         "comment".to_string()
@@ -337,10 +337,6 @@ pub async fn download_instagram_media(media_url: &str) -> Result<String> {
     ::tracing::warn!("Instagram media download not implemented yet (MVP stub)");
     Ok(media_url.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     #[test]
     fn test_is_comment_webhook_false_like() {

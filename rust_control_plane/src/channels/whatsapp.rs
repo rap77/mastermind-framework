@@ -87,12 +87,12 @@ pub fn parse_whatsapp_webhook(payload: Value) -> Result<MessagePayload> {
         .and_then(|s| s.parse::<i64>().ok());
 
     // Determine message type and extract content
-    let (message_type, content, media_url) = if message.contains_key("text") {
+    let (message_type, content, media_url) = if message.get("text").is_some() {
         let text_body = message["text"]["body"]
             .as_str()
             .map(|s| s.to_string());
         ("text".to_string(), text_body, None)
-    } else if message.contains_key("image") {
+    } else if message.get("image").is_some() {
         let caption = message["image"]["caption"]
             .as_str()
             .map(|s| s.to_string());
@@ -100,12 +100,12 @@ pub fn parse_whatsapp_webhook(payload: Value) -> Result<MessagePayload> {
             .as_str()
             .map(|s| s.to_string());
         ("image".to_string(), caption, url)
-    } else if message.contains_key("audio") {
+    } else if message.get("audio").is_some() {
         let url = message["audio"]["url"]
             .as_str()
             .map(|s| s.to_string());
         ("audio".to_string(), None, url)
-    } else if message.contains_key("document") {
+    } else if message.get("document").is_some() {
         let caption = message["document"]["caption"]
             .as_str()
             .map(|s| s.to_string());
@@ -113,7 +113,7 @@ pub fn parse_whatsapp_webhook(payload: Value) -> Result<MessagePayload> {
             .as_str()
             .map(|s| s.to_string());
         ("document".to_string(), caption, url)
-    } else if message.contains_key("video") {
+    } else if message.get("video").is_some() {
         let caption = message["video"]["caption"]
             .as_str()
             .map(|s| s.to_string());
@@ -121,16 +121,16 @@ pub fn parse_whatsapp_webhook(payload: Value) -> Result<MessagePayload> {
             .as_str()
             .map(|s| s.to_string());
         ("video".to_string(), caption, url)
-    } else if message.contains_key("location") {
+    } else if message.get("location").is_some() {
         let location_text = format!(
             "{},{}",
             message["location"]["latitude"].as_f64().unwrap_or(0.0),
             message["location"]["longitude"].as_f64().unwrap_or(0.0)
         );
         ("location".to_string(), Some(location_text), None)
-    } else if message.contains_key("contacts") {
+    } else if message.get("contacts").is_some() {
         ("contacts".to_string(), None, None)
-    } else if message.contains_key("interactive") {
+    } else if message.get("interactive").is_some() {
         // Interactive response (button, list reply)
         let interactive_type = message["interactive"]["type"]
             .as_str()
@@ -311,10 +311,6 @@ pub async fn store_media(media_url: &str, message_id: &str) -> Result<String> {
     );
     Ok(format!("{}#{}", media_url, message_id))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     #[test]
     fn test_parse_audio_message() {

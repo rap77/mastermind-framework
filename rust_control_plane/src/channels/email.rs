@@ -242,7 +242,7 @@ fn parse_postmark(payload: Value) -> Result<EmailMessage> {
         .map(|s| s.to_string());
 
     // Extract thread ID from headers
-    let thread_id = extract_thread_id_postmark(&payload);
+    let thread_id = extract_thread_id_postmark(&payload).ok();
 
     // Extract timestamp
     let timestamp = payload["Timestamp"]
@@ -316,20 +316,20 @@ pub fn extract_message_id(payload: Value) -> Result<String> {
 /// # Returns
 /// * `Ok(String)` - Thread ID (may be empty if not a reply)
 /// * `Err(anyhow::Error)` - Extraction error
-pub fn extract_thread_id(payload: Value) -> Result<String> {
+pub fn extract_thread_id(payload: Value) -> Result<Option<String>> {
     let provider = detect_provider(&payload);
 
     match provider.as_str() {
         "sendgrid" => {
             let event = payload["events"][0].as_object()
                 .ok_or_else(|| anyhow!("SendGrid missing events"))?;
-            extract_thread_id_from_headers(event.get("headers").unwrap_or(&Value::Null))
+            Ok(extract_thread_id_from_headers(event.get("headers").unwrap_or(&Value::Null)))
         }
         "mailgun" => {
-            extract_thread_id_from_headers(&payload["event-data"]["message"]["headers"])
+            Ok(extract_thread_id_from_headers(&payload["event-data"]["message"]["headers"]))
         }
         "postmark" => {
-            extract_thread_id_postmark(&payload)
+            Ok(extract_thread_id_postmark(&payload).ok())
         }
         _ => Err(anyhow!("Unknown provider for thread-id extraction")),
     }
@@ -461,9 +461,11 @@ fn parse_postmark_attachments(attachments: &Value) -> Vec<Attachment> {
 
 /// Helper to convert JSON number to u64
 fn as_u64(value: &Value) -> Option<u64> {
-    value.as_i64()
-        .or_else(|| value.as_u64())
-        .and_then(|n| u64::try_from(n).ok())
+    if let Some(i) = value.as_i64() {
+        u64::try_from(i).ok()
+    } else {
+        value.as_u64()
+    }
 }
 
 #[cfg(test)]

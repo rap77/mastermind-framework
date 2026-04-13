@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 use crate::websocket::WebSocketHub;
+use crate::queue::WebhookQueue;
+use crate::observability::LatencyTracker;
 
 /// Application state shared across all handlers
 #[derive(Clone)]
@@ -9,4 +11,6 @@ pub struct AppState {
     pub pool: sqlx::PgPool,
     pub jwt_secret: Arc<String>,
     pub websocket_hub: Arc<WebSocketHub>,
+    pub webhook_queue: Arc<WebhookQueue>,
+    pub latency_tracker: Arc<LatencyTracker>,
 }
