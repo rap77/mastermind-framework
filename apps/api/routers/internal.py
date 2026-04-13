@@ -12,9 +12,12 @@ import os
 import asyncio
 from typing import Optional
 import structlog
-from grpclib.server import Server
+import grpc
 from mastermind.worker.worker_pb2 import ProcessWebhookResponse
-from mastermind.worker.worker_pb2_grpc import WorkerBase
+from mastermind.worker.worker_pb2_grpc import (
+    WorkerServicer,
+    add_WorkerServicer_to_server,
+)
 
 # Import channel senders
 from routers.whatsapp import send_whatsapp_message, WhatsAppMessage
@@ -24,60 +27,59 @@ from routers.email import send_email, EmailMessage
 logger = structlog.get_logger(__name__)
 
 
-class WorkerService(WorkerBase):
+class WorkerService(WorkerServicer):
     """gRPC service for processing webhooks from Rust control plane
 
     Receives webhook events via gRPC from the Rust webhook worker,
     processes them (AI simulation for now), and sends to channel APIs.
     """
 
-    async def ProcessWebhook(self, stream):
+    async def ProcessWebhook(self, request, context):
         """Process webhook from Rust control plane
 
         Args:
-            stream: gRPC request stream containing ProcessWebhookRequest
+            request: ProcessWebhookRequest with trace_id, channel, payload, message_type
+            context: gRPC context (RPC metadata)
 
         Returns:
             ProcessWebhookResponse with success status and AI response
         """
-        req = await stream.recv()
-
         logger.info(
             "Received gRPC webhook request",
-            trace_id=req.trace_id,
-            channel=req.channel,
-            message_type=req.message_type,
+            trace_id=request.trace_id,
+            channel=request.channel,
+            message_type=request.message_type,
         )
 
         try:
             # Route to appropriate channel sender
-            if req.channel == "whatsapp":
-                await self._send_whatsapp(req.payload)
-            elif req.channel == "instagram":
-                await self._send_instagram(req.payload)
-            elif req.channel == "email":
-                await self._send_email(req.payload)
+            if request.channel == "whatsapp":
+                await self._send_whatsapp(request.payload)
+            elif request.channel == "instagram":
+                await self._send_instagram(request.payload)
+            elif request.channel == "email":
+                await self._send_email(request.payload)
             else:
-                raise ValueError(f"Unsupported channel: {req.channel}")
+                raise ValueError(f"Unsupported channel: {request.channel}")
 
             logger.info(
                 "Webhook processed successfully",
-                trace_id=req.trace_id,
-                channel=req.channel,
+                trace_id=request.trace_id,
+                channel=request.channel,
             )
 
             return ProcessWebhookResponse(
                 success=True,
                 ai_response="Message sent successfully",
-                suggested_channel=req.channel,
+                suggested_channel=request.channel,
                 processing_duration_ms=100,  # Simulated AI processing time
             )
 
         except Exception as e:
             logger.error(
                 "Webhook processing failed",
-                trace_id=req.trace_id,
-                channel=req.channel,
+                trace_id=request.trace_id,
+                channel=request.channel,
                 error=str(e),
             )
             return ProcessWebhookResponse(
@@ -166,8 +168,13 @@ async def start_grpc_server(
     host = host or os.getenv("GRPC_SERVER_HOST", "127.0.0.1")
     port = port or int(os.getenv("GRPC_SERVER_PORT", "50051"))
 
-    server = Server([WorkerService()])
-    await server.start(host, port)
+    # Create gRPC server (grpc.aio)
+    server = grpc.aio.server()
+    add_WorkerServicer_to_server(WorkerService(), server)
+
+    # Add port and start listening
+    server.add_insecure_port(f"{host}:{port}")
+    await server.start()
 
     logger.info(
         "gRPC server started",
@@ -185,8 +192,8 @@ if __name__ == "__main__":
         server = await start_grpc_server()
         logger.info("Press Ctrl+C to stop")
         try:
-            await server.wait_closed()
+            await server.wait_for_termination()
         except KeyboardInterrupt:
-            await server.close()
+            await server.stop(grace_period=0.1)
 
     asyncio.run(main())

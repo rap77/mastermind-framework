@@ -8,6 +8,7 @@ Requirements: UI-01, UI-07
 import hashlib
 import os
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator, Optional
@@ -30,6 +31,14 @@ from mastermind_cli.api.routes.keys import (
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.state.database import DatabaseConnection
+
+# gRPC server (Phase 18: gap-closure)
+try:
+    from routers.internal import start_grpc_server
+
+    _GRPC_ENABLED = True
+except ImportError:
+    _GRPC_ENABLED = False
 
 # Audit trail router (MM-Flow audit infrastructure)
 audit_router: Optional[Any] = None
@@ -57,6 +66,50 @@ except ImportError:
 
 _WEB_DIR = Path(__file__).parent.parent / "web"
 
+# Global gRPC server instance (for graceful shutdown)
+_grpc_server = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage FastAPI app lifecycle: startup and shutdown of services.
+
+    Startup:
+    - Initializes database schemas
+    - Starts gRPC server for webhook processing (Phase 18: gap-closure)
+
+    Shutdown:
+    - Gracefully stops gRPC server
+    """
+    global _grpc_server
+
+    # STARTUP
+    async with DatabaseConnection(":memory:") as db:
+        await db.create_task_schema()
+        await db.create_auth_schema()
+        await db.create_execution_history_schema()
+        await db.create_api_keys_v2_schema()
+        await db.create_experience_schema()
+        await db.create_audit_trail_schema()
+
+    # Start gRPC server (Phase 18: AI Worker gRPC integration)
+    if _GRPC_ENABLED:
+        try:
+            _grpc_server = await start_grpc_server()
+        except Exception as e:
+            print(f"WARNING: Failed to start gRPC server: {e}")
+            # Don't fail app startup if gRPC is optional
+            pass
+
+    yield
+
+    # SHUTDOWN
+    if _grpc_server:
+        try:
+            await _grpc_server.stop(grace_period=0.1)
+        except Exception as e:
+            print(f"WARNING: Error closing gRPC server: {e}")
+
 
 def create_app(db_path: str = ":memory:") -> FastAPI:
     """Create and configure FastAPI application.
@@ -73,6 +126,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         version="1.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     # Register rate limiter (Brain #7 gap B — prevent bcrypt DoS via x-api-key spam)
@@ -173,18 +227,6 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         app.mount(
             "/static", StaticFiles(directory=str(_WEB_DIR / "static")), name="static"
         )
-
-    # Startup event: create database schema
-    @app.on_event("startup")
-    async def startup_event() -> None:
-        """Initialize database schemas on startup."""
-        async with DatabaseConnection(db_path) as db:
-            await db.create_task_schema()
-            await db.create_auth_schema()
-            await db.create_execution_history_schema()
-            await db.create_api_keys_v2_schema()
-            await db.create_experience_schema()
-            await db.create_audit_trail_schema()
 
     return app
 
