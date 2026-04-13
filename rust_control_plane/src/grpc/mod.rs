@@ -1,5 +1,5 @@
-// pub mod events;  // TODO: Re-enable when events.proto is properly set up
+//! gRPC client for Python AI worker communication
+
 pub mod worker;
 
-// pub use events::EventStreamClient;
 pub use worker::AiWorkerClient;

@@ -4,8 +4,8 @@
 //! Implements connection pooling, health checks, and error handling per gRPC design spec.
 
 use anyhow::{Context, Result};
-use crate::proto::worker::mastermind::worker::worker_client::WorkerClient as GrpcWorkerClient;
-use crate::proto::worker::mastermind::worker::ProcessWebhookRequest;
+use crate::mastermind::worker_client::WorkerClient as GrpcWorkerClient;
+use crate::mastermind::ProcessWebhookRequest;
 use tonic::transport::Channel;
 
 /// gRPC client for Python AI Worker

@@ -1,2 +1,2 @@
-// Re-export generated protobuf modules
-pub use crate::proto::worker;
+// Generated protobuf code for worker service
+tonic::include_proto!("mastermind.worker");

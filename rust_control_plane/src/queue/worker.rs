@@ -5,7 +5,7 @@
 //! Brain #7 Condition #6: DLQ Retry Backoff Strategy
 
 use crate::dlq::DeadLetterQueue;
-// use crate::grpc::AiWorkerClient;  // TODO: Enable when proto files added
+use crate::grpc::AiWorkerClient;
 use crate::observability::LatencyTracker;
 use crate::queue::WebhookEvent;
 use serde_json::Value;
@@ -22,7 +22,7 @@ pub struct WebhookWorker {
     webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     dlq: DeadLetterQueue,
     latency_tracker: Arc<LatencyTracker>,
-    // ai_worker_client: Option<Arc<AiWorkerClient>>,  // TODO: Enable when proto files added
+    ai_worker_client: Option<Arc<AiWorkerClient>>,
 }
 
 impl WebhookWorker {
@@ -32,7 +32,7 @@ impl WebhookWorker {
         webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
         webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
         latency_tracker: Arc<LatencyTracker>,
-        // ai_worker_client: Option<Arc<AiWorkerClient>>,  // TODO: Enable when proto files added
+        ai_worker_client: Option<Arc<AiWorkerClient>>,
     ) -> Self {
         let dlq = DeadLetterQueue::new(db.clone());
         Self {
@@ -41,7 +41,7 @@ impl WebhookWorker {
             webhook_sender,
             dlq,
             latency_tracker,
-            // ai_worker_client,  // TODO: Enable when proto files added
+            ai_worker_client,
         }
     }
 
@@ -289,38 +289,25 @@ impl WebhookWorker {
 
     /// Send webhook to Python AI worker via gRPC
     async fn send_to_ai_worker(&self, event: &WebhookEvent) -> anyhow::Result<()> {
-        info!(
-            channel = %event.channel,
-            trace_id = %event.trace_id,
-            "Sending to AI worker via gRPC"
-        );
+        let client = self.ai_worker_client.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("AI worker client not initialized"))?;
 
-        // TODO: Enable when proto files and gRPC module added (Plan 18-09)
-        // let client = self.ai_worker_client.as_ref()
-        //     .ok_or_else(|| anyhow::anyhow!("AI worker client not initialized"))?;
-        //
-        // let response = client.process_webhook(
-        //     event.trace_id.clone(),
-        //     event.channel.clone(),
-        //     event.payload.to_string(),
-        // ).await
-        // .map_err(|e| anyhow::anyhow!("AI worker communication failed: {}", e))?;
-        //
-        // info!(
-        //     ai_response = %response,
-        //     processing_duration_ms = response.len(), // Using response length as proxy for duration
-        //     "AI worker processing complete"
-        // );
+        let response = client.process_webhook(
+            event.trace_id.clone(),
+            event.channel.clone(),
+            event.payload.to_string(),
+        ).await?;
 
-        // MVP STUB: Pretend gRPC call succeeded
         info!(
             trace_id = %event.trace_id,
             channel = %event.channel,
-            "AI worker processing stubbed (gRPC not yet implemented)"
+            ai_response = %response,
+            "AI worker processing successful"
         );
 
         Ok(())
     }
+
 
     /// Update delivery status for a message
     ///
@@ -353,10 +340,10 @@ pub fn start_worker(
     receiver: tokio::sync::mpsc::Receiver<WebhookEvent>,
     sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     latency_tracker: Arc<LatencyTracker>,
-    // ai_worker_client: Option<Arc<AiWorkerClient>>,  // TODO: Enable when proto files added
+    ai_worker_client: Option<Arc<AiWorkerClient>>,
 ) {
     tokio::spawn(async move {
-        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker);
+        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker, ai_worker_client);
         worker.start().await;
     });
 }
