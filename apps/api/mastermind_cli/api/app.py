@@ -106,7 +106,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # SHUTDOWN
     if _grpc_server:
         try:
-            await _grpc_server.stop(grace_period=0.1)
+            await _grpc_server.stop(grace=0.1)
         except Exception as e:
             print(f"WARNING: Error closing gRPC server: {e}")
 

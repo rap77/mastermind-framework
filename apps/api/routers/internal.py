@@ -8,12 +8,17 @@ Environment Variables:
     GRPC_SERVER_PORT: gRPC server port (default: 50051)
 """
 
-import os
 import asyncio
+import os
 from typing import Optional
-import structlog
+
 import grpc
-from mastermind.worker.worker_pb2 import ProcessWebhookResponse
+import structlog
+
+from mastermind.worker.worker_pb2 import (
+    ProcessWebhookRequest,
+    ProcessWebhookResponse,
+)
 from mastermind.worker.worker_pb2_grpc import (
     WorkerServicer,
     add_WorkerServicer_to_server,
@@ -34,7 +39,9 @@ class WorkerService(WorkerServicer):
     processes them (AI simulation for now), and sends to channel APIs.
     """
 
-    async def ProcessWebhook(self, request, context):
+    async def ProcessWebhook(
+        self, request: ProcessWebhookRequest, context
+    ) -> ProcessWebhookResponse:
         """Process webhook from Rust control plane
 
         Args:
