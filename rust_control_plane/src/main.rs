@@ -26,8 +26,8 @@ mod metrics;
 mod queue;
 mod observability;
 mod dlq;
-// mod proto;  // TODO: Add proto files before enabling
-// mod grpc;   // TODO: Add proto files before enabling
+mod proto;
+mod grpc;
 
 use tracing::inject_trace_middleware;
 
@@ -81,6 +81,29 @@ async fn main() -> Result<()> {
         webhook_queue: webhook_queue.clone(),
         latency_tracker: latency_tracker.clone(),
     };
+
+    // Initialize AI Worker gRPC client (fallible initialization pattern)
+    let ai_worker_addr = std::env::var("AI_WORKER_ADDR")
+        .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+    let ai_worker_client = match grpc::AiWorkerClient::new(&ai_worker_addr).await {
+        Ok(client) => {
+            ::tracing::info!("Connected to AI worker at {}", ai_worker_addr);
+            Some(Arc::new(client))
+        }
+        Err(e) => {
+            ::tracing::warn!("Failed to connect to AI worker at {}: {}. Continuing without AI processing.", ai_worker_addr, e);
+            None
+        }
+    };
+
+    // Spawn webhook worker (fire-and-forget pattern)
+    // Worker processes queued webhooks asynchronously
+    {
+        let db = state.pool.clone();
+        let (sender, receiver) = tokio::sync::mpsc::channel(1000);
+        let latency_tracker = state.latency_tracker.clone();
+        queue::start_worker(db, receiver, sender, latency_tracker, ai_worker_client);
+    }
 
     // Build our application with routes
     let app = Router::new()
