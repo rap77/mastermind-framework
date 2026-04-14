@@ -47,9 +47,25 @@ export const WSMessageSchema = z.object({
   data: z.array(BrainEventSchema),
 })
 
+// Matches CostUpdateEvent interface in wsStore.ts (CostUpdateEvent WS payload)
+// Field names align with existing CostUpdateEvent interface — no breaking change.
+export const CostUpdateEventSchema = z.object({
+  type: z.literal('cost_update'),
+  brainId: z.string(),
+  totalTokens: z.number(),
+  totalDuration: z.number(),
+  totalCost: z.number(),
+  lastActivityAt: z.string(),
+  successRate: z.number(),
+  // MM-Flow audit trail fields (additional — not in base CostUpdateEvent)
+  model_profile: z.enum(['quality', 'balanced', 'budget']).optional(),
+  execution_id: z.string().uuid().optional(),
+})
+
 export type LoginRequest = z.infer<typeof LoginRequestSchema>
 export type TokenResponse = z.infer<typeof TokenResponseSchema>
 export type BrainMetadata = z.infer<typeof BrainMetadataSchema>
 export type PaginatedBrainsResponse = z.infer<typeof PaginatedBrainsResponseSchema>
 export type BrainEvent = z.infer<typeof BrainEventSchema>
 export type WSMessage = z.infer<typeof WSMessageSchema>
+export type CostUpdateEvent = z.infer<typeof CostUpdateEventSchema>
