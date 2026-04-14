@@ -108,11 +108,42 @@ After 3 iterations without APPROVED: escalate to user with options:
 **Remaining risks:** [list or "none"]
 ```
 
+## Step 6.5 — Lifecycle Registration: Bookend Start
+
+Before delegating to GSD, register this phase in the MM-Flow audit trail:
+
+```bash
+cd /home/rpadron/proy/mastermind/apps/api
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mastermind_bd"
+uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase PHASE_NUMBER --start
+```
+
+Read `execution_id` from the output line `execution_id:<uuid>`.
+The same UUID is written to `.planning/.mm-flow/runtime-state.json` field `execution_id`.
+
 ## Step 7 — Delegate to GSD
 
 Use the `Skill` tool to invoke `gsd:execute-phase` with the same phase number and flags.
 
 Plans have been brain-validated. Execution can proceed with confidence.
+
+## Step 7.5 — Lifecycle Registration: Bookend Complete
+
+After all plans are executed and the final commit is made:
+
+```bash
+cd /home/rpadron/proy/mastermind/apps/api
+COMMIT_HASH=$(git -C /home/rpadron/proy/mastermind rev-parse HEAD)
+uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase PHASE_NUMBER --complete \
+  --commit "$COMMIT_HASH" \
+  --summary "Phase PHASE_NUMBER completed via /mm:execute-phase"
+```
+
+**C4 verification** — UUID in runtime-state.json matches phase_executions.id:
+```bash
+python3 -c "import json; print(json.load(open('.planning/.mm-flow/runtime-state.json'))['execution_id'])"
+# Compare to: SELECT id FROM phase_executions WHERE phase_number=PHASE_NUMBER AND status='completed';
+```
 
 ## Anti-Patterns
 

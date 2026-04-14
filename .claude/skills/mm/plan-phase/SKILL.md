@@ -224,6 +224,22 @@ Example:
 **Context Conflicts**: [Any contradictions with prior decisions]
 ```
 
+## Step 9.5 — Lifecycle Registration: Planning Start
+
+Before delegating to GSD, register this planning session in the MM-Flow audit trail:
+
+```bash
+cd /home/rpadron/proy/mastermind/apps/api
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mastermind_bd"
+uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase PHASE_NUMBER --start
+```
+
+Read `execution_id` from the output line `execution_id:<uuid>`.
+Store it — the same UUID is available in `.planning/.mm-flow/runtime-state.json`.
+
+**If DATABASE_URL is unavailable** (graceful degradation): log a warning and continue.
+Planning proceeds normally without DB registration.
+
 ## Step 10 — Delegate to GSD
 
 Use the `Skill` tool to invoke `gsd:plan-phase` with the same phase number and all flags.
