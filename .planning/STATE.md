@@ -13,10 +13,10 @@ milestone: v3.0
 current_phase: 18
 overall_status: EXECUTION_COMPLETE_VERIFICATION_IN_PROGRESS
 last_action:
-  actor: "Audit Process (2026-04-13)"
-  what: "Initiated comprehensive phase verification"
-  timestamp: "2026-04-13T07:15:00Z"
-  next_step: "Create missing STATE.md files in each phase + verify all SLIs"
+  actor: "Phase 19-03 Executor (2026-04-14)"
+  what: "Completed FASE 3 — Context Persistence with checkpoint_writer.py and hook extensions"
+  timestamp: "2026-04-14T14:30:00Z"
+  next_step: "Execute FASE 4 (Audit Trail + JWT Auth) — Task 4.1: JWT auth in 13 audit routes + 26 tests"
 
 milestone_progress:
   phases_complete: 6/6  # Phases 13-18
@@ -34,11 +34,20 @@ phase_status:
 phase_19_progress:
   plan_01: COMPLETE  # infrastructure foundation (FASE 1)
   plan_02: COMPLETE  # CLI Skills Bridge (FASE 2) — 2026-04-14
-  plan_03: PENDING   # Context Persistence (FASE 3)
+  plan_03: COMPLETE  # Context Persistence (FASE 3) — 2026-04-14
   plan_04: PENDING   # Audit Trail + JWT (FASE 4)
 
 blockers:
   - phase_20_requires_phase_19_completion
+
+## Key Decisions (Phase 19-03)
+
+- **C5 (Brain #7)**: checkpoint_writer.py in repo (apps/api/mastermind_cli/mm_flow/) not ~/.mm-flow/
+- **C6 (Brain #7)**: Behavioral criterion — Write at pos 8/10 triggers checkpoint, all-Read does not
+- **Stop hook security**: execFileSync (not exec) avoids shell injection
+- **Hook extension**: EXTEND existing files (context-monitor, session-init), don't replace
+- **Stdin timeout pattern**: 3-second timeout with graceful fallback for missing data
+
 ---
 ```
 
@@ -53,4 +62,4 @@ blockers:
 ---
 
 **Last Updated:** 2026-04-14
-**Status:** PHASE 19 IN PROGRESS — FASE 2 COMPLETE
+**Status:** PHASE 19 IN PROGRESS — FASE 3 COMPLETE, FASE 4 PENDING
