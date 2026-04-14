@@ -25,8 +25,10 @@ Routes under test (prefix: /api/audit):
 import ast
 import pathlib
 import uuid
+from typing import Any
 
 import pytest
+from httpx import AsyncClient
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -51,7 +53,7 @@ ROUTES_GET = [
 ]
 
 POST_DECISION_URL = f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/decision"
-DECISION_PAYLOAD = {
+DECISION_PAYLOAD: dict[str, Any] = {
     "decision_type": "technical",
     "title": "Test decision",
     "rationale": "Testing auth",
@@ -68,14 +70,14 @@ DECISION_PAYLOAD = {
 
 
 @pytest.mark.asyncio
-async def test_401_timeline(client):
+async def test_401_timeline(client: AsyncClient) -> None:
     """GET /timeline requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/timeline")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_phase_details(client):
+async def test_401_phase_details(client: AsyncClient) -> None:
     """GET /phase/{num}/details requires auth."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/details"
@@ -84,77 +86,77 @@ async def test_401_phase_details(client):
 
 
 @pytest.mark.asyncio
-async def test_401_record_decision(client):
+async def test_401_record_decision(client: AsyncClient) -> None:
     """POST /phase/{num}/decision requires auth."""
     resp = await client.post(POST_DECISION_URL, json=DECISION_PAYLOAD)
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_list_decisions(client):
+async def test_401_list_decisions(client: AsyncClient) -> None:
     """GET /decisions requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/decisions")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_phase_gates(client):
+async def test_401_phase_gates(client: AsyncClient) -> None:
     """GET /phase/{num}/gates requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/gates")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_list_sessions(client):
+async def test_401_list_sessions(client: AsyncClient) -> None:
     """GET /sessions requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/sessions")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_get_metrics(client):
+async def test_401_get_metrics(client: AsyncClient) -> None:
     """GET /metrics requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/metrics")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_list_artifacts(client):
+async def test_401_list_artifacts(client: AsyncClient) -> None:
     """GET /artifacts requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/artifacts")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_audit_log(client):
+async def test_401_audit_log(client: AsyncClient) -> None:
     """GET /audit-log requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/audit-log")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_project_summary(client):
+async def test_401_project_summary(client: AsyncClient) -> None:
     """GET /summary requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/summary")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_phase_comparison(client):
+async def test_401_phase_comparison(client: AsyncClient) -> None:
     """GET /phase-comparison requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/phase-comparison")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_brain_feedback(client):
+async def test_401_brain_feedback(client: AsyncClient) -> None:
     """GET /brain-feedback requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/brain-feedback")
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_401_engram_sync_status(client):
+async def test_401_engram_sync_status(client: AsyncClient) -> None:
     """GET /engram-sync-status requires auth."""
     resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/engram-sync-status")
     assert resp.status_code == 401
@@ -166,7 +168,7 @@ async def test_401_engram_sync_status(client):
 
 
 @pytest.mark.asyncio
-async def test_auth_timeline(client, auth_headers):
+async def test_auth_timeline(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """GET /timeline with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/timeline", headers=auth_headers
@@ -176,7 +178,9 @@ async def test_auth_timeline(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_phase_details(client, auth_headers):
+async def test_auth_phase_details(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /phase/{num}/details with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/details",
@@ -187,7 +191,9 @@ async def test_auth_phase_details(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_record_decision(client, auth_headers):
+async def test_auth_record_decision(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """POST /phase/{num}/decision with valid JWT → not 401."""
     resp = await client.post(
         POST_DECISION_URL, json=DECISION_PAYLOAD, headers=auth_headers
@@ -197,7 +203,9 @@ async def test_auth_record_decision(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_list_decisions(client, auth_headers):
+async def test_auth_list_decisions(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /decisions with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/decisions", headers=auth_headers
@@ -207,7 +215,9 @@ async def test_auth_list_decisions(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_phase_gates(client, auth_headers):
+async def test_auth_phase_gates(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /phase/{num}/gates with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/gates",
@@ -218,7 +228,9 @@ async def test_auth_phase_gates(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_list_sessions(client, auth_headers):
+async def test_auth_list_sessions(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /sessions with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/sessions", headers=auth_headers
@@ -228,7 +240,9 @@ async def test_auth_list_sessions(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_get_metrics(client, auth_headers):
+async def test_auth_get_metrics(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /metrics with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/metrics", headers=auth_headers
@@ -238,7 +252,9 @@ async def test_auth_get_metrics(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_list_artifacts(client, auth_headers):
+async def test_auth_list_artifacts(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /artifacts with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/artifacts", headers=auth_headers
@@ -248,7 +264,9 @@ async def test_auth_list_artifacts(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_audit_log(client, auth_headers):
+async def test_auth_audit_log(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /audit-log with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/audit-log", headers=auth_headers
@@ -258,7 +276,9 @@ async def test_auth_audit_log(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_project_summary(client, auth_headers):
+async def test_auth_project_summary(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /summary with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/summary", headers=auth_headers
@@ -268,7 +288,9 @@ async def test_auth_project_summary(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_phase_comparison(client, auth_headers):
+async def test_auth_phase_comparison(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /phase-comparison with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/phase-comparison", headers=auth_headers
@@ -278,7 +300,9 @@ async def test_auth_phase_comparison(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_brain_feedback(client, auth_headers):
+async def test_auth_brain_feedback(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /brain-feedback with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/brain-feedback", headers=auth_headers
@@ -288,7 +312,9 @@ async def test_auth_brain_feedback(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auth_engram_sync_status(client, auth_headers):
+async def test_auth_engram_sync_status(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
     """GET /engram-sync-status with valid JWT → not 401."""
     resp = await client.get(
         f"/api/audit/projects/{PROJECT_ID}/engram-sync-status", headers=auth_headers
@@ -302,7 +328,7 @@ async def test_auth_engram_sync_status(client, auth_headers):
 # ===========================================================================
 
 
-def test_all_audit_routes_have_auth():
+def test_all_audit_routes_have_auth() -> None:
     """
     AST gate: counts route functions without get_current_user_any.
     Fails if any route is missing auth dependency.
