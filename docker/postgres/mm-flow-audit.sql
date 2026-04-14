@@ -1,3 +1,14 @@
+-- IMPORTANT: CREATE POLICY statements are NOT idempotent (no IF NOT EXISTS in PostgreSQL).
+-- Run this script ONCE only. Re-running will fail on policy creation.
+-- To re-apply: DROP the relevant tables/policies first.
+--
+-- RLS GOTCHA (read before writing FASE 2+ code):
+-- All Python transactions touching audit tables (phase_executions, decisions,
+-- verification_gates, brain_feedback, dev_sessions, artifacts, phase_metrics)
+-- MUST execute: SET LOCAL mm_flow.org_id = '<uuid>' before any DML or SELECT.
+-- Without it, RLS policy evaluates org_id = NULL (always false) → zero rows returned silently.
+-- See PostgreSQL current_setting() with missing_ok=TRUE behavior.
+
 -- MM-Flow Audit Trail System
 -- Comprehensive development history, decisions, sessions, and verification gates
 -- Phase A: Audit Trail & Governance Pillar

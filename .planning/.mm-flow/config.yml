@@ -1,0 +1,36 @@
+# MM-Flow Configuration
+# Model IDs: update when Anthropic deprecates a version
+# See: https://docs.anthropic.com/en/docs/about-claude/models
+model_profiles:
+  quality:
+    model: claude-opus-4-6
+    use_when: "critical decisions, Brain #7 barrier"
+  balanced:
+    model: claude-sonnet-4-6
+    use_when: "standard domain brains"
+  budget:
+    model: claude-haiku-4-5
+    use_when: "context recovery, status checks"
+
+brain_routing:
+  DISCUSSION:
+    brains: [1, 2, 3]
+    parallel: true
+    barrier: [7]
+    model_override: quality
+  PLANNING:
+    brains: [4, 5, 6]
+    parallel: true
+    barrier: [7]
+  EXECUTION_WAVE:
+    brains: [7]
+    parallel: false
+  VERIFICATION:
+    brains: [7]
+    parallel: false
+    blocking: true
+
+verification_gates:
+  spec_coverage_threshold: 0.95
+  max_gate_retries: 1
+  escalate_on_failure: true
