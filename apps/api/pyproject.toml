@@ -84,6 +84,10 @@ strict = true  # Migrated in this plan
 module = "mastermind_cli.brains_legacy.*"
 disallow_untyped_defs = false  # Legacy brains stay loose until later
 
+[[tool.mypy.overrides]]
+module = "asyncpg.*"
+ignore_missing_imports = true  # asyncpg lacks py.typed marker; stubs not available
+
 # Pydantic plugin (REQUIRED for v2)
 [tool.pydantic-mypy]
 init_forbid_extra = true
