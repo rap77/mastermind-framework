@@ -1,8 +1,0 @@
-/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/tracing_serde-fca856242abc78d3.d: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/fields.rs
-
-/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libtracing_serde-fca856242abc78d3.rlib: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/fields.rs
-
-/home/rpadron/proy/mastermind/rust_control_plane/target/release/deps/libtracing_serde-fca856242abc78d3.rmeta: /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/lib.rs /home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/fields.rs
-
-/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/lib.rs:
-/home/rpadron/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-serde-0.2.0/src/fields.rs:

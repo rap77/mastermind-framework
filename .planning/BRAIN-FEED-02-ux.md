@@ -660,4 +660,3 @@
 - 📅 Session timestamp validation in session-init hook — add age check to LAST-PHASE.json reader. If > 48h, show "stale checkpoint" warning.
 - 📅 Runtime state file for statusline (`.planning/.mm-flow/runtime-state.json`) — written by CLI on --start/--complete, read by statusline hook. Avoids DB round-trip on every response.
 - 📅 --complete flag safety net — auto-interrupt after configurable timeout in StateMachine.
-

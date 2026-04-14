@@ -1526,4 +1526,3 @@ After UNIQUE constraint change to (org_id, project_id, brain_id), run seed twice
 7. [CUT] FASE 5 entirely — Brain #1 verdict upheld. Pre-dispatch budget check belongs in FASE 2 DynamicDispatchEngine, not as a separate phase.
 
 8. [ALREADY DONE — remove from plan] audit router wired (app.py line 212), phase_executions table exists (database.py line 416). Plan must update DoD to reflect actual state.
-

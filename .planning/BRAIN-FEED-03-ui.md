@@ -420,4 +420,3 @@ UI-relevant surfaces: statusline hook, SESSION-CHECKPOINT warning, budget tracki
 ### Deferred Items
 - Web-based budget dashboard (Phase 17+ — after 3 LATAM SME interviews confirm need)
 - Brain dispatch visualization in The Nexus (deferred — requires non-star DAG topology first)
-
