@@ -378,7 +378,7 @@ async def get_project_timeline(
             query += " AND phase_num = ?"
             params.append(phase_number)
 
-        cursor = await db.conn.execute(query)
+        cursor = await db.conn.execute(query, params)
         rows = await cursor.fetchall()
         for row in rows:
             events.append(
@@ -400,7 +400,7 @@ async def get_project_timeline(
             query += " AND phase_num = ?"
             params.append(phase_number)
 
-        cursor = await db.conn.execute(query)
+        cursor = await db.conn.execute(query, params)
         rows = await cursor.fetchall()
         for row in rows:
             events.append(
@@ -420,7 +420,7 @@ async def get_project_timeline(
             query += " AND phase_num = ?"
             params.append(phase_number)
 
-        cursor = await db.conn.execute(query)
+        cursor = await db.conn.execute(query, params)
         rows = await cursor.fetchall()
         for row in rows:
             if row[1]:
@@ -473,7 +473,7 @@ async def get_phase_details(
 
         # Get phase execution details
         cursor = await db.conn.execute(
-            """SELECT id, phase_number, execution_number, status, started_at,
+            """SELECT id, phase_num, execution_num, status, started_at,
                       completed_at, duration_seconds, backend_used, tokens_consumed,
                       tokens_input, tokens_output, output_summary, git_commit_hash, triggered_by
                FROM phase_executions
@@ -1325,7 +1325,7 @@ async def get_project_summary(
             "total_decisions": total_decisions,
             "approved_decisions": approved_decisions,
             "decision_approval_rate_percent": round(decision_approval_rate, 2),
-            "avg_decision_confidence": round(avg_confidence, 2),
+            "avg_decision_confidence": round(avg_confidence, 2) if avg_confidence is not None else 0.0,
             "total_gates": total_gates,
             "passed_gates": passed_gates,
             "gate_pass_rate_percent": round(gate_pass_rate, 2),
@@ -1487,7 +1487,7 @@ async def get_brain_feedback(
     async with DatabaseConnection(db_path) as db:
         await _ensure_audit_schema(db)
 
-        query = """SELECT id, brain_id, phase_num, feedback, confidence_score,
+        query = """SELECT id, brain_id, phase_num, feedback_text, confidence_score,
                           feedback_type, impact_level, created_at
                    FROM brain_feedback WHERE project_id = ?"""
         params: List[Any] = [str(project_id)]
@@ -1579,13 +1579,15 @@ async def get_engram_sync_status(
             "SELECT COUNT(*) FROM decisions WHERE project_id = ?",
             [str(project_id)],
         )
-        total_decisions = (await cursor.fetchone())[0] if await cursor.fetchone() else 0
+        decisions_row = await cursor.fetchone()
+        total_decisions = decisions_row[0] if decisions_row else 0
 
         cursor = await db.conn.execute(
             "SELECT COUNT(*) FROM brain_feedback WHERE project_id = ?",
             [str(project_id)],
         )
-        total_feedback = (await cursor.fetchone())[0] if await cursor.fetchone() else 0
+        feedback_row = await cursor.fetchone()
+        total_feedback = feedback_row[0] if feedback_row else 0
 
         pending_items = (total_decisions + total_feedback) - synced_count
 

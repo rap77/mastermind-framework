@@ -371,3 +371,53 @@ After grep verification, these patterns already exist and should be reused:
 ✅ **Animation Primitives:** `animate-pulse`, `animate-shake`, `animate-spin` exist (globals.css lines 142-164)
 ✅ **Reduced Motion Support:** `@media (prefers-reduced-motion: reduce)` disables animations (globals.css line 159)
 ✅ **shadcn/ui Components:** button, card, dialog, input, sheet exist (need to add: tabs, progress)
+
+## 2026-04-13 — MM-Flow Completion Plan Evaluation
+
+### Context
+Evaluated MM-Flow Completion Plan (5 phases, 40% → 100% functional).
+UI-relevant surfaces: statusline hook, SESSION-CHECKPOINT warning, budget tracking, brain-status CLI.
+
+### Verified Insights
+
+#### Critical Finding: mm-flow-statusline.js Already Exists
+- PLAN CLAIMS: FASE 4.4 creates mm-flow-statusline.js as missing
+- REALITY: `/home/rpadron/.claude/hooks/mm-flow-statusline.js` EXISTS (2.5K)
+- Current implementation: model | branch | dirname | context bar% (ANSI color thresholds at 50/65/80%)
+- GAPS in existing file: no phase state, no active brain, no backend identity
+- CORRECT ACTION: Extend existing file — do NOT replace. Preserve lines 24-43 (context window percentage logic).
+
+#### Statusline Format Approved With Corrections
+- Proposed: `[mm-flow] z.ai 180K/200K ▓▓▓▓▓▓▓▓░░ 90% | Phase 19 PLANNING | Brain #5 🟢`
+- CORRECTION: Replace `🟢` emoji with text label + ANSI color: `[ACTIVE]`, `[BARRIER]`, `[IDLE]`, `[OFFLINE]`
+- Emoji fails in restricted terminals and accessibility contexts — text label IS the secondary indicator
+- ANSI colors: ACTIVE=green(\x1b[32m), BARRIER=amber(\x1b[33m), IDLE=dim(\x1b[2m), OFFLINE=red(\x1b[31m)
+- Four information clusters are correct: backend, token bar, phase+state, active brain
+
+#### Periodic Reminder Needs Decision-Signal Filter
+- FASE 3.3: inject checkpoint reminder every 10 messages — TOO NAIVE
+- Pure read-only sessions will produce false positives → trains users to ignore signal
+- FIX: Check `data.transcript` for write tool calls (Edit, Write, Bash with mutation) in last 10 messages
+- Only inject reminder if at least one write operation detected
+
+#### mm-flow brain-status Table Format Must Be Specified
+- FASE 5.2 names the command but specifies no output contract
+- Minimum columns: BRAIN | ROLE | STATUS | BUDGET USED | LAST SEEN
+- Sort: errors first, then brain_id ascending
+- Status values: text labels only (available/busy/barrier/offline) — no color-only states
+
+#### Budget Enforcement: Pre-Dispatch Not Post-Consumption
+- FASE 5.1 places `consume_budget()` post-execution — too late for governance
+- Correct location: pre-dispatch check in DynamicDispatchEngine
+- If tokens_consumed_total > 80% of token_budget_per_phase → warn before brain runs
+- ICE for web UI budget companion: 7.5 (below 15 threshold) — do NOT build web component for v3.0
+
+#### Web UI — Not Required
+- ICE score for Engine Room budget panel: 7.5 — BELOW 15 threshold
+- Terminal + CLI is sufficient and correct surface for v3.0
+- No new web components recommended for any MM-Flow completion feature
+
+### Deferred Items
+- Web-based budget dashboard (Phase 17+ — after 3 LATAM SME interviews confirm need)
+- Brain dispatch visualization in The Nexus (deferred — requires non-star DAG topology first)
+

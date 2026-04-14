@@ -1417,3 +1417,113 @@ Users successfully merge/reply to cross-channel threads within 10 minutes of fir
 - TENSION #1 (Queue): Brain #5 wins — in-memory MVP acceptable
 - TENSION #2 (Filtering): Brain #4 wins — O(n) MVP acceptable
 - TENSION #3 (DLQ Retry): Brain #5 wins — 3 retries hardcoded for MVP
+
+---
+
+## 2026-04-13 — MM-Flow Completion Plan — Meta-Evaluation of: Brains #1 #2 #3 #4 #5 #6
+
+### Cross-Domain Synthesis
+
+**Domain brain outputs received:** All 6 domain brains, evaluating a multi-phase MM-Flow completion plan covering CLI (FASE 1-3), DynamicDispatchEngine (FASE 2), config.yml (FASE 4), audit router (FASE 4), statusline extension (FASE 4), agent_registry (FASE 1), and brain budget/plugin features (FASE 5).
+
+**Points of agreement (all or majority of brains):**
+1. DynamicDispatchEngine does NOT exist — must be built from scratch
+2. config.yml has ZERO loader code — must be built
+3. audit router IS ALREADY wired in app.py line 212 — plan was wrong to say "wire it"
+4. phase_executions table ALREADY EXISTS — plan's DoD item already satisfied
+5. Stop hook (StopSession) does NOT exist — plan names it but has not built it
+6. mm-flow-statusline.js EXISTS and must be EXTENDED not replaced
+7. "Every 10 messages" checkpoint trigger is wrong signal (Brains #2 + #3 both rejected it)
+8. CostUpdateEvent has no Zod validation — runtime unsafe
+
+**Points of tension (conflicts):**
+- CONFLICT 1: Brain #1 says cut FASE 5 entirely. Brains #2/#3/#5 flag only specific items.
+- CONFLICT 2: Brain #2 says use keyword detection for checkpoint trigger. Brain #3 says detect write tool calls. Same rejection of message-counting, different replacement signals.
+- CONFLICT 3: Brain #5 DispatchResult type safety (Pydantic). Brain #4 CostUpdateEvent type safety (Zod). Both are contract violations in different layers — no brain proposed a unified contract strategy.
+- CONFLICT 4: Brain #6 says extract Stop hook logic to Python for testability. Brain #2 says use keyword detection inside existing JavaScript hook. Architectural question: where does MM-Flow business logic live?
+
+**Shared assumptions never questioned by any brain:**
+1. CLI mm-flow --start will actually be invoked by Claude Code agents in production (no activation metric proposed by any brain)
+2. SESSION-CHECKPOINT.md meaningfully recovers context (no definition of what "meaningful recovery" means — no success metric)
+3. Brain #7 barrier in DynamicDispatchEngine runs within acceptable latency (no timeout defined, no fallback if Brain #7 stalls)
+4. agent_registry seeded correctly before DynamicDispatchEngine can dispatch anything (chicken-and-egg dependency not named by any brain)
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP — Inverted Dependency Creates Silent Degradation (FASE 2 → FASE 4 → FASE 2):**
+DynamicDispatchEngine (FASE 2) reads config.yml. config.yml loader code doesn't exist until FASE 4. If FASE 2 ships first (as planned), the engine either fails loudly (good) or falls back to hardcoded defaults silently (bad). The seed SQL in FASE 1 provides default brain entries — DynamicDispatchEngine will use seed data and appear functional. Config.yml changes in FASE 4 will then appear to have no effect until the loader is verified. Result: FASE 2 tests pass with seed data, FASE 4 ships config.yml, nobody discovers the wiring was never connected until a production dispatch runs the wrong brains.
+
+**FEEDBACK LOOP — Auth Gap Masking (audit.py → CI → Production):**
+audit.py has 13 public endpoints. CI runs audit middleware test (passes). CI does NOT run tests/api/ against route functions. CI reports green. Engineers ship with confidence. Audit routes reach production unauthenticated. Security team or external party discovers the gap. By then, audit data (potentially containing sensitive org/brain activity) has been exposed for the duration of the phase. Brain #6 identified this correctly but did not name it as a feedback loop — the CI green signal is actively misleading.
+
+**CASCADE FAILURE — agent_registry UNIQUE constraint isolation bug:**
+Brain #5 named this, but the cascade was not fully traced. Current: UNIQUE(org_id, brain_id). Effect: Brain #1 for org_id=X is one row. If MasterMind is multi-project (v3.0 LATAM platform), Project A and Project B within org_id=X share the same Brain #1 state, token budget, and execution history. Brain #1 evaluating a fintech product for Project A is the same registry entry as Brain #1 evaluating an e-commerce product for Project B. All budget consumed by Project A silently blocks Project B. No brain traced this to its business consequence: the multi-tenant isolation guarantee of the v3.0 enterprise pitch is broken at the data model level.
+
+**CASCADE FAILURE — Brain #7 Barrier as Single Point of Failure:**
+No brain named this. DynamicDispatchEngine routes ALL domain brain outputs through a Brain #7 barrier before proceeding. Brain #7 is another Claude Code agent invocation. If Brain #7 is slow (context limit approaching, complex dispatch), the entire chain stalls synchronously. No brain defined: maximum acceptable barrier latency, what happens if Brain #7 returns REJECTED on a dispatch that has already started writing to DB, or what happens if Brain #7 crashes mid-evaluation. Given T1 Profitability Threshold = 300s, a 45s Brain #7 barrier added to 6 domain brain calls = T1 exceeding threshold. The barrier itself makes MM-Flow agent-unprofitable.
+
+**METRIC BLINDSPOT — Zero Activation Metrics for CLI:**
+All 6 brains optimized implementation quality. Zero brains proposed measuring whether mm-flow --start is actually invoked. If Claude Code agents don't call the CLI, the entire FASE 1-3 effort produces zero outcome. Balfour: output metrics (CLI shipped, tests pass) are not outcome metrics (agents use the CLI, session context recovered). The plan has no instrumentation for adoption.
+
+**METRIC BLINDSPOT — Checkpoint Recovery Success Rate:**
+Brain #1 added a behavioral DoD: "session after checkpoint recovers context in <30s." No brain proposed how to measure this outside manual testing. No automated test for checkpoint fidelity. If SESSION-CHECKPOINT.md gets stale (Brain #2 named stale detection, but only for >48h), a session may load a checkpoint and proceed with wrong context. The system has no way to know the checkpoint was useless.
+
+**METRIC BLINDSPOT — Dispatch Correctness:**
+DynamicDispatchEngine selects which brains to run for which moment. No brain proposed a correctness metric: "what % of dispatches selected the correct brain set?" A dispatch that omits Brain #7 from the barrier stage passes all unit tests (the unit test verifies routing logic, not outcome quality). Only outcome measurement catches this.
+
+### Conflict Resolutions
+
+**CONFLICT 1 — Cut FASE 5 entirely (Brain #1) vs flag specific items (Brains #2/#3/#5):**
+WINNER: Brain #1. Evidence: FASE 5 contains 4 tasks — budget tracking, heartbeat, sub-fases decimales, Plugin SDK. Brain #1 correctly identified that NONE of them reduce T1. Heartbeat presupposes brains as independent processes (they are not). Plugin SDK presupposes an external channel (not planned). Budget tracking pre-dispatch (Brain #3's correction) is valid but belongs in DynamicDispatchEngine (FASE 2), not as a separate FASE 5 task. Brains #2/#3/#5 flagged items in FASE 5 — but in doing so they were proposing fixes to features that should not exist yet. Brain #1 applied the correct filter: does this reduce the profitability threshold metric? No. Cut it.
+
+**CONFLICT 2 — Checkpoint trigger: keyword detection (Brain #2) vs write tool call detection (Brain #3):**
+WINNER: Brain #3. Evidence: Brain #2 proposes detecting keywords like "decision" or "architecture" in conversation — this is language-model-level inference inside a JavaScript hook (brittle, no ground truth). Brain #3 proposes detecting Edit/Write/Bash-with-mutation tool calls — these are structured events in the Claude Code hook transcript, deterministic, no inference required. Write tool call detection has zero false positive rate for non-write sessions (debugging session with no writes generates zero checkpoint triggers). Brain #2's keyword approach would trigger on any conversation mentioning architecture concepts, even reads. Brain #3 wins on signal quality.
+
+**CONFLICT 3 — DispatchResult type safety (Brain #5 Pydantic) vs CostUpdateEvent type safety (Brain #4 Zod):**
+NOT a conflict — both must be fixed. The systems concern is that no brain proposed a unified contract strategy: if the Python backend sends a malformed DispatchResult AND the TypeScript frontend accepts it without Zod validation, the type safety in Python is irrelevant. A unified API contract (Pydantic v2 on backend, Zod on frontend, same schema source) is the systems requirement. Neither brain proposed this. Flag for Orchestrator as a cross-domain contract gap.
+
+**CONFLICT 4 — Stop hook logic in Python (Brain #6) vs in JavaScript hook (Brain #2):**
+WINNER: Brain #6. Evidence: Brain #2 proposes keyword detection inside the existing JavaScript mm-flow-context-monitor.js. JavaScript hooks in .claude/hooks/ are untestable in CI (no Claude Code runtime in GitHub Actions — Brain #6 confirmed this). Brain #6 proposes extracting write logic to a Python function, JavaScript hook calls Python via subprocess. This makes the logic testable (pytest covers Python, manual check covers JS integration). Untestable code in a hook that writes the session checkpoint = untestable checkpoint correctness. Brain #6's architecture wins for reliability.
+
+### Metric Proposals
+
+**SLI-1 (CLI Activation Rate — Primary OEC):**
+% of mm-flow phase starts that include mm-flow --start invocation within first 60s. Target: >80%. Measured via session_logs table (FASE 1 schema). If <50% at 2-week mark, the CLI is not being adopted — entire FASE 1-3 effort has zero ROI.
+
+**SLI-2 (Brain #7 Barrier Latency):**
+P95 latency of Brain #7 dispatch evaluation (time from domain brain outputs written to barrier verdict returned). Target: <20s. If P95 >45s, combined with 6 domain brain calls, T1 exceeds 300s profitability threshold. Must be instrumented in DynamicDispatchEngine before FASE 2 closes.
+
+**SLI-3 (Dispatch Correctness Rate):**
+% of DynamicDispatchEngine dispatches that selected the correct brain set vs expected set (defined by test oracle per moment type). Target: >95%. Measured in FASE 2 unit tests with explicit oracle table: PLANNING → [4,5,6], barrier → [7], REVIEW → [1,2,3]. Without this, routing bugs are invisible.
+
+**SLI-4 (Checkpoint Fidelity Score):**
+After SESSION-CHECKPOINT.md written, next session reads checkpoint and reaches first substantive response without asking "what are we working on?" within first 3 exchanges. Manual spot-check weekly. Binary pass/fail per session. Target: >90%. Proxy for whether the checkpoint format is actually useful.
+
+**SLI-5 (Audit Auth Coverage):**
+% of audit.py routes with Depends(get_current_user_any) applied. Target: 100% before FASE 4 closes. Measurable via grep count + route count. Currently: 0/13 = 0%. CI must enforce this — add a test that counts unprotected routes and fails if >0.
+
+**Guardrail — agent_registry isolation:**
+After UNIQUE constraint change to (org_id, project_id, brain_id), run seed twice in CI and assert COUNT(*) = 7 per project (not 14 total). If assertion fails, FASE 1 DoD is not satisfied.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Global Rating 81/100
+
+**Conditions (ordered by cascade risk):**
+
+1. [BLOCKER] Move config.yml loader to FASE 1 as Task 1.5 (Brain #1). DynamicDispatchEngine cannot close FASE 2 DoD until loader exists. Inverted dependency creates silent degradation (see Feedback Loop above).
+
+2. [BLOCKER] Add Depends(get_current_user_any) to ALL 13 audit.py routes before FASE 4 closes (Brain #5). Add unprotected-route count assertion to CI (Brain #6). Auth gap on audit endpoints is production-unsafe.
+
+3. [BLOCKER] Change agent_registry UNIQUE to (organization_id, project_id, brain_id) before FASE 1 DoD. Multi-tenant isolation is broken at the data model level — fixes get exponentially more expensive post-launch.
+
+4. [CONDITION] DispatchResult as Pydantic v2 strict BaseModel before FASE 2 closes (Brain #5). Pair with Zod schema for WS event on frontend (Brain #4). Document shared contract in one place.
+
+5. [CONDITION] Replace "every 10 messages" with write-tool-call detection using Brain #3's signal. Extract checkpoint write logic to Python for CI testability per Brain #6's architecture.
+
+6. [CONDITION] Add SLI-2 (Brain #7 barrier latency) instrumentation to DynamicDispatchEngine. No timeout defined for Brain #7 = synchronous stall risk on every dispatch.
+
+7. [CUT] FASE 5 entirely — Brain #1 verdict upheld. Pre-dispatch budget check belongs in FASE 2 DynamicDispatchEngine, not as a separate phase.
+
+8. [ALREADY DONE — remove from plan] audit router wired (app.py line 212), phase_executions table exists (database.py line 416). Plan must update DoD to reflect actual state.
+

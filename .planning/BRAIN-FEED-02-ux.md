@@ -628,3 +628,36 @@
 - 📅 **Command Palette channel commands** — Phase 18 P1 candidate. Requiere: extender commandStore con comandos `/channel wa`, `/filter manual`, `/retry dlq`.
 - 📅 **Webhook latency mini-graph in Engine Room** — Phase 18 P2 candidate. Requiere: nuevo componente en Engine Room, integración con métricas de webhook en tiempo real.
 - 📅 **Thread analytics dashboard** — Future Phase candidate. Requiere: métricas de response time, resolution rate, agent participation por thread.
+
+---
+
+## 2026-04-13 — MM-Flow Completion Plan Evaluation (FASE 1-5)
+
+### Verified Insights
+
+#### FASE 3 — Context Persistence
+
+- **VERIFIED GAP: Stop hook pattern is missing in the plan but the problem is real.** `mm-flow-session-init.js` EXISTS at `/home/rpadron/.claude/hooks/mm-flow-session-init.js` (81 lines) and reads `LAST-PHASE.json`. HOWEVER: it writes `SESSION-CHECKPOINT.md` to project ROOT, not `.planning/`. Norman: the signifier (checkpoint file) is in the wrong location — user won't find it without knowing where to look. Gulf of Evaluation: checkpoint exists but user has no in-session confirmation it was acted upon.
+- **VERIFIED: Stop hook is NOT configured in current implementation.** The plan's Task 3.1 proposes creating a Stop hook that writes `SESSION-CHECKPOINT.md`. The existing `mm-flow-session-init.js` is a SessionStart hook, not a Stop hook. The session INIT fires on start and reads LAST-PHASE.json — but there is no hook that fires at session END to capture unsaved decisions. This is the real gap: decisions made mid-session and not persisted to Engram disappear if the user doesn't call `mem_session_summary`. The Stop hook in FASE 3 is the correct fix.
+- **DESIGN RISK: "every 10 messages" interval for UserPromptSubmit is arbitrary and breaks flow.** Miller's Law: 7±2 working memory. By message 10 the user is in deep execution flow — an injected reminder is an interruption, not a signifier. Norman: it's a false affordance — it appears every 10 messages regardless of whether any decisions were made. ICE check for this pattern: Impact=3 (interrupts flow), Confidence=4 (will fire even when unnecessary), Effort=2 → ICE = 24, ABOVE threshold, but only because the problem is real. The interval itself is wrong. Recommendation: trigger on keyword detection (detecta "decidimos", "vamos a usar", "mejor enfoque"), not on message count.
+- **DESIGN GAP: No confirmation that context was ACTUALLY restored.** SessionStart hook writes SESSION-CHECKPOINT.md, but nothing in the conversation start indicates to the user that their context from Phase N was loaded and is now available. Gulf of Evaluation: user submits first prompt cold, system has context loaded, user doesn't know. Fix: `previewMessage` from the hook should appear as a visible banner or injection into the first assistant response — not just a log line.
+- **DESIGN RISK: Stale checkpoint from wrong session has no validation.** `mm-flow-session-init.js` reads LAST-PHASE.json and assumes it's the correct session. If the user works on two different phases in alternating sessions (e.g., Phase 19 then Phase 18 debugging), the checkpoint will reflect the last-written state regardless of current intent. No session ID correlation. Recovery: add a session timestamp check — if checkpoint is > 48h old, show "checkpoint is stale (N days ago)" in the previewMessage, not just "Phase 19 completed."
+
+#### FASE 4.4 — Statusline Hook
+
+- **VERIFIED: mm-flow-statusline.js EXISTS** at `/home/rpadron/.claude/hooks/mm-flow-statusline.js` (74 lines). HOWEVER: current implementation shows `model | branch | context_bar` — NO phase state, NO brain state. Plan's Task 4.4 describes adding "Phase 19 PLANNING | Brain #5 active" which is CORRECT and is a real gap in the current hook.
+- **DESIGN GAP: Statusline shows context consumption but not execution state.** Norman H1 (Visibility of System Status): the current bar shows how full the context window is, not what the system is doing. For an expert user mid-execution, "what phase am I in" and "which brain is active" are higher-value signals than context percentage. The plan's proposed addition is accurate and closes a real Gulf of Evaluation.
+- **DESIGN RISK: Brain status in statusline requires polling LAST-PHASE.json or agent_registry.** Statusline hook fires on every response (PostToolUse or statusLine event). If it reads from PostgreSQL or Engram on each fire, latency will be perceptible. Fix: statusline must read from a FAST local file (LAST-PHASE.json or a `.planning/.mm-flow/runtime-state.json`), not from DB. The plan does not specify the data source for the statusline — this is an unresolved implementation detail that could make the hook slow.
+
+#### FASE 2 — CLI --start/--complete Flags (Gulf of Execution Analysis)
+
+- **REAL GULF OF EXECUTION RISK: --complete flag requires deliberate action.** Expert users completing a phase will close the terminal, commit, move on. The `--complete` flag is not automatic — it requires the skill to call it explicitly at the END of execution. If the skill errors partway through or the user interrupts it with Ctrl+C, `--complete` never fires. Phase stays in `in_progress` indefinitely. Norman: no closure signal = no affordance that the task is "done." Fix: skills must call `--complete` inside a try/finally block equivalent — or the CLI should have a timeout-based state transition ("if in_progress > 2h → mark as interrupted").
+- **POSITIVE: `execution_id` echoed as parseable output is correct.** `click.echo(f"execution_id:{execution_id}")` allows the skill to capture it via `grep execution_id | cut -d: -f2`. This is the correct pattern for CLI → skill communication without a daemon or IPC.
+
+### Deferred Items
+
+- 📅 Keyword-triggered checkpoint reminder (instead of every-10-messages) — Phase 19/MM-Flow. Requires: PostToolUse hook that scans assistant response for decision keywords before echo.
+- 📅 Session timestamp validation in session-init hook — add age check to LAST-PHASE.json reader. If > 48h, show "stale checkpoint" warning.
+- 📅 Runtime state file for statusline (`.planning/.mm-flow/runtime-state.json`) — written by CLI on --start/--complete, read by statusline hook. Avoids DB round-trip on every response.
+- 📅 --complete flag safety net — auto-interrupt after configurable timeout in StateMachine.
+

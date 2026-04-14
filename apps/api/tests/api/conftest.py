@@ -31,6 +31,7 @@ def _run_setup(path: str) -> None:
         async with DatabaseConnection(path) as db:
             await db.create_task_schema()
             await db.create_auth_schema()
+            await db.create_audit_trail_schema()
             await db.conn.execute(
                 "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
                 [TEST_USER_ID, TEST_USERNAME, TEST_PASSWORD_HASH],
