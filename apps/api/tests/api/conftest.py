@@ -1,4 +1,5 @@
 """Shared fixtures for API tests."""
+# pyright: reportMissingImports=false
 
 import asyncio
 
