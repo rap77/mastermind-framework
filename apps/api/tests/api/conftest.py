@@ -2,6 +2,7 @@
 # pyright: reportMissingImports=false
 
 import asyncio
+import os
 
 import bcrypt
 import pytest
@@ -55,6 +56,7 @@ def db_path(tmp_path):
 
 @pytest.fixture
 def app(db_path):
+    os.environ["JWT_SECRET"] = "test_secret_for_unit_tests_only"
     application = create_app(db_path)
     application.dependency_overrides[get_db_path] = lambda: db_path
     return application
