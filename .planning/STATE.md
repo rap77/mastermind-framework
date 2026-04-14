@@ -13,10 +13,10 @@ milestone: v3.0
 current_phase: 18
 overall_status: EXECUTION_COMPLETE_VERIFICATION_IN_PROGRESS
 last_action:
-  actor: "Phase 19-03 Executor (2026-04-14)"
-  what: "Completed FASE 3 — Context Persistence with checkpoint_writer.py and hook extensions"
-  timestamp: "2026-04-14T14:30:00Z"
-  next_step: "Execute FASE 4 (Audit Trail + JWT Auth) — Task 4.1: JWT auth in 13 audit routes + 26 tests"
+  actor: "Phase 19-04 Executor (2026-04-14)"
+  what: "Completed FASE 4 — JWT auth on 13 audit routes, 27 tests, CI integration, backends.sh, statusline extension"
+  timestamp: "2026-04-14T15:05:00Z"
+  next_step: "Execute FASE 5 (next plan in phase 19)"
 
 milestone_progress:
   phases_complete: 6/6  # Phases 13-18
@@ -35,12 +35,22 @@ phase_19_progress:
   plan_01: COMPLETE  # infrastructure foundation (FASE 1)
   plan_02: COMPLETE  # CLI Skills Bridge (FASE 2) — 2026-04-14
   plan_03: COMPLETE  # Context Persistence (FASE 3) — 2026-04-14
-  plan_04: PENDING   # Audit Trail + JWT (FASE 4)
+  plan_04: COMPLETE  # Audit Trail + JWT (FASE 4) — 2026-04-14
+  plan_05: PENDING   # (next)
 
 blockers:
   - phase_20_requires_phase_19_completion
 
-## Key Decisions (Phase 19-03)
+## Key Decisions
+
+### Phase 19-04 (FASE 4)
+
+- **TDD approach for audit auth enforcement**: RED phase (26 failing tests) → GREEN phase (add auth to 13 routes) ensures complete coverage
+- **AST-based gate test for static verification**: Catches missing auth at code-analysis time, not runtime
+- **backends.sh outside repository (~/.claude/)**: User-local credentials should not be committed to repo
+- **Statusline extension preserves golden baseline (C8)**: Context bar (█░░) must remain unchanged; MM-Flow state is additive only
+
+### Phase 19-03
 
 - **C5 (Brain #7)**: checkpoint_writer.py in repo (apps/api/mastermind_cli/mm_flow/) not ~/.mm-flow/
 - **C6 (Brain #7)**: Behavioral criterion — Write at pos 8/10 triggers checkpoint, all-Read does not
@@ -62,4 +72,4 @@ blockers:
 ---
 
 **Last Updated:** 2026-04-14
-**Status:** PHASE 19 IN PROGRESS — FASE 3 COMPLETE, FASE 4 PENDING
+**Status:** PHASE 19 IN PROGRESS — FASE 4 COMPLETE
