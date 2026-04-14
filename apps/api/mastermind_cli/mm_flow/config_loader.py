@@ -9,8 +9,6 @@ a model version. Check https://docs.anthropic.com/en/docs/about-claude/models
 and update the model strings here before models stop responding.
 """
 
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -84,7 +82,7 @@ class MMFlowConfig:
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """Deep merge override into base, only overriding present keys."""
-    result = dict(base)
+    result: dict[str, Any] = dict(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = _deep_merge(result[key], value)
