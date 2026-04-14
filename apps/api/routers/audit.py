@@ -20,6 +20,7 @@ from fastapi import APIRouter, Query, Path, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from mastermind_cli.api.dependencies import get_db_path
+from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.state.database import DatabaseConnection
 
 # ============================================================================
@@ -346,6 +347,7 @@ async def _ensure_audit_schema(db: DatabaseConnection) -> None:
 )
 async def get_project_timeline(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     phase_number: Optional[int] = Query(None, description="Filter by phase number"),
     limit: int = Query(100, ge=1, le=1000, description="Max events to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
@@ -444,6 +446,7 @@ async def get_project_timeline(
 )
 async def get_phase_details(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     phase_num: int = Path(..., ge=1, description="Phase number"),
     execution_num: int = Query(1, ge=1, description="Execution number (retry count)"),
     db_path: str = Depends(get_db_path),
@@ -643,6 +646,7 @@ async def record_decision(
     project_id: UUID,
     phase_num: int,
     decision: DecisionInput,
+    current_user: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> DecisionRecord:
     """
@@ -724,6 +728,7 @@ async def record_decision(
 )
 async def list_decisions(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     decision_type: Optional[str] = Query(None, description="Filter by type"),
     status: Optional[str] = Query(
         None, description="pending | approved | rejected | superseded"
@@ -813,6 +818,7 @@ async def get_phase_gates(
     project_id: UUID,
     phase_num: int,
     gate_type: Optional[str] = Query(None, description="Filter by gate type"),
+    current_user: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> List[VerificationGateResult]:
     """
@@ -879,6 +885,7 @@ async def get_phase_gates(
 )
 async def list_sessions(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     phase_number: Optional[int] = Query(None, description="Filter by phase"),
     status: Optional[str] = Query(
         None, description="active | paused | completed | abandoned"
@@ -957,6 +964,7 @@ async def list_sessions(
 )
 async def get_project_metrics(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     niche: Optional[str] = Query(None, description="software | saas | hardware"),
     phase_number: Optional[int] = Query(None, description="Filter by phase"),
     metric_name: Optional[str] = Query(None, description="Filter by specific metric"),
@@ -1028,6 +1036,7 @@ async def get_project_metrics(
 )
 async def list_artifacts(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     artifact_type: Optional[str] = Query(
         None, description="plan | spec | test | doc | report | design"
     ),
@@ -1116,6 +1125,7 @@ async def list_artifacts(
 )
 async def get_audit_log(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     action_type: Optional[str] = Query(None, description="Filter by action"),
     actor_type: Optional[str] = Query(None, description="user | brain | system"),
     severity: Optional[str] = Query(
@@ -1208,6 +1218,7 @@ async def get_audit_log(
 )
 async def get_project_summary(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> Dict[str, Any]:
     """
@@ -1333,6 +1344,7 @@ async def get_project_summary(
 )
 async def compare_phases(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     metric_names: List[str] = Query(
         [], description="Metrics to compare (test_coverage, duration, etc)"
     ),
@@ -1439,6 +1451,7 @@ async def compare_phases(
 )
 async def get_brain_feedback(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     phase_number: Optional[int] = Query(None),
     brain_id: Optional[int] = Query(
         None, description="1-7 for dev, 8-23 for marketing"
@@ -1524,6 +1537,7 @@ async def get_brain_feedback(
 )
 async def get_engram_sync_status(
     project_id: UUID,
+    current_user: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> Dict[str, Any]:
     """
