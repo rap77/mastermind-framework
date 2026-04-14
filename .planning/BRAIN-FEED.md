@@ -4,7 +4,7 @@
 > Two-level architecture: this global feed (cross-domain) + 7 domain feeds (BRAIN-FEED-NN-domain.md).
 > Global feed: product decisions, UX decisions, milestones affecting ALL 7 brains equally. Zero technical entries.
 > Domain feeds: see .planning/BRAIN-FEED-NN-domain.md for each brain's domain-specific patterns.
-> Last updated: 2026-03-29 after Phase 10 (BRAIN-FEED Split) — feed distillation complete
+> Last updated: 2026-04-14 after Phase 19 (MM-Flow Completion) — CLI ↔ Skills bridge, context persistence, JWT audit auth
 
 ---
 
@@ -24,6 +24,9 @@
 | Sanitization | DOMPurify | latest | XSS prevention |
 | Package mgr | pnpm | — | Never npm/yarn |
 | Python | uv | — | Never pip/poetry |
+| **DB Driver** | asyncpg | latest | Phase 19 — PostgreSQL for MM-Flow audit trail |
+| **Validation** | Pydantic | v2 strict | Phase 19 — `BrainDispatch`, `DispatchResult` models |
+| **Schema** | Zod | latest | Phase 19 — `CostUpdateEventSchema` in frontend |
 
 ---
 
@@ -68,6 +71,11 @@ Prevents brains from suggesting what's already built:
 | Baseline anchors | `tests/baselines/` | baseline-schema.md + 5 pre-migration measurement records |
 | Domain Feed Files | `.planning/BRAIN-FEED-NN-domain.md` (7 files) | One per brain (#1–#7). Global feed = cross-domain only |
 | Feed Verification Scripts | `.planning/verify_feed_*.py` (3 scripts) | conservation law, path existence, global purity — do not recreate |
+| **MM-Flow CLI** | `apps/api/mastermind_cli/mm_flow/` | Phase 19 — CLI lifecycle, PostgreSQL audit trail |
+| **DynamicDispatchEngine** | `apps/api/mastermind_cli/mm_flow/dispatch_engine.py` | Phase 19 — Config-driven brain dispatch (DISPATCH_ORACLE) |
+| **Checkpoint Writer** | `apps/api/mastermind_cli/mm_flow/checkpoint_writer.py` | Phase 19 — Write-op detection, SESSION-CHECKPOINT.md |
+| **JWT Audit Auth** | `apps/api/routers/audit.py` | Phase 19 — 13 routes with `get_current_user_any` dependency |
+| **Audit Tests** | `apps/api/tests/api/test_audit_routes.py` | Phase 19 — 27 tests (13 × 401, 13 × auth, 1 AST gate) |
 
 ---
 
@@ -84,6 +92,19 @@ Hard limits that brains must respect:
 ---
 
 ## Phase Learnings
+
+### Phase 19 — MM-Flow Completion
+Key discoveries:
+- **TDD RED-GREEN workflow proven**: 26 tests written first (all fail RED), auth added (23 pass GREEN) ensures complete coverage and prevents missed routes
+- **AST-based gate testing**: Catches missing auth at code-analysis time, not runtime — `ast.walk()` to inspect function signatures for `Depends()` parameters
+- **Module-level env var loading**: `jwt_handler.py` reads `JWT_SECRET` at import time (module-level `os.getenv()`), NOT at runtime. Setting `os.environ` in fixture AFTER import has no effect. Must set before import.
+- **`from __future__ import annotations`**: Modern Python 3.11+ pattern for type hints — makes all annotations strings evaluated lazily, prevents Pyright false positives about "unused imports"
+- **Atomic file writes**: `runtime-state.json` written atomically via `.tmp` suffix + `os.rename()` — prevents partial reads if process crashes mid-write (C2 invariant)
+- **DISPATCH_ORACLE as ground-truth**: Config dict that drives `DynamicDispatchEngine` tests — must stay in sync with `config.yml` defaults or tests become lies
+- **Hook stdin timeout pattern**: All Claude hooks use 3-second stdin timeout with graceful fallback — if no data arrives, continue with default behavior (don't hang)
+- **Statusline extension preserves golden baseline**: When extending `mm-flow-statusline.js`, capture baseline output first, verify unchanged after extension (C8 invariant)
+- **Pydantic v2 strict mode**: `model_config = ConfigDict(strict=True)` catches data validation errors at construction time, not later
+- **User-local configuration**: `~/.claude/backends.sh`, `~/.claude/hooks/` live outside repo — intentional for credentials and user preferences
 
 ### Phase 10 — BRAIN-FEED Split
 Key discoveries:
@@ -109,3 +130,7 @@ Key discoveries:
 | Notebook IDs hardcoded in agent files | Re-edit 7 files when IDs change | Reference `brain-selection.md` as single source of truth |
 | Brain #7 dispatched in parallel with domain brains | Evaluates without seeing domain outputs — useless | Always dispatch AFTER domain brains complete |
 | Agent modifying a domain feed file | Corrupts conservation law — verification scripts will fail | Read-only consumption; cross-domain insights → `[PROPOSAL: GLOBAL]` tag only |
+| **Setting env vars in fixture after import** | Module already read the value at import time — setting after has no effect | Set `os.environ` BEFORE importing modules that read it (e.g., `jwt_handler`) |
+| **Bare pytest raises with Exception** | Too broad, catches wrong exceptions | `pytest.raises(ValidationError)` or specific exception types |
+| **Placeholder UUIDs in production code** | GGA hook fails — indicates incomplete implementation | Use proper UUID generation or `None` with TODO comment |
+| **Redundant fetchone() calls** | Second call always returns `None` — causes TypeError | Store result in variable, reuse it |
