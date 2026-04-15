@@ -14,8 +14,8 @@ import logging
 import uuid
 from datetime import datetime
 
-import websockets
 from websockets.asyncio.server import ServerConnection, serve
+from websockets.exceptions import ConnectionClosed
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ async def handler(websocket: ServerConnection) -> None:
                     )
                 )
 
-    except websockets.exceptions.ConnectionClosed as e:
+    except ConnectionClosed as e:
         logger.info(f"Client disconnected: {e}")
     except Exception as e:
         logger.error(f"Error handling client: {type(e).__name__}: {e}")
