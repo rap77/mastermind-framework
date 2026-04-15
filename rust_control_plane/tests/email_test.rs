@@ -172,14 +172,14 @@ fn test_email_threading_preservation() {
     });
 
     // Parse webhook
-    let parsed = parse_email_webhook(webhook_payload).unwrap();
+    let parsed = parse_email_webhook(webhook_payload.clone()).unwrap();
 
     // Verify thread_id extracted from References header
     assert_eq!(parsed.thread_id, Some("original@example.com".to_string()));
 
     // Verify extract_thread_id function works
     let thread_id = extract_thread_id(webhook_payload).unwrap();
-    assert_eq!(thread_id, "original@example.com");
+    assert_eq!(thread_id, Some("original@example.com".to_string()));
 
     // In real flow, worker would:
     // - Pass thread_id to Python /api/channels/email/send
@@ -241,7 +241,7 @@ fn test_extract_message_id_from_multiple_providers() {
     let sendgrid = json!({
         "events": [{"sg_message_id": "sg@example.com"}]
     });
-    assert_eq!(extract_message_id(sendgrid).unwrap(), "sg@example.com");
+    assert_eq!(extract_message_id(&sendgrid).unwrap(), "sg@example.com");
 
     // Test Mailgun
     let mailgun = json!({
@@ -251,13 +251,13 @@ fn test_extract_message_id_from_multiple_providers() {
             }
         }
     });
-    assert_eq!(extract_message_id(mailgun).unwrap(), "mg@example.com");
+    assert_eq!(extract_message_id(&mailgun).unwrap(), "mg@example.com");
 
     // Test Postmark
     let postmark = json!({
         "MessageID": "pm@example.com"
     });
-    assert_eq!(extract_message_id(postmark).unwrap(), "pm@example.com");
+    assert_eq!(extract_message_id(&postmark).unwrap(), "pm@example.com");
 }
 
 #[test]
