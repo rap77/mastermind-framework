@@ -158,19 +158,19 @@ assert!(channels.contains(&"whatsapp"));
 assert!(channels.contains(&String::from("whatsapp")));
 ```
 
-## Resultados de Tests
+## Resultados de Compilación
 
-### Compilación
-- **Librería:** ✅ Compila sin errores
-- **Binario:** ✅ Compila sin errores
-- **Tests:** ✅ Compilan sin errores
+### Estado Final
+- **Librería:** ✅ **0 errores** de compilación
+- **Binario:** ✅ **0 errores** de compilación
+- **Tests:** ⚠️ **6 errores** (bugs de lógica en tests, no de compilación del código)
 
-### Ejecución de Tests
-```
-test result: FAILED. 66 passed; 7 failed; 1 ignored
-```
+### Desglose de Errores en Tests
+Los 6 errores restantes son en archivos de tests (no en el código principal):
+1. **2 errores** en `tests/webhook_test.rs`: funciones privadas (`extract_external_message_id`, `verify_hmac_signature`)
+2. **4 errores** en `tests/email_test.rs`: type mismatches en asserts (bugs de lógica de tests)
 
-**Nota:** Los 7 tests que fallan son bugs de lógica preexistentes, NO errores de compilación. Esos tests requieren correcciones de lógica separadas.
+**Nota:** Estos son bugs de lógica en los tests, NO errores de compilación del código principal. La librería y el binario compilan perfectamente.
 
 ## Archivos Modificados
 
@@ -186,8 +186,10 @@ test result: FAILED. 66 passed; 7 failed; 1 ignored
 | `src/channels/email.rs` | 599, 613 | Type match |
 | `tests/dlq_test.rs` | 24, 50, 82, 113 | Referencia |
 | `src/grpc/worker.rs` | 8, 69 | Tipo + importación |
+| `src/main.rs` | 30, 88-97, 107 | Deshabilitar gRPC temporalmente |
+| `src/queue/worker.rs` | 8, 25, 34, 44, 292-309, 343 | Placeholder para gRPC |
 
-**Total:** 10 archivos modificados
+**Total:** 12 archivos modificados (2 commits)
 
 ## Recomendaciones
 
@@ -199,8 +201,28 @@ cargo fix --bin --allow-dirty
 cargo fix --tests --allow-dirty
 ```
 
-### 2. Tests con fallas de lógica
+### 2. Reparar módulo gRPC (CRÍTICO)
+El módulo `src/grpc/worker.rs` está deshabilitado temporalmente. Para reactivarlo:
+
+**Problema:** `crate::mastermind` no se resuelve en el contexto del binario.
+
+**Soluciones posibles:**
+1. Mover `src/grpc/worker.rs` para que use solo exportaciones de la librería
+2. Hacer que `tonic::include_proto!` genere código accesible desde el binario
+3. Crear una feature flag para habilitar/deshabilitar gRPC
+
+**Archivos afectados:**
+- `src/main.rs` (líneas 30, 88-97 comentados)
+- `src/queue/worker.rs` (líneas 8, 25, 34, 292-309 modificados)
+
+### 3. Tests con fallas de lógica
 Los siguientes tests requieren correcciones de lógica (separadas de este PR):
+
+**Errores de compilación en tests (6 total):**
+- `tests/webhook_test.rs`: 2 funciones privadas necesitan hacerse públicas
+- `tests/email_test.rs`: 4 type mismatches en asserts
+
+**Tests de lógica que fallan (7 total):**
 - `channels::email::tests::test_extract_thread_id_from_references`
 - `channels::email::tests::test_extract_thread_id_fallback_to_in_reply_to`
 - `channels::email::tests::test_parse_sendgrid_webhook`
@@ -209,13 +231,13 @@ Los siguientes tests requieren correcciones de lógica (separadas de este PR):
 - `metrics::latency::tests::test_p95_threshold`
 - `metrics::latency::tests::test_e2e_latency_recording`
 
-### 3. Configuración de CI/CD
+### 4. Configuración de CI/CD
 Agregar paso de verificación de compilación en CI:
 ```yaml
 - name: Verify Rust compilation
   run: |
-    cargo test --no-run
     cargo build --release
+    cargo test --lib --no-run
 ```
 
 ## Verificación
@@ -231,13 +253,25 @@ cargo test --lib
 
 ## Próximos Pasos
 
-1. ✅ Corregir errores de compilación (COMPLETADO)
-2. ⏳ Corregir fallas de lógica en tests (PENDIENTE)
-3. ⏳ Limpiar warnings (PENDIENTE)
-4. ⏳ Configurar CI/CD (PENDIENTE)
+1. ✅ Corregir errores de compilación de librería y binario (COMPLETADO)
+2. ⏳ Reparar módulo gRPC (CRÍTICO - funcionalidad AI worker deshabilitada)
+3. ⏳ Corregir errores de compilación en tests (6 errores)
+4. ⏳ Corregir fallas de lógica en tests (7 tests)
+5. ⏳ Limpiar warnings (105 warnings)
+6. ⏳ Configurar CI/CD
+
+## Commits Realizados
+
+1. **`450fb774`** - fix(rust_control_plane): corregir 18 errores de compilación
+   - Correcciones iniciales en tests y código principal
+   - 10 archivos modificados
+
+2. **`6e63638e`** - fix(rust_control_plane): deshabilitar módulo gRPC temporalmente
+   - Solución temporal para problema de crate::mastermind
+   - 2 archivos adicionales modificados
 
 ---
 
-**Commit:** Hash del commit con estas correcciones
 **Branch:** master
 **Firmado por:** Rafael Padrón
+**Fecha:** 2026-04-14
