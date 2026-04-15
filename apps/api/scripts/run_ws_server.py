@@ -15,6 +15,7 @@ import uuid
 from datetime import datetime
 
 import websockets
+from websockets.asyncio.server import ServerConnection
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ for i in range(100):
 
 
 async def handle_ghost_replay(
-    websocket: websockets.server.WebSocketServerProtocol,
+    websocket: ServerConnection,
 ) -> None:
     """Handle Ghost Mode replay request."""
     logger.info("Received ghost_replay request")
@@ -60,7 +61,7 @@ async def handle_ghost_replay(
     logger.info(f"Sent {len(EVENT_BUFFER)} events in {total_time:.2f}ms")
 
 
-async def handler(websocket: websockets.server.WebSocketServerProtocol) -> None:
+async def handler(websocket: ServerConnection) -> None:
     """WebSocket connection handler."""
     logger.info("Client connected.")
 
