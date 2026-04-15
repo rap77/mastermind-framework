@@ -84,6 +84,7 @@ pub struct RefreshRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn test_role_from_str() {

@@ -9,7 +9,7 @@
 //! NOTE: These tests require SQLx offline mode or DATABASE_URL to compile
 //! Run with: SQLX_OFFLINE=true cargo test --test email_test
 
-use mastermind_control_plane::channels::{
+use rust_control_plane::channels::{
     parse_email_webhook, extract_message_id, extract_thread_id, is_email_webhook,
     EmailMessage, Attachment,
 };

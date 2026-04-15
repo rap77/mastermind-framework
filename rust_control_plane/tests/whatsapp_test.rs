@@ -8,7 +8,7 @@
 //! - Status update filtering
 //! - Missing field handling
 
-use mastermind_control_plane::channels::{
+use rust_control_plane::channels::{
     parse_whatsapp_webhook, extract_message_id, extract_sender_phone, is_message_webhook, MessagePayload
 };
 use serde_json::json;

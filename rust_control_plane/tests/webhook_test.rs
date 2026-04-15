@@ -1,7 +1,7 @@
 // Integration tests for webhook receiver
 // Tests follow TDD pattern: RED → GREEN → REFACTOR
 
-use mastermind_control_plane::handlers::webhook::{
+use rust_control_plane::handlers::webhook::{
     extract_external_message_id, verify_hmac_signature,
 };
 use serde_json::json;

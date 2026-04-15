@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(tracker.active_count(), 2);
 
         // Cleanup one
-        tracker.cleanup_timer("trace-2", "instagram");
+        tracker.cleanup_timer("trace-2");
         assert_eq!(tracker.active_count(), 1);
 
         // Record last

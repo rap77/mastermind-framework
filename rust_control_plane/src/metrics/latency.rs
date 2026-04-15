@@ -120,17 +120,18 @@ mod tests {
 
         // Should have metrics for all three channels
         let metrics = latency_metric.get_metric();
-        let channels: Vec<&str> = metrics.iter()
+        let channels: Vec<String> = metrics.iter()
             .filter_map(|m| {
                 m.get_label().iter()
                     .find(|l| l.get_name() == "channel")
-                    .map(|l| l.get_value().as_str())
+                    .map(|l| l.get_value().to_string())
             })
+            .map(|s| s.to_string())
             .collect();
 
-        assert!(channels.contains(&"whatsapp"));
-        assert!(channels.contains(&"instagram"));
-        assert!(channels.contains(&"email"));
+        assert!(channels.contains(&String::from("whatsapp")));
+        assert!(channels.contains(&String::from("instagram")));
+        assert!(channels.contains(&String::from("email")));
     }
 
     #[test]

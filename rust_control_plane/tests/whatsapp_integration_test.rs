@@ -8,7 +8,7 @@
 //! NOTE: These tests require SQLx offline mode or DATABASE_URL to compile
 //! Run with: SQLX_OFFLINE=true cargo test --test whatsapp_integration_test
 
-use mastermind_control_plane::channels::{
+use rust_control_plane::channels::{
     parse_whatsapp_webhook, is_message_webhook, MessagePayload
 };
 use serde_json::json;

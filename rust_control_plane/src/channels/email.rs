@@ -596,7 +596,7 @@ mod tests {
         });
 
         let result = extract_thread_id(payload).unwrap();
-        assert_eq!(result, "original@example.com");
+        assert_eq!(result, Some("original@example.com".to_string()));
     }
 
     #[test]
@@ -610,7 +610,7 @@ mod tests {
         });
 
         let result = extract_thread_id(payload).unwrap();
-        assert_eq!(result, "parent@example.com");
+        assert_eq!(result, Some("parent@example.com".to_string()));
     }
 
     #[test]

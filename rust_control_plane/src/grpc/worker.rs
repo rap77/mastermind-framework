@@ -5,7 +5,7 @@
 
 use anyhow::{Context, Result};
 use crate::mastermind::worker_client::WorkerClient as GrpcWorkerClient;
-use crate::mastermind::ProcessWebhookRequest;
+use crate::mastermind::{ProcessWebhookRequest, ProcessWebhookResponse};
 use tonic::transport::Channel;
 
 /// gRPC client for Python AI Worker
@@ -66,7 +66,7 @@ impl AiWorkerClient {
         };
 
         let mut client = self.client.clone();
-        let response = client
+        let response: tonic::Response<ProcessWebhookResponse> = client
             .process_webhook(request)
             .await
             .map_err(|e| anyhow::anyhow!("gRPC call failed: {}", e))

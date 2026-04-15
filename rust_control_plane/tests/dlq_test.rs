@@ -21,7 +21,7 @@ async fn test_dlq_repository_insert() {
 
     // Test: move_to_dlq inserts failed webhook
     let result = dlq
-        .move_to_dlq(external_id, channel, payload.clone(), error)
+        .move_to_dlq(external_id, channel, &payload.clone(), error)
         .await;
 
     assert!(result.is_ok(), "move_to_dlq should succeed");
@@ -47,7 +47,7 @@ async fn test_dlq_repository_retry() {
     let payload = json!({"media_id": "abc123"});
     let error = "Rate limit exceeded";
 
-    dlq.move_to_dlq(external_id, channel, payload, error)
+    dlq.move_to_dlq(external_id, channel, &payload, error)
         .await
         .unwrap();
 
@@ -79,7 +79,7 @@ async fn test_dlq_repository_pagination() {
         let payload = json!({"index": i});
         let error = "Test error";
 
-        dlq.move_to_dlq(&external_id, channel, payload, error)
+        dlq.move_to_dlq(&external_id, channel, &payload, error)
             .await
             .unwrap();
     }
@@ -110,7 +110,7 @@ async fn test_dlq_get_retry_count() {
     let payload = json!({"subject": "Test"});
     let error = "SMTP error";
 
-    dlq.move_to_dlq(external_id, channel, payload, error)
+    dlq.move_to_dlq(external_id, channel, &payload, error)
         .await
         .unwrap();
 
