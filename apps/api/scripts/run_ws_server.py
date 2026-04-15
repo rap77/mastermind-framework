@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 
 import websockets
-from websockets.asyncio.server import ServerConnection
+from websockets.asyncio.server import ServerConnection, serve
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ async def main() -> None:
     logger.info("Starting WebSocket server on ws://localhost:8080")
     logger.info("Test endpoint: ws://localhost:8080/ws")
 
-    async with websockets.serve(handler, "localhost", 8080):
+    async with serve(handler, "localhost", 8080):
         print("Server running. Press Ctrl+C to stop.")
         await asyncio.Future()  # Run forever
 
