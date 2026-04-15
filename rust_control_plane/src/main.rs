@@ -27,7 +27,7 @@ mod queue;
 mod observability;
 mod dlq;
 mod proto;
-mod grpc;
+// mod grpc; // TODO: Fix gRPC module compilation - depends on crate::mastermind
 
 use tracing::inject_trace_middleware;
 
@@ -83,18 +83,20 @@ async fn main() -> Result<()> {
     };
 
     // Initialize AI Worker gRPC client (fallible initialization pattern)
-    let ai_worker_addr = std::env::var("AI_WORKER_ADDR")
-        .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
-    let ai_worker_client = match grpc::AiWorkerClient::new(&ai_worker_addr).await {
-        Ok(client) => {
-            ::tracing::info!("Connected to AI worker at {}", ai_worker_addr);
-            Some(Arc::new(client))
-        }
-        Err(e) => {
-            ::tracing::warn!("Failed to connect to AI worker at {}: {}. Continuing without AI processing.", ai_worker_addr, e);
-            None
-        }
-    };
+    // TODO: Re-enable after fixing crate::mastermind import issue in src/grpc/worker.rs
+    // let ai_worker_addr = std::env::var("AI_WORKER_ADDR")
+    //     .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+    // let ai_worker_client = match rust_control_plane::grpc::AiWorkerClient::new(&ai_worker_addr).await {
+    //     Ok(client) => {
+    //         ::tracing::info!("Connected to AI worker at {}", ai_worker_addr);
+    //         Some(Arc::new(client))
+    //     }
+    //     Err(e) => {
+    //         ::tracing::warn!("Failed to connect to AI worker at {}: {}. Continuing without AI processing.", ai_worker_addr, e);
+    //         None
+    //     }
+    // };
+    let ai_worker_client: Option<Arc<()>> = None; // Placeholder until gRPC module is fixed
 
     // Spawn webhook worker (fire-and-forget pattern)
     // Worker processes queued webhooks asynchronously
