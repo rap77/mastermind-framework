@@ -25,7 +25,7 @@ use crate::queue::{WebhookQueue, WebhookEvent};
 ///
 /// WhatsApp: X-Hub-Signature-256 (SHA256)
 /// Instagram: X-Hub-Signature (SHA1 or SHA256)
-fn verify_hmac_signature(
+pub fn verify_hmac_signature(
     payload: &str,
     signature: &str,
     app_secret: &str,
@@ -68,7 +68,7 @@ fn verify_hmac_signature(
 /// WhatsApp: entry[0].changes[0].value.messages[0].id
 /// Instagram: changes[0].value.id
 /// Email: Message-ID header (from payload)
-fn extract_external_message_id(payload: &Value, channel: &str) -> anyhow::Result<String> {
+pub fn extract_external_message_id(payload: &Value, channel: &str) -> anyhow::Result<String> {
     let id = match channel {
         "whatsapp" => payload["entry"][0]["changes"][0]["value"]["messages"][0]["id"]
             .as_str()
