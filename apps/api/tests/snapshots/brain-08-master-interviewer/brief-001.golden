@@ -1,0 +1,6 @@
+{
+  "brain_id": "brain-08-master-interviewer",
+  "brief": "entrevistar a founder de startup",
+  "output": "\n✅ Execution Complete\n============================================================\n\n🧠 brain-08-master-interviewer\n------------------------------------------------------------\n  brain_id: brain-08-master-interviewer\n  is_ambiguous: True\n  interview_plan:\n  clarified_brief: None\n  confidence_score: 0.3\n",
+  "exit_code": 0
+}

@@ -1,0 +1,6 @@
+{
+  "brain_id": "brain-07-growth-data",
+  "brief": "estrategia de crecimiento para SaaS B2B",
+  "output": "\n✅ Execution Complete\n============================================================\n\n🧠 brain-07-growth-data\n------------------------------------------------------------\n  brain_id: brain-07-growth-data\n  verdict: CONDITIONAL\n  score: 7.0\n  feedback: \n  approval_conditions:\n  rejection_reasons:\n  evaluated_at: 2026-04-15 00:03:44.437917\n",
+  "exit_code": 0
+}

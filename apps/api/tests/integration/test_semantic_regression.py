@@ -25,11 +25,11 @@ from tests.utils.semantic_diff import (
 @pytest.mark.parametrize(
     "brain_id,brief_name",
     [
-        ("brain-software-01-product-strategy", "brief-001"),
-        ("brain-software-01-product-strategy", "brief-002"),
-        ("brain-software-02-ux-research", "brief-001"),
-        ("brain-software-07-growth-data", "brief-001"),
-        ("brain-software-08-master-interviewer", "brief-001"),
+        ("brain-01-product-strategy", "brief-001"),
+        ("brain-01-product-strategy", "brief-002"),
+        ("brain-02-ux-research", "brief-001"),
+        ("brain-07-growth-data", "brief-001"),
+        ("brain-08-master-interviewer", "brief-001"),
     ],
 )
 def test_semantic_similarity_threshold(brain_id, brief_name):
@@ -96,13 +96,13 @@ def test_create_golden_snapshots():
     runner = CliRunner()
 
     test_cases = [
-        ("brain-software-01-product-strategy", "quiero una app moderna de CRM"),
+        ("brain-01-product-strategy", "quiero una app moderna de CRM"),
         (
-            "brain-software-02-ux-research",
+            "brain-02-ux-research",
             "necesito investigación de usuarios para app de finanzas",
         ),
-        ("brain-software-07-growth-data", "estrategia de crecimiento para SaaS B2B"),
-        ("brain-software-08-master-interviewer", "entrevistar a founder de startup"),
+        ("brain-07-growth-data", "estrategia de crecimiento para SaaS B2B"),
+        ("brain-08-master-interviewer", "entrevistar a founder de startup"),
     ]
 
     for brain_id, brief in test_cases:

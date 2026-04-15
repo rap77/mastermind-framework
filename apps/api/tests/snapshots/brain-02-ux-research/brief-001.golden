@@ -1,0 +1,6 @@
+{
+  "brain_id": "brain-02-ux-research",
+  "brief": "necesito investigación de usuarios para app de finanzas",
+  "output": "\n✅ Execution Complete\n============================================================\n\n🧠 brain-02-ux-research\n------------------------------------------------------------\n  brain_id: brain-02-ux-research\n  user_journeys:\n    - {'step': 'Primary user flow'}\n    - {'step': 'Secondary user flow'}\n  pain_points:\n    - Complexity\n    - Lack of feedback\n  opportunities:\n    - Simplification\n    - Automation\n  research_methodology: NotebookLM-based UX analysis\n  screen_flows:\n",
+  "exit_code": 0
+}

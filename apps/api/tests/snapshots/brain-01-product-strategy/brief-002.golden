@@ -1,0 +1,6 @@
+{
+  "brain_id": "brain-01-product-strategy",
+  "brief": "necesito validar mi idea de startup de delivery",
+  "output": "\n✅ Execution Complete\n============================================================\n\n🧠 brain-01-product-strategy\n------------------------------------------------------------\n  brain_id: brain-01-product-strategy\n  brief: {'problem_statement': 'necesito validar mi idea de startup de delivery', 'context': '', 'constraints': [], 'target_audience': None}\n  positioning: \n  target_audience: Software developers and technical teams\n  key_features:\n    - Core feature 1\n    - Core feature 2\n  success_metrics:\n    - User adoption rate\n    - Feature completion rate\n  risks:\n",
+  "exit_code": 0
+}
