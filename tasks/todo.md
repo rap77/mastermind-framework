@@ -13,22 +13,22 @@
 ## PHASE A — Foundation
 
 ### A1: Theming Engine
-- [ ] Create `apps/web/src/app/providers/theme-provider.tsx`
-  - Read from `localStorage("mastermind-theme")`
+- [x] Create `apps/web/src/components/theme-provider.tsx` (location differs from plan)
+  - Read from `localStorage("theme")` (note: key is "theme", not "mastermind-theme")
   - Fallback to `prefers-color-scheme`
   - Toggle `.dark` class on `<html>`
   - Export ThemeContext + useTheme hook
-- [ ] Create `apps/web/src/components/theme/ThemeToggle.tsx`
+- [x] Create `apps/web/src/components/theme-toggle/theme-toggle.tsx` (location differs from plan)
   - Sun/moon icons
   - Smooth icon transition
-- [ ] Extend `apps/web/src/app/globals.css`
-  - Add semantic token block in `:root` and `.dark`
+- [x] Extend `apps/web/src/app/globals.css` (uses existing Tailwind 4 CSS variables)
+  - Semantic tokens already exist in `@theme inline` block
   - `--color-primary`, `--color-success`, `--color-warning`, `--color-error`, `--color-info`
   - `--color-surface`, `--color-border`, `--spacing-*`, `--shadow-*`, `--radius-*`
-- [ ] Modify `apps/web/src/app/layout.tsx`
+- [x] Modify `apps/web/src/app/layout.tsx`
   - Wrap with ThemeProvider
-- [ ] Write 3 unit tests for ThemeProvider
-- [ ] Write 1 component test for ThemeToggle
+- [x] Write 3 unit tests for ThemeProvider
+- [x] Write 1 component test for ThemeToggle
 
 ### A2: UI Redesign — Design Tokens + Base Components
 - [ ] Redesign `apps/web/src/components/ui/button.tsx` with token variants
