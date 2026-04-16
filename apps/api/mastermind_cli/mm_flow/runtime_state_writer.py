@@ -1,0 +1,126 @@
+"""
+Runtime State Writer — bridges STATE.md → runtime-state.json.
+
+Extracts MM-Flow phase data from STATE.md and writes it to
+runtime-state.json for consumption by the statusline hook.
+
+This allows the statusline to show current phase, plan progress,
+and active brain status without querying PostgreSQL.
+"""
+
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def extract_state_from_state_md(state_md_path: Path) -> dict[str, object]:
+    """Extract MM-Flow state from STATE.md.
+
+    Parses the YAML code block in STATE.md to extract:
+    - current_phase: int
+    - milestone: str
+    - overall_status: str
+    - active_plan: int (first non-COMPLETE plan)
+    - plans_completed: int
+    - plans_total: int
+
+    Args:
+        state_md_path: Path to STATE.md file.
+
+    Returns:
+        Dict with extracted state values. Returns defaults if file
+        doesn't exist or can't be parsed.
+    """
+    defaults = {
+        "current_phase": 0,
+        "milestone": "",
+        "overall_status": "",
+        "active_plan": 0,
+        "plans_completed": 0,
+        "plans_total": 0,
+    }
+
+    if not state_md_path.exists():
+        return defaults
+
+    try:
+        content = state_md_path.read_text(encoding="utf-8")
+    except OSError:
+        return defaults
+
+    # Extract values from YAML-like content
+    def _extract(key: str, pattern: str | None = None) -> str:
+        p = pattern or rf"{key}:\s*(.+)"
+        match = re.search(p, content)
+        return match.group(1).strip().strip('"').strip("'") if match else ""
+
+    # Simple extractions
+    milestone = _extract("milestone")
+    overall_status = _extract("overall_status")
+
+    phase_str = _extract("current_phase")
+    try:
+        current_phase = int(phase_str)
+    except ValueError:
+        current_phase = 0
+
+    # Count plans from phase_XX_progress block
+    plan_pattern = re.findall(r"plan_(\d+):\s*(\w+)", content)
+    plans_total = len(plan_pattern)
+    plans_completed = sum(1 for _, status in plan_pattern if status == "COMPLETE")
+
+    # Find first non-COMPLETE plan
+    active_plan = 0
+    for plan_num, status in plan_pattern:
+        if status not in ("COMPLETE",):
+            try:
+                active_plan = int(plan_num)
+            except ValueError:
+                pass
+            break
+
+    return {
+        "current_phase": current_phase,
+        "milestone": milestone,
+        "overall_status": overall_status,
+        "active_plan": active_plan,
+        "plans_completed": plans_completed,
+        "plans_total": plans_total,
+    }
+
+
+def write_runtime_state(
+    state_md_path: Path,
+    output_path: Path,
+) -> Path:
+    """Write runtime-state.json from STATE.md data.
+
+    Args:
+        state_md_path: Path to STATE.md.
+        output_path: Path where runtime-state.json will be written.
+
+    Returns:
+        Path to the written file.
+    """
+    state = extract_state_from_state_md(state_md_path)
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(state, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return output_path
+
+
+def main() -> None:
+    """CLI entry point: reads STATE.md → writes runtime-state.json."""
+    project_root = Path(__file__).resolve().parents[4]
+    state_md = project_root / ".planning" / "STATE.md"
+    output = project_root / ".planning" / ".mm-flow" / "runtime-state.json"
+    write_runtime_state(state_md, output)
+
+
+if __name__ == "__main__":
+    main()

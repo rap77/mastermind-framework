@@ -1,0 +1,19 @@
+{
+  "task_id": "C1",
+  "session_id": "sess-20260416-040827",
+  "started_at": "2026-04-16T04:08:27.947888",
+  "completed_at": "2026-04-16T04:08:27.947888",
+  "subtasks": {
+    "C1.1": {
+      "description": "Extend `~/.claude/hooks/mm-flow-statusline.js` - Preserve lines 24-43 - Add phase state display - Add active brain status",
+      "status": "completed",
+      "verified_at": "2026-04-16T04:08:27Z"
+    },
+    "C1.2": {
+      "description": "Verify no breaking changes to existing statusline",
+      "status": "completed",
+      "verified_at": "2026-04-16T04:08:27Z"
+    }
+  },
+  "last_checkpoint": "COMPLETED"
+}
