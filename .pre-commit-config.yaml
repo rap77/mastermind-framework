@@ -31,7 +31,9 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^target/
       - id: end-of-file-fixer
+        exclude: ^target/
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files
