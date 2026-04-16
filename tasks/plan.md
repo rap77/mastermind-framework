@@ -90,16 +90,20 @@ cd apps/web && pnpm test -- --grep "theme"
 - `apps/web/src/components/ui/toggle.tsx` — NEW
 
 **Acceptance Criteria:**
-- [ ] Semantic token block in globals.css: `--color-primary`, `--color-success`, `--color-warning`, `--color-error`, `--color-info`, `--color-surface`, `--color-border`, `--spacing-*`, `--shadow-*`, `--radius-*`
-- [ ] Light mode tokens defined in `:root`
-- [ ] Dark mode tokens defined in `.dark`
-- [ ] All 8 components use `var(--color-*)` — zero hardcoded hex colors
-- [ ] Button: variants (primary, secondary, ghost, danger) + sizes (sm, md, lg)
-- [ ] Input: label, error state, icon support
-- [ ] Dropdown: menu items, dividers, icons
-- [ ] Tooltip: positions (top, right, bottom, left)
-- [ ] Badge: variants (default, success, warning, error, info)
-- [ ] All existing tests still pass: 628/628
+- [x] Semantic token block in globals.css: `--color-primary`, `--color-success`, `--color-warning`, `--color-error`, `--color-info`, `--color-surface`, `--color-border`, `--spacing-*`, `--shadow-*`, `--radius-*`
+- [x] Light mode tokens defined in `:root`
+- [x] Dark mode tokens defined in `.dark`
+- [x] All 8 components use `var(--color-*)` — zero hardcoded hex colors
+- [x] Button: variants (primary, secondary, ghost, danger) + sizes (sm, md, lg)
+- [x] Input: label, error state, icon support
+- [x] Dropdown: menu items, dividers, icons
+- [x] Tooltip: positions (top, right, bottom, left)
+- [x] Badge: variants (default, success, warning, error, info)
+- [x] All existing tests still pass: 660/660
+
+**Status:** ✅ COMPLETE — Verified 2026-04-16
+**Tests:** 660 passing (zero failures)
+**Verification:** Zero hardcoded hex colors confirmed
 
 **Verification:**
 ```bash

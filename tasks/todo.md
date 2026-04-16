@@ -31,16 +31,17 @@
 - [x] Write 1 component test for ThemeToggle
 
 ### A2: UI Redesign — Design Tokens + Base Components
-- [ ] Redesign `apps/web/src/components/ui/button.tsx` with token variants
-- [ ] Redesign `apps/web/src/components/ui/card.tsx` with token variants
-- [ ] Redesign `apps/web/src/components/ui/input.tsx` with token variants
-- [ ] Redesign `apps/web/src/components/ui/dialog.tsx` with token variants
-- [ ] Create `apps/web/src/components/ui/dropdown.tsx`
-- [ ] Create `apps/web/src/components/ui/tooltip.tsx`
-- [ ] Create `apps/web/src/components/ui/badge.tsx` (replace StatusBadge)
-- [ ] Create `apps/web/src/components/ui/toggle.tsx`
-- [ ] Verify zero hardcoded hex in components
-- [ ] All 628+ existing tests pass
+- [x] Add semantic token block to `apps/web/src/app/globals.css`
+- [x] Redesign `apps/web/src/components/ui/button.tsx` with token variants
+- [x] Redesign `apps/web/src/components/ui/card.tsx` with token variants
+- [x] Redesign `apps/web/src/components/ui/input.tsx` with token variants (added label, error, icons)
+- [x] Redesign `apps/web/src/components/ui/dialog.tsx` with token variants
+- [x] Create `apps/web/src/components/ui/dropdown.tsx`
+- [x] Create `apps/web/src/components/ui/tooltip.tsx`
+- [x] Create `apps/web/src/components/ui/badge.tsx` (replaces StatusBadge)
+- [x] Create `apps/web/src/components/ui/toggle.tsx`
+- [x] Verify zero hardcoded hex in components
+- [x] All 660 tests pass (100% success rate)
 
 ---
 

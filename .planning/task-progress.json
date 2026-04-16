@@ -1,48 +1,74 @@
 {
-  "task_id": "A1",
-  "session_id": "sess-20260416-complete-task",
+  "task_id": "A2",
+  "session_id": "sess-20260416-143000",
   "started_at": "2026-04-16T14:30:00Z",
-  "completed_at": "2026-04-16T14:30:00Z",
   "status": "completed",
+  "completed_at": "2026-04-16T15:45:00Z",
   "subtasks": {
-    "A1.1": {
-      "description": "Create ThemeProvider component",
+    "A2.1": {
+      "description": "Add semantic token block to globals.css",
       "status": "completed",
-      "file": "apps/web/src/components/theme-provider.tsx",
-      "commit": "3c9a62c6"
+      "file": "apps/web/src/app/globals.css",
+      "completed_at": "2026-04-16T14:45:00Z"
     },
-    "A1.2": {
-      "description": "Create ThemeToggle component",
+    "A2.2": {
+      "description": "Redesign button.tsx with token variants",
       "status": "completed",
-      "file": "apps/web/src/components/theme-toggle/theme-toggle.tsx",
-      "commit": "3c9a62c6"
+      "file": "apps/web/src/components/ui/button.tsx",
+      "completed_at": "2026-04-16T15:30:00Z"
     },
-    "A1.3": {
-      "description": "Integrate ThemeProvider in layout.tsx",
+    "A2.3": {
+      "description": "Redesign card.tsx with token variants",
       "status": "completed",
-      "file": "apps/web/src/app/layout.tsx",
-      "commit": "3c9a62c6"
+      "file": "apps/web/src/components/ui/card.tsx",
+      "completed_at": "2026-04-16T15:30:00Z"
     },
-    "A1.4": {
-      "description": "Write tests (3 unit + 1 component)",
+    "A2.4": {
+      "description": "Redesign input.tsx with token variants",
       "status": "completed",
-      "files": [
-        "apps/web/src/components/__tests__/theme-provider.test.tsx",
-        "apps/web/src/components/theme-toggle/__tests__/theme-toggle.test.tsx"
-      ],
-      "commit": "3c9a62c6"
+      "file": "apps/web/src/components/ui/input.tsx",
+      "completed_at": "2026-04-16T15:30:00Z"
+    },
+    "A2.5": {
+      "description": "Redesign dialog.tsx with token variants",
+      "status": "completed",
+      "file": "apps/web/src/components/ui/dialog.tsx",
+      "completed_at": "2026-04-16T15:30:00Z"
+    },
+    "A2.6": {
+      "description": "Create dropdown.tsx component",
+      "status": "completed",
+      "file": "apps/web/src/components/ui/dropdown.tsx",
+      "completed_at": "2026-04-16T15:00:00Z"
+    },
+    "A2.7": {
+      "description": "Create tooltip.tsx component",
+      "status": "completed",
+      "file": "apps/web/src/components/ui/tooltip.tsx",
+      "completed_at": "2026-04-16T15:00:00Z"
+    },
+    "A2.8": {
+      "description": "Create badge.tsx component (replace StatusBadge)",
+      "status": "completed",
+      "file": "apps/web/src/components/ui/badge.tsx",
+      "completed_at": "2026-04-16T15:00:00Z"
+    },
+    "A2.9": {
+      "description": "Create toggle.tsx component",
+      "status": "completed",
+      "file": "apps/web/src/components/ui/toggle.tsx",
+      "completed_at": "2026-04-16T15:00:00Z"
+    },
+    "A2.10": {
+      "description": "Verify zero hardcoded hex + all tests pass",
+      "status": "completed",
+      "completed_at": "2026-04-16T15:45:00Z",
+      "verification": {
+        "hardcoded_hex_count": 0,
+        "tests_passing": 660,
+        "tests_total": 660
+      }
     }
   },
-  "verification": {
-    "tests_passing": 660,
-    "new_tests": 4,
-    "code_review": "approved",
-    "commit_sha": "3c9a62c6"
-  },
-  "notes": [
-    "File locations differ from plan: theme-provider.tsx is in components/, not app/providers/",
-    "ThemeToggle is in components/theme-toggle/, not components/theme/",
-    "localStorage key is 'theme', not 'mastermind-theme' as planned",
-    "Uses existing Tailwind 4 CSS variables from globals.css"
-  ]
+  "last_checkpoint": "COMPLETED"
 }
