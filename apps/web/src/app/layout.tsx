@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/react-query";
 import { CommandPalette } from "@/components/command/CommandPalette";
 import { ToastProvider } from "@/components/toast/ToastProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,11 +33,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <QueryProvider>
-          {children}
-          <CommandPalette />
-          <ToastProvider />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            {children}
+            <CommandPalette />
+            <ToastProvider />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
