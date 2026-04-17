@@ -17,7 +17,7 @@
     },
     "D1.4": {
       "description": "Engine Room: replace hardcoded colors with tokens",
-      "status": "pending"
+      "status": "complete"
     },
     "D1.5": {
       "description": "React Flow canvas adapts to theme (Nexus + Flow Designer)",
