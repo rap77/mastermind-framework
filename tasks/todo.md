@@ -48,21 +48,21 @@
 ## PHASE B — Visual Orchestration
 
 ### B1: Flow Designer (n8n-style)
-- [ ] Create `apps/web/src/components/flow-designer/types.ts`
-- [ ] Create `apps/web/src/stores/flowDesignerStore.ts`
-- [ ] Create `apps/web/src/lib/flow-serializer.ts` (export/import JSON)
-- [ ] Create `apps/web/src/components/flow-designer/nodes/BrainNode.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/nodes/GatewayNode.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/nodes/AdapterNode.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/nodes/RouterNode.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/nodes/ConditionNode.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/edges/FlowEdge.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/FlowPalette.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/FlowToolbar.tsx`
-- [ ] Create `apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx`
-- [ ] Create `apps/web/src/app/(protected)/flow-designer/page.tsx`
-- [ ] Write 10+ tests for flow-serializer
-- [ ] Write 5+ tests for FlowDesignerCanvas
+- [x] Create `apps/web/src/components/flow-designer/types.ts`
+- [x] Create `apps/web/src/stores/flowDesignerStore.ts` (457 lines with Immer)
+- [x] Create `apps/web/src/lib/flow-serializer.ts` (export/import JSON + validation)
+- [x] Create `apps/web/src/components/flow-designer/nodes/BrainNode.tsx`
+- [x] Create `apps/web/src/components/flow-designer/nodes/GatewayNode.tsx`
+- [x] Create `apps/web/src/components/flow-designer/nodes/AdapterNode.tsx`
+- [x] Create `apps/web/src/components/flow-designer/nodes/RouterNode.tsx`
+- [x] Create `apps/web/src/components/flow-designer/nodes/ConditionNode.tsx`
+- [x] Create `apps/web/src/components/flow-designer/edges/FlowEdge.tsx`
+- [x] Create `apps/web/src/components/flow-designer/FlowPalette.tsx`
+- [x] Create `apps/web/src/components/flow-designer/FlowToolbar.tsx`
+- [x] Create `apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx`
+- [x] Create `apps/web/src/app/(protected)/flow-designer/page.tsx`
+- [x] Write 10+ tests for flow-serializer (14 tests, all passing)
+- [x] Write 5+ tests for FlowDesignerCanvas (5 tests, all passing)
 
 ### B2: Simulation & Replay Engine
 - [ ] Create `apps/web/src/stores/simulationStore.ts`

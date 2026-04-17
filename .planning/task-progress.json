@@ -1,73 +1,97 @@
 {
-  "task_id": "A2",
-  "session_id": "sess-20260416-143000",
-  "started_at": "2026-04-16T14:30:00Z",
+  "task_id": "B1",
+  "session_id": "sess-20260416-150000",
+  "started_at": "2026-04-16T15:00:00Z",
+  "completed_at": "2026-04-16T16:00:00Z",
   "status": "completed",
-  "completed_at": "2026-04-16T15:45:00Z",
   "subtasks": {
-    "A2.1": {
-      "description": "Add semantic token block to globals.css",
+    "B1.1": {
+      "description": "Create types.ts (FlowNode, FlowEdge, FlowDefinition)",
       "status": "completed",
-      "file": "apps/web/src/app/globals.css",
-      "completed_at": "2026-04-16T14:45:00Z"
-    },
-    "A2.2": {
-      "description": "Redesign button.tsx with token variants",
-      "status": "completed",
-      "file": "apps/web/src/components/ui/button.tsx",
+      "file": "apps/web/src/components/flow-designer/types.ts",
       "completed_at": "2026-04-16T15:30:00Z"
     },
-    "A2.3": {
-      "description": "Redesign card.tsx with token variants",
+    "B1.2": {
+      "description": "Create flowDesignerStore.ts",
       "status": "completed",
-      "file": "apps/web/src/components/ui/card.tsx",
+      "file": "apps/web/src/stores/flowDesignerStore.ts",
       "completed_at": "2026-04-16T15:30:00Z"
     },
-    "A2.4": {
-      "description": "Redesign input.tsx with token variants",
+    "B1.3": {
+      "description": "Create flow-serializer.ts (export/import JSON)",
       "status": "completed",
-      "file": "apps/web/src/components/ui/input.tsx",
+      "file": "apps/web/src/lib/flow-serializer.ts",
       "completed_at": "2026-04-16T15:30:00Z"
     },
-    "A2.5": {
-      "description": "Redesign dialog.tsx with token variants",
+    "B1.4": {
+      "description": "Create BrainNode.tsx",
       "status": "completed",
-      "file": "apps/web/src/components/ui/dialog.tsx",
-      "completed_at": "2026-04-16T15:30:00Z"
+      "file": "apps/web/src/components/flow-designer/nodes/BrainNode.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
     },
-    "A2.6": {
-      "description": "Create dropdown.tsx component",
+    "B1.5": {
+      "description": "Create GatewayNode.tsx",
       "status": "completed",
-      "file": "apps/web/src/components/ui/dropdown.tsx",
-      "completed_at": "2026-04-16T15:00:00Z"
+      "file": "apps/web/src/components/flow-designer/nodes/GatewayNode.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
     },
-    "A2.7": {
-      "description": "Create tooltip.tsx component",
+    "B1.6": {
+      "description": "Create AdapterNode.tsx",
       "status": "completed",
-      "file": "apps/web/src/components/ui/tooltip.tsx",
-      "completed_at": "2026-04-16T15:00:00Z"
+      "file": "apps/web/src/components/flow-designer/nodes/AdapterNode.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
     },
-    "A2.8": {
-      "description": "Create badge.tsx component (replace StatusBadge)",
+    "B1.7": {
+      "description": "Create RouterNode.tsx",
       "status": "completed",
-      "file": "apps/web/src/components/ui/badge.tsx",
-      "completed_at": "2026-04-16T15:00:00Z"
+      "file": "apps/web/src/components/flow-designer/nodes/RouterNode.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
     },
-    "A2.9": {
-      "description": "Create toggle.tsx component",
+    "B1.8": {
+      "description": "Create ConditionNode.tsx",
       "status": "completed",
-      "file": "apps/web/src/components/ui/toggle.tsx",
-      "completed_at": "2026-04-16T15:00:00Z"
+      "file": "apps/web/src/components/flow-designer/nodes/ConditionNode.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
     },
-    "A2.10": {
-      "description": "Verify zero hardcoded hex + all tests pass",
+    "B1.9": {
+      "description": "Create FlowEdge.tsx",
       "status": "completed",
-      "completed_at": "2026-04-16T15:45:00Z",
-      "verification": {
-        "hardcoded_hex_count": 0,
-        "tests_passing": 660,
-        "tests_total": 660
-      }
+      "file": "apps/web/src/components/flow-designer/edges/FlowEdge.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.10": {
+      "description": "Create FlowPalette.tsx",
+      "status": "completed",
+      "file": "apps/web/src/components/flow-designer/FlowPalette.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.11": {
+      "description": "Create FlowToolbar.tsx",
+      "status": "completed",
+      "file": "apps/web/src/components/flow-designer/FlowToolbar.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.12": {
+      "description": "Create FlowDesignerCanvas.tsx",
+      "status": "completed",
+      "file": "apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.13": {
+      "description": "Create /flow-designer route page.tsx",
+      "status": "completed",
+      "file": "apps/web/src/app/(protected)/flow-designer/page.tsx",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.14": {
+      "description": "Write 10+ tests for flow-serializer",
+      "status": "completed",
+      "completed_at": "2026-04-16T16:00:00Z"
+    },
+    "B1.15": {
+      "description": "Write 5+ tests for FlowDesignerCanvas",
+      "status": "completed",
+      "completed_at": "2026-04-16T16:00:00Z"
     }
   },
   "last_checkpoint": "COMPLETED"

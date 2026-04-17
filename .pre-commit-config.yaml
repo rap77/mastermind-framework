@@ -31,9 +31,9 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^target/
+        exclude: '^(target|dist|build|node_modules)/'
       - id: end-of-file-fixer
-        exclude: ^target/
+        exclude: '^(target|dist|build|node_modules)/'
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files

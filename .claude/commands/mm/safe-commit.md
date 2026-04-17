@@ -22,34 +22,66 @@ Valida ANTES de commitear: tests pasando (0 fallas), GGA hook configurado, forma
 
 ### 1. Detección Reactiva
 
-La skill se activa automáticamente cuando:
-- Vas a ejecutar `git commit`
-- El usuario dice "commit this", "commiteá esto", "make commit"
-- Veo `--no-verify` en cualquier comando git
+**IMPORTANTE: Los hooks NO pueden bloquear comandos en Claude Code.**
 
-**No espera a que lo pidas explícitamente. Es una barrera cognitiva.**
+El hook `~/.claude/hooks/mm-safe-commit-pre-guard.js` detecta `git commit --no-verify` y muestra una ADVERTENCIA, pero **NO puede bloquear el comando** (Claude Code ignora los exit codes de los hooks).
+
+**Cómo funciona:**
+1. **Hook (automático):** PreToolUse detecta `git commit --no-verify` → Muestra advertencia (NO bloquea)
+2. **Slash command (manual):** Usás `/mm:safe-commit` → Commitea con validación completa
+
+**⚠️ LIMITACIÓN:** Claude Code NO respeta exit codes de hooks PreToolUse. La única forma real de bloquear es:
+- Usar `/mm:safe-commit` manualmente (RECOMENDADO)
+- Crear alias: `alias git='~/.claude/bin/git-safe'` en tu shell
 
 ### 2. Bloqueo de `--no-verify`
+
+**IMPORTANTE: Si usás `--no-verify`, el commit se REVERTIRÁ automáticamente.**
 
 Si detecto `--no-verify`:
 
 ```
-❌ BLOQUEADO: --no-verify es PELIGROSO
+❌ COMMIT REVERTIDO: Usaste --no-verify
 
-Por qué:
-- GGA valida security (hardcoded credentials, tokens, private IPs)
-- GGA valida TypeScript/React standards
-- GGA validates accessibility (ARIA, WCAG 2.1 AA)
-- GGA valida performance (bundle size, Lighthouse scores)
+El commit se deshizo automáticamente.
+💡 Usá: /mm:safe-commit
 
-Si GGA falla → Arreglá el error, NO lo salteés
+🔍 ¿POR QUÉ ESTÁ PROHIBIDO?
 
-Regla documentada en 4 lugares:
-- memory/MEMORY.md
-- .planning/codebase/CONVENTIONS.md
-- .planning/codebase/CONCERNS.md
-- docs/handoffs/HANDOFF.md
+--no-verify saltea GGA que valida:
+
+Security:
+• Hardcoded credentials (API keys, tokens, passwords)
+• Private IPs (192.168.x.x, 10.x.x.x)
+• Secrets antes de llegar al repo
+
+Code Quality:
+• TypeScript/React standards
+• Conventions del proyecto
+• Anti-patrones comunes
+
+Accessibility:
+• ARIA labels y roles
+• WCAG 2.1 AA compliance
+• Keyboard navigation
+
+Performance:
+• Bundle size optimización
+• Lighthouse scores
+• Image optimization
+
+🚨 INVOCANDO: /systematic-debugging
+
+Investigación: ¿Por qué se usó --no-verify?
+Raíz: ¿Qué error de GGA causó esto?
+Resolución: ¿Cómo arreglar el error raíz?
 ```
+
+**El sistema automáticamente:**
+1. Revierte el commit (`git reset --soft HEAD~1`)
+2. Mantiene tus cambios staged (no los perdés)
+3. Invoca `/systematic-debugging` para investigar la raíz
+4. Te guía para resolver el problema que causó el uso de `--no-verify`
 
 ### 3. Pre-Commit Checklist
 
