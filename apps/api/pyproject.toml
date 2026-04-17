@@ -30,6 +30,7 @@ dependencies = [
     "aiosmtplib>=5.1.0",
     "nh3>=0.2.18",  # Phase 18: HTML sanitization (Rust-based, faster than bleach)
     "psycopg2-binary>=2.9.11",
+    "pydantic-settings>=2.13.1",
 ]
 
 [project.scripts]

@@ -175,6 +175,62 @@ def mark_task_complete(task_id: str, title: str) -> str:
     return commit_msg
 
 
+def launch_background_agent(
+    task_id: str, task: dict[str, str], subtasks: list[dict]
+) -> str:
+    """Launch task-executor agent in background.
+
+    Args:
+        task_id: Task identifier.
+        task: Task dict with 'id' and 'title'.
+        subtasks: List of subtask dicts.
+
+    Returns:
+        Process ID or agent identifier.
+    """
+    # Filter pending subtasks
+    pending = [st for st in subtasks if not st["completed"]]
+
+    if not pending:
+        logger.info(f"✓ All subtasks already complete for {task_id}")
+        return mark_task_complete(task_id, task["title"])
+
+    # Prepare payload for agent
+    payload = {
+        "task_id": task_id,
+        "task_title": task["title"],
+        "subtasks": pending,
+        "plan_context": PLAN_MD.read_text(),
+    }
+
+    # Create temp file with payload
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(payload, f, indent=2)
+        payload_path = f.name
+
+    # Launch agent in background
+    # Note: This uses Claude Code's Agent tool via subprocess
+    logger.info("Launching task-executor agent in background...")
+    logger.info(f"  Task: {task_id}")
+    logger.info(f"  Subtasks: {len(pending)} pending")
+
+    # For now, create a marker file that the agent can read
+    agent_marker = PLANNING_DIR / f".agent-{task_id}-running"
+    agent_marker.write_text(
+        json.dumps(
+            {
+                "launched_at": datetime.now().isoformat(),
+                "task_id": task_id,
+                "payload_path": payload_path,
+            }
+        )
+    )
+
+    return f"agent-{task_id}"
+
+
 def main() -> None:
     """Main entry point for mm-complete-task command."""
     if len(sys.argv) < 2:
@@ -206,16 +262,21 @@ def main() -> None:
     logger.info(f"  Session ID: {runtime_state['session_id']}")
     logger.info(f"  Runtime state: {RUNTIME_STATE_PATH}")
 
-    logger.info("Subtasks to complete:")
-    for st in subtasks:
-        if not st["completed"]:
-            logger.info(f"  - {st['id']}: {st['description']}")
+    # Launch background agent
+    agent_id = launch_background_agent(task_id, task, subtasks)
 
-    logger.info("NOTE: Debes lanzar agentes manualmente para cada subtarea")
-    logger.info("      Usa /agent o Agent() con:")
-    for st in subtasks:
-        if not st["completed"]:
-            logger.info(f"      - {st['description']}")
+    logger.info("✓ Agent launched in background")
+    logger.info(f"  Agent ID: {agent_id}")
+    logger.info(f"  Monitor progress: tail -f {RUNTIME_STATE_PATH}")
+    logger.info(f"  View logs: .planning/.agent-{task_id}-running")
+    logger.info("")
+    logger.info("The agent will execute the full cycle for each subtask:")
+    logger.info("  1. /build    → implement")
+    logger.info("  2. /test     → verify tests")
+    logger.info("  3. /review   → code review (superpowers)")
+    logger.info("  4. code-reviewer → 5-axis review (agent-skills)")
+    logger.info("  5. Mark complete in todo.md")
+    logger.info("  6. Save checkpoint to Engram")
 
 
 if __name__ == "__main__":

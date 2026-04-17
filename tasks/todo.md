@@ -65,15 +65,15 @@
 - [x] Write 5+ tests for FlowDesignerCanvas (5 tests, all passing)
 
 ### B2: Simulation & Replay Engine
-- [ ] Create `apps/web/src/stores/simulationStore.ts`
-- [ ] Create `apps/web/src/components/simulation/ReplayControls.tsx`
-- [ ] Create `apps/web/src/components/simulation/TimelineScrubber.tsx`
-- [ ] Create `apps/web/src/components/simulation/EventLog.tsx`
-- [ ] Create `apps/web/src/components/simulation/ErrorSummary.tsx`
-- [ ] Create `apps/web/src/components/simulation/SimulationCanvas.tsx`
-- [ ] Create `apps/web/src/app/(protected)/simulation/page.tsx`
-- [ ] Write 8+ tests for simulationStore
-- [ ] Write 5+ tests for SimulationCanvas
+- [x] Create `apps/web/src/stores/simulationStore.ts` (24 tests, ✅ 100% pass)
+- [x] Create `apps/web/src/components/simulation/ReplayControls.tsx` (111 lines)
+- [x] Create `apps/web/src/components/simulation/TimelineScrubber.tsx` (255 lines)
+- [x] Create `apps/web/src/components/simulation/EventLog.tsx` (148 lines)
+- [x] Create `apps/web/src/components/simulation/ErrorSummary.tsx` (81 lines)
+- [x] Create `apps/web/src/components/simulation/SimulationCanvas.tsx` (237 lines)
+- [x] Create `apps/web/src/app/(protected)/simulation/page.tsx` (280 lines)
+- [x] Write 8+ tests for simulationStore (24 tests, ✅ 100% pass)
+- [x] Write 5+ tests for SimulationCanvas (30 tests, ✅ 100% pass)
 
 ---
 

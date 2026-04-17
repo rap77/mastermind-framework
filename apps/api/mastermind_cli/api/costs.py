@@ -5,13 +5,16 @@ All metrics are sourced from cost_metrics_mv materialized view for performance.
 
 Performance SLA: P50 < 10ms, P99 < 50ms (indexed MV queries)
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-import asyncpg  # type: ignore[import-untyped]
+import asyncpg
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+
+from mastermind_cli.api.config import get_settings
 
 # ===== ROUTER =====
 
@@ -19,7 +22,8 @@ router = APIRouter(prefix="/api/costs", tags=["costs"])
 
 # ===== DATABASE CONFIG =====
 
-POSTGRES_DSN = "postgresql://postgres:devpassword@localhost:5433/mastermind_bd"
+settings = get_settings()
+POSTGRES_DSN = settings.postgres_dsn
 
 # ===== MODELS =====
 
@@ -32,7 +36,9 @@ class BrainCostMetric(BaseModel):
     completed_requests: int = Field(..., description="Number of completed requests")
     failed_requests: int = Field(..., description="Number of failed requests")
     success_rate: float = Field(..., description="Success rate (0.0 to 1.0)")
-    last_activity_at: str | None = Field(None, description="Last activity timestamp (ISO 8601)")
+    last_activity_at: str | None = Field(
+        None, description="Last activity timestamp (ISO 8601)"
+    )
 
 
 # ===== ENDPOINTS =====
