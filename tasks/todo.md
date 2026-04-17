@@ -91,13 +91,13 @@
 ## PHASE D — Integration & Polish
 
 ### D1: All Screens Theme-Aware
-- [ ] Command Center: replace hardcoded colors with tokens
-- [ ] Nexus: replace hardcoded colors with tokens
-- [ ] Strategy Vault: replace hardcoded colors with tokens
-- [ ] Engine Room: replace hardcoded colors with tokens
-- [ ] React Flow canvas adapts to theme (Nexus + Flow Designer)
-- [ ] Verify zero hardcoded hex in screen components
-- [ ] All 628+ tests pass
+- [x] Command Center: replace hardcoded colors with tokens
+- [x] Nexus: replace hardcoded colors with tokens
+- [x] Strategy Vault: replace hardcoded colors with tokens
+- [x] Engine Room: replace hardcoded colors with tokens
+- [x] React Flow canvas adapts to theme (Nexus + Flow Designer)
+- [x] Verify zero hardcoded hex in screen components
+- [x] All 628+ tests pass
 
 ### D2: Flow Designer ↔ Simulation Wiring
 - [ ] Create `apps/web/src/lib/flow-execution-adapter.ts`
