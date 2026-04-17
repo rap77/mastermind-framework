@@ -5,7 +5,7 @@
  * Based on NexusCanvas.tsx pattern.
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -15,6 +15,7 @@ import {
   type EdgeTypes,
   type OnDragOverEventHandler,
   type OnDropEventHandler,
+  type OnNodeDoubleClickHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -26,6 +27,7 @@ import { AdapterNode } from './nodes/AdapterNode'
 import { RouterNode } from './nodes/RouterNode'
 import { ConditionNode } from './nodes/ConditionNode'
 import { FlowEdge as CustomFlowEdge } from './edges/FlowEdge'
+import { NodeConfigDialog } from './NodeConfigDialog'
 import { useFlowDesignerStore } from '@/stores/flowDesignerStore'
 import type { FlowNode, FlowEdge } from './types'
 import { NodeType } from './types'
@@ -46,6 +48,8 @@ const EDGE_TYPES: EdgeTypes = {
 
 export function FlowDesignerCanvas() {
   const { nodes, edges, addNode, viewport } = useFlowDesignerStore()
+  const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const onDragOver: OnDragOverEventHandler = useCallback((event) => {
     event.preventDefault()
@@ -78,6 +82,14 @@ export function FlowDesignerCanvas() {
     [addNode]
   )
 
+  const onNodeDoubleClick: OnNodeDoubleClickHandler = useCallback(
+    (event, node) => {
+      setSelectedNode(node as FlowNode)
+      setDialogOpen(true)
+    },
+    []
+  )
+
   return (
     <div className="flex flex-col h-screen">
       <FlowToolbar />
@@ -93,6 +105,7 @@ export function FlowDesignerCanvas() {
             edgeTypes={EDGE_TYPES}
             onDragOver={onDragOver}
             onDrop={onDrop}
+            onNodeDoubleClick={onNodeDoubleClick}
             fitView
             defaultViewport={viewport}
             minZoom={0.2}
@@ -108,6 +121,12 @@ export function FlowDesignerCanvas() {
           </ReactFlow>
         </div>
       </div>
+
+      <NodeConfigDialog
+        node={selectedNode}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   )
 }

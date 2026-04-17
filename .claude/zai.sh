@@ -7,7 +7,7 @@
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.1"
   },
     "env": {
-    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_AUTH_TOKEN": "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",
     "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
     "ANTHROPIC_API_KEY": "",
     "API_TIMEOUT_MS": "3000000",

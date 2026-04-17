@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Handler para /mm:complete-task.
 
-Lanza agentes background para subtareas pendientes y monitorea progreso.
+Lanza task-executor agent para ejecutar subtareas pendientes.
+
+REFACTOR v2:
+- Sin temp files - estado en task-progress.json
+- Output estructurado machine-parseable
+- Detección git mejorada con git log --grep
 """
 
 import json
@@ -29,11 +34,102 @@ PLAN_MD = TASKS_DIR / "plan.md"
 TODO_MD = TASKS_DIR / "todo.md"
 
 
+# ============================================================================
+# Output Helpers - Structured, machine-parseable
+# ============================================================================
+
+
+def mm_info(msg: str) -> None:
+    """Print INFO message."""
+    print(f"INFO: {msg}", flush=True)
+
+
+def mm_task(task_id: str, title: str) -> None:
+    """Print task header."""
+    print(f"TASK: {task_id}", flush=True)
+    print(f"TITLE: {title}", flush=True)
+
+
+def mm_subtask(subtask_id: str, status: str, description: str = "") -> None:
+    """Print subtask line."""
+    desc = f" ({description})" if description else ""
+    print(f"SUBTASK: {subtask_id} {status}{desc}", flush=True)
+
+
+def mm_git(count: int, total: int, completed: list[str]) -> None:
+    """Print git status."""
+    completed_str = ",".join(completed) if completed else "none"
+    print(f"GIT: {count}/{total} subtasks have commits [{completed_str}]", flush=True)
+
+
+def mm_pending(count: int) -> None:
+    """Print pending count."""
+    print(f"PENDING: {count} subtasks to execute", flush=True)
+
+
+def mm_launch(task_id: str) -> None:
+    """Print launch command."""
+    payload = get_task_payload(task_id)
+    print("LAUNCH: task-executor", flush=True)
+    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
+
+
+def mm_status(msg: str) -> None:
+    """Print status message."""
+    print(f"STATUS: {msg}", flush=True)
+
+
+def mm_error(msg: str) -> None:
+    """Print error message."""
+    print(f"ERROR: {msg}", flush=True, file=sys.stderr)
+
+
+# ============================================================================
+# Git Detection - Improved with git log --grep
+# ============================================================================
+
+
+def get_git_commits_for_task(task_id: str) -> set[str]:
+    """Get subtask IDs that have commits in git using --grep.
+
+    Uses git log --grep for more reliable detection.
+    Pattern: matches "D1.1", "D1.2", etc. in commit messages.
+    """
+    completed = set()
+
+    # Pattern 1: grep for task ID in commit messages
+    # Matches: "D1.1:", "(D1.1)", "[D1.1]", etc.
+    patterns = [
+        rf"{re.escape(task_id)}\.(\d+)",
+    ]
+
+    for pattern in patterns:
+        result = subprocess.run(
+            ["git", "log", "--all", "--pretty=format:%s", "-100"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+        )
+
+        for line in result.stdout.split("\n"):
+            match = re.search(pattern, line)
+            if match:
+                subtask_num = match.group(1)
+                completed.add(f"{task_id}.{subtask_num}")
+
+    return completed
+
+
+# ============================================================================
+# Task Parsing
+# ============================================================================
+
+
 def read_task_from_plan(task_id: str) -> dict[str, str]:
     """Read task details from plan.md.
 
     Args:
-        task_id: Task identifier (e.g., "C1").
+        task_id: Task identifier (e.g., "D1").
 
     Returns:
         Dictionary with "id" and "title" keys.
@@ -50,7 +146,6 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
         raise ValueError(f"Task {task_id} not found in plan.md")
 
     title = match.group(1).strip()
-
     return {"id": task_id, "title": title}
 
 
@@ -58,7 +153,7 @@ def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
     """Read subtasks from todo.md.
 
     Args:
-        task_id: Task identifier (e.g., "C1").
+        task_id: Task identifier (e.g., "D1").
 
     Returns:
         List of subtask dictionaries with "id", "description", "completed" keys.
@@ -75,8 +170,6 @@ def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
         raise ValueError(f"Task {task_id} not found in todo.md")
 
     section = match.group(2)
-
-    # Extract subtasks with nested checkboxes
     lines = section.split("\n")
     subtasks: list[dict[str, Any]] = []
     task_prefix = f"{task_id}."
@@ -99,6 +192,11 @@ def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
     return subtasks
 
 
+# ============================================================================
+# State Management
+# ============================================================================
+
+
 def init_runtime_state(task_id: str, subtasks: list[dict[str, Any]]) -> dict[str, Any]:
     """Initialize runtime state file.
 
@@ -115,14 +213,17 @@ def init_runtime_state(task_id: str, subtasks: list[dict[str, Any]]) -> dict[str
         "task_id": task_id,
         "session_id": session_id,
         "started_at": datetime.now().isoformat(),
+        "phase": 19,  # Current MM-Flow phase
         "subtasks": {
             st["id"]: {
                 "description": st["description"],
-                "status": "pending" if not st["completed"] else "completed",
+                "status": "completed" if st["completed"] else "pending",
+                "retries": 0,
             }
             for st in subtasks
         },
         "last_checkpoint": None,
+        "context_budget_exit": None,
     }
 
     PLANNING_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,17 +232,180 @@ def init_runtime_state(task_id: str, subtasks: list[dict[str, Any]]) -> dict[str
     return runtime_state
 
 
-def mark_task_complete(task_id: str, title: str) -> str:
-    """Mark task as complete in plan.md and todo.md.
+def update_subtask_status(
+    subtask_id: str,
+    status: str,
+    error: str | None = None,
+    commit_sha: str | None = None,
+) -> None:
+    """Update a single subtask status in task-progress.json.
+
+    Args:
+        subtask_id: Subtask ID (e.g., "D1.1").
+        status: New status (pending, in_progress, completed, failed, skipped).
+        error: Optional error message if failed.
+        commit_sha: Optional git commit SHA if committed.
+    """
+    if not RUNTIME_STATE_PATH.exists():
+        return
+
+    state = json.loads(RUNTIME_STATE_PATH.read_text())
+
+    if subtask_id in state["subtasks"]:
+        state["subtasks"][subtask_id]["status"] = status
+        state["subtasks"][subtask_id]["updated_at"] = datetime.now().isoformat()
+
+        if error:
+            state["subtasks"][subtask_id]["error"] = error
+
+        if commit_sha:
+            state["subtasks"][subtask_id]["commit_sha"] = commit_sha
+
+        state["last_checkpoint"] = subtask_id
+
+        RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+
+
+def get_task_payload(task_id: str) -> dict[str, Any]:
+    """Get the full task payload for the agent.
+
+    Returns dict ready to be passed to task-executor agent.
+    """
+    try:
+        task = read_task_from_plan(task_id)
+        subtasks = read_subtasks_from_todo(task_id)
+        git_completed = get_git_commits_for_task(task_id)
+
+        # Filter to pending subtasks only
+        pending_subtasks = [
+            st
+            for st in subtasks
+            if st["id"] not in git_completed and not st["completed"]
+        ]
+
+        return {
+            "task_id": task_id,
+            "task_title": task["title"],
+            "subtasks": pending_subtasks,
+            "total_subtasks": len(subtasks),
+            "pending_count": len(pending_subtasks),
+            "context_budget_threshold": 0.75,  # Exit at 75% context
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ============================================================================
+# Main Logic
+# ============================================================================
+
+
+def start_task(task_id: str) -> None:
+    """Start or resume a task.
+
+    Args:
+        task_id: Task identifier (e.g., "D1").
+    """
+    mm_info(f"Starting task {task_id}")
+
+    # Read task and subtasks
+    task = read_task_from_plan(task_id)
+    subtasks = read_subtasks_from_todo(task_id)
+
+    mm_task(task_id, task["title"])
+
+    # Show all subtasks with status
+    for st in subtasks:
+        status = "[x]" if st["completed"] else "[ ]"
+        mm_subtask(st["id"], status, st["description"])
+
+    # Check git for existing commits
+    git_completed = get_git_commits_for_task(task_id)
+    expected_ids = {f"{task_id}.{i+1}" for i in range(len(subtasks))}
+
+    mm_git(len(git_completed), len(subtasks), sorted(git_completed))
+
+    # Check if task is complete
+    if git_completed == expected_ids:
+        mm_status("TASK COMPLETE - all subtasks have git commits")
+        mark_all_complete(task_id, subtasks)
+        return
+
+    # Filter pending subtasks
+    pending_subtasks = [
+        st for st in subtasks if st["id"] not in git_completed and not st["completed"]
+    ]
+
+    if not pending_subtasks:
+        mm_status("TASK COMPLETE - marking done")
+        mark_all_complete(task_id, subtasks)
+        return
+
+    mm_pending(len(pending_subtasks))
+
+    # Show pending subtasks
+    for st in pending_subtasks:
+        mm_subtask(st["id"], "pending", st["description"])
+
+    # Initialize runtime state
+    runtime_state = init_runtime_state(task_id, subtasks)
+    mm_info(f"Runtime state: {RUNTIME_STATE_PATH}")
+    mm_info(f"Session ID: {runtime_state['session_id']}")
+
+    # Launch task-executor
+    mm_launch(task_id)
+
+
+def resume_task(task_id: str) -> None:
+    """Resume a task from checkpoint.
+
+    Args:
+        task_id: Task identifier (e.g., "D1").
+    """
+    mm_info(f"Resuming task {task_id}")
+
+    if not RUNTIME_STATE_PATH.exists():
+        mm_error("No runtime state found. Run without --continue first.")
+        mm_info(f"Starting fresh task {task_id}")
+        start_task(task_id)
+        return
+
+    state = json.loads(RUNTIME_STATE_PATH.read_text())
+
+    if state.get("task_id") != task_id:
+        mm_error(f"Runtime state is for task {state.get('task_id')}, not {task_id}")
+        return
+
+    mm_info(f"Previous session: {state['session_id']}")
+    mm_info(f"Last checkpoint: {state.get('last_checkpoint', 'none')}")
+
+    # Show current status
+    completed = [
+        sid for sid, info in state["subtasks"].items() if info["status"] == "completed"
+    ]
+    pending = [
+        sid for sid, info in state["subtasks"].items() if info["status"] == "pending"
+    ]
+
+    mm_info(f"Completed: {len(completed)}/{len(state['subtasks'])}")
+    if completed:
+        mm_info(f"Completed subtasks: {sorted(completed)}")
+
+    if pending:
+        mm_info(f"Pending subtasks: {sorted(pending)}")
+
+    # Launch with resume flag
+    mm_status("RESUMING FROM CHECKPOINT")
+
+
+def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
+    """Mark all subtasks as complete in todo.md and commit.
 
     Args:
         task_id: Task identifier.
-        title: Task title for commit message.
-
-    Returns:
-        Commit message that was created.
+        subtasks: List of subtask dicts.
     """
-    # Update todo.md subtasks
+    # Mark in todo.md
     todo_content = TODO_MD.read_text()
 
     def replace_todo_checkboxes(match: re.Match[str]) -> str:
@@ -156,139 +420,72 @@ def mark_task_complete(task_id: str, title: str) -> str:
     TODO_MD.write_text(todo_content)
 
     # Commit
+    task = read_task_from_plan(task_id)
     task_letter = task_id[0]
-    commit_msg = f"feat(phase-{task_letter}): {title}"
+    commit_msg = f"feat(phase-{task_letter}): {task['title']}"
 
     subprocess.run(
         ["git", "add", "tasks/todo.md"],
         cwd=PROJECT_ROOT,
         check=True,
         capture_output=True,
+        text=True,
     )
-    subprocess.run(
+    result = subprocess.run(
         ["git", "commit", "-m", commit_msg],
         cwd=PROJECT_ROOT,
         check=True,
         capture_output=True,
+        text=True,
     )
 
-    return commit_msg
+    if result.returncode == 0:
+        mm_info(f"Committed: {commit_msg}")
+    else:
+        mm_info("No changes to commit")
 
 
-def launch_background_agent(
-    task_id: str, task: dict[str, str], subtasks: list[dict]
-) -> str:
-    """Launch task-executor agent in background.
+def show_status() -> None:
+    """Show status of all tasks."""
+    mm_info("Task Status Overview")
 
-    Args:
-        task_id: Task identifier.
-        task: Task dict with 'id' and 'title'.
-        subtasks: List of subtask dicts.
+    # Read all tasks
+    content = PLAN_MD.read_text()
 
-    Returns:
-        Process ID or agent identifier.
-    """
-    # Filter pending subtasks
-    pending = [st for st in subtasks if not st["completed"]]
+    for match in re.finditer(r"### ([A-Z]\d):([^\n]+)\n", content):
+        task_id = match.group(1)
+        title = match.group(2).strip()
 
-    if not pending:
-        logger.info(f"✓ All subtasks already complete for {task_id}")
-        return mark_task_complete(task_id, task["title"])
+        try:
+            subtasks = read_subtasks_from_todo(task_id)
+            completed = sum(1 for st in subtasks if st["completed"])
+            total = len(subtasks)
 
-    # Prepare payload for agent
-    payload = {
-        "task_id": task_id,
-        "task_title": task["title"],
-        "subtasks": pending,
-        "plan_context": PLAN_MD.read_text(),
-    }
-
-    # Create temp file with payload
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(payload, f, indent=2)
-        payload_path = f.name
-
-    # Create marker file for tracking
-    agent_marker = PLANNING_DIR / f".agent-{task_id}-running"
-    agent_marker.write_text(
-        json.dumps(
-            {
-                "launched_at": datetime.now().isoformat(),
-                "task_id": task_id,
-                "payload_path": payload_path,
-            }
-        )
-    )
-
-    # Print payload path for the .md command to read
-    # This is the CRITICAL line that makes the command work
-    logger.info("")
-    logger.info("=== PAYLOAD READY ===")
-    logger.info(f"Payload path: {payload_path}")
-    logger.info("Read this file and pass its content to Agent() tool")
-    logger.info("===================")
-
-    return f"agent-{task_id}"
+            status = "✅" if completed == total else f"{completed}/{total}"
+            print(f"  {task_id} {status}: {title}", flush=True)
+        except ValueError:
+            print(f"  {task_id}: (no subtasks found)", flush=True)
 
 
 def main() -> None:
-    """Main entry point for mm-complete-task command."""
+    """Main entry point."""
     if len(sys.argv) < 2:
-        logger.error("Uso: mm-complete-task <TASK_ID> [--continue]")
-        logger.error("Ejemplo: mm-complete-task C1")
-        logger.error("Ejemplo: mm-complete-task C1 --continue")
+        print("Usage: mm-complete-task <TASK_ID> [--continue] [--status]", flush=True)
+        print("       mm-complete-task --status  # Show all tasks", flush=True)
         sys.exit(1)
+
+    # Status mode
+    if sys.argv[1] == "--status":
+        show_status()
+        return
 
     task_id = sys.argv[1].upper()
     resume_mode = "--continue" in sys.argv
 
-    logger.info(f"Task {task_id}: Leyendo plan.md...")
-    task = read_task_from_plan(task_id)
-    logger.info(f"  {task['title']}")
-
-    logger.info("Leyendo todo.md...")
-    subtasks = read_subtasks_from_todo(task_id)
-    logger.info(f"  Found {len(subtasks)} subtasks")
-
-    # Count completed
-    completed_count = sum(1 for st in subtasks if st["completed"])
-    if completed_count == len(subtasks):
-        logger.info(f"✓ Task {task_id} already complete!")
-        # Still commit to mark it
-        commit_msg = mark_task_complete(task_id, task["title"])
-        logger.info(f"Commit: {commit_msg}")
-        return
-
-    if resume_mode and RUNTIME_STATE_PATH.exists():
-        logger.info("Resuming from previous session...")
-        logger.info(f"  Completed: {completed_count}/{len(subtasks)} subtasks")
-        # Load existing state to preserve session_id
-        existing_state = json.loads(RUNTIME_STATE_PATH.read_text())
-        logger.info(f"  Previous session: {existing_state['session_id']}")
+    if resume_mode:
+        resume_task(task_id)
     else:
-        logger.info("Creating runtime state...")
-        runtime_state = init_runtime_state(task_id, subtasks)
-        logger.info(f"  Session ID: {runtime_state['session_id']}")
-        logger.info(f"  Runtime state: {RUNTIME_STATE_PATH}")
-
-    # Launch background agent
-    agent_id = launch_background_agent(task_id, task, subtasks)
-
-    logger.info("✓ Agent launched in background")
-    logger.info(f"  Agent ID: {agent_id}")
-    logger.info(f"  Monitor progress: tail -f {RUNTIME_STATE_PATH}")
-    logger.info(f"  View logs: .planning/.agent-{task_id}-running")
-    logger.info("")
-    logger.info("The agent will execute the full cycle for each subtask:")
-    logger.info("  1. /build    → implement")
-    logger.info("  2. /test     → verify tests")
-    logger.info("  3. /review   → code review (superpowers)")
-    logger.info("  4. code-reviewer → 5-axis review (agent-skills)")
-    logger.info("  5. Mark complete in todo.md")
-    logger.info("  6. Save checkpoint to Engram")
-    logger.info("  7. Git commit after each subtask")
+        start_task(task_id)
 
 
 if __name__ == "__main__":
