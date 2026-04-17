@@ -75,13 +75,33 @@ Skill("review")
 
 General code review for correctness, readability, and patterns.
 
-### Phase 4: Code Reviewer (5-axis)
+### Phase 4: Code Reviewer (5-axis) — DELEGATION REQUIRED
 
 ```javascript
-Agent(subagent_type="code-reviewer", prompt="Review the code for: 1. Correctness 2. Readability 3. Architecture 4. Security 5. Performance")
+Agent(subagent_type="code-reviewer", prompt="Review the code changes for: 1. Correctness 2. Readability 3. Architecture 4. Security 5. Performance")
 ```
 
-**This is MANDATORY** — not optional.
+**⚠️ CRITICAL: You MUST DELEGATE to the code-reviewer subagent — DO NOT review the code yourself!**
+
+**CORRECT execution:**
+```
+[subtask] D2.1: Delegating to code-reviewer agent...
+[subtask] D2.1: code-reviewer returned (0 critical, 2 suggestions)
+```
+
+**INCORRECT (DO NOT DO THIS):**
+```
+[subtask] D2.1: Performing 5-axis review... ← WRONG! You're not a specialist
+[subtask] D2.1: Code looks good, no issues found... ← WRONG! Use the subagent
+```
+
+**Why delegation is mandatory:**
+- code-reviewer has project-specific knowledge (patterns, conventions)
+- Provides second opinion from specialized agent
+- Ensures consistency across all task-executor runs
+- This is a HARD requirement — skipping delegation is a protocol violation
+
+**Verification:** After Agent() call returns, log the result summary (critical + suggestion counts).
 
 ### Phase 5: Commit (via /mm:safe-commit)
 
@@ -212,11 +232,12 @@ When all subtasks complete (or you exit due to context limit):
 ## Important Rules
 
 1. **Process subtasks SEQUENTIALLY** (in order, don't skip)
-2. **Never skip /test or /review or code-reviewer steps**
-3. **Always checkpoint after each successful subtask**
-4. **Continue on failure** (mark failed, move to next)
-5. **Check context budget** after each subtask
-6. **Use /mm:safe-commit** before every commit
+2. **Never skip /test or /review steps**
+3. **DELEGATE code-reviewer to specialized subagent** — DO NOT review yourself!
+4. **Always checkpoint after each successful subtask**
+5. **Continue on failure** (mark failed, move to next)
+6. **Check context budget** after each subtask
+7. **Use /mm:safe-commit** before every commit
 
 ## Files
 
