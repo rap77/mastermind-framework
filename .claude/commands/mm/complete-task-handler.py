@@ -236,11 +236,13 @@ def launch_background_agent(
 def main() -> None:
     """Main entry point for mm-complete-task command."""
     if len(sys.argv) < 2:
-        logger.error("Uso: mm-complete-task <TASK_ID>")
+        logger.error("Uso: mm-complete-task <TASK_ID> [--continue]")
         logger.error("Ejemplo: mm-complete-task C1")
+        logger.error("Ejemplo: mm-complete-task C1 --continue")
         sys.exit(1)
 
     task_id = sys.argv[1].upper()
+    resume_mode = "--continue" in sys.argv
 
     logger.info(f"Task {task_id}: Leyendo plan.md...")
     task = read_task_from_plan(task_id)
@@ -259,10 +261,17 @@ def main() -> None:
         logger.info(f"Commit: {commit_msg}")
         return
 
-    logger.info("Creating runtime state...")
-    runtime_state = init_runtime_state(task_id, subtasks)
-    logger.info(f"  Session ID: {runtime_state['session_id']}")
-    logger.info(f"  Runtime state: {RUNTIME_STATE_PATH}")
+    if resume_mode and RUNTIME_STATE_PATH.exists():
+        logger.info("Resuming from previous session...")
+        logger.info(f"  Completed: {completed_count}/{len(subtasks)} subtasks")
+        # Load existing state to preserve session_id
+        existing_state = json.loads(RUNTIME_STATE_PATH.read_text())
+        logger.info(f"  Previous session: {existing_state['session_id']}")
+    else:
+        logger.info("Creating runtime state...")
+        runtime_state = init_runtime_state(task_id, subtasks)
+        logger.info(f"  Session ID: {runtime_state['session_id']}")
+        logger.info(f"  Runtime state: {RUNTIME_STATE_PATH}")
 
     # Launch background agent
     agent_id = launch_background_agent(task_id, task, subtasks)
@@ -279,6 +288,7 @@ def main() -> None:
     logger.info("  4. code-reviewer → 5-axis review (agent-skills)")
     logger.info("  5. Mark complete in todo.md")
     logger.info("  6. Save checkpoint to Engram")
+    logger.info("  7. Git commit after each subtask")
 
 
 if __name__ == "__main__":

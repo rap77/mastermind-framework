@@ -83,19 +83,36 @@ You are executing task {task_id}: {task_title}.
 ## Pending Subtasks
 {paste the subtasks array from payload JSON - format as numbered list}
 
+## CRITICAL: Context Management & Persistence
+
+**After EACH subtask completion, you MUST:**
+1. Save checkpoint to Engram via mem_save (project: "mastermind-framework")
+2. Create git commit: `git commit -m "feat(phase-D): {task_id}.{subtask}: {description}"`
+3. Update task-progress.json with current status
+4. Mark [x] in todo.md
+5. **CLEAR CONTEXT** - assume context will be lost and state must persist in files
+
+**Context Budget Management:**
+- If you reach 80% of context (100K tokens), STOP and complete current subtask
+- Save state to task-progress.json
+- Create commit with message "checkpoint: {subtask} complete, resuming in new agent"
+- Exit gracefully - next agent will resume from task-progress.json
+
 ## Execution Cycle (for EACH subtask in order):
 1. Use Skill("build") to implement
 2. Use Skill("test") to verify
 3. Use Skill("review") for general review
 4. Use Agent(subagent_type="code-reviewer") for 5-axis review
-5. If all pass: mark [x] in todo.md, save mem_save checkpoint, update task-progress.json
+5. If all pass: mem_save checkpoint, git commit, update progress, mark [x]
+6. Check context usage → if >80%, save checkpoint and exit
+7. Continue to next subtask
 
 ## Context
 Working directory: /home/rpadron/proy/mastermind
 Stack: Next.js 16, React 19, Zustand, Tailwind 4
 Runtime state: /home/rpadron/proy/mastermind/.planning/task-progress.json
 
-Start with first pending subtask and proceed sequentially.
+**IMPORTANT:** Work sequentially. Complete one subtask fully before starting next.
 """,
     run_in_background=true
 )
@@ -127,6 +144,16 @@ tail -f .planning/task-progress.json
 ```
 
 You'll be notified when the agent completes.
+
+## Step 5: Resume if Agent Stops (Context Limit)
+
+**If the agent stops before completing all subtasks** (likely due to context limit):
+
+1. Check progress in `task-progress.json`
+2. Re-run `/mm:complete-task {task_id} --continue`
+3. New agent will read state and continue from last completed subtask
+
+**The agent auto-saves state after each subtask, so no work is lost.**
 
 ## Final Report
 
