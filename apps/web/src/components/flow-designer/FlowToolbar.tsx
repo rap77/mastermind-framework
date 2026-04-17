@@ -5,11 +5,13 @@
  */
 
 import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
 import { exportFlow, importFlow } from '@/lib/flow-serializer'
 import { useFlowDesignerStore } from '@/stores/flowDesignerStore'
 
 export function FlowToolbar() {
+  const router = useRouter()
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { nodes, edges, clearFlow } = useFlowDesignerStore()
 
@@ -66,6 +68,17 @@ export function FlowToolbar() {
     }
   }, [clearFlow])
 
+  const handleSimulate = useCallback(() => {
+    // Navigate to simulation page
+    // The current flow state is automatically available in the store
+    try {
+      router.push('/simulation')
+    } catch (error) {
+      // Router not available (e.g., in test environment)
+      console.warn('Router not available:', error)
+    }
+  }, [router])
+
   return (
     <div
       className="flex items-center gap-2 px-4 py-2 border-b"
@@ -111,6 +124,17 @@ export function FlowToolbar() {
       </button>
 
       <div className="flex-1" />
+
+      <button
+        onClick={handleSimulate}
+        className="px-3 py-1 rounded text-sm"
+        style={{
+          backgroundColor: 'var(--color-success)',
+          color: 'var(--color-success-foreground)',
+        }}
+      >
+        Simulate
+      </button>
 
       <button
         onClick={handleExport}

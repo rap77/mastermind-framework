@@ -36,6 +36,13 @@ vi.mock('@/stores/flowDesignerStore', () => ({
   })),
 }))
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}))
+
 describe('FlowDesignerCanvas', () => {
   const renderWithProvider = (component: React.ReactNode) => {
     return render(<ReactFlowProvider>{component}</ReactFlowProvider>)
