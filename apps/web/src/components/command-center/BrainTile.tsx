@@ -56,17 +56,18 @@ export const BrainTile = memo(function BrainTile({ brain }: BrainTileProps) {
    * Status-based styling classes
    *
    ** ICE-validated only: pulse, checkmark, shake
+   ** Phase 17: Using theme tokens instead of hardcoded colors
    */
   const getStatusClasses = () => {
     switch (status) {
       case 'idle':
         return 'opacity-60 border-border'
       case 'active':
-        return 'opacity-100 border-blue-500 animate-pulse shadow-lg'
+        return 'opacity-100 status-active-border animate-pulse shadow-lg'
       case 'complete':
-        return 'opacity-100 border-green-500 shadow-sm'
+        return 'opacity-100 status-complete-border shadow-sm'
       case 'error':
-        return 'opacity-100 border-red-500 animate-shake shadow-md'
+        return 'opacity-100 status-error-border animate-shake shadow-md'
       default:
         return 'opacity-60 border-border'
     }
@@ -74,19 +75,20 @@ export const BrainTile = memo(function BrainTile({ brain }: BrainTileProps) {
 
   /**
    * Status badge color
+   * Phase 17: Using theme token classes instead of hardcoded colors
    */
   const getStatusBadgeColor = () => {
     switch (status) {
       case 'idle':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+        return 'status-idle-bg-light dark:status-idle-bg-dark'
       case 'active':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+        return 'status-active-bg-light dark:status-active-bg-dark'
       case 'complete':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+        return 'status-complete-bg-light dark:status-complete-bg-dark'
       case 'error':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        return 'status-error-bg-light dark:status-error-bg-dark'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+        return 'status-idle-bg-light dark:status-idle-bg-dark'
     }
   }
 
@@ -124,7 +126,7 @@ export const BrainTile = memo(function BrainTile({ brain }: BrainTileProps) {
 
         {/* Complete: Checkmark Icon (ICE-validated) */}
         {status === 'complete' && (
-          <div className="text-green-500 dark:text-green-400">
+          <div className="status-complete-text">
             <Check data-testid="check-icon" className="w-5 h-5" />
           </div>
         )}

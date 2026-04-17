@@ -214,9 +214,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   html {
     @apply font-sans;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -299,4 +301,69 @@
   .status-dot {
     animation: none;
   }
+}
+
+/* Phase 17: Theme Token Status Colors (Task D1.1)
+ * Status-based colors using semantic tokens for BrainTile component
+ * Maps to --color-* tokens defined in :root and .dark
+ */
+
+/* Active status (blue) → --color-info */
+.status-active-border {
+  border-color: var(--color-info);
+}
+
+.status-active-bg-light {
+  background-color: oklch(from var(--color-info) c l 0.95);
+  color: oklch(from var(--color-info) c l 0.2);
+}
+
+.status-active-bg-dark {
+  background-color: oklch(from var(--color-info) c l 0.15);
+  color: oklch(from var(--color-info) c l 0.85);
+}
+
+/* Complete status (green) → --color-success */
+.status-complete-border {
+  border-color: var(--color-success);
+}
+
+.status-complete-text {
+  color: var(--color-success);
+}
+
+.status-complete-bg-light {
+  background-color: oklch(from var(--color-success) c l 0.92);
+  color: oklch(from var(--color-success) c l 0.15);
+}
+
+.status-complete-bg-dark {
+  background-color: oklch(from var(--color-success) c l 0.2);
+  color: oklch(from var(--color-success) c l 0.9);
+}
+
+/* Error status (red) → --color-error */
+.status-error-border {
+  border-color: var(--color-error);
+}
+
+.status-error-bg-light {
+  background-color: oklch(from var(--color-error) c l 0.92);
+  color: oklch(from var(--color-error) c l 0.15);
+}
+
+.status-error-bg-dark {
+  background-color: oklch(from var(--color-error) c l 0.2);
+  color: oklch(from var(--color-error) c l 0.9);
+}
+
+/* Idle status (gray) → use existing muted tokens */
+.status-idle-bg-light {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.status-idle-bg-dark {
+  background-color: oklch(0.269 0 0);
+  color: oklch(0.708 0 0);
 }
