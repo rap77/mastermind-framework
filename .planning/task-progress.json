@@ -25,7 +25,7 @@
     },
     "D1.6": {
       "description": "Verify zero hardcoded hex in screen components",
-      "status": "pending"
+      "status": "complete"
     },
     "D1.7": {
       "description": "All 628+ tests pass",
