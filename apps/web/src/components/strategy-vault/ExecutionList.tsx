@@ -83,9 +83,9 @@ function StatusBadge({ status }: StatusBadgeProps) {
     <span
       className={cn(
         'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-        status === 'success' && 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        status === 'error' && 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-        status === 'running' && 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+        status === 'success' && 'bg-success/10 text-success dark:bg-success/5 dark:text-success/80',
+        status === 'error' && 'bg-error/10 text-error dark:bg-error/5 dark:text-error/80',
+        status === 'running' && 'bg-warning/10 text-warning dark:bg-warning/5 dark:text-warning/80'
       )}
       data-testid={`status-badge-${status}`}
     >
@@ -183,7 +183,7 @@ export function ExecutionList({ initialCursor }: ExecutionListProps) {
         className="flex flex-col items-center justify-center py-12 gap-4"
         data-testid="execution-list-error"
       >
-        <XCircle className="w-8 h-8 text-red-500" />
+        <XCircle className="w-8 h-8 text-error" />
         <p className="text-muted-foreground text-sm">
           {error instanceof Error ? error.message : 'Failed to load executions'}
         </p>

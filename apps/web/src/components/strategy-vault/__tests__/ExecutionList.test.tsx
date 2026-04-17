@@ -134,7 +134,7 @@ describe('ExecutionList', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('status-badge-success')[0]).toBeInTheDocument()
     })
-    expect(screen.getAllByTestId('status-badge-success')[0]).toHaveClass('bg-green-100')
+    expect(screen.getAllByTestId('status-badge-success')[0]).toHaveClass('bg-success/10')
   })
 
   it('renders error status badge with red styling', async () => {
@@ -148,7 +148,7 @@ describe('ExecutionList', () => {
     await waitFor(() => {
       expect(screen.getByTestId('status-badge-error')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('status-badge-error')).toHaveClass('bg-red-100')
+    expect(screen.getByTestId('status-badge-error')).toHaveClass('bg-error/10')
   })
 
   it('renders running status badge with yellow styling', async () => {
@@ -162,7 +162,7 @@ describe('ExecutionList', () => {
     await waitFor(() => {
       expect(screen.getByTestId('status-badge-running')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('status-badge-running')).toHaveClass('bg-yellow-100')
+    expect(screen.getByTestId('status-badge-running')).toHaveClass('bg-warning/10')
   })
 
   it('truncates brief text over 100 chars', async () => {

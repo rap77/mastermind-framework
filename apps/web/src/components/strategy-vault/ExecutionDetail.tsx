@@ -143,7 +143,7 @@ const ReplayNexus = memo(function ReplayNexus({ nodes, edges }: ReplayNexusProps
     >
       {/* REPLAY MODE banner */}
       <div
-        className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium rounded border border-amber-500/30"
+        className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-warning/20 text-warning dark:text-warning/80 text-xs font-medium rounded border border-warning/30"
         data-testid="replay-mode-banner"
       >
         REPLAY MODE
@@ -201,9 +201,9 @@ function BrainAccordionItem({ brainOutput, isOpen, onToggle }: BrainAccordionIte
           <span
             className={cn(
               'w-2 h-2 rounded-full flex-shrink-0',
-              brainOutput.status === 'complete' && 'bg-green-500',
-              brainOutput.status === 'error' && 'bg-red-500',
-              brainOutput.status === 'running' && 'bg-yellow-500 animate-pulse',
+              brainOutput.status === 'complete' && 'bg-success',
+              brainOutput.status === 'error' && 'bg-error',
+              brainOutput.status === 'running' && 'bg-warning animate-pulse',
               brainOutput.status === 'idle' && 'bg-secondary'
             )}
           />
@@ -291,9 +291,9 @@ function LogsPanel({ brainOutputs, milestones, currentSnapshotIndex }: LogsPanel
             key={output.brain_id}
             className={cn(
               'flex items-start gap-2 text-xs p-2 rounded',
-              output.status === 'complete' && 'bg-green-50 dark:bg-green-900/10',
-              output.status === 'error' && 'bg-red-50 dark:bg-red-900/10',
-              output.status === 'running' && 'bg-yellow-50 dark:bg-yellow-900/10',
+              output.status === 'complete' && 'bg-success/10 dark:bg-success/5',
+              output.status === 'error' && 'bg-error/10 dark:bg-error/5',
+              output.status === 'running' && 'bg-warning/10 dark:bg-warning/5',
               output.status === 'idle' && 'bg-muted/30'
             )}
             data-testid={`log-entry-${output.brain_id}`}
@@ -301,9 +301,9 @@ function LogsPanel({ brainOutputs, milestones, currentSnapshotIndex }: LogsPanel
             <span
               className={cn(
                 'font-mono shrink-0',
-                output.status === 'complete' && 'text-green-700 dark:text-green-400',
-                output.status === 'error' && 'text-red-700 dark:text-red-400',
-                output.status === 'running' && 'text-yellow-700 dark:text-yellow-400',
+                output.status === 'complete' && 'text-success dark:text-success/80',
+                output.status === 'error' && 'text-error dark:text-error/80',
+                output.status === 'running' && 'text-warning dark:text-warning/80',
                 output.status === 'idle' && 'text-muted-foreground'
               )}
             >
@@ -431,7 +431,7 @@ export function ExecutionDetail({ executionId }: ExecutionDetailProps) {
         className="flex flex-col items-center justify-center py-12 gap-4"
         data-testid="execution-detail-error"
       >
-        <AlertCircle className="w-8 h-8 text-red-500" />
+        <AlertCircle className="w-8 h-8 text-error" />
         <p className="text-muted-foreground text-sm">
           {error instanceof Error ? error.message : 'Failed to load execution'}
         </p>
