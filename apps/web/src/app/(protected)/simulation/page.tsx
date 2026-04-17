@@ -26,6 +26,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ErrorSummary } from '@/components/simulation/ErrorSummary'
 import { ReplayControls } from '@/components/simulation/ReplayControls'
 import { SimulationCanvas } from '@/components/simulation/SimulationCanvas'
@@ -225,6 +226,7 @@ const mockExecution: Execution = {
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function SimulationPage() {
+  const router = useRouter()
   const loadExecution = useSimulationStore((state) => state.loadExecution)
 
   // Load mock execution on mount
@@ -236,15 +238,27 @@ export default function SimulationPage() {
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
       <div
-        className="px-6 py-4 border-b"
+        className="px-6 py-4 border-b flex items-center justify-between"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <h1 className="text-2xl font-bold text-foreground">
-          Simulation & Replay
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Replay and analyze past executions with timeline scrubbing
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Simulation & Replay
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Replay and analyze past executions with timeline scrubbing
+          </p>
+        </div>
+        <button
+          onClick={() => router.push('/flow-designer')}
+          className="px-4 py-2 rounded text-sm font-medium"
+          style={{
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-primary-foreground)',
+          }}
+        >
+          Edit Flow
+        </button>
       </div>
 
       {/* Error Summary */}
