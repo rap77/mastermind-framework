@@ -210,13 +210,7 @@ def launch_background_agent(
         json.dump(payload, f, indent=2)
         payload_path = f.name
 
-    # Launch agent in background
-    # Note: This uses Claude Code's Agent tool via subprocess
-    logger.info("Launching task-executor agent in background...")
-    logger.info(f"  Task: {task_id}")
-    logger.info(f"  Subtasks: {len(pending)} pending")
-
-    # For now, create a marker file that the agent can read
+    # Create marker file for tracking
     agent_marker = PLANNING_DIR / f".agent-{task_id}-running"
     agent_marker.write_text(
         json.dumps(
@@ -227,6 +221,14 @@ def launch_background_agent(
             }
         )
     )
+
+    # Print payload path for the .md command to read
+    # This is the CRITICAL line that makes the command work
+    logger.info("")
+    logger.info("=== PAYLOAD READY ===")
+    logger.info(f"Payload path: {payload_path}")
+    logger.info("Read this file and pass its content to Agent() tool")
+    logger.info("===================")
 
     return f"agent-{task_id}"
 
