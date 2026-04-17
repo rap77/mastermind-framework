@@ -1,80 +1,36 @@
 {
-  "task_id": "B2",
-  "session_id": "sess-20260417-042200",
-  "started_at": "2026-04-17T04:22:00Z",
+  "task_id": "D1",
+  "session_id": "sess-20260417-130629",
+  "started_at": "2026-04-17T13:06:29.895427",
   "subtasks": {
-    "B2.1": {
-      "description": "Create `apps/web/src/stores/simulationStore.ts`",
-      "status": "completed",
-      "started_at": "2026-04-17T03:48:00Z",
-      "completed_at": "2026-04-17T03:54:00Z",
-      "agent_id": "agent-B2-1-background",
-      "notes": "438 lines, 24 tests passing (100%) - TDD approach"
+    "D1.1": {
+      "description": "Command Center: replace hardcoded colors with tokens",
+      "status": "complete"
     },
-    "B2.2": {
-      "description": "Create `apps/web/src/components/simulation/ReplayControls.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:30Z",
-      "completed_at": "2026-04-17T04:25:00Z",
-      "agent_id": "afc36573ab6b42c88",
-      "notes": "111 lines - Play/Pause toggle, Reset button, Speed selector (0.5x-5x), theme tokens"
+    "D1.2": {
+      "description": "Nexus: replace hardcoded colors with tokens",
+      "status": "complete"
     },
-    "B2.3": {
-      "description": "Create `apps/web/src/components/simulation/TimelineScrubber.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:31Z",
-      "completed_at": "2026-04-17T04:50:00Z",
-      "agent_id": "adfcabbd09de928ce",
-      "notes": "237 lines - horizontal slider with milestone markers, drag to scrub, tooltips, keyboard nav, theme tokens"
+    "D1.3": {
+      "description": "Strategy Vault: replace hardcoded colors with tokens",
+      "status": "complete"
     },
-    "B2.4": {
-      "description": "Create `apps/web/src/components/simulation/EventLog.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:32Z",
-      "completed_at": "2026-04-17T04:30:00Z",
-      "agent_id": "ac0c8107df5a8d456",
-      "notes": "148 lines - Scrollable event list, color-coded by type, HH:MM:SS timestamps, theme tokens"
+    "D1.4": {
+      "description": "Engine Room: replace hardcoded colors with tokens",
+      "status": "pending"
     },
-    "B2.5": {
-      "description": "Create `apps/web/src/components/simulation/ErrorSummary.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:33Z",
-      "completed_at": "2026-04-17T04:40:00Z",
-      "agent_id": "ae0b167b8498a7a29",
-      "notes": "81 lines - 3 metrics (Errors/red, Slow Nodes/yellow, Total Time/formatted), Badge component, theme tokens, horizontal flex layout"
+    "D1.5": {
+      "description": "React Flow canvas adapts to theme (Nexus + Flow Designer)",
+      "status": "pending"
     },
-    "B2.6": {
-      "description": "Create `apps/web/src/components/simulation/SimulationCanvas.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:34Z",
-      "completed_at": "2026-04-17T04:35:00Z",
-      "agent_id": "a07982fa81520ba97",
-      "notes": "237 lines - Read-only ReactFlow canvas with node status overlays (error/red, slow/yellow+badge, running/blue glow, success/green border), theme tokens, no drag/drop"
+    "D1.6": {
+      "description": "Verify zero hardcoded hex in screen components",
+      "status": "pending"
     },
-    "B2.7": {
-      "description": "Create `apps/web/src/app/(protected)/simulation/page.tsx`",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:35Z",
-      "completed_at": "2026-04-17T04:45:00Z",
-      "agent_id": "ab4fa90713d1b5657",
-      "notes": "257 lines - Vertical stack layout with 6 components (Header, ErrorSummary, ReplayControls, SimulationCanvas, TimelineScrubber, EventLog), mock execution with 7 brains/5 milestones, theme tokens, responsive flex-col layout"
-    },
-    "B2.8": {
-      "description": "Write 8+ tests for simulationStore",
-      "status": "completed",
-      "started_at": "2026-04-17T03:48:00Z",
-      "completed_at": "2026-04-17T03:54:00Z",
-      "agent_id": "agent-B2-1-background",
-      "notes": "24 tests passing (100%) - covers state, actions, timeline scrubbing"
-    },
-    "B2.9": {
-      "description": "Write 5+ tests for SimulationCanvas",
-      "status": "completed",
-      "started_at": "2026-04-17T04:22:36Z",
-      "completed_at": "2026-04-17T04:55:00Z",
-      "agent_id": "a1182242c169e0e3e",
-      "notes": "30 tests passing (100%) - covers rendering, error/slow/running node states, edge labels, read-only behavior, theme tokens, viewport/zoom, node types, performance (useMemo)"
+    "D1.7": {
+      "description": "All 628+ tests pass",
+      "status": "pending"
     }
   },
-  "last_checkpoint": "B2.3"
+  "last_checkpoint": null
 }
