@@ -21,7 +21,7 @@
     },
     "D1.5": {
       "description": "React Flow canvas adapts to theme (Nexus + Flow Designer)",
-      "status": "pending"
+      "status": "complete"
     },
     "D1.6": {
       "description": "Verify zero hardcoded hex in screen components",
