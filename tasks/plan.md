@@ -282,7 +282,7 @@ grep -rn '#[0-9a-fA-F]\{3,6\}' src/components/ src/app/ | grep -v '.test.' | gre
 - All screens use Tailwind semantic tokens (text-foreground, bg-primary, etc.)
 - ThemeProvider configured with localStorage + system fallback
 - React Flow canvas uses var(--color-brain-*), var(--color-primary), var(--color-surface)
-- 722/722 tests passing (exceeds 628+ requirement)
+- 728/728 tests passing (exceeds 628+ requirement)
 
 ---
 
@@ -299,14 +299,26 @@ grep -rn '#[0-9a-fA-F]\{3,6\}' src/components/ src/app/ | grep -v '.test.' | gre
 - `apps/web/src/stores/flowDesignerStore.ts` — ADD simulation linking
 
 **Acceptance Criteria:**
-- [ ] "Simulate" button in Flow Designer → loads last execution on that flow
-- [ ] "Edit Flow" button in Simulation → opens flow in designer
-- [ ] Execution events correctly map to flow nodes
-- [ ] Unmapped nodes handled gracefully (grayed out)
+- [x] "Simulate" button in Flow Designer → loads last execution on that flow
+- [x] "Edit Flow" button in Simulation → opens flow in designer
+- [x] Execution events correctly map to flow nodes
+- [x] Unmapped nodes handled gracefully (grayed out)
+
+**Status:** ✅ **COMPLETE** — Executed via `/mm:complete-task D2` (2026-04-17)
+**Session:** sess-20260417-180457
+**Commits:**
+- 8ba65137 — D2.1: flow-execution-adapter.ts + tests
+- 2470653b — D2.2: Simulate button in FlowToolbar
+- a8155f54 — D2.3: Edit Flow button in Simulation page
+- d1a7f0e8 — D2.4: Unmapped nodes (handled in D2.1)
+
+**Test Results:** 728/728 passing (100%)
 
 **Verification:**
 ```bash
 cd apps/web && pnpm test
+# Manual: open /flow-designer, click "Simulate", verify /simulation loads
+# Manual: open /simulation, click "Edit Flow", verify /flow-designer loads
 ```
 
 ---
@@ -334,36 +346,38 @@ cd apps/web && pnpm test
 cd apps/control-plane && cargo test
 ```
 
-**Checkpoint D:** All success criteria met → ready to ship v3.0.
+**Checkpoint D:** 7/8 tasks complete → D3 (E2E verification) is the LAST STEP before shipping v3.0.
 
 ---
 
 ## Task Summary
 
-| ID | Task | Depends On | Est. Complexity | Files |
-|----|------|------------|-----------------|-------|
-| A1 | Theming Engine | — | Medium | 3 new, 2 modify |
-| A2 | UI Redesign + Tokens | A1 | Medium-High | 8 modify/create |
-| B1 | Flow Designer | A2 | High | 13 new, 1 modify |
-| B2 | Simulation & Replay | A2 | High | 7 new, 1 modify |
-| C1 | Phase 19-05 Statusline | — | Low | 1 modify |
-| D1 | All Screens Theme-Aware | A1, A2, B1, B2 | Medium | ~15 modify |
-| D2 | Flow ↔ Simulation Wiring | B1, B2 | Medium | 4 modify |
-| D3 | E2E Verification | All | Low | 0 new (verification only) |
+| ID | Task | Depends On | Est. Complexity | Files | Status |
+|----|------|------------|-----------------|-------|--------|
+| A1 | Theming Engine | — | Medium | 3 new, 2 modify | ✅ Complete |
+| A2 | UI Redesign + Tokens | A1 | Medium-High | 8 modify/create | ✅ Complete |
+| B1 | Flow Designer | A2 | High | 13 new, 1 modify | ✅ Complete |
+| B2 | Simulation & Replay | A2 | High | 7 new, 1 modify | ✅ Complete |
+| C1 | Phase 19-05 Statusline | — | Low | 1 modify | ✅ Complete |
+| D1 | All Screens Theme-Aware | A1, A2, B1, B2 | Medium | ~15 modify | ✅ Complete |
+| D2 | Flow ↔ Simulation Wiring | B1, B2 | Medium | 4 modify | ✅ Complete |
+| D3 | E2E Verification | All | Low | 0 new (verification only) | ⏳ Pending |
+
+**Overall Progress:** 7/8 complete (87.5%)
 
 **Parallel tracks:**
-- Track 1 (frontend foundation): A1 → A2 → B1 → D2
-- Track 2 (simulation): A2 → B2 → D2
-- Track 3 (Phase 19): C1 (independent, can run anytime)
+- Track 1 (frontend foundation): A1 → A2 → B1 → D2 ✅
+- Track 2 (simulation): A2 → B2 → D2 ✅
+- Track 3 (Phase 19): C1 ✅ (independent, can run anytime)
 
 **Recommended execution order:**
-1. **C1** (Phase 19-05) — quick win, unblocks milestone completion
-2. **A1** (Theming) — foundation for everything
-3. **A2** (UI Redesign) — builds on theming
-4. **B1 + B2** (Flow Designer + Simulation) — can be parallelized after A2
-5. **D1** (Theme all screens) — after B1/B2
-6. **D2** (Flow ↔ Simulation wiring) — after B1 + B2
-7. **D3** (E2E verification) — final gate
+1. ~~**C1** (Phase 19-05)~~ — ✅ Complete
+2. ~~**A1** (Theming)~~ — ✅ Complete
+3. ~~**A2** (UI Redesign)~~ — ✅ Complete
+4. ~~**B1 + B2** (Flow Designer + Simulation)~~ — ✅ Complete
+5. ~~**D1** (Theme all screens)~~ — ✅ Complete
+6. ~~**D2** (Flow ↔ Simulation wiring)~~ — ✅ Complete
+7. **D3** (E2E verification) — ⏳ LAST STEP before SHIP v3.0
 
 ---
 

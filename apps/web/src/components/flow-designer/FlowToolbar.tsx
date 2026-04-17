@@ -7,7 +7,7 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
-import { exportFlow, importFlow } from '@/lib/flow-serializer'
+import { exportFlowToFile, importFlow } from '@/lib/flow-serializer'
 import { useFlowDesignerStore } from '@/stores/flowDesignerStore'
 
 export function FlowToolbar() {
@@ -22,19 +22,7 @@ export function FlowToolbar() {
       nodes,
       edges,
     }
-
-    try {
-      const json = exportFlow(flow)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `flow-${Date.now()}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Export failed:', error)
-    }
+    exportFlowToFile(flow)
   }, [nodes, edges])
 
   const handleImport = useCallback(() => {

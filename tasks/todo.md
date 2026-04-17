@@ -100,10 +100,10 @@
 - [x] All 628+ tests pass
 
 ### D2: Flow Designer ↔ Simulation Wiring
-- [ ] Create `apps/web/src/lib/flow-execution-adapter.ts`
-- [ ] Add "Simulate" button to FlowDesignerCanvas
-- [ ] Add "Edit Flow" button to SimulationCanvas
-- [ ] Handle unmapped nodes gracefully
+- [x] Create `apps/web/src/lib/flow-execution-adapter.ts`
+- [x] Add "Simulate" button to FlowDesignerCanvas
+- [x] Add "Edit Flow" button to SimulationCanvas
+- [x] Handle unmapped nodes gracefully
 
 ### D3: End-to-End Verification
 - [ ] Verify 10 Frontend success criteria (F1-F10)

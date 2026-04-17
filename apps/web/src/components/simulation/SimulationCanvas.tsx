@@ -31,6 +31,7 @@ import {
   useCurrentGraphSnapshot,
   useErrorNodes,
   useSlowNodes,
+  useSimulationStore,
 } from '@/stores/simulationStore'
 import { NodeType } from '@/components/flow-designer/types'
 import type { FlowNode, FlowNodeData } from '@/components/flow-designer/types'
@@ -127,6 +128,7 @@ export function SimulationCanvas() {
   const graphSnapshot = useCurrentGraphSnapshot()
   const errorNodes = useErrorNodes()
   const slowNodes = useSlowNodes()
+  const execution = useSimulationStore((state) => state.currentExecution)
 
   // Enhance nodes with simulation status
   const enhancedNodes = useMemo(() => {
@@ -167,18 +169,21 @@ export function SimulationCanvas() {
     if (!graphSnapshot) return []
 
     return graphSnapshot.edges.map((edge: Edge) => {
-      // TODO: Add latency labels from brain_outputs
-      // Would need to map edge source/target to brain_id and get duration_ms
+      // Find brain outputs for source/target to calculate latency
+      const sourceNode = graphSnapshot.nodes.find((n: FlowNode) => n.id === edge.source)
+      const brainId = sourceNode?.data?.brainId
+
+      const brainOutput = brainId ? execution?.brain_outputs[brainId] : null
+      const latencyMs = brainOutput?.duration_ms
+
       return {
         ...edge,
-        animated: false, // No animation in read-only mode
-        data: {
-          ...edge.data,
-          readOnly: true,
-        },
+        label: latencyMs ? `${latencyMs}ms` : undefined,
+        animated: false,
+        data: { ...edge.data, readOnly: true },
       }
     })
-  }, [graphSnapshot])
+  }, [graphSnapshot, execution])
 
   // Early return if no graph loaded
   if (!graphSnapshot) {
