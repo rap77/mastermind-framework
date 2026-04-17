@@ -29,7 +29,7 @@
     },
     "D1.7": {
       "description": "All 628+ tests pass",
-      "status": "pending"
+      "status": "complete"
     }
   },
   "last_checkpoint": null
