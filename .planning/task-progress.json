@@ -1,36 +1,39 @@
 {
-  "task_id": "D1",
-  "session_id": "sess-20260417-130629",
-  "started_at": "2026-04-17T13:06:29.895427",
+  "task_id": "D2",
+  "session_id": "sess-20260417-180457",
+  "started_at": "2026-04-17T18:04:57.234006",
+  "phase": 19,
   "subtasks": {
-    "D1.1": {
-      "description": "Command Center: replace hardcoded colors with tokens",
-      "status": "complete"
+    "D2.1": {
+      "description": "Create `apps/web/src/lib/flow-execution-adapter.ts`",
+      "status": "completed",
+      "completed_at": "2026-04-17T18:07:00.000Z",
+      "commit_sha": "8ba651378ebc664369aa3eb032bc0be5eda6f257",
+      "retries": 0
     },
-    "D1.2": {
-      "description": "Nexus: replace hardcoded colors with tokens",
-      "status": "complete"
+    "D2.2": {
+      "description": "Add \"Simulate\" button to FlowDesignerCanvas",
+      "status": "completed",
+      "completed_at": "2026-04-17T18:16:00.000Z",
+      "commit_sha": "2470653b6116ff151ec94708ed287ccfe103321c",
+      "retries": 0
     },
-    "D1.3": {
-      "description": "Strategy Vault: replace hardcoded colors with tokens",
-      "status": "complete"
+    "D2.3": {
+      "description": "Add \"Edit Flow\" button to SimulationCanvas",
+      "status": "completed",
+      "completed_at": "2026-04-17T18:18:00.000Z",
+      "commit_sha": "a8155f5499c894c8cdca71ac063a021219c56a9c",
+      "retries": 0
     },
-    "D1.4": {
-      "description": "Engine Room: replace hardcoded colors with tokens",
-      "status": "complete"
-    },
-    "D1.5": {
-      "description": "React Flow canvas adapts to theme (Nexus + Flow Designer)",
-      "status": "complete"
-    },
-    "D1.6": {
-      "description": "Verify zero hardcoded hex in screen components",
-      "status": "complete"
-    },
-    "D1.7": {
-      "description": "All 628+ tests pass",
-      "status": "complete"
+    "D2.4": {
+      "description": "Handle unmapped nodes gracefully",
+      "status": "completed",
+      "completed_at": "2026-04-17T18:18:30.000Z",
+      "commit_sha": "8ba651378ebc664369aa3eb032bc0be5eda6f257",
+      "retries": 0,
+      "note": "Implemented in D2.1 - mapExecutionEventsToNodes() defaults unmapped nodes to 'idle' status"
     }
   },
-  "last_checkpoint": null
+  "last_checkpoint": "D2.4",
+  "context_budget_exit": null
 }
