@@ -10,8 +10,7 @@ export function NexusSkeleton() {
 
   return (
     <div
-      className="h-full w-full flex flex-col items-center justify-center gap-8"
-      style={{ background: '#0B0C10' }}
+      className="h-full w-full flex flex-col items-center justify-center gap-8 nexus-canvas-bg"
       aria-busy="true"
       aria-label="Loading Nexus canvas"
     >

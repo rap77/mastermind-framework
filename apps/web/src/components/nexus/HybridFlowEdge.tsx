@@ -20,11 +20,9 @@ import { getBezierPath, BaseEdge } from '@xyflow/react'
 import type { EdgeProps } from '@xyflow/react'
 import { useBrainState } from '@/stores/brainStore'
 
-// Color palette from Brain-03 UI spec
-const COLOR_IDLE = '#8892B0'     // Muted Slate — ghost idle
-const COLOR_ACTIVE = '#64FFDA'   // Neon Cyan — active + illuminated
-const COLOR_COMPLETE = '#64FFDA' // Neon Cyan latched — complete (same hue, different filter)
-const COLOR_ERROR = '#FF3D00'    // Vivid Red-Orange — error states
+// Phase 17: Using theme tokens instead of hardcoded colors
+// Colors now defined in globals.css as --color-brain-* variables
+// These fallback values match the original Brain-03 UI spec
 
 /**
  * Determine if user prefers reduced motion.
@@ -71,23 +69,23 @@ export function HybridFlowEdge({
     switch (status) {
       case 'active':
         return {
-          stroke: COLOR_ACTIVE,
+          stroke: 'var(--color-brain-active, #64FFDA)',
           strokeWidth: 2,
           opacity: 1,
-          filter: reducedMotion ? undefined : 'drop-shadow(0 0 6px #64FFDA)',
+          filter: reducedMotion ? undefined : 'drop-shadow(0 0 6px var(--color-brain-active, #64FFDA))',
         }
 
       case 'complete':
         return {
-          stroke: COLOR_COMPLETE,
+          stroke: 'var(--color-brain-complete, #10B981)',
           strokeWidth: 2,
           opacity: 1,
-          filter: reducedMotion ? undefined : 'drop-shadow(0 0 4px #64FFDA)',
+          filter: reducedMotion ? undefined : 'drop-shadow(0 0 4px var(--color-brain-complete, #10B981))',
         }
 
       case 'error':
         return {
-          stroke: COLOR_ERROR,
+          stroke: 'var(--color-brain-error, #EF4444)',
           strokeWidth: 2,
           strokeDasharray: '5,5',
           opacity: 1,
@@ -96,7 +94,7 @@ export function HybridFlowEdge({
       case 'idle':
       default:
         return {
-          stroke: COLOR_IDLE,
+          stroke: 'var(--color-brain-idle, #8892B0)',
           strokeWidth: 1,
           opacity: 0.3,
         }

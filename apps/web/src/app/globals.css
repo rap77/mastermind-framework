@@ -367,3 +367,68 @@
   background-color: oklch(0.269 0 0);
   color: oklch(0.708 0 0);
 }
+
+/* Phase 17: Nexus Theme Tokens (Task D1.2)
+ * React Flow node and edge colors using semantic tokens
+ * Maintains neon glow aesthetic while using theme system
+ */
+
+/* Nexus status colors (matching Brain-03 UI spec) */
+:root {
+  --color-brain-active: oklch(0.734 0.188 162.5); /* Neon cyan */
+  --color-brain-complete: oklch(0.623 0.188 142.5); /* Emerald green */
+  --color-brain-error: oklch(0.677 0.215 27.3); /* Red-orange */
+  --color-brain-idle: oklch(0.556 0.048 254.8); /* Muted slate */
+  --color-brain-blueprint: oklch(0.556 0.048 254.8); /* Same as idle for ghosts */
+  --nexus-canvas-bg: oklch(0.145 0 0); /* Near-black for cooldown mode */
+  --nexus-canvas-bg-default: oklch(0.12 0 0); /* Default canvas background */
+}
+
+.dark {
+  --color-brain-active: oklch(0.834 0.188 162.5); /* Brighter neon cyan in dark mode */
+  --color-brain-complete: oklch(0.723 0.188 142.5); /* Brighter emerald in dark mode */
+  --color-brain-error: oklch(0.727 0.215 27.3); /* Brighter red-orange in dark mode */
+  --color-brain-idle: oklch(0.656 0.048 254.8); /* Lighter slate in dark mode */
+  --color-brain-blueprint: oklch(0.656 0.048 254.8);
+  --nexus-canvas-bg: oklch(0.08 0 0); /* Even darker for cooldown mode */
+  --nexus-canvas-bg-default: oklch(0.06 0 0); /* Even darker default */
+}
+
+/* Nexus node ring colors */
+.nexus-ring-active {
+  --tw-ring-color: var(--color-brain-active);
+}
+
+.nexus-ring-complete {
+  --tw-ring-color: var(--color-brain-complete);
+}
+
+.nexus-ring-error {
+  --tw-ring-color: var(--color-brain-error);
+}
+
+/* Nexus text colors */
+.nexus-text-active {
+  color: var(--color-brain-active);
+}
+
+.nexus-text-complete {
+  color: var(--color-brain-complete);
+}
+
+.nexus-text-error {
+  color: var(--color-brain-error);
+}
+
+.nexus-text-idle {
+  color: var(--color-brain-idle);
+}
+
+/* Nexus canvas backgrounds */
+.nexus-canvas-bg {
+  background-color: var(--nexus-canvas-bg-default);
+}
+
+.nexus-canvas-bg-cooldown {
+  background-color: var(--nexus-canvas-bg);
+}

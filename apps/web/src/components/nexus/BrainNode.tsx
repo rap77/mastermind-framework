@@ -54,9 +54,9 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
             : isIdleInFocusMode
               ? 'border-solid opacity-30'
               : 'border-solid opacity-100',
-          status === 'active' && 'ring-2 ring-[var(--color-brain-active,#64FFDA)]',
-          status === 'error' && 'ring-2 ring-[var(--color-brain-error,#EF4444)]',
-          status === 'complete' && 'ring-2 ring-[var(--color-brain-complete,#10B981)]',
+          status === 'active' && 'ring-2 nexus-ring-active',
+          status === 'error' && 'ring-2 nexus-ring-error',
+          status === 'complete' && 'ring-2 nexus-ring-complete',
         )}
         style={isGhost ? { boxShadow: 'var(--shadow-ghost, none)' } : undefined}
       >
@@ -78,7 +78,7 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
             </button>
             {/* Checkmark badge for completed tasks */}
             {status === 'complete' && (
-              <span className="nodrag nopan text-[12px] text-[var(--color-brain-complete,#10B981)] font-bold">
+              <span className="nodrag nopan text-[12px] nexus-text-complete font-bold">
                 ✓
               </span>
             )}

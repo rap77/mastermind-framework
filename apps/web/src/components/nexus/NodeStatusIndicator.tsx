@@ -40,7 +40,7 @@ export const NodeStatusIndicator = ({
 
     case 'idle':
       return (
-        <span className={cn(base, 'text-slate-400')}>
+        <span className={cn(base, 'nexus-text-idle')}>
           <Circle className="size-3" aria-hidden="true" />
           <span>Idle</span>
         </span>
@@ -48,10 +48,7 @@ export const NodeStatusIndicator = ({
 
     case 'active':
       return (
-        <span
-          className={cn(base)}
-          style={{ color: 'var(--color-brain-active, #64FFDA)' }}
-        >
+        <span className={cn(base, 'nexus-text-active')}>
           <Loader2
             className="size-3 animate-spin motion-reduce:animate-none"
             aria-hidden="true"
@@ -62,10 +59,7 @@ export const NodeStatusIndicator = ({
 
     case 'complete':
       return (
-        <span
-          className={cn(base)}
-          style={{ color: 'var(--color-brain-complete, #10B981)' }}
-        >
+        <span className={cn(base, 'nexus-text-complete')}>
           <CheckCircle2 className="size-3" aria-hidden="true" />
           <span>Complete</span>
         </span>
@@ -74,8 +68,7 @@ export const NodeStatusIndicator = ({
     case 'error':
       return (
         <span
-          className={cn(base, 'animate-pulse motion-reduce:animate-none')}
-          style={{ color: 'var(--color-brain-error, #EF4444)' }}
+          className={cn(base, 'nexus-text-error', 'animate-pulse motion-reduce:animate-none')}
         >
           <AlertTriangle className="size-3" aria-hidden="true" />
           <span>Error</span>

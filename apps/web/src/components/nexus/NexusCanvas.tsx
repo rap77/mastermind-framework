@@ -190,8 +190,8 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
   const handleClosePanel = () => setSelectedBrainId(null)
   const handleCooldownEscape = () => setCooldownMode(false)
 
-  // Background shifts to near-black in Cooldown Mode
-  const canvasBackground = cooldownMode ? '#111113' : '#0B0C10'
+  // Phase 17: Use theme token for canvas background
+  const canvasBackgroundClass = cooldownMode ? 'nexus-canvas-bg-cooldown' : 'nexus-canvas-bg'
 
   return (
     <div className="relative h-full w-full">
@@ -215,7 +215,8 @@ export function NexusCanvas({ blueprintBrains }: NexusCanvasProps) {
           // Canvas is read-only in Cooldown Mode
           nodesFocusable={!cooldownMode}
           edgesFocusable={!cooldownMode}
-          style={{ background: canvasBackground, transition: 'background 0.3s ease' }}
+          className={canvasBackgroundClass}
+          style={{ transition: 'background 0.3s ease' }}
         >
           <Background />
           <Controls />
