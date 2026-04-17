@@ -265,17 +265,24 @@ node ~/.claude/hooks/mm-flow-statusline.js
 - `apps/web/src/app/(protected)/engine-room/page.tsx` — Replace hardcoded colors with tokens
 
 **Acceptance Criteria:**
-- [ ] Zero hardcoded hex colors in any screen component
-- [ ] All screens render correctly in light mode
-- [ ] All screens render correctly in dark mode
-- [ ] React Flow canvas adapts to theme (Nexus + Flow Designer)
-- [ ] All 628+ existing tests pass
+- [x] Zero hardcoded hex colors in any screen component
+- [x] All screens render correctly in light mode
+- [x] All screens render correctly in dark mode
+- [x] React Flow canvas adapts to theme (Nexus + Flow Designer)
+- [x] All 628+ existing tests pass
 
 **Verification:**
 ```bash
 cd apps/web && pnpm test
 grep -rn '#[0-9a-fA-F]\{3,6\}' src/components/ src/app/ | grep -v '.test.' | grep -v 'globals.css' | grep -v 'var('
 ```
+
+**Status:** ✅ **COMPLETE** — Verified 2026-04-17 via `/mm:verify-task`
+- Zero hardcoded colors (only comments in NodeStatusIndicator.tsx)
+- All screens use Tailwind semantic tokens (text-foreground, bg-primary, etc.)
+- ThemeProvider configured with localStorage + system fallback
+- React Flow canvas uses var(--color-brain-*), var(--color-primary), var(--color-surface)
+- 722/722 tests passing (exceeds 628+ requirement)
 
 ---
 
