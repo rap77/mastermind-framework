@@ -151,10 +151,10 @@ export function KeyCreateDialog() {
 
               {/* Security warning */}
               <div
-                className="rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2"
+                className="rounded-md bg-warning/10 border border-warning/30 px-3 py-2"
                 role="alert"
               >
-                <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+                <p className="text-sm text-warning dark:text-warning/80 font-medium">
                   Save this key now. You won't be able to see it again.
                 </p>
               </div>
@@ -196,7 +196,7 @@ export function KeyCreateDialog() {
                   variant={copied ? 'default' : 'outline'}
                   onClick={handleCopy}
                   data-testid="copy-key-button"
-                  className={copied ? 'bg-green-600 hover:bg-green-700' : ''}
+                  className={copied ? 'bg-success hover:bg-success/90' : ''}
                 >
                   {copied ? 'Copied!' : 'Copy to Clipboard'}
                 </Button>

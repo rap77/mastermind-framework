@@ -134,7 +134,7 @@ export function BrainYAMLViewer({ brainId, open, onOpenChange }: BrainYAMLViewer
               {copyStatus !== 'idle' && (
                 <span
                   className={`text-xs mr-auto self-center ${
-                    copyStatus === 'success' ? 'text-green-500' : 'text-destructive'
+                    copyStatus === 'success' ? 'text-success' : 'text-destructive'
                   }`}
                   role="status"
                   aria-live="polite"

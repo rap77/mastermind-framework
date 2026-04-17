@@ -148,7 +148,7 @@ export function LiveLogPanel({ taskId: _taskId, logs: staticLogs }: LiveLogPanel
       {/* WS disconnection banner */}
       {!isStatic && !connected && (
         <div
-          className="px-4 py-2 bg-yellow-900/50 text-yellow-300 text-xs border-b border-yellow-800"
+          className="px-4 py-2 bg-warning/20 text-warning text-xs border-b border-warning/30"
           role="status"
           aria-live="polite"
         >
