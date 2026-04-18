@@ -35,6 +35,9 @@ interface FlowDesignerState {
   flowName: string
   isDirty: boolean
 
+  // Validation state
+  orphanedNodeCount: number
+
   // Actions — Node management
   addNode: (node: FlowNode) => void
   removeNode: (nodeId: string) => void
@@ -96,6 +99,7 @@ export const useFlowDesignerStore = create<FlowDesignerState>()(
       flowId: null,
       flowName: 'Untitled Flow',
       isDirty: false,
+      orphanedNodeCount: 0,
 
       // ─── Node Management ───────────────────────────────────────────────────────
 
@@ -171,10 +175,27 @@ export const useFlowDesignerStore = create<FlowDesignerState>()(
        */
       addEdge: (edge) => {
         set((state) => {
-          // Prevent duplicate edges
-          const exists = state.edges.some(
-            (e) => e.source === edge.source && e.target === edge.target,
-          )
+          // Prevent duplicate edges considering source, target, AND label
+          const exists = state.edges.some((e) => {
+            // Check if source and target match
+            if (e.source !== edge.source || e.target !== edge.target) {
+              return false
+            }
+
+            // If both have labels, they must match to be duplicate
+            if (e.label && edge.label) {
+              return e.label === edge.label
+            }
+
+            // If one has label and the other doesn't, they're different
+            if (e.label || edge.label) {
+              return false
+            }
+
+            // Both have no label - same source/target = duplicate
+            return true
+          })
+
           if (!exists) {
             state.edges.push(edge)
             state.isDirty = true
@@ -354,6 +375,12 @@ export const useFlowDesignerStore = create<FlowDesignerState>()(
         const orphanedNodes = state.nodes.filter(
           (n) => !connectedNodeIds.has(n.id) && state.nodes.length > 1,
         )
+
+        // Update orphaned node count for UI hints
+        set((state) => {
+          state.orphanedNodeCount = orphanedNodes.length
+        })
+
         if (orphanedNodes.length > 0) {
           errors.push(
             `Found ${orphanedNodes.length} orphaned node(s): ${orphanedNodes.map((n) => n.id).join(', ')}`,
