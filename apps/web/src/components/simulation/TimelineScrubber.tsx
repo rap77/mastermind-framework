@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { useSimulationStore } from '@/stores/simulationStore'
 import type { SnapshotMilestone } from '@/stores/simulationStore'
@@ -49,10 +49,25 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
   const milestones = currentExecution?.milestones ?? []
   const milestoneCount = milestones.length
 
-  const getPositionPercent = (index: number): number => {
-    if (milestoneCount <= 1) return 0
-    return (index / (milestoneCount - 1)) * 100
-  }
+  // Memoize milestone positions to avoid recalculating on every render
+  // This improves performance during playback and dragging
+  const milestonePositions = useMemo(() => {
+    if (milestoneCount <= 1) {
+      return { positions: [], currentPositionPercent: 0, currentMilestoneArrayIndex: 0 }
+    }
+
+    const positions = milestones.map((_, index) => (index / (milestoneCount - 1)) * 100)
+
+    // Find the current milestone's array index
+    const currentMilestoneArrayIndex = milestones.findIndex((m) => m.index === currentMilestoneIndex)
+    const validIndex = currentMilestoneArrayIndex === -1 ? 0 : currentMilestoneArrayIndex
+
+    return {
+      positions,
+      currentPositionPercent: positions[validIndex] || 0,
+      currentMilestoneArrayIndex: validIndex,
+    }
+  }, [milestones, milestoneCount, currentMilestoneIndex])
 
   const getIndexFromMouseEvent = useCallback(
     (clientX: number): number => {
@@ -146,11 +161,7 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
 
   // ── Derived values ────────────────────────────────────────────────────────
   const currentMilestone = milestones.find((m) => m.index === currentMilestoneIndex)
-  const thumbPercent = getPositionPercent(
-    milestones.findIndex((m) => m.index === currentMilestoneIndex) === -1
-      ? 0
-      : milestones.findIndex((m) => m.index === currentMilestoneIndex)
-  )
+  const thumbPercent = milestonePositions.currentPositionPercent
 
   // Dynamic aria-valuetext with milestone label and brain count for accessibility
   const ariaValueText = currentMilestone
@@ -221,7 +232,7 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
               'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1'
             )}
             style={{
-              left: `${getPositionPercent(idx)}%`,
+              left: `${milestonePositions.positions[idx]}%`,
               transform: 'translate(-50%, -50%)',
               top: '50%',
               backgroundColor:
