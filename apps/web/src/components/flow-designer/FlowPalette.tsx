@@ -1,7 +1,15 @@
 /**
  * FlowPalette — Draggable node types palette
  *
- * Sidebar with draggable node types for the Flow Designer.
+ * **Features:**
+ * - Sidebar with draggable node types for the Flow Designer
+ * - Full accessibility with ARIA labels and descriptions
+ * - Keyboard and screen reader support
+ *
+ * @example
+ * ```tsx
+ * <FlowPalette />
+ * ```
  */
 
 import { NodeType } from './types'
@@ -75,12 +83,18 @@ export function FlowPalette() {
         backgroundColor: 'var(--color-surface)',
         borderColor: 'var(--color-border)',
       }}
+      role="complementary"
+      aria-label="Flow node palette"
     >
       <h3 className="font-semibold mb-4 text-sm" style={{ color: 'var(--color-text-primary)' }}>
         Node Types
       </h3>
 
-      <div className="space-y-2">
+      <div
+        className="space-y-2"
+        role="listbox"
+        aria-label="Available node types"
+      >
         {NODE_TYPES.map((nodeType) => (
           <div
             key={nodeType.type}
@@ -96,14 +110,21 @@ export function FlowPalette() {
               backgroundColor: 'var(--color-surface)',
               borderColor: 'var(--color-border)',
             }}
+            role="option"
+            aria-label={nodeType.label}
+            aria-describedby={`node-${nodeType.type}-description`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-lg">{nodeType.icon}</span>
+              <span className="text-lg" aria-hidden="true">{nodeType.icon}</span>
               <div>
                 <div className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>
                   {nodeType.label}
                 </div>
-                <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                <div
+                  className="text-xs"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                  id={`node-${nodeType.type}-description`}
+                >
                   {nodeType.description}
                 </div>
               </div>
