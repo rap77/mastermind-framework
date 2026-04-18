@@ -1,7 +1,29 @@
 /**
  * FlowToolbar — Toolbar with zoom, export, import, clear actions
  *
- * Top toolbar for the Flow Designer with common actions.
+ * **Features:**
+ * - Zoom controls (zoom in, zoom out, fit view)
+ * - Export flow to JSON file
+ * - Import flow from JSON file
+ * - Clear all nodes and edges from canvas
+ * - Simulate button (links to Simulation page)
+ * - Confirmation dialogs for destructive actions
+ * - Loading states for async operations
+ * - Error handling with toast notifications
+ *
+ * **Actions:**
+ * - `zoomIn`: Zoom in the canvas (incremental)
+ * - `zoomOut`: Zoom out the canvas (incremental)
+ * - `fitView`: Fit all nodes in the viewport
+ * - `exportFlow`: Export current flow to JSON file
+ * - `importFlow`: Import flow from JSON file (with validation)
+ * - `clearFlow`: Remove all nodes and edges (requires confirmation)
+ * - `simulate`: Navigate to Simulation page (if flow has nodes)
+ *
+ * **File Size Limit:** 5MB for JSON import (prevents performance issues)
+ *
+ * @see flow-serializer - Export/import logic
+ * @see toastError - Error notification system
  */
 
 import { useCallback, useState } from 'react'

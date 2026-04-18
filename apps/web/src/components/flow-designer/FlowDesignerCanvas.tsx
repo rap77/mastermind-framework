@@ -1,8 +1,30 @@
 /**
  * FlowDesignerCanvas — Main canvas for Flow Designer
  *
- * Integrates React Flow with palette, toolbar, and node types.
- * Based on NexusCanvas.tsx pattern.
+ * **Features:**
+ * - Visual canvas for designing agent workflows with drag-and-drop nodes
+ * - Integration with React Flow v12 for graph visualization
+ * - Flow palette with draggable node types (Brain, Gateway, Adapter, Router, Condition)
+ * - Flow toolbar with zoom, pan, export, import, and clear controls
+ * - Node configuration dialog for editing node properties
+ * - Mini-map for navigation in large flows
+ * - Background grid for visual alignment
+ * - Theme-aware rendering (light/dark mode)
+ *
+ * **Architecture:**
+ * - Uses Zustand store (flowDesignerStore) for state management
+ * - Module-level NODE_TYPES and EDGE_TYPES prevent React Flow remount loops
+ * - Based on NexusCanvas.tsx pattern from existing codebase
+ *
+ * **Usage:**
+ * ```tsx
+ * <FlowDesignerCanvas />
+ * ```
+ *
+ * @see FlowPalette - Draggable node types sidebar
+ * @see FlowToolbar - Canvas controls toolbar
+ * @see NodeConfigDialog - Node configuration dialog
+ * @see flowDesignerStore - Zustand state management
  */
 
 import { useCallback, useState } from 'react'

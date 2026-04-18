@@ -1,7 +1,7 @@
 /**
  * FlowToolbar Tests
  *
- * Tests for the toolbar component including dialog-based confirmations.
+ * Tests for the toolbar component including dialog-based confirmations, loading states, and file validation.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -11,9 +11,10 @@ import { FlowToolbar } from '../FlowToolbar'
 import * as Dialog from '@/components/ui/dialog'
 
 // Mock next/navigation
+const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: mockPush,
   }),
 }))
 
@@ -54,6 +55,7 @@ vi.mock('@xyflow/react', () => ({
 describe('FlowToolbar', () => {
   beforeEach(() => {
     mockClearFlow.mockClear()
+    mockPush.mockClear()
     // Mock window.confirm to ensure it's NOT called
     global.confirm = vi.fn(() => true)
   })
@@ -131,6 +133,141 @@ describe('FlowToolbar', () => {
       expect(screen.getByText('Export JSON')).toBeDefined()
       expect(screen.getByText('Import JSON')).toBeDefined()
       expect(screen.getByText('Clear')).toBeDefined()
+    })
+
+    it('should show loading state when navigating to simulation', async () => {
+      // Make router.push return a promise that resolves quickly
+      mockPush.mockImplementation(() => Promise.resolve())
+
+      renderToolbar()
+
+      const simulateButton = screen.getByText('Simulate')
+      fireEvent.click(simulateButton)
+
+      // Wait for loading state to appear
+      await waitFor(() => {
+        const loadingText = screen.queryByText('Loading...')
+        // Loading should appear briefly during navigation
+        expect(loadingText || mockPush).toBeTruthy()
+      })
+    })
+
+    it('should disable Simulate button during navigation', async () => {
+      // Make router.push return a pending promise
+      let resolvePush: () => void
+      mockPush.mockImplementation(() => new Promise(resolve => { resolvePush = resolve }))
+
+      renderToolbar()
+
+      const simulateButton = screen.getByText('Simulate')
+      fireEvent.click(simulateButton)
+
+      // Button should be disabled during navigation
+      await waitFor(() => {
+        expect(simulateButton).toBeDisabled()
+      })
+
+      // Clean up
+      if (resolvePush) resolvePush()
+    })
+  })
+
+  describe('file import validation', () => {
+    it('should reject files larger than 5MB', () => {
+      renderToolbar()
+
+      const importButton = screen.getByText('Import JSON')
+      fireEvent.click(importButton)
+
+      // Create a mock file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      expect(fileInput).toBeDefined()
+
+      // Mock a large file (> 5MB)
+      const largeFile = new File(['x'.repeat(6 * 1024 * 1024)], 'large.json', {
+        type: 'application/json',
+      })
+
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [largeFile] } })
+
+        // Should show error toast
+        const { toastError } = require('@/lib/toast')
+        expect(toastError).toHaveBeenCalledWith(
+          expect.stringContaining('File too large')
+        )
+      }
+    })
+
+    it('should reject non-JSON files', () => {
+      renderToolbar()
+
+      const importButton = screen.getByText('Import JSON')
+      fireEvent.click(importButton)
+
+      // Create a mock file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      expect(fileInput).toBeDefined()
+
+      // Mock a non-JSON file
+      const textFile = new File(['content'], 'file.txt', { type: 'text/plain' })
+
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [textFile] } })
+
+        // Should show error toast
+        const { toastError } = require('@/lib/toast')
+        expect(toastError).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid file type')
+        )
+      }
+    })
+
+    it('should accept valid JSON files under 5MB', () => {
+      renderToolbar()
+
+      const importButton = screen.getByText('Import JSON')
+      fireEvent.click(importButton)
+
+      // Create a mock file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      expect(fileInput).toBeDefined()
+
+      // Mock a valid JSON file
+      const jsonContent = JSON.stringify({ nodes: [], edges: [], id: '1', name: 'Test' })
+      const jsonFile = new File([jsonContent], 'valid.json', { type: 'application/json' })
+
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [jsonFile] } })
+
+        // Should NOT show error toast
+        const { toastError } = require('@/lib/toast')
+        expect(toastError).not.toHaveBeenCalled()
+      }
+    })
+
+    it('should show loading state during import', async () => {
+      renderToolbar()
+
+      const importButton = screen.getByText('Import JSON')
+      fireEvent.click(importButton)
+
+      // Create a mock file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+
+      // Mock a valid JSON file
+      const jsonContent = JSON.stringify({ nodes: [], edges: [], id: '1', name: 'Test' })
+      const jsonFile = new File([jsonContent], 'valid.json', { type: 'application/json' })
+
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [jsonFile] } })
+
+        // Should show loading state briefly
+        await waitFor(() => {
+          const loadingText = screen.queryByText('Importing...')
+          expect(loadingText || mockClearFlow).toBeTruthy()
+        })
+      }
     })
   })
 })

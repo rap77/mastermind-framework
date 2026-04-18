@@ -1,5 +1,53 @@
 "use client"
 
+/**
+ * Button — Universal button component with variants and sizes
+ *
+ * **Variants:**
+ * - `default`: Primary action button (solid background)
+ * - `outline`: Outlined button with hover effect
+ * - `secondary`: Secondary action button (muted background)
+ * - `ghost`: Transparent button with hover background
+ * - `destructive`: Destructive action button (error state)
+ * - `danger`: Danger action button (solid error background)
+ * - `link`: Text-only button with underline
+ *
+ * **Sizes:**
+ * - `xs`: Extra small button (24px height)
+ * - `sm`: Small button (28px height)
+ * - `default`: Default button (32px height)
+ * - `lg`: Large button (36px height)
+ * - `icon`: Square icon button (32px)
+ * - `icon-xs`: Extra small square icon button (24px)
+ * - `icon-sm`: Small square icon button (28px)
+ * - `icon-lg`: Large square icon button (36px)
+ *
+ * **Features:**
+ * - Full keyboard navigation support
+ * - Focus visible indicators for accessibility
+ * - Disabled state with reduced opacity
+ * - Loading state support (via LoadingSpinner)
+ * - ARIA invalid state support
+ * - Dark mode support
+ * - Icon spacing adjustments
+ * - Button group support
+ *
+ * **Accessibility:**
+ * - Proper focus indicators (ring on focus)
+ * - Disabled state prevents interaction
+ * - ARIA attributes for invalid states
+ * - Keyboard navigation support
+ *
+ * @example
+ * ```tsx
+ * <Button variant="default" size="md">Click me</Button>
+ * <Button variant="outline" size="sm">Cancel</Button>
+ * <Button variant="destructive" size="icon"><TrashIcon /></Button>
+ * ```
+ *
+ * @see {@link https://cva.style/docs} - Class Variance Authority documentation
+ */
+
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 

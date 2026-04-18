@@ -1,0 +1,14 @@
+/**
+ * Theme Tokens — Common status color fallback values
+ *
+ * Provides consistent fallback values for status colors across components.
+ * Components should use: var(--color-status-success, var(--status-success))
+ * This ensures theme colors are used when available, with sensible fallbacks.
+ */
+
+:root {
+  --status-success: hsl(142 76% 36%);
+  --status-error: hsl(0 84% 60%);
+  --status-warning: hsl(38 92% 50%);
+  --status-idle: hsl(215 25% 27%);
+}
