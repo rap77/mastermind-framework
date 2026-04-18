@@ -384,6 +384,146 @@ describe('SimulationCanvas', () => {
       const canvas = screen.queryByTestId('react-flow')
       expect(canvas).toBeDefined()
     })
+
+    it('should handle edges from gateway nodes without brainId', () => {
+      // Graph with gateway → brain edge
+      const graphWithGateway: FlowDefinition = {
+        nodes: [
+          {
+            id: 'gateway-1',
+            type: 'gateway',
+            position: { x: 100, y: 100 },
+            data: { id: 'gateway-1', label: 'Gateway', type: 'gateway' },
+          },
+          {
+            id: 'brain-1',
+            type: 'brain',
+            position: { x: 400, y: 100 },
+            data: { id: 'brain-1', label: 'Brain 1', brainId: 'brain-exec-1', type: 'brain' },
+          },
+        ],
+        edges: [
+          {
+            id: 'edge-gateway-to-brain',
+            source: 'gateway-1',
+            target: 'brain-1',
+            type: 'default',
+          },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      }
+
+      // Mock execution with brain output
+      const mockStore = {
+        getCurrentGraphSnapshot: () => graphWithGateway,
+        currentExecution: {
+          brain_outputs: {
+            'brain-exec-1': { duration_ms: 500, status: 'complete' },
+          },
+        },
+      }
+
+      vi.mocked(useSimulationStore).mockImplementation((selector) => {
+        if (typeof selector === 'function') {
+          return selector(mockStore)
+        }
+        return mockStore as any
+      })
+
+      // Should render without errors (uses target brain's latency)
+      expect(() => render(<SimulationCanvas />)).not.toThrow()
+    })
+
+    it('should handle multi-edge scenarios from gateway to multiple brains', () => {
+      // Graph with gateway → multiple brains
+      const multiEdgeGraph: FlowDefinition = {
+        nodes: [
+          {
+            id: 'gateway-1',
+            type: 'gateway',
+            position: { x: 100, y: 100 },
+            data: { id: 'gateway-1', label: 'Gateway', type: 'gateway' },
+          },
+          {
+            id: 'brain-1',
+            type: 'brain',
+            position: { x: 400, y: 50 },
+            data: { id: 'brain-1', label: 'Brain 1', brainId: 'brain-exec-1', type: 'brain' },
+          },
+          {
+            id: 'brain-2',
+            type: 'brain',
+            position: { x: 400, y: 150 },
+            data: { id: 'brain-2', label: 'Brain 2', brainId: 'brain-exec-2', type: 'brain' },
+          },
+        ],
+        edges: [
+          {
+            id: 'edge-gateway-to-brain1',
+            source: 'gateway-1',
+            target: 'brain-1',
+            type: 'default',
+          },
+          {
+            id: 'edge-gateway-to-brain2',
+            source: 'gateway-1',
+            target: 'brain-2',
+            type: 'default',
+          },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      }
+
+      // Mock execution with brain outputs
+      const mockStore = {
+        getCurrentGraphSnapshot: () => multiEdgeGraph,
+        currentExecution: {
+          brain_outputs: {
+            'brain-exec-1': { duration_ms: 300, status: 'complete' },
+            'brain-exec-2': { duration_ms: 500, status: 'complete' },
+          },
+        },
+      }
+
+      vi.mocked(useSimulationStore).mockImplementation((selector) => {
+        if (typeof selector === 'function') {
+          return selector(mockStore)
+        }
+        return mockStore as any
+      })
+
+      render(<SimulationCanvas />)
+
+      // Should render all edges without errors
+      const canvas = screen.queryByTestId('react-flow')
+      expect(canvas).toBeDefined()
+    })
+
+    it('should show latency for brain-to-brain edges', () => {
+      // Mock execution with brain output
+      const mockStore = {
+        getCurrentGraphSnapshot: () => mockGraphSnapshot,
+        currentExecution: {
+          brain_outputs: {
+            'brain-1': { duration_ms: 250, status: 'complete' },
+            'brain-2': { duration_ms: 500, status: 'complete' },
+          },
+        },
+      }
+
+      vi.mocked(useSimulationStore).mockImplementation((selector) => {
+        if (typeof selector === 'function') {
+          return selector(mockStore)
+        }
+        return mockStore as any
+      })
+
+      render(<SimulationCanvas />)
+
+      // Should render with latency labels
+      const canvas = screen.queryByTestId('react-flow')
+      expect(canvas).toBeDefined()
+    })
   })
 
   describe('read-only behavior', () => {

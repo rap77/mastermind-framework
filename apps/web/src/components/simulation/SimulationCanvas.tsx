@@ -177,7 +177,14 @@ export function SimulationCanvas() {
     return graphSnapshot.edges.map((edge: Edge) => {
       // Find brain outputs for source/target to calculate latency
       const sourceNode = graphSnapshot.nodes.find((n: FlowNode) => n.id === edge.source)
-      const brainId = sourceNode?.data?.brainId
+      const targetNode = graphSnapshot.nodes.find((n: FlowNode) => n.id === edge.target)
+
+      // Try source node's brainId first, fall back to target node's brainId
+      // This handles gateway → brain edges where gateway has no brainId
+      let brainId = sourceNode?.data?.brainId
+      if (!brainId) {
+        brainId = targetNode?.data?.brainId
+      }
 
       const brainOutput = brainId ? execution?.brain_outputs[brainId] : null
       const latencyMs = brainOutput?.duration_ms
