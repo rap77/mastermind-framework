@@ -152,6 +152,11 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
       : milestones.findIndex((m) => m.index === currentMilestoneIndex)
   )
 
+  // Dynamic aria-valuetext with milestone label and brain count for accessibility
+  const ariaValueText = currentMilestone
+    ? `${currentMilestone.label} (${currentMilestone.brain_count} ${currentMilestone.brain_count === 1 ? 'brain' : 'brains'})`
+    : 'Start'
+
   // ── Render ────────────────────────────────────────────────────────────────
   if (milestoneCount === 0) {
     return (
@@ -180,7 +185,7 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
         aria-valuemin={0}
         aria-valuemax={milestoneCount - 1}
         aria-valuenow={milestones.findIndex((m) => m.index === currentMilestoneIndex)}
-        aria-valuetext={currentMilestone?.label ?? 'Start'}
+        aria-valuetext={ariaValueText}
         tabIndex={0}
         className={cn(
           'relative flex items-center cursor-pointer',

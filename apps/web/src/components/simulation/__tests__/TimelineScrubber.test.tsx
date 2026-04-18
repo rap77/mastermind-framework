@@ -224,4 +224,56 @@ describe('TimelineScrubber', () => {
       expect(store.currentMilestoneIndex).toBe(3)
     })
   })
+
+  describe('Accessibility - Dynamic aria-valuetext', () => {
+    it('should update aria-valuetext when milestone changes during drag', () => {
+      render(<TimelineScrubber />)
+
+      const track = screen.getByRole('slider')
+
+      // Initial aria-valuetext with brain count
+      expect(track).toHaveAttribute('aria-valuetext', 'Start (0 brains)')
+
+      // Drag to milestone 1 using keyboard (more reliable in tests)
+      fireEvent.keyDown(track, { key: 'ArrowRight' })
+
+      // aria-valuetext should update to "Milestone 1 (1 brain)"
+      expect(track).toHaveAttribute('aria-valuetext', 'Milestone 1 (1 brain)')
+
+      // Drag to milestone 2
+      fireEvent.keyDown(track, { key: 'ArrowRight' })
+
+      // aria-valuetext should update to "Milestone 2 (2 brains)"
+      expect(track).toHaveAttribute('aria-valuetext', 'Milestone 2 (2 brains)')
+    })
+
+    it('should include milestone label and brain count in aria-valuetext', () => {
+      render(<TimelineScrubber />)
+
+      const track = screen.getByRole('slider')
+
+      // Navigate to milestone 1
+      fireEvent.keyDown(track, { key: 'ArrowRight' })
+
+      // aria-valuetext should contain both label and brain count
+      const ariaValuetext = track.getAttribute('aria-valuetext')
+      expect(ariaValuetext).toContain('Milestone 1')
+      expect(ariaValuetext).toContain('1 brain')
+    })
+
+    it('should update aria-valuetext on keyboard navigation', () => {
+      render(<TimelineScrubber />)
+
+      const track = screen.getByRole('slider')
+
+      // Initial state
+      expect(track).toHaveAttribute('aria-valuetext', 'Start (0 brains)')
+
+      // Navigate to next milestone
+      fireEvent.keyDown(track, { key: 'ArrowRight' })
+
+      // aria-valuetext should update with brain count
+      expect(track).toHaveAttribute('aria-valuetext', 'Milestone 1 (1 brain)')
+    })
+  })
 })
