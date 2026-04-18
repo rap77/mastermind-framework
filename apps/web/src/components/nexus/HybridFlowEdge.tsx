@@ -4,10 +4,10 @@
  * HybridFlowEdge — Custom React Flow edge with 4-state neon glow state machine
  *
  * **State machine (data-latching pattern):**
- * - idle/undefined: muted slate ghost edge (opacity 0.3, no animation)
- * - active: neon cyan animated edge (drop-shadow glow, stroke-dashoffset animation)
- * - complete: latched green solid edge (drop-shadow glow, no animation)
- * - error: pulsing red-orange dashed edge (animate-pulse class)
+ * - idle/undefined: muted slate ghost edge (var(--color-brain-idle), opacity 0.3, no animation)
+ * - active: neon cyan animated edge (var(--color-brain-active), drop-shadow glow, stroke-dashoffset animation)
+ * - complete: latched green solid edge (var(--color-brain-complete), drop-shadow glow, no animation)
+ * - error: pulsing red-orange dashed edge (var(--color-brain-error), animate-pulse class)
  *
  * **CRITICAL:** Edge appearance derives from source brain's status via useBrainState(source).
  * The edge does NOT store state — it reads from brainStore on every render.

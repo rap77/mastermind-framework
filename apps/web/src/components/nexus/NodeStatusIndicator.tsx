@@ -18,10 +18,10 @@ interface NodeStatusIndicatorProps {
  *
  * States:
  *   blueprint — dashed border, 20% opacity (Ghost Architecture idle canvas)
- *   idle      — muted slate gray
- *   active    — neon cyan (#64FFDA) with spin
- *   complete  — emerald green (#10B981) with checkmark
- *   error     — red-orange pulsing with AlertTriangle (colorblind accessible)
+ *   idle      — muted slate gray (var(--color-brain-idle))
+ *   active    — neon cyan (var(--color-brain-active)) with spin
+ *   complete  — emerald green (var(--color-brain-complete)) with checkmark
+ *   error     — red-orange pulsing (var(--color-brain-error)) with AlertTriangle (colorblind accessible)
  */
 export const NodeStatusIndicator = ({
   status,
