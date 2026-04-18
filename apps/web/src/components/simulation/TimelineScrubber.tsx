@@ -111,31 +111,28 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
 
   // Attach global mouse events for drag-out-of-element scenarios
   useEffect(() => {
+    if (!dragging) {
+      return
+    }
+
     // Update refs with latest handlers
     handleMouseMoveRef.current = handleMouseMove
     handleMouseUpRef.current = handleMouseUp
 
-    if (dragging) {
-      const mouseMoveHandler = (e: MouseEvent) => {
-        handleMouseMoveRef.current?.(e)
-      }
-      const mouseUpHandler = () => {
-        handleMouseUpRef.current?.()
-      }
-
-      window.addEventListener('mousemove', mouseMoveHandler)
-      window.addEventListener('mouseup', mouseUpHandler)
-
-      // Cleanup function - removes the specific listeners added in this effect
-      return () => {
-        window.removeEventListener('mousemove', mouseMoveHandler)
-        window.removeEventListener('mouseup', mouseUpHandler)
-      }
+    const mouseMoveHandler = (e: MouseEvent) => {
+      handleMouseMoveRef.current?.(e)
+    }
+    const mouseUpHandler = () => {
+      handleMouseUpRef.current?.()
     }
 
-    // Cleanup when not dragging (in case dragging state changes during render)
+    window.addEventListener('mousemove', mouseMoveHandler)
+    window.addEventListener('mouseup', mouseUpHandler)
+
+    // Cleanup function - removes the specific listeners added in this effect
     return () => {
-      // No-op - listeners are cleaned up by the return above when dragging was true
+      window.removeEventListener('mousemove', mouseMoveHandler)
+      window.removeEventListener('mouseup', mouseUpHandler)
     }
   }, [dragging, handleMouseMove, handleMouseUp])
 
