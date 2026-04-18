@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { useSimulationStore } from '@/stores/simulationStore'
 import type { SnapshotMilestone } from '@/stores/simulationStore'
+import { HelpTooltip } from './HelpTooltip'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -285,7 +286,10 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
               ? `${currentMilestone.label} (Brain ${currentMilestone.brain_count})`
               : 'Start'}
         </span>
-        <span data-testid="scrubber-percentage">{Math.round(thumbPercent)}%</span>
+        <div className="flex items-center gap-2">
+          <HelpTooltip />
+          <span data-testid="scrubber-percentage">{Math.round(thumbPercent)}%</span>
+        </div>
       </div>
     </div>
   )
