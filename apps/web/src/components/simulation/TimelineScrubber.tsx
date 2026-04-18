@@ -41,6 +41,10 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
   const [hoveredMilestone, setHoveredMilestone] = useState<SnapshotMilestone | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
 
+  // Refs to track latest handlers for event listener cleanup
+  const handleMouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null)
+  const handleMouseUpRef = useRef<(() => void) | null>(null)
+
   // ── Position calculation ──────────────────────────────────────────────────
   const milestones = currentExecution?.milestones ?? []
   const milestoneCount = milestones.length
@@ -91,13 +95,31 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
 
   // Attach global mouse events for drag-out-of-element scenarios
   useEffect(() => {
+    // Update refs with latest handlers
+    handleMouseMoveRef.current = handleMouseMove
+    handleMouseUpRef.current = handleMouseUp
+
     if (dragging) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      const mouseMoveHandler = (e: MouseEvent) => {
+        handleMouseMoveRef.current?.(e)
+      }
+      const mouseUpHandler = () => {
+        handleMouseUpRef.current?.()
+      }
+
+      window.addEventListener('mousemove', mouseMoveHandler)
+      window.addEventListener('mouseup', mouseUpHandler)
+
+      // Cleanup function - removes the specific listeners added in this effect
+      return () => {
+        window.removeEventListener('mousemove', mouseMoveHandler)
+        window.removeEventListener('mouseup', mouseUpHandler)
+      }
     }
+
+    // Cleanup when not dragging (in case dragging state changes during render)
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
+      // No-op - listeners are cleaned up by the return above when dragging was true
     }
   }, [dragging, handleMouseMove, handleMouseUp])
 
