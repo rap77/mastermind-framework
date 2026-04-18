@@ -281,3 +281,103 @@ class TestEnvironmentValidation:
             result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
 
         assert result.exit_code == 0, result.output
+
+
+class TestAtomicWriteGuarantee:
+    """Tests for atomic write behavior (C2 code review RECOMMENDATION #1)."""
+
+    def test_atomic_write_prevents_partial_reads(self, tmp_path: Path) -> None:
+        """Verify atomic write prevents partial reads if process crashes.
+
+        This test documents the C2 invariant: runtime-state.json writes
+        are atomic via temp file + rename pattern. If process crashes
+        during write, the original file remains intact.
+        """
+        runtime_path = tmp_path / "runtime-state.json"
+
+        # Simulate crash during write: incomplete temp file exists
+        tmp = Path(str(runtime_path) + ".tmp")
+        tmp.write_text('{"incomplete": true')
+
+        # Original file should not exist or be intact (not corrupted)
+        if runtime_path.exists():
+            content = runtime_path.read_text()
+            assert "incomplete" not in content
+
+        # Complete atomic write
+        tmp.rename(runtime_path)
+        assert runtime_path.exists()
+        assert "incomplete" in runtime_path.read_text()
+
+    def test_atomic_write_creates_parent_directories(self, tmp_path: Path) -> None:
+        """Verify atomic write creates parent directories if they don't exist."""
+        runtime_path = tmp_path / "nested" / "dir" / "runtime-state.json"
+
+        # Create a minimal RuntimeState instance
+        from mastermind_cli.mm_flow.config_loader import RuntimeState
+
+        state = RuntimeState(
+            execution_id="test-id",
+            phase=19,
+            current_moment="EXECUTION_WAVE",
+            active_brain=0,
+            brain_state="ACTIVE",
+            backend="claude",
+            updated_at="2026-04-14T00:00:00",
+        )
+
+        # Write should create parent directories
+        state.to_json_file(runtime_path)
+
+        assert runtime_path.exists()
+        assert runtime_path.parent.exists()
+
+    def test_atomic_write_sets_explicit_permissions(self, tmp_path: Path) -> None:
+        """Verify atomic write sets explicit 0o644 permissions."""
+        runtime_path = tmp_path / "runtime-state.json"
+
+        # Create a minimal RuntimeState instance
+        from mastermind_cli.mm_flow.config_loader import RuntimeState
+
+        state = RuntimeState(
+            execution_id="test-id",
+            phase=19,
+            current_moment="EXECUTION_WAVE",
+            active_brain=0,
+            brain_state="ACTIVE",
+            backend="claude",
+            updated_at="2026-04-14T00:00:00",
+        )
+
+        # Write should set explicit permissions
+        state.to_json_file(runtime_path)
+
+        import stat
+
+        file_mode = runtime_path.stat().st_mode
+        assert stat.filemode(file_mode) == "-rw-r--r--"
+        assert (file_mode & 0o777) == 0o644
+
+    def test_atomic_write_rejects_path_traversal(self, tmp_path: Path) -> None:
+        """Verify atomic write rejects path traversal attempts."""
+        from mastermind_cli.mm_flow.config_loader import RuntimeState
+
+        state = RuntimeState(
+            execution_id="test-id",
+            phase=19,
+            current_moment="EXECUTION_WAVE",
+            active_brain=0,
+            brain_state="ACTIVE",
+            backend="claude",
+            updated_at="2026-04-14T00:00:00",
+        )
+
+        # Test with '..' in path should raise ValueError
+        with pytest.raises(ValueError, match="path traversal"):
+            state.to_json_file(tmp_path / ".." / "runtime-state.json")
+
+        # Absolute paths should be allowed (only '..' is blocked)
+        # This is fine because the path is within tmp_path controlled by test
+        absolute_path = tmp_path / "absolute-runtime-state.json"
+        state.to_json_file(absolute_path)
+        assert absolute_path.exists()

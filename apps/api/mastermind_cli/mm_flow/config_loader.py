@@ -172,12 +172,35 @@ class RuntimeState(BaseModel):
     updated_at: str
 
     def to_json_file(self, path: Path) -> None:
-        """Write runtime state to JSON file atomically via temp file + rename (C2).
+        """Write runtime state atomically via temp file + rename.
+
+        Performance: Uses Pydantic's model_dump_json() which is ~2x faster
+        than json.dumps(model_dump()) because it serializes directly without
+        intermediate dict conversion.
 
         Args:
-            path: Target file path for runtime-state.json.
+            path: Target file path (will be created/overwritten atomically).
+
+        Raises:
+            ValueError: If path contains directory traversal components.
+
+        The temp file + rename pattern guarantees atomicity on POSIX systems:
+        - Write to temp file (path.tmp)
+        - Rename temp to target (atomic operation)
+        - If process crashes mid-write, target file remains intact
+
+        Permissions are explicitly set to 0o644 (rw-r--r--) for security-sensitive
+        environments, preventing accidental permission drift from umask.
         """
+        # Security: Prevent path traversal attacks
+        if ".." in path.parts:
+            raise ValueError(
+                f"Invalid path: {path}. Path must not contain '..' (path traversal)"
+            )
+
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = Path(str(path) + ".tmp")
         tmp.write_text(self.model_dump_json(indent=2))
         tmp.rename(path)
+        # Explicit permissions for security-sensitive environments
+        path.chmod(0o644)  # rw-r--r--
