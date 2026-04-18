@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useFilteredEvents } from '@/stores/simulationStore'
 import type { SimulationEvent } from '@/stores/simulationStore'
@@ -22,6 +22,33 @@ const formatTimestamp = (timestamp: number): string => {
   const minutes = date.getMinutes().toString().padStart(2, '0')
   const seconds = date.getSeconds().toString().padStart(2, '0')
   return `${hours}:${minutes}:${seconds}`
+}
+
+/**
+ * formatRelativeTime — converts timestamp to relative time (e.g., "2s ago", "5m ago")
+ */
+const formatRelativeTime = (timestamp: number, currentTime: number = Date.now()): string => {
+  const diff = currentTime - timestamp
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+
+  if (seconds < 60) {
+    return `${seconds}s ago`
+  } else if (minutes < 60) {
+    return `${minutes}m ago`
+  } else {
+    return `${hours}h ago`
+  }
+}
+
+/**
+ * formatTimestampWithRelative — shows both absolute and relative time
+ */
+const formatTimestampWithRelative = (timestamp: number): string => {
+  const absolute = formatTimestamp(timestamp)
+  const relative = formatRelativeTime(timestamp)
+  return `${absolute} (${relative})`
 }
 
 /**
@@ -68,6 +95,7 @@ const getEventColor = (type: SimulationEvent['type']): string => {
  */
 export default function EventLog({ className }: EventLogProps) {
   const events = useFilteredEvents()
+  const [showRelativeTime, setShowRelativeTime] = useState(false)
 
   // Empty state
   if (events.length === 0) {
@@ -99,6 +127,17 @@ export default function EventLog({ className }: EventLogProps) {
         className,
       )}
     >
+      {/* Toggle button for relative time */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <span className="text-sm font-medium text-foreground">Event Log</span>
+        <button
+          onClick={() => setShowRelativeTime(!showRelativeTime)}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={showRelativeTime ? 'Show absolute time' : 'Show relative time'}
+        >
+          {showRelativeTime ? 'Absolute' : 'Relative'}
+        </button>
+      </div>
       {events.map((event, index) => (
         <div
           key={`${event.timestamp}-${index}`}
@@ -106,7 +145,9 @@ export default function EventLog({ className }: EventLogProps) {
         >
           {/* Timestamp */}
           <span className="font-mono text-xs text-muted-foreground shrink-0">
-            {formatTimestamp(event.timestamp)}
+            {showRelativeTime
+              ? formatTimestampWithRelative(event.timestamp)
+              : formatTimestamp(event.timestamp)}
           </span>
 
           {/* Event type indicator */}
