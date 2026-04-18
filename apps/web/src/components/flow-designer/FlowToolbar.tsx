@@ -4,16 +4,27 @@
  * Top toolbar for the Flow Designer with common actions.
  */
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
+import { toastError } from '@/lib/toast'
 import { exportFlowToFile, importFlow } from '@/lib/flow-serializer'
 import { useFlowDesignerStore } from '@/stores/flowDesignerStore'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 export function FlowToolbar() {
   const router = useRouter()
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { nodes, edges, clearFlow } = useFlowDesignerStore()
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
 
   const handleExport = useCallback(() => {
     const flow = {
@@ -51,10 +62,17 @@ export function FlowToolbar() {
   }, [])
 
   const handleClear = useCallback(() => {
-    if (confirm('Are you sure you want to clear the flow?')) {
-      clearFlow()
-    }
+    setIsClearDialogOpen(true)
+  }, [])
+
+  const handleConfirmClear = useCallback(() => {
+    clearFlow()
+    setIsClearDialogOpen(false)
   }, [clearFlow])
+
+  const handleCancelClear = useCallback(() => {
+    setIsClearDialogOpen(false)
+  }, [])
 
   const handleSimulate = useCallback(() => {
     // Navigate to simulation page
@@ -63,6 +81,7 @@ export function FlowToolbar() {
       router.push('/simulation')
     } catch (error) {
       // Router not available (e.g., in test environment)
+      toastError('Failed to open simulation. Please try again.')
       console.warn('Router not available:', error)
     }
   }, [router])
@@ -157,6 +176,25 @@ export function FlowToolbar() {
       >
         Clear
       </button>
+
+      <Dialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear Flow</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to clear the flow? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelClear}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleConfirmClear}>
+              Clear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
