@@ -141,6 +141,60 @@ describe('simulationStore', () => {
       expect(useSimulationStore.getState().filteredEvents[0]).toHaveProperty('type')
       expect(useSimulationStore.getState().filteredEvents[0]).toHaveProperty('message')
     })
+
+    it('should throw error when execution is missing required id field', () => {
+      const invalidExecution = { ...mockExecution, id: undefined as unknown as string }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: missing required field')
+    })
+
+    it('should throw error when execution is missing required task_id field', () => {
+      const invalidExecution = { ...mockExecution, task_id: undefined as unknown as string }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: missing required field')
+    })
+
+    it('should throw error when execution is missing required brain_outputs field', () => {
+      const invalidExecution = { ...mockExecution, brain_outputs: undefined as unknown as Record<string, unknown> }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: missing required field')
+    })
+
+    it('should throw error when execution is missing required milestones field', () => {
+      const invalidExecution = { ...mockExecution, milestones: undefined as unknown as unknown[] }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: missing required field')
+    })
+
+    it('should throw error when execution is missing required graph_snapshot field', () => {
+      const invalidExecution = { ...mockExecution, graph_snapshot: undefined as unknown as Record<string, unknown> }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: missing required field')
+    })
+
+    it('should throw error when milestones array is empty', () => {
+      const invalidExecution = { ...mockExecution, milestones: [] }
+
+      expect(() => {
+        useSimulationStore.getState().loadExecution(invalidExecution)
+      }).toThrow('Execution validation failed: milestones cannot be empty')
+    })
+
+    it('should validate when all required fields are present', () => {
+      expect(() => {
+        useSimulationStore.getState().loadExecution(mockExecution)
+      }).not.toThrow()
+    })
   })
 
   describe('Playback Controls', () => {

@@ -90,6 +90,7 @@ interface SimulationState {
   filteredEvents: SimulationEvent[]
 
   // Actions — Execution management
+  validateExecution: (execution: Execution) => void
   loadExecution: (execution: Execution) => void
   reset: () => void
 
@@ -261,10 +262,48 @@ export const useSimulationStore = create<SimulationState>()(
     // ─── Execution Management ─────────────────────────────────────────────────────
 
     /**
+     * validateExecution — validates required execution fields at runtime
+     * @throws Error if validation fails
+     */
+    validateExecution: (execution: Execution) => {
+      const requiredFields: (keyof Execution)[] = [
+        'id',
+        'task_id',
+        'brain_outputs',
+        'milestones',
+        'graph_snapshot',
+      ]
+
+      for (const field of requiredFields) {
+        if (execution[field] === undefined || execution[field] === null) {
+          throw new Error(`Execution validation failed: missing required field '${field}'`)
+        }
+      }
+
+      // Validate milestones is not empty
+      if (!Array.isArray(execution.milestones) || execution.milestones.length === 0) {
+        throw new Error('Execution validation failed: milestones cannot be empty')
+      }
+
+      // Validate brain_outputs is an object
+      if (typeof execution.brain_outputs !== 'object' || Array.isArray(execution.brain_outputs)) {
+        throw new Error('Execution validation failed: brain_outputs must be an object')
+      }
+
+      // Validate graph_snapshot is an object
+      if (typeof execution.graph_snapshot !== 'object' || Array.isArray(execution.graph_snapshot)) {
+        throw new Error('Execution validation failed: graph_snapshot must be an object')
+      }
+    },
+
+    /**
      * loadExecution — loads an execution and detects errors/slow nodes
      * @param execution - Execution record from API
      */
     loadExecution: (execution) => {
+      // Validate execution before processing
+      get().validateExecution(execution)
+
       // Detect errors and slow nodes first (outside set for performance)
       const { errorNodes, errorMessages } = detectErrors(execution.brain_outputs, execution.graph_snapshot)
       const slowNodes = detectSlowNodes(
