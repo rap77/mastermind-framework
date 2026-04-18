@@ -109,6 +109,15 @@ describe('simulationStore', () => {
       expect(useSimulationStore.getState().errorNodes.has('node-2')).toBe(true) // brain-02 has error
     })
 
+    it('should load execution and populate error messages map', () => {
+      useSimulationStore.getState().loadExecution(mockExecution)
+
+      const errorMessages = useSimulationStore.getState().errorMessages
+      expect(errorMessages.size).toBe(1)
+      expect(errorMessages.has('node-2')).toBe(true)
+      expect(errorMessages.get('node-2')).toBe('Error occurred') // From brain-02 output
+    })
+
     it('should load execution and detect slow nodes', () => {
       useSimulationStore.getState().loadExecution(mockExecution)
 

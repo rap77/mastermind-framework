@@ -85,6 +85,7 @@ interface SimulationState {
 
   // Analysis results
   errorNodes: Set<string> // Node IDs with error status
+  errorMessages: Map<string, string> // Node ID → error message from brain_outputs
   slowNodes: Map<string, number> // Node ID → duration_ms for slow nodes (>1000ms)
   filteredEvents: SimulationEvent[]
 
@@ -113,25 +114,30 @@ const SLOW_NODE_THRESHOLD_MS = 1000 // 1 second = perceptible delay
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
 /**
- * detectErrors — identifies nodes with error status
+ * detectErrors — identifies nodes with error status and maps error messages
  */
 const detectErrors = (
   brainOutputs: Record<string, BrainOutput>,
   graphSnapshot: Record<string, unknown>,
-): Set<string> => {
+): { errorNodes: Set<string>; errorMessages: Map<string, string> } => {
   const errorNodes = new Set<string>()
+  const errorMessages = new Map<string, string>()
 
   // Map brain_id to node_id by matching brainId in node data
   const nodes = (graphSnapshot.nodes as Array<{ id: string; data: { brainId?: string } }>) || []
 
   nodes.forEach((node) => {
     const brainId = node.data?.brainId
-    if (brainId && brainOutputs[brainId]?.status === 'error') {
+    const brainOutput = brainId ? brainOutputs[brainId] : null
+
+    if (brainId && brainOutput?.status === 'error') {
       errorNodes.add(node.id)
+      // Store the actual error message from brain_outputs
+      errorMessages.set(node.id, brainOutput.output || 'Execution failed')
     }
   })
 
-  return errorNodes
+  return { errorNodes, errorMessages }
 }
 
 /**
@@ -248,6 +254,7 @@ export const useSimulationStore = create<SimulationState>()(
     currentMilestoneIndex: 0,
     playbackFrameId: null,
     errorNodes: new Set(),
+    errorMessages: new Map(),
     slowNodes: new Map(),
     filteredEvents: [],
 
@@ -259,7 +266,7 @@ export const useSimulationStore = create<SimulationState>()(
      */
     loadExecution: (execution) => {
       // Detect errors and slow nodes first (outside set for performance)
-      const errorNodes = detectErrors(execution.brain_outputs, execution.graph_snapshot)
+      const { errorNodes, errorMessages } = detectErrors(execution.brain_outputs, execution.graph_snapshot)
       const slowNodes = detectSlowNodes(
         execution.brain_outputs,
         execution.graph_snapshot,
@@ -272,6 +279,7 @@ export const useSimulationStore = create<SimulationState>()(
         state.currentMilestoneIndex = 0
         state.isPlaying = false
         state.errorNodes = errorNodes
+        state.errorMessages = errorMessages
         state.slowNodes = slowNodes
         state.filteredEvents = filteredEvents
       })
@@ -295,6 +303,7 @@ export const useSimulationStore = create<SimulationState>()(
         state.currentMilestoneIndex = 0
         state.playbackFrameId = null
         state.errorNodes = new Set()
+        state.errorMessages = new Map()
         state.slowNodes = new Map()
         state.filteredEvents = []
       })
@@ -476,6 +485,11 @@ export const useCurrentMilestoneIndex = () =>
  * useErrorNodes — selector hook for error nodes set
  */
 export const useErrorNodes = () => useSimulationStore((state) => state.errorNodes)
+
+/**
+ * useErrorMessages — selector hook for error messages map
+ */
+export const useErrorMessages = () => useSimulationStore((state) => state.errorMessages)
 
 /**
  * useSlowNodes — selector hook for slow nodes map
