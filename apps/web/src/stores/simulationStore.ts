@@ -86,7 +86,8 @@ interface SimulationState {
   // Analysis results
   errorNodes: Set<string> // Node IDs with error status
   errorMessages: Map<string, string> // Node ID → error message from brain_outputs
-  slowNodes: Map<string, number> // Node ID → duration_ms for slow nodes (>1000ms)
+  slowNodes: Map<string, number> // Node ID → duration_ms for slow nodes (>slowThreshold)
+  slowThreshold: number // Threshold in milliseconds for slow node detection (default: 1000ms)
   filteredEvents: SimulationEvent[]
 
   // Actions — Execution management
@@ -98,6 +99,7 @@ interface SimulationState {
   play: () => void
   pause: () => void
   setPlaybackSpeed: (speed: 0.5 | 1 | 2 | 5) => void
+  setSlowThreshold: (threshold: number) => void
 
   // Actions — Navigation
   jumpToMilestone: (index: number) => void
@@ -169,7 +171,10 @@ const detectSlowNodes = (
 /**
  * generateEvents — creates timeline events from brain outputs
  */
-const generateEvents = (brainOutputs: Record<string, BrainOutput>): SimulationEvent[] => {
+const generateEvents = (
+  brainOutputs: Record<string, BrainOutput>,
+  slowThreshold: number,
+): SimulationEvent[] => {
   const events: SimulationEvent[] = []
 
   Object.values(brainOutputs).forEach((output) => {
@@ -199,7 +204,7 @@ const generateEvents = (brainOutputs: Record<string, BrainOutput>): SimulationEv
     }
 
     // Slow warning
-    if (output.duration_ms > SLOW_NODE_THRESHOLD_MS) {
+    if (output.duration_ms > slowThreshold) {
       events.push({
         timestamp: output.timestamp + output.duration_ms,
         type: 'warning',
@@ -257,6 +262,7 @@ export const useSimulationStore = create<SimulationState>()(
     errorNodes: new Set(),
     errorMessages: new Map(),
     slowNodes: new Map(),
+    slowThreshold: 1000, // Default: 1 second = perceptible delay
     filteredEvents: [],
 
     // ─── Execution Management ─────────────────────────────────────────────────────
@@ -309,9 +315,9 @@ export const useSimulationStore = create<SimulationState>()(
       const slowNodes = detectSlowNodes(
         execution.brain_outputs,
         execution.graph_snapshot,
-        SLOW_NODE_THRESHOLD_MS,
+        get().slowThreshold, // Use state's threshold instead of constant
       )
-      const filteredEvents = generateEvents(execution.brain_outputs)
+      const filteredEvents = generateEvents(execution.brain_outputs, get().slowThreshold)
 
       set((state) => {
         state.currentExecution = execution
@@ -344,6 +350,7 @@ export const useSimulationStore = create<SimulationState>()(
         state.errorNodes = new Set()
         state.errorMessages = new Map()
         state.slowNodes = new Map()
+        state.slowThreshold = 1000 // Reset to default
         state.filteredEvents = []
       })
     },
@@ -442,6 +449,39 @@ export const useSimulationStore = create<SimulationState>()(
           : 0
         state.currentMilestoneIndex = Math.max(0, Math.min(index, maxIndex))
       })
+    },
+
+    /**
+     * setSlowThreshold — changes the slow node detection threshold
+     * @param threshold - Threshold in milliseconds (must be positive)
+     *
+     * Re-detects slow nodes for the current execution with the new threshold.
+     * Invalid values (<= 0) are ignored.
+     */
+    setSlowThreshold: (threshold) => {
+      // Validate threshold
+      if (threshold <= 0) {
+        return // Don't update for invalid values
+      }
+
+      const state = get()
+
+      set((state) => {
+        state.slowThreshold = threshold
+      })
+
+      // Re-detect slow nodes if execution is loaded
+      if (state.currentExecution) {
+        const newSlowNodes = detectSlowNodes(
+          state.currentExecution.brain_outputs,
+          state.currentExecution.graph_snapshot,
+          threshold,
+        )
+
+        set((state) => {
+          state.slowNodes = newSlowNodes
+        })
+      }
     },
 
     // ─── Computed Values ─────────────────────────────────────────────────────────
