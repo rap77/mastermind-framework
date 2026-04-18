@@ -158,6 +158,43 @@ describe('simulationStore', () => {
       expect(useSimulationStore.getState().isPlaying).toBe(false)
       expect(useSimulationStore.getState().currentMilestoneIndex).toBe(0)
     })
+
+    it('should advance timeline when playing with requestAnimationFrame loop', async () => {
+      const store = useSimulationStore.getState()
+
+      // Start at milestone 0
+      expect(store.currentMilestoneIndex).toBe(0)
+
+      // Start playback
+      store.play()
+
+      // Wait for animation frame to advance timeline
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Timeline should have advanced
+      const newStore = useSimulationStore.getState()
+      expect(newStore.currentMilestoneIndex).toBeGreaterThan(0)
+
+      // Clean up: stop playback
+      newStore.pause()
+    })
+
+    it('should stop advancing timeline when paused', async () => {
+      const store = useSimulationStore.getState()
+
+      store.play()
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      const playingIndex = useSimulationStore.getState().currentMilestoneIndex
+
+      store.pause()
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      const pausedIndex = useSimulationStore.getState().currentMilestoneIndex
+
+      // Index should not have changed after pause
+      expect(pausedIndex).toBe(playingIndex)
+    })
   })
 
   describe('Playback Speed', () => {

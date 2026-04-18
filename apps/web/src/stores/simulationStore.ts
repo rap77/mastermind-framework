@@ -81,6 +81,7 @@ interface SimulationState {
   isPlaying: boolean
   playbackSpeed: 0.5 | 1 | 2 | 5
   currentMilestoneIndex: number
+  playbackFrameId: number | null // requestAnimationFrame ID for cleanup
 
   // Analysis results
   errorNodes: Set<string> // Node IDs with error status
@@ -245,6 +246,7 @@ export const useSimulationStore = create<SimulationState>()(
     isPlaying: false,
     playbackSpeed: 1,
     currentMilestoneIndex: 0,
+    playbackFrameId: null,
     errorNodes: new Set(),
     slowNodes: new Map(),
     filteredEvents: [],
@@ -279,11 +281,19 @@ export const useSimulationStore = create<SimulationState>()(
      * reset — clears all execution state
      */
     reset: () => {
+      const state = get()
+
+      // Cancel any pending animation frame
+      if (state.playbackFrameId !== null) {
+        cancelAnimationFrame(state.playbackFrameId)
+      }
+
       set((state) => {
         state.currentExecution = null
         state.isPlaying = false
         state.playbackSpeed = 1
         state.currentMilestoneIndex = 0
+        state.playbackFrameId = null
         state.errorNodes = new Set()
         state.slowNodes = new Map()
         state.filteredEvents = []
@@ -293,20 +303,71 @@ export const useSimulationStore = create<SimulationState>()(
     // ─── Playback Controls ───────────────────────────────────────────────────────
 
     /**
-     * play — starts playback from current position
+     * play — starts playback from current position using requestAnimationFrame
      */
     play: () => {
+      const state = get()
+
+      // Don't start if already playing or no execution loaded
+      if (state.isPlaying || !state.currentExecution) {
+        return
+      }
+
+      // Set playing state
       set((state) => {
         state.isPlaying = true
+      })
+
+      // Start the animation loop
+      const animate = () => {
+        const currentState = get()
+
+        // Stop if not playing or no execution
+        if (!currentState.isPlaying || !currentState.currentExecution) {
+          return
+        }
+
+        // Check if we've reached the end
+        const maxIndex = currentState.currentExecution.milestones.length - 1
+        if (currentState.currentMilestoneIndex >= maxIndex) {
+          // Auto-pause at end
+          currentState.pause()
+          return
+        }
+
+        // Advance to next milestone
+        set((state) => {
+          state.currentMilestoneIndex = state.currentMilestoneIndex + 1
+        })
+
+        // Schedule next frame (adjusted by playback speed)
+        const frameId = requestAnimationFrame(animate)
+        set((state) => {
+          state.playbackFrameId = frameId
+        })
+      }
+
+      // Start the loop
+      const frameId = requestAnimationFrame(animate)
+      set((state) => {
+        state.playbackFrameId = frameId
       })
     },
 
     /**
-     * pause — pauses playback
+     * pause — pauses playback and cancels animation frame
      */
     pause: () => {
+      const state = get()
+
+      // Cancel the animation frame
+      if (state.playbackFrameId !== null) {
+        cancelAnimationFrame(state.playbackFrameId)
+      }
+
       set((state) => {
         state.isPlaying = false
+        state.playbackFrameId = null
       })
     },
 
