@@ -19,12 +19,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+// File size limit for JSON import (5MB)
+const MAX_JSON_FILE_SIZE = 5 * 1024 * 1024
 
 export function FlowToolbar() {
   const router = useRouter()
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { nodes, edges, clearFlow } = useFlowDesignerStore()
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const handleExport = useCallback(() => {
     const flow = {
@@ -45,6 +51,21 @@ export function FlowToolbar() {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
 
+      // Validate file size
+      if (file.size > MAX_JSON_FILE_SIZE) {
+        toastError(
+          `File too large. Maximum size is ${MAX_JSON_FILE_SIZE / 1024 / 1024}MB`
+        )
+        return
+      }
+
+      // Validate file type
+      if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+        toastError('Invalid file type. Please select a JSON file.')
+        return
+      }
+
+      setIsImporting(true)
       const reader = new FileReader()
       reader.onload = (event) => {
         try {
@@ -52,7 +73,10 @@ export function FlowToolbar() {
           const flow = importFlow(json)
           useFlowDesignerStore.getState().loadFlow(flow)
         } catch (error) {
+          toastError('Failed to parse JSON file. Please check the file format.')
           console.error('Import failed:', error)
+        } finally {
+          setIsImporting(false)
         }
       }
       reader.readAsText(file)
@@ -74,15 +98,18 @@ export function FlowToolbar() {
     setIsClearDialogOpen(false)
   }, [])
 
-  const handleSimulate = useCallback(() => {
+  const handleSimulate = useCallback(async () => {
     // Navigate to simulation page
     // The current flow state is automatically available in the store
     try {
-      router.push('/simulation')
+      setIsNavigating(true)
+      await router.push('/simulation')
     } catch (error) {
       // Router not available (e.g., in test environment)
       toastError('Failed to open simulation. Please try again.')
       console.warn('Router not available:', error)
+    } finally {
+      setIsNavigating(false)
     }
   }, [router])
 
@@ -134,13 +161,21 @@ export function FlowToolbar() {
 
       <button
         onClick={handleSimulate}
-        className="px-3 py-1 rounded text-sm"
+        disabled={isNavigating}
+        className="px-3 py-1 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           backgroundColor: 'var(--color-success)',
           color: 'var(--color-success-foreground)',
         }}
       >
-        Simulate
+        {isNavigating ? (
+          <span className="flex items-center gap-2">
+            <LoadingSpinner size="sm" />
+            Loading...
+          </span>
+        ) : (
+          'Simulate'
+        )}
       </button>
 
       <button
@@ -156,14 +191,22 @@ export function FlowToolbar() {
 
       <button
         onClick={handleImport}
-        className="px-3 py-1 rounded text-sm"
+        disabled={isImporting}
+        className="px-3 py-1 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           backgroundColor: 'var(--color-surface)',
           color: 'var(--color-text-primary)',
           border: '1px solid var(--color-border)',
         }}
       >
-        Import JSON
+        {isImporting ? (
+          <span className="flex items-center gap-2">
+            <LoadingSpinner size="sm" />
+            Importing...
+          </span>
+        ) : (
+          'Import JSON'
+        )}
       </button>
 
       <button

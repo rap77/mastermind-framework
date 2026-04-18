@@ -15,6 +15,29 @@
 import type { FlowDefinition, FlowNode } from '@/components/flow-designer/types'
 import type { Execution } from '@/stores/simulationStore'
 
+// Environment-aware logging
+const isDevelopment = process.env.NODE_ENV === 'development'
+
+/**
+ * logWarning — environment-aware logging utility
+ *
+ * Logs warnings in development with structured context.
+ * In production, warnings are silenced but could be sent to a logging service.
+ *
+ * @param context - logging context (e.g., 'brain_output_validation')
+ * @param message - warning message
+ * @param data - additional data to log
+ */
+function logWarning(context: string, message: string, data?: unknown) {
+  if (isDevelopment) {
+    console.warn(`[flow-execution-adapter:${context}] ${message}`, data || '')
+  }
+  // Placeholder for production logging service:
+  // if (!isDevelopment) {
+  //   logToService('flow_execution_warning', { context, message, data })
+  // }
+}
+
 // ─── Type Guards ────────────────────────────────────────────────────────────────
 
 /**
@@ -135,7 +158,10 @@ export function mapExecutionEventsToNodes(
   Object.entries(execution.brain_outputs || {}).forEach(([brainId, output]) => {
     // Validate brain output structure
     if (!isValidBrainOutput(output)) {
-      console.warn(`Invalid brain output for brain_id: ${brainId}`, output)
+      logWarning('brain_output_validation', `Invalid brain output for brain_id: ${brainId}`, {
+        brainId,
+        output,
+      })
       return
     }
 

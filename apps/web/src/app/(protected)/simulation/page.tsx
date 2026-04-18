@@ -34,6 +34,7 @@ import { TimelineScrubber } from '@/components/simulation/TimelineScrubber'
 import EventLog from '@/components/simulation/EventLog'
 import { useSimulationStore } from '@/stores/simulationStore'
 import { mockExecution } from '@/mocks/mock-execution'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // ─── Page Component ───────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ export default function SimulationPage() {
   // Loading and error states for API integration
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   // Export functionality
   const handleExport = () => {
@@ -63,6 +65,18 @@ export default function SimulationPage() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  // Navigate to flow designer
+  const handleEditFlow = async () => {
+    try {
+      setIsNavigating(true)
+      await router.push('/flow-designer')
+    } catch (error) {
+      console.warn('Router not available:', error)
+    } finally {
+      setIsNavigating(false)
+    }
   }
 
   // Load mock execution on mount
@@ -103,14 +117,22 @@ export default function SimulationPage() {
             Export
           </button>
           <button
-            onClick={() => router.push('/flow-designer')}
-            className="px-4 py-2 rounded text-sm font-medium"
+            onClick={handleEditFlow}
+            disabled={isNavigating}
+            className="px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'var(--color-primary)',
               color: 'var(--color-primary-foreground)',
             }}
           >
-            Edit Flow
+            {isNavigating ? (
+              <span className="flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                Loading...
+              </span>
+            ) : (
+              'Edit Flow'
+            )}
           </button>
         </div>
       </div>
