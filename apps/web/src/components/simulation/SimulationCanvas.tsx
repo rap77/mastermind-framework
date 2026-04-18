@@ -35,6 +35,8 @@ import {
 } from '@/stores/simulationStore'
 import { NodeType } from '@/components/flow-designer/types'
 import type { FlowNode, FlowNodeData } from '@/components/flow-designer/types'
+import { Button } from '@/components/ui/button'
+import { SLOW_NODE_THRESHOLD_MS } from '@/config/constants'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,7 +58,7 @@ interface SimulationNodeData extends FlowNodeData {
  */
 function ReadOnlyNodeWrapper({ children, data }: { children: React.ReactNode; data: SimulationNodeData }) {
   const isError = data.simulationStatus === 'error'
-  const isSlow = data.latencyMs !== undefined && data.latencyMs > 1000
+  const isSlow = data.latencyMs !== undefined && data.latencyMs > SLOW_NODE_THRESHOLD_MS
   const isRunning = data.simulationStatus === 'running'
   const isSuccess = data.simulationStatus === 'success'
 
@@ -129,6 +131,8 @@ export function SimulationCanvas() {
   const errorNodes = useErrorNodes()
   const slowNodes = useSlowNodes()
   const execution = useSimulationStore((state) => state.currentExecution)
+  const isLoading = useSimulationStore((state) => state.isLoading)
+  const loadError = useSimulationStore((state) => state.loadError)
 
   // Enhance nodes with simulation status
   const enhancedNodes = useMemo(() => {
@@ -200,14 +204,95 @@ export function SimulationCanvas() {
 
   // Early return if no graph loaded
   if (!graphSnapshot) {
+    if (isLoading) {
+      return (
+        <div
+          className="flex flex-col items-center justify-center h-full gap-4"
+          style={{ backgroundColor: 'var(--color-background)' }}
+        >
+          <div
+            className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"
+            style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }}
+            role="status"
+            aria-label="Loading simulation"
+          />
+          <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+            Loading simulation...
+          </p>
+        </div>
+      )
+    }
+
+    if (loadError) {
+      return (
+        <div
+          className="flex flex-col items-center justify-center h-full gap-4 p-8"
+          style={{ backgroundColor: 'var(--color-background)' }}
+        >
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--color-error)', color: 'var(--color-error-foreground)' }}
+            role="img"
+            aria-label="Error icon"
+          >
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <div className="text-center max-w-md">
+            <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-error)' }}>
+              Failed to Load Simulation
+            </h2>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+              {loadError.message || 'An unexpected error occurred while loading the simulation.'}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => window.location.reload()}
+                variant="default"
+                size="sm"
+              >
+                Try Again
+              </Button>
+              <Button
+                onClick={() => (window.location.href = '/simulation')}
+                variant="outline"
+                size="sm"
+              >
+                Select Different Execution
+              </Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div
-        className="flex items-center justify-center h-full"
+        className="flex flex-col items-center justify-center h-full gap-4"
         style={{ backgroundColor: 'var(--color-background)' }}
       >
-        <p className="text-lg" style={{ color: 'var(--color-primary)' }}>
-          No execution loaded. Select an execution to replay.
-        </p>
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'var(--color-muted)', color: 'var(--color-muted-foreground)' }}
+          role="img"
+          aria-label="No execution loaded"
+        >
+          <span className="text-3xl">📊</span>
+        </div>
+        <div className="text-center max-w-md">
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+            No Execution Loaded
+          </h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+            Select an execution from the list to replay the simulation.
+          </p>
+          <Button
+            onClick={() => (window.location.href = '/simulation')}
+            variant="outline"
+            size="sm"
+          >
+            Browse Executions
+          </Button>
+        </div>
       </div>
     )
   }

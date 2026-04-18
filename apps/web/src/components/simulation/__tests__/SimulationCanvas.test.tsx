@@ -157,7 +157,7 @@ describe('SimulationCanvas', () => {
 
       render(<SimulationCanvas />)
 
-      expect(screen.getByText(/No execution loaded/)).toBeDefined()
+      expect(screen.getByText(/No Execution Loaded/)).toBeDefined()
     })
 
     it('should load graph from simulationStore', () => {

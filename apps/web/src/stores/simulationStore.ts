@@ -77,6 +77,10 @@ interface SimulationState {
   // Execution data
   currentExecution: Execution | null
 
+  // Loading state
+  isLoading: boolean
+  loadError: Error | null
+
   // Playback state
   isPlaying: boolean
   playbackSpeed: 0.5 | 1 | 2 | 5
@@ -93,6 +97,8 @@ interface SimulationState {
   // Actions — Execution management
   validateExecution: (execution: Execution) => void
   loadExecution: (execution: Execution) => void
+  setLoading: (loading: boolean) => void
+  setLoadError: (error: Error | null) => void
   reset: () => void
 
   // Actions — Playback controls
@@ -255,6 +261,8 @@ export const useSimulationStore = create<SimulationState>()(
   immer((set, get) => ({
     // Initial state
     currentExecution: null,
+    isLoading: false,
+    loadError: null,
     isPlaying: false,
     playbackSpeed: 1,
     currentMilestoneIndex: 0,
@@ -331,6 +339,27 @@ export const useSimulationStore = create<SimulationState>()(
     },
 
     /**
+     * setLoading — sets the loading state for execution loading
+     * @param loading - Whether an execution is currently being loaded
+     */
+    setLoading: (loading: boolean) => {
+      set((state) => {
+        state.isLoading = loading
+      })
+    },
+
+    /**
+     * setLoadError — sets the error state for execution loading
+     * @param error - Error that occurred during loading, or null to clear
+     */
+    setLoadError: (error: Error | null) => {
+      set((state) => {
+        state.loadError = error
+        state.isLoading = false // Clear loading state when error is set
+      })
+    },
+
+    /**
      * reset — clears all execution state
      */
     reset: () => {
@@ -343,6 +372,8 @@ export const useSimulationStore = create<SimulationState>()(
 
       set((state) => {
         state.currentExecution = null
+        state.isLoading = false
+        state.loadError = null
         state.isPlaying = false
         state.playbackSpeed = 1
         state.currentMilestoneIndex = 0
