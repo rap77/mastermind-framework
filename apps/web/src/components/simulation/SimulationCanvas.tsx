@@ -147,8 +147,14 @@ export function SimulationCanvas() {
         simulationStatus = 'success' // Completed but slow
       }
 
-      // Get error message from store if available (would need errorMessages Map in store)
-      const error = isError ? 'Execution failed' : undefined
+      // Get error message from brain_outputs if available
+      let error: string | undefined
+      if (isError && execution) {
+        const brainId = node.data?.brainId
+        const brainOutput = brainId ? execution.brain_outputs[brainId] : null
+        // Use the actual error output from brain_outputs, fallback to generic message
+        error = brainOutput?.output || 'Execution failed'
+      }
 
       return {
         ...node,
