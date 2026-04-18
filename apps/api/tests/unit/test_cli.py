@@ -64,9 +64,10 @@ class TestExecutePhaseStart:
             result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
 
         assert result.exit_code == 0, result.output
-        # Verify INSERT was called
-        conn.execute.assert_awaited_once()
-        call_args = conn.execute.call_args
+        # Verify execute was called twice: SET LOCAL + INSERT (IMPORTANT #1 - RLS)
+        assert conn.execute.await_count == 2
+        # Second call should be the INSERT
+        call_args = conn.execute.call_args_list[1]
         sql: str = call_args[0][0]
         assert "INSERT INTO phase_executions" in sql
         # phase_number arg is second positional
@@ -179,8 +180,10 @@ class TestExecutePhaseComplete:
             )
 
         assert result.exit_code == 0, result.output
-        conn.execute.assert_awaited_once()
-        call_args = conn.execute.call_args
+        # Verify execute was called twice: SET LOCAL + UPDATE (IMPORTANT #1 - RLS)
+        assert conn.execute.await_count == 2
+        # Second call should be the UPDATE
+        call_args = conn.execute.call_args_list[1]
         sql: str = call_args[0][0]
         assert "UPDATE phase_executions" in sql
         assert "status='completed'" in sql
@@ -228,17 +231,53 @@ class TestExecutePhaseComplete:
 
 class TestMutuallyExclusiveFlags:
     def test_start_and_complete_raises_usage_error(self) -> None:
-        """--start and --complete together must raise UsageError."""
+        """--start and --complete together must raise UsageError with improved message."""
         runner = CliRunner()
         result = runner.invoke(
             cli, ["execute-phase", "--phase", "19", "--start", "--complete"]
         )
         assert result.exit_code != 0
         assert "mutually exclusive" in result.output.lower()
+        # Check for improved error message (SUGGESTION #1)
+        assert "example" in result.output.lower() or "--start" in result.output
 
     def test_neither_flag_raises_usage_error(self) -> None:
-        """Calling without --start or --complete must raise UsageError."""
+        """Calling without --start or --complete must raise UsageError with improved message."""
         runner = CliRunner()
         result = runner.invoke(cli, ["execute-phase", "--phase", "19"])
         assert result.exit_code != 0
-        assert "--start" in result.output or "required" in result.output.lower()
+        assert "required" in result.output.lower()
+        # Check for improved error message with examples (SUGGESTION #1)
+        assert "--start" in result.output and "--complete" in result.output
+
+
+class TestEnvironmentValidation:
+    """Tests for new environment variable validation (IMPORTANT #2)."""
+
+    def test_missing_database_url_raises_usage_error(self) -> None:
+        """DATABASE_URL environment variable must be set (no default)."""
+        runner = CliRunner()
+        # Ensure DATABASE_URL is not set
+        result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+        assert result.exit_code != 0
+        assert "DATABASE_URL" in result.output
+        assert "environment variable" in result.output.lower()
+        # Check for helpful example (IMPORTANT #2)
+        assert "export" in result.output or "postgresql://" in result.output
+
+    def test_database_url_with_valid_value_succeeds(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Valid DATABASE_URL allows command to proceed."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
+            tmp_path / ".mm-flow" / "runtime-state.json",
+        )
+
+        conn = _make_asyncpg_conn()
+        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+
+        assert result.exit_code == 0, result.output

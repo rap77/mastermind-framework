@@ -114,7 +114,8 @@ Before delegating to GSD, register this phase in the MM-Flow audit trail:
 
 ```bash
 cd /home/rpadron/proy/mastermind/apps/api
-export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mastermind_bd"
+export DATABASE_URL="postgresql://user:pass@host:port/db"
+export MM_FLOW_ORG_ID="your-org-id"  # Optional: defaults to "default-org-id"
 uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase PHASE_NUMBER --start
 ```
 

@@ -12,11 +12,33 @@ DISPATCH_ORACLE is the ground-truth routing table used for SLI-3 unit tests.
 It mirrors the defaults in config.yml exactly so tests pass without a DB.
 """
 
+import asyncio
 import uuid
 from typing import Literal
 
 import asyncpg
 from pydantic import BaseModel, ConfigDict
+
+# ---------------------------------------------------------------------------
+# Execution moment constants (SUGGESTION #3)
+# ---------------------------------------------------------------------------
+
+MOMENT_DISCUSSION = "DISCUSSION"
+MOMENT_PLANNING = "PLANNING"
+MOMENT_EXECUTION_WAVE = "EXECUTION_WAVE"
+MOMENT_VERIFICATION = "VERIFICATION"
+
+ALL_MOMENTS = frozenset(
+    {
+        MOMENT_DISCUSSION,
+        MOMENT_PLANNING,
+        MOMENT_EXECUTION_WAVE,
+        MOMENT_VERIFICATION,
+    }
+)
+
+# Brain ID constants (SUGGESTION #3)
+BARRIER_BRAIN_ID = 7
 
 
 class BrainDispatch(BaseModel):
@@ -71,21 +93,21 @@ class BudgetExceededError(Exception):
 # ---------------------------------------------------------------------------
 
 DISPATCH_ORACLE: dict[str, dict[str, object]] = {
-    "DISCUSSION": {
+    MOMENT_DISCUSSION: {
         "parallel_brain_ids": [1, 2, 3],
-        "barrier_brain_ids": [7],
+        "barrier_brain_ids": [BARRIER_BRAIN_ID],
     },
-    "PLANNING": {
+    MOMENT_PLANNING: {
         "parallel_brain_ids": [4, 5, 6],
-        "barrier_brain_ids": [7],
+        "barrier_brain_ids": [BARRIER_BRAIN_ID],
     },
-    "EXECUTION_WAVE": {
-        "parallel_brain_ids": [7],
+    MOMENT_EXECUTION_WAVE: {
+        "parallel_brain_ids": [BARRIER_BRAIN_ID],
         "barrier_brain_ids": [],
         "sequential": True,
     },
-    "VERIFICATION": {
-        "parallel_brain_ids": [7],
+    MOMENT_VERIFICATION: {
+        "parallel_brain_ids": [BARRIER_BRAIN_ID],
         "barrier_brain_ids": [],
         "sequential": True,
     },
@@ -133,7 +155,7 @@ class DynamicDispatchEngine:
         """
         routing = self.config.brain_routing[moment]
 
-        conn = await asyncpg.connect(self.postgres_url)
+        conn = await asyncio.wait_for(asyncpg.connect(self.postgres_url), timeout=5.0)
         try:
             parallel_brains = await self._get_brains_from_registry(conn, routing.brains)
             barrier_brains = await self._get_brains_from_registry(conn, routing.barrier)

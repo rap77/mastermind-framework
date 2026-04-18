@@ -15,6 +15,41 @@
 import type { FlowDefinition, FlowNode } from '@/components/flow-designer/types'
 import type { Execution } from '@/stores/simulationStore'
 
+// ─── Type Guards ────────────────────────────────────────────────────────────────
+
+/**
+ * isValidBrainOutput — runtime type guard for BrainOutput
+ *
+ * Validates that an unknown value is a valid BrainOutput.
+ * Used to catch API response errors early with better error messages.
+ *
+ * @param output - unknown value to validate
+ * @returns true if output is a valid BrainOutput
+ *
+ * @example
+ * ```ts
+ * if (!isValidBrainOutput(data)) {
+ *   throw new Error('Invalid brain output from API')
+ * }
+ * ```
+ */
+function isValidBrainOutput(output: unknown): output is {
+  brain_id: string
+  status: 'idle' | 'running' | 'complete' | 'error'
+  output?: string
+  duration_ms?: number
+  timestamp?: number
+} {
+  return (
+    typeof output === 'object' &&
+    output !== null &&
+    'brain_id' in output &&
+    'status' in output &&
+    typeof output.brain_id === 'string' &&
+    ['idle', 'running', 'complete', 'error'].includes(output.status as string)
+  )
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -98,6 +133,12 @@ export function mapExecutionEventsToNodes(
   const brainStatusMap = new Map<string, 'idle' | 'running' | 'success' | 'error'>()
 
   Object.entries(execution.brain_outputs || {}).forEach(([brainId, output]) => {
+    // Validate brain output structure
+    if (!isValidBrainOutput(output)) {
+      console.warn(`Invalid brain output for brain_id: ${brainId}`, output)
+      return
+    }
+
     // Map API status to node status
     // API: 'idle' | 'running' | 'complete' | 'error'
     // Node: 'idle' | 'running' | 'success' | 'error'

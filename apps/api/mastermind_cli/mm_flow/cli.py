@@ -19,6 +19,8 @@ from pathlib import Path
 import asyncpg
 import click
 
+from mastermind_cli.mm_flow.config_loader import RuntimeState
+
 RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
 
 
@@ -40,19 +42,16 @@ def _write_runtime_state(
         state: Brain lifecycle state (ACTIVE | IDLE | BARRIER | OFFLINE).
         backend: Execution backend identifier (e.g. "claude").
     """
-    data = {
-        "execution_id": execution_id,
-        "phase": phase,
-        "current_moment": moment,
-        "active_brain": brain,
-        "brain_state": state,
-        "backend": backend,
-        "updated_at": datetime.now().isoformat(),
-    }
-    RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    tmp = Path(str(RUNTIME_STATE_PATH) + ".tmp")
-    tmp.write_text(json.dumps(data, indent=2))
-    tmp.rename(RUNTIME_STATE_PATH)
+    state_obj = RuntimeState(
+        execution_id=execution_id,
+        phase=phase,
+        current_moment=moment,
+        active_brain=brain,
+        brain_state=state,
+        backend=backend,
+        updated_at=datetime.now().isoformat(),
+    )
+    state_obj.to_json_file(RUNTIME_STATE_PATH)
 
 
 @click.group()
@@ -90,17 +89,31 @@ def execute_phase(
         summary: Human-readable summary written to output_summary column.
     """
     if start and complete:
-        raise click.UsageError("--start and --complete are mutually exclusive")
+        raise click.UsageError(
+            "--start and --complete are mutually exclusive.\n"
+            "Example: --start creates a new execution, --complete finishes it."
+        )
     if not start and not complete:
-        raise click.UsageError("Either --start or --complete is required")
+        raise click.UsageError(
+            "Either --start or --complete is required.\n"
+            "To start: execute-phase --phase 19 --start\n"
+            "To complete: execute-phase --phase 19 --complete --commit abc123"
+        )
 
-    postgres_url = os.environ.get(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/mastermind_bd"
-    )
+    postgres_url = os.environ.get("DATABASE_URL")
+    if not postgres_url:
+        raise click.UsageError(
+            "DATABASE_URL environment variable must be set.\n"
+            "Example: export DATABASE_URL=postgresql://user:pass@host:port/db"
+        )
 
     async def _run() -> None:
-        conn = await asyncpg.connect(postgres_url)
+        conn = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
         try:
+            # Set org_id for RLS policies (required for audit tables - IMPORTANT #1)
+            org_id = os.environ.get("MM_FLOW_ORG_ID", "default-org-id")
+            await conn.execute("SET LOCAL mm_flow.org_id = $1", org_id)
+
             if start:
                 execution_id = str(uuid.uuid4())
                 await conn.execute(

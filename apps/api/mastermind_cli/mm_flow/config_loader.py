@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -141,3 +142,42 @@ def load_config(path: str = ".planning/.mm-flow/config.yml") -> MMFlowConfig:
         brain_routing=brain_routing,
         verification_gates=data["verification_gates"],
     )
+
+
+# ---------------------------------------------------------------------------
+# Runtime State Model (SUGGESTION #4)
+# ---------------------------------------------------------------------------
+
+
+class RuntimeState(BaseModel):
+    """Runtime state written to runtime-state.json (C2, C4).
+
+    Attributes:
+        execution_id: UUID string matching phase_executions.id (C4).
+        phase: Phase number being executed.
+        current_moment: Current execution moment (e.g. EXECUTION_WAVE, COMPLETED).
+        active_brain: Active brain ID; 0 means orchestrator.
+        brain_state: Brain lifecycle state (ACTIVE | IDLE | BARRIER | OFFLINE).
+        backend: Execution backend identifier (e.g. "claude").
+        updated_at: ISO timestamp of last state update.
+    """
+
+    model_config = ConfigDict(strict=True)
+    execution_id: str
+    phase: int
+    current_moment: str
+    active_brain: int
+    brain_state: str
+    backend: str
+    updated_at: str
+
+    def to_json_file(self, path: Path) -> None:
+        """Write runtime state to JSON file atomically via temp file + rename (C2).
+
+        Args:
+            path: Target file path for runtime-state.json.
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(path) + ".tmp")
+        tmp.write_text(self.model_dump_json(indent=2))
+        tmp.rename(path)

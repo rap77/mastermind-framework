@@ -16,6 +16,62 @@ Execute task subtasks using the full agent-skills cycle **in BACKGROUND**.
 /mm:complete-task --status    # Show all tasks status
 ```
 
+## Protocol (For Assistant)
+
+When user executes `/mm:complete-task <task-id> [options]`:
+
+### Step 1: Execute Python Handler
+
+```bash
+python3 .claude/commands/mm/complete-task-handler.py <task-id> [options]
+```
+
+Run from `/home/rpadron/proy/mastermind`
+
+### Step 2: Parse Handler Output
+
+Capture stdout and look for:
+- `LAUNCH: task-executor` → Agent launch requested
+- `PAYLOAD: {...}` → JSON payload for agent
+- `STATUS: TASK COMPLETE` → All done, no agent needed
+- `ERROR: ...` → Handler error, show to user
+
+### Step 3: Launch Agent (if payload present)
+
+If you see `LAUNCH: task-executor` with `PAYLOAD`:
+
+```
+Agent(
+  subagent_type="task-executor",
+  prompt=f"""
+## Task Payload
+{parsed_payload_json}
+
+Working directory: /home/rpadron/proy/mastermind
+Stack: Next.js 16, React 19, Zustand, Tailwind 4
+
+Execute the pending subtasks sequentially following the task-executor protocol.
+""",
+  run_in_background=true
+)
+```
+
+### Step 4: Notify User
+
+```
+✅ Task-executor launched in background
+📊 Monitor: tail -f .planning/task-progress.json
+🔔 You'll be notified when complete
+```
+
+### Special Cases
+
+**`--status` flag**: Show handler output directly, don't launch agent.
+
+**`STATUS: TASK COMPLETE`**: Mark all checkboxes in todo.md as complete, no agent needed.
+
+**Handler ERROR**: Show error to user, suggest next steps.
+
 ## What Happens
 
 1. **Python handler** reads `tasks/plan.md` + `tasks/todo.md`

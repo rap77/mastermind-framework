@@ -73,10 +73,10 @@ export function AdapterNode({ data, selected }: NodeProps<FlowNodeData>) {
               `}
               style={{
                 backgroundColor:
-                  data.status === 'success' ? 'var(--color-status-success, hsl(142 76% 36%))' :
-                  data.status === 'error' ? 'var(--color-status-error, hsl(0 84% 60%))' :
-                  data.status === 'running' ? 'var(--color-status-warning, hsl(38 92% 50%))' :
-                  'var(--color-status-idle, hsl(215 25% 27%))',
+                  data.status === 'success' ? 'var(--color-status-success, var(--status-success))' :
+                  data.status === 'error' ? 'var(--color-status-error, var(--status-error))' :
+                  data.status === 'running' ? 'var(--color-status-warning, var(--status-warning))' :
+                  'var(--color-status-idle, var(--status-idle))',
               }}
             />
             <span className="text-xs text-[var(--color-text-secondary)] capitalize">
