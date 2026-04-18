@@ -144,6 +144,80 @@ describe('FlowDesignerCanvas', () => {
       // addNode should not be called for invalid drops
       expect(mockAddNode).not.toHaveBeenCalled()
     })
+
+    it('should handle rapid drops without debounce (immediate execution)', () => {
+      renderWithProvider(<FlowDesignerCanvas />)
+
+      const canvas = document.querySelector('.react-flow') as HTMLElement
+
+      // Create mock dataTransfer with valid node type
+      const mockDataTransfer = {
+        dropEffect: '',
+        effectAllowed: '',
+        setData: vi.fn(),
+        getData: vi.fn((key: string) => {
+          if (key === 'application/reactflow') return NodeType.BRAIN
+          return ''
+        }),
+        clearData: vi.fn(),
+        setDragImage: vi.fn(),
+        offsetX: 100,
+        offsetY: 100,
+      }
+
+      // Drop twice rapidly
+      fireEvent.drop(canvas, {
+        bubbles: true,
+        clientX: 100,
+        clientY: 100,
+        dataTransfer: mockDataTransfer,
+      })
+
+      fireEvent.drop(canvas, {
+        bubbles: true,
+        clientX: 200,
+        clientY: 200,
+        dataTransfer: mockDataTransfer,
+      })
+
+      // Both drops should be handled immediately (no debounce to miss drops)
+      expect(mockAddNode).toHaveBeenCalledTimes(2)
+    })
+
+    it('should create node at correct position on drop', () => {
+      renderWithProvider(<FlowDesignerCanvas />)
+
+      const canvas = document.querySelector('.react-flow') as HTMLElement
+
+      const mockDataTransfer = {
+        dropEffect: '',
+        effectAllowed: '',
+        setData: vi.fn(),
+        getData: vi.fn((key: string) => {
+          if (key === 'application/reactflow') return NodeType.GATEWAY
+          return ''
+        }),
+        clearData: vi.fn(),
+        setDragImage: vi.fn(),
+        offsetX: 150,
+        offsetY: 250,
+      }
+
+      fireEvent.drop(canvas, {
+        bubbles: true,
+        clientX: 150,
+        clientY: 250,
+        dataTransfer: mockDataTransfer,
+      })
+
+      // Verify addNode was called with correct position
+      expect(mockAddNode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: NodeType.GATEWAY,
+          position: { x: 150, y: 250 },
+        })
+      )
+    })
   })
 
   describe('edge connection', () => {

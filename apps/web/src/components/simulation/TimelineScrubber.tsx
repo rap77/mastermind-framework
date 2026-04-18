@@ -252,3 +252,5 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
     </div>
   )
 }
+
+export { TimelineScrubber }

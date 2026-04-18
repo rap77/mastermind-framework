@@ -5,7 +5,7 @@
  * Based on NexusCanvas.tsx pattern.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -13,9 +13,6 @@ import {
   MiniMap,
   type NodeTypes,
   type EdgeTypes,
-  type OnDragOverEventHandler,
-  type OnDropEventHandler,
-  type OnNodeDoubleClickHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -51,39 +48,36 @@ export function FlowDesignerCanvas() {
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const onDragOver: OnDragOverEventHandler = useCallback((event) => {
+  const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }, [])
 
-  const onDrop: OnDropEventHandler = useCallback(
-    (event) => {
-      event.preventDefault()
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
 
-      const type = event.dataTransfer.getData('application/reactflow') as NodeType
-      if (!type) return
+    const type = event.dataTransfer.getData('application/reactflow') as NodeType
+    if (!type) return
 
-      const position = {
-        x: event.dataTransfer.offsetX,
-        y: event.dataTransfer.offsetY,
-      }
+    const position = {
+      x: event.dataTransfer.offsetX,
+      y: event.dataTransfer.offsetY,
+    }
 
-      const newNode: FlowNode = {
-        id: `${type}-${Date.now()}`,
-        type,
-        position,
-        data: {
-          label: `New ${type}`,
-        },
-      }
+    const newNode: FlowNode = {
+      id: `${type}-${Date.now()}`,
+      type,
+      position,
+      data: {
+        label: `New ${type}`,
+      },
+    }
 
-      addNode(newNode)
-    },
-    [addNode]
-  )
+    addNode(newNode)
+  }, [addNode])
 
-  const onNodeDoubleClick: OnNodeDoubleClickHandler = useCallback(
-    (event, node) => {
+  const onNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: FlowNode) => {
       setSelectedNode(node as FlowNode)
       setDialogOpen(true)
     },
