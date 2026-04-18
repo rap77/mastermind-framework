@@ -40,10 +40,30 @@ import { mockExecution } from '@/mocks/mock-execution'
 export default function SimulationPage() {
   const router = useRouter()
   const loadExecution = useSimulationStore((state) => state.loadExecution)
+  const currentExecution = useSimulationStore((state) => state.currentExecution)
 
   // Loading and error states for API integration
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Export functionality
+  const handleExport = () => {
+    if (!currentExecution) return
+
+    // Create JSON blob from currentExecution
+    const json = JSON.stringify(currentExecution, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+
+    // Create download link and trigger download
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `execution-${Date.now()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   // Load mock execution on mount
   useEffect(() => {
@@ -71,16 +91,28 @@ export default function SimulationPage() {
             Replay and analyze past executions with timeline scrubbing
           </p>
         </div>
-        <button
-          onClick={() => router.push('/flow-designer')}
-          className="px-4 py-2 rounded text-sm font-medium"
-          style={{
-            backgroundColor: 'var(--color-primary)',
-            color: 'var(--color-primary-foreground)',
-          }}
-        >
-          Edit Flow
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 rounded text-sm font-medium border transition-colors hover:bg-muted"
+            style={{
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-foreground)',
+            }}
+          >
+            Export
+          </button>
+          <button
+            onClick={() => router.push('/flow-designer')}
+            className="px-4 py-2 rounded text-sm font-medium"
+            style={{
+              backgroundColor: 'var(--color-primary)',
+              color: 'var(--color-primary-foreground)',
+            }}
+          >
+            Edit Flow
+          </button>
+        </div>
       </div>
 
       {/* Loading State */}
