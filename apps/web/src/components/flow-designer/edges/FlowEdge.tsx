@@ -14,6 +14,27 @@ import {
 } from '@xyflow/react'
 import type { FlowEdge } from '../types'
 
+/**
+ * getEdgeCenter — Calculate the midpoint of an edge
+ *
+ * @param sourceX - Source node X coordinate
+ * @param sourceY - Source node Y coordinate
+ * @param targetX - Target node X coordinate
+ * @param targetY - Target node Y coordinate
+ * @returns Object with x, y coordinates of the midpoint
+ */
+export function getEdgeCenter(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number
+): { x: number; y: number } {
+  return {
+    x: (sourceX + targetX) / 2,
+    y: (sourceY + targetY) / 2,
+  }
+}
+
 export const FlowEdge = memo(
   ({ id, sourceX, sourceY, targetX, targetY, label, selected }: EdgeProps<FlowEdge>) => {
     const [edgePath] = getBezierPath({
@@ -22,6 +43,9 @@ export const FlowEdge = memo(
       targetX,
       targetY,
     })
+
+    // Calculate midpoint for label positioning
+    const { x: labelX, y: labelY } = getEdgeCenter(sourceX, sourceY, targetX, targetY)
 
     return (
       <>
@@ -42,9 +66,12 @@ export const FlowEdge = memo(
                 ${selected ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : ''}
               `}
               style={{
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
                 backgroundColor: 'var(--color-surface)',
                 color: 'var(--color-text-primary)',
                 border: '1px solid var(--color-border)',
+                pointerEvents: 'all',
               }}
             >
               {label}
