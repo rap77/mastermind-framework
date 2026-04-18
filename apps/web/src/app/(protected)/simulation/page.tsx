@@ -25,7 +25,7 @@
 
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ErrorSummary } from '@/components/simulation/ErrorSummary'
 import { ReplayControls } from '@/components/simulation/ReplayControls'
@@ -33,195 +33,7 @@ import { SimulationCanvas } from '@/components/simulation/SimulationCanvas'
 import { TimelineScrubber } from '@/components/simulation/TimelineScrubber'
 import EventLog from '@/components/simulation/EventLog'
 import { useSimulationStore } from '@/stores/simulationStore'
-import type { Execution } from '@/stores/simulationStore'
-
-// ─── Mock Execution Data ─────────────────────────────────────────────────────
-
-/**
- * mockExecution — inline mock execution for development/testing
- *
- * Represents a typical execution with:
- * - 7 brain outputs (mix of success, error, slow)
- * - 5 milestone snapshots
- * - Graph snapshot with nodes and edges
- * - Total duration: 3.5 seconds
- */
-const mockExecution: Execution = {
-  id: 'exec-mock-001',
-  task_id: 'task-mock-001',
-  brief: 'Mock execution for simulation page testing',
-  status: 'success',
-  duration_ms: 3500,
-  brain_count: 7,
-  created_at: new Date().toISOString(),
-  milestones: [
-    {
-      index: 0,
-      timestamp: 0,
-      label: 'Start',
-      brain_count: 0,
-    },
-    {
-      index: 1,
-      timestamp: 500,
-      label: 'Brain #1 Complete',
-      brain_count: 1,
-    },
-    {
-      index: 2,
-      timestamp: 1500,
-      label: 'Brain #3 Complete',
-      brain_count: 3,
-    },
-    {
-      index: 3,
-      timestamp: 2500,
-      label: 'Brain #5 Complete',
-      brain_count: 5,
-    },
-    {
-      index: 4,
-      timestamp: 3500,
-      label: 'All Brains Complete',
-      brain_count: 7,
-    },
-  ],
-  brain_outputs: {
-    'brain-1': {
-      brain_id: 'brain-1',
-      status: 'complete',
-      output: 'Product strategy analysis complete',
-      duration_ms: 500,
-      timestamp: 0,
-    },
-    'brain-2': {
-      brain_id: 'brain-2',
-      status: 'complete',
-      output: 'UX research findings synthesized',
-      duration_ms: 800,
-      timestamp: 500,
-    },
-    'brain-3': {
-      brain_id: 'brain-3',
-      status: 'error',
-      output: 'Failed to generate UI mockups: timeout error',
-      duration_ms: 1200,
-      timestamp: 1300,
-    },
-    'brain-4': {
-      brain_id: 'brain-4',
-      status: 'complete',
-      output: 'Frontend components generated',
-      duration_ms: 600,
-      timestamp: 1500,
-    },
-    'brain-5': {
-      brain_id: 'brain-5',
-      status: 'complete',
-      output: 'Backend API endpoints designed',
-      duration_ms: 1500, // Slow node
-      timestamp: 2000,
-    },
-    'brain-6': {
-      brain_id: 'brain-6',
-      status: 'complete',
-      output: 'QA test plan created',
-      duration_ms: 400,
-      timestamp: 2800,
-    },
-    'brain-7': {
-      brain_id: 'brain-7',
-      status: 'complete',
-      output: 'Growth strategy recommendations',
-      duration_ms: 700,
-      timestamp: 3200,
-    },
-  },
-  graph_snapshot: {
-    nodes: [
-      {
-        id: 'node-1',
-        type: 'brain',
-        position: { x: 100, y: 100 },
-        data: {
-          label: 'Product Strategy',
-          brainId: 'brain-1',
-          description: 'Analyzes product requirements',
-        },
-      },
-      {
-        id: 'node-2',
-        type: 'brain',
-        position: { x: 100, y: 250 },
-        data: {
-          label: 'UX Research',
-          brainId: 'brain-2',
-          description: 'Synthesizes user research',
-        },
-      },
-      {
-        id: 'node-3',
-        type: 'brain',
-        position: { x: 100, y: 400 },
-        data: {
-          label: 'UI Design',
-          brainId: 'brain-3',
-          description: 'Creates UI mockups',
-        },
-      },
-      {
-        id: 'node-4',
-        type: 'brain',
-        position: { x: 400, y: 100 },
-        data: {
-          label: 'Frontend',
-          brainId: 'brain-4',
-          description: 'Builds frontend components',
-        },
-      },
-      {
-        id: 'node-5',
-        type: 'brain',
-        position: { x: 400, y: 250 },
-        data: {
-          label: 'Backend',
-          brainId: 'brain-5',
-          description: 'Designs API endpoints',
-        },
-      },
-      {
-        id: 'node-6',
-        type: 'brain',
-        position: { x: 400, y: 400 },
-        data: {
-          label: 'QA/DevOps',
-          brainId: 'brain-6',
-          description: 'Creates test plans',
-        },
-      },
-      {
-        id: 'node-7',
-        type: 'brain',
-        position: { x: 700, y: 250 },
-        data: {
-          label: 'Growth/Data',
-          brainId: 'brain-7',
-          description: 'Analyzes growth metrics',
-        },
-      },
-    ],
-    edges: [
-      { id: 'e1-2', source: 'node-1', target: 'node-2' },
-      { id: 'e1-3', source: 'node-1', target: 'node-3' },
-      { id: 'e2-4', source: 'node-2', target: 'node-4' },
-      { id: 'e3-4', source: 'node-3', target: 'node-4' },
-      { id: 'e4-5', source: 'node-4', target: 'node-5' },
-      { id: 'e5-6', source: 'node-5', target: 'node-6' },
-      { id: 'e6-7', source: 'node-6', target: 'node-7' },
-    ],
-    viewport: { x: 0, y: 0, zoom: 1 },
-  },
-}
+import { mockExecution } from '@/mocks/mock-execution'
 
 // ─── Page Component ───────────────────────────────────────────────────────────
 
@@ -229,9 +41,19 @@ export default function SimulationPage() {
   const router = useRouter()
   const loadExecution = useSimulationStore((state) => state.loadExecution)
 
+  // Loading and error states for API integration
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   // Load mock execution on mount
   useEffect(() => {
-    loadExecution(mockExecution)
+    try {
+      loadExecution(mockExecution)
+      setIsLoading(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load execution')
+      setIsLoading(false)
+    }
   }, [loadExecution])
 
   return (
@@ -261,10 +83,80 @@ export default function SimulationPage() {
         </button>
       </div>
 
-      {/* Error Summary */}
-      <div className="px-6 py-4">
-        <ErrorSummary />
-      </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div
+          data-testid="loading-indicator"
+          className="flex-1 flex items-center justify-center"
+        >
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+            <p className="mt-2 text-sm text-muted-foreground">Loading execution...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div
+          data-testid="error-banner"
+          className="mx-6 mt-6 p-4 rounded border"
+          style={{
+            backgroundColor: 'var(--color-destructive-muted)',
+            borderColor: 'var(--color-destructive)',
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5"
+                style={{ color: 'var(--color-destructive)' }}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3
+                className="text-sm font-medium"
+                style={{ color: 'var(--color-destructive-foreground)' }}
+              >
+                Error loading execution
+              </h3>
+              <p
+                className="mt-1 text-sm"
+                style={{ color: 'var(--color-destructive-muted-foreground)' }}
+              >
+                {error}
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex-shrink-0 px-3 py-1 text-sm font-medium rounded border"
+              style={{
+                backgroundColor: 'var(--color-destructive)',
+                color: 'var(--color-destructive-foreground)',
+                borderColor: 'var(--color-destructive)',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content - Only show when not loading and no error */}
+      {!isLoading && !error && (
+        <>
+          {/* Error Summary */}
+          <div className="px-6 py-4">
+            <ErrorSummary />
+          </div>
 
       {/* Replay Controls */}
       <ReplayControls />
@@ -289,6 +181,8 @@ export default function SimulationPage() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }
