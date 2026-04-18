@@ -44,7 +44,7 @@ const EDGE_TYPES: EdgeTypes = {
 }
 
 export function FlowDesignerCanvas() {
-  const { nodes, edges, addNode, viewport } = useFlowDesignerStore()
+  const { nodes, edges, addNode, addEdge, viewport } = useFlowDesignerStore()
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -84,6 +84,18 @@ export function FlowDesignerCanvas() {
     []
   )
 
+  const onConnect = useCallback(
+    (connection: { source: string; target: string; sourceHandle: string | null; targetHandle: string | null }) => {
+      const newEdge: FlowEdge = {
+        id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
+        source: connection.source,
+        target: connection.target,
+      }
+      addEdge(newEdge)
+    },
+    [addEdge]
+  )
+
   return (
     <div className="flex flex-col h-screen">
       <FlowToolbar />
@@ -100,6 +112,7 @@ export function FlowDesignerCanvas() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             onNodeDoubleClick={onNodeDoubleClick}
+            onConnect={onConnect}
             fitView
             defaultViewport={viewport}
             minZoom={0.2}
