@@ -6,6 +6,24 @@
 
 import { NodeType } from './types'
 
+// CSS-in-JS for palette node hover effect
+const PALETTE_NODE_CSS = `
+  .palette-node-item:hover {
+    border-color: var(--color-primary) !important;
+  }
+`
+
+// Inject CSS styles on module load
+if (typeof document !== 'undefined') {
+  const styleId = 'flow-palette-node-styles'
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style')
+    style.id = styleId
+    style.textContent = PALETTE_NODE_CSS
+    document.head.appendChild(style)
+  }
+}
+
 const NODE_TYPES: Array<{
   type: NodeType
   label: string
@@ -72,16 +90,11 @@ export function FlowPalette() {
               p-3 rounded-lg border cursor-move
               transition-all duration-200
               hover:shadow-md
+              palette-node-item
             `}
             style={{
               backgroundColor: 'var(--color-surface)',
               borderColor: 'var(--color-border)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-primary)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-border)'
             }}
           >
             <div className="flex items-center gap-2">
