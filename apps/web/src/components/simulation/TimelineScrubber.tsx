@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { useSimulationStore } from '@/stores/simulationStore'
 import type { SnapshotMilestone } from '@/stores/simulationStore'
 import { HelpTooltip } from './HelpTooltip'
+import { MIN_TOUCH_TARGET_SIZE, SCRUBBER_THUMB_ANIMATION_DURATION } from '@/config/constants'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
         tabIndex={0}
         className={cn(
           'relative flex items-center cursor-pointer',
-          'min-h-[44px]', // Accessibility: WCAG AA minimum touch target
+          `min-h-[${MIN_TOUCH_TARGET_SIZE}px]`, // Accessibility: WCAG AA minimum touch target
           dragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleTrackMouseDown}
@@ -257,7 +258,7 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
         <div
           className={cn(
             'absolute w-4 h-4 rounded-full shadow-lg',
-            'transition-[left] duration-100 ease-out'
+            `transition-[left] duration-${SCRUBBER_THUMB_ANIMATION_DURATION} ease-out`
           )}
           style={{
             left: `${thumbPercent}%`,
