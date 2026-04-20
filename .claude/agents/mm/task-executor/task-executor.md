@@ -144,6 +144,71 @@ mem_save(
 
 ---
 
+## Permission Detection (Before Each Subtask)
+
+**CRITICAL: Detect permission requirements BEFORE attempting execution.**
+
+### Step 1: Analyze Subtask Description
+
+Check if the subtask description contains patterns that require specific permissions:
+
+**Bash Permission Required:**
+- Keywords: "borrar", "eliminar", "delete", "remove", "ejecutar", "run"
+- Patterns: `rm -rf`, `mkdir`, `npm`, `pytest`, `uv run`
+
+**Write Permission Required:**
+- Keywords: "crear", "escribir", "write", "create file"
+- Patterns: file creation operations
+
+### Step 2: Pre-flight Permission Check
+
+BEFORE starting the execution cycle, print:
+
+```
+[subtask] {id}: Permission check...
+[subtask] {id}: Requires: BASH permission
+```
+
+### Step 3: Attempt with Graceful Failure
+
+If you attempt an operation and get a permission error:
+
+**DO NOT retry endlessly** — this is a permission issue, not a transient error.
+
+Instead:
+1. Mark subtask as `"failed_permission"` in task-progress.json
+2. Log clearly: `[subtask] {id}: FAILED - Permission denied (requires BASH/WRITE)`
+3. Save to Engram with the permission requirement
+4. Continue to next subtask
+
+### Example:
+
+```
+[subtask] A2.1: Permission check...
+[subtask] A2.1: Requires: BASH permission
+[subtask] A2.1: Attempting rm -rf .claude/skills/mm/plan-phase...
+[subtask] A2.1: FAILED - Permission denied (requires BASH)
+[checkpoint] A2.1 marked as failed_permission
+[subtask] A2.2: Permission check...
+```
+
+### Final Report (Permission Summary)
+
+At the end, if any subtasks failed due to permissions:
+
+```
+## Permission Summary
+
+**Failed due to missing permissions:**
+- A2.1: Delete directory (requires BASH)
+- A2.2: Delete directory (requires BASH)
+
+**To fix:** Enable these permissions in .claude/settings.json and re-run:
+  /mm:complete-task A2 --continue
+```
+
+---
+
 ## Auto-Retry Logic
 
 If any phase fails (build, test, review, or code-reviewer):
@@ -195,7 +260,31 @@ To estimate: if your responses are getting shorter or you see "compaction" messa
 
 ## Error Handling
 
-If a subtask fails completely:
+### Permission Errors (Special Case)
+
+If you get "Permission denied" or tool use blocked:
+
+```
+[subtask] {id}: Permission check...
+[subtask] {id}: FAILED - Permission denied (requires BASH/WRITE)
+[subtask] {id}: Marking as failed_permission
+[subtask] Continuing to next subtask...
+```
+
+**DO NOT retry** permission errors — they won't succeed without user intervention.
+
+Mark in task-progress.json:
+```json
+{
+  "status": "failed_permission",
+  "error": "Permission denied - requires BASH",
+  "required_permission": "BASH"
+}
+```
+
+### General Errors (3 Retries)
+
+For other errors (syntax, logic, test failures):
 
 ```
 [subtask] D2.3: FAILED after 3 retries
@@ -225,6 +314,19 @@ When all subtasks complete (or you exit due to context limit):
 - {subtask_id}: {error_reason} (if any)
 
 **Context:** {exited due to context limit | completed normally}
+```
+
+### If Permission Errors Occurred:
+
+```
+## Permission Summary
+
+**Failed due to missing permissions:**
+- {subtask_id}: {description} (requires {PERMISSION})
+- {subtask_id}: {description} (requires {PERMISSION})
+
+**To fix:** Enable these permissions in .claude/settings.json and re-run:
+  /mm:complete-task {task_id} --continue
 ```
 
 ---

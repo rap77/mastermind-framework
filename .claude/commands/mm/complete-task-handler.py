@@ -19,6 +19,9 @@ from pathlib import Path
 from typing import Any
 
 # Configure logging
+# NOTE: This CLI tool uses print() instead of logger for structured output.
+# The handler must emit machine-parseable messages (LAUNCH:, PAYLOAD:, STATUS:)
+# that the calling command can parse. Logger output doesn't guarantee this format.
 logging.basicConfig(
     level=logging.INFO,
     format="[mm] %(message)s",
@@ -136,8 +139,15 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
 
     Raises:
         ValueError: If task_id not found in plan.md.
+        FileNotFoundError: If plan.md doesn't exist.
+        OSError: If file cannot be read.
     """
-    content = PLAN_MD.read_text()
+    try:
+        content = PLAN_MD.read_text()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"plan.md not found at {PLAN_MD}")
+    except OSError as e:
+        raise OSError(f"Failed to read plan.md: {e}")
 
     pattern = rf"### {task_id}:([^\n]+)\n(.*?)(?=\n### |\Z)"
     match = re.search(pattern, content, re.DOTALL)
@@ -160,8 +170,15 @@ def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
 
     Raises:
         ValueError: If task_id not found in todo.md.
+        FileNotFoundError: If todo.md doesn't exist.
+        OSError: If file cannot be read.
     """
-    content = TODO_MD.read_text()
+    try:
+        content = TODO_MD.read_text()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"todo.md not found at {TODO_MD}")
+    except OSError as e:
+        raise OSError(f"Failed to read todo.md: {e}")
 
     pattern = rf"### {task_id}:([^\n]+)\n(.*?)(?=\n### |\n---|\Z)"
     match = re.search(pattern, content, re.DOTALL)
@@ -227,7 +244,11 @@ def init_runtime_state(task_id: str, subtasks: list[dict[str, Any]]) -> dict[str
     }
 
     PLANNING_DIR.mkdir(parents=True, exist_ok=True)
-    RUNTIME_STATE_PATH.write_text(json.dumps(runtime_state, indent=2))
+    try:
+        RUNTIME_STATE_PATH.write_text(json.dumps(runtime_state, indent=2))
+    except OSError as e:
+        mm_error(f"Failed to write runtime state: {e}")
+        raise
 
     return runtime_state
 
@@ -263,13 +284,26 @@ def update_subtask_status(
 
         state["last_checkpoint"] = subtask_id
 
-        RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+        try:
+            RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+        except OSError as e:
+            mm_error(f"Failed to write runtime state: {e}")
+            raise
 
 
 def get_task_payload(task_id: str) -> dict[str, Any]:
     """Get the full task payload for the agent.
 
-    Returns dict ready to be passed to task-executor agent.
+    Args:
+        task_id: Task identifier.
+
+    Returns:
+        Dict ready to be passed to task-executor agent.
+
+    Raises:
+        ValueError: If task_id not found in plan.md or todo.md.
+        FileNotFoundError: If required files don't exist.
+        OSError: If files cannot be read.
     """
     try:
         task = read_task_from_plan(task_id)
@@ -291,8 +325,76 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
             "pending_count": len(pending_subtasks),
             "context_budget_threshold": 0.75,  # Exit at 75% context
         }
+    except (ValueError, FileNotFoundError, OSError):
+        # Re-raise expected exceptions with context
+        raise
     except Exception as e:
-        return {"error": str(e)}
+        # Catch truly unexpected errors
+        raise RuntimeError(f"Unexpected error building payload: {e}") from e
+
+
+# ============================================================================
+# Permission Detection
+# ============================================================================
+
+
+def detect_required_permissions(
+    task_id: str, pending_subtasks: list[dict[str, Any]]
+) -> list[str]:
+    """Detect required tool permissions based on subtask descriptions.
+
+    Args:
+        task_id: Task identifier.
+        pending_subtasks: List of pending subtask dictionaries.
+
+    Returns:
+        List of permission warnings to show before launching agent.
+    """
+    warnings: list[str] = []
+
+    # Patterns that indicate Bash permission is needed
+    bash_patterns = [
+        r"\bborrar\b",
+        r"\beliminar\b",
+        r"\bdelete\b",
+        r"\bremove\b",
+        r"\bejecutar\b",
+        r"\brun\b",
+        r"\bnpm\b",
+        r"\bpytest\b",
+        r"\buv\s+run\b",
+    ]
+
+    # Patterns that indicate Write permission is needed
+    write_patterns = [
+        r"\bcrear\b",
+        r"\bescribir\b",
+        r"\bwrite\b",
+        r"\bcrear\s+archivo\b",
+        r"\bcreate\s+file\b",
+        r"\badd\b.*\bfile\b",
+    ]
+
+    for st in pending_subtasks:
+        desc_lower = st["description"].lower()
+
+        # Check Bash patterns
+        if any(
+            re.search(pattern, desc_lower, re.IGNORECASE) for pattern in bash_patterns
+        ):
+            warnings.append(
+                f"⚠️  Subtask {st['id']}: '{st['description']}' requires BASH permission"
+            )
+
+        # Check Write patterns
+        if any(
+            re.search(pattern, desc_lower, re.IGNORECASE) for pattern in write_patterns
+        ):
+            warnings.append(
+                f"⚠️  Subtask {st['id']}: '{st['description']}' requires WRITE permission"
+            )
+
+    return warnings
 
 
 # ============================================================================
@@ -346,6 +448,16 @@ def start_task(task_id: str) -> None:
     # Show pending subtasks
     for st in pending_subtasks:
         mm_subtask(st["id"], "pending", st["description"])
+
+    # Detect required permissions BEFORE launching agent
+    permission_warnings = detect_required_permissions(task_id, pending_subtasks)
+    if permission_warnings:
+        mm_info("PERMISSION CHECK:")
+        for warning in permission_warnings:
+            print(warning, flush=True)
+        mm_info(
+            "Please ensure Claude Code has these permissions enabled in settings.json"
+        )
 
     # Initialize runtime state
     runtime_state = init_runtime_state(task_id, subtasks)
