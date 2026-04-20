@@ -14,24 +14,13 @@
 
 'use client'
 
+import { ReactFlowProvider } from '@xyflow/react'
 import { FlowDesignerCanvas } from '@/components/flow-designer/FlowDesignerCanvas'
-import { FlowPalette } from '@/components/flow-designer/FlowPalette'
-import { FlowToolbar } from '@/components/flow-designer/FlowToolbar'
 
 export default function FlowDesignerPage() {
   return (
-    <div className="flex flex-col h-screen bg-[var(--color-background)]">
-      {/* Top toolbar */}
-      <FlowToolbar />
-
-      {/* Main content area: palette + canvas */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: Node palette */}
-        <FlowPalette />
-
-        {/* Center: Flow canvas */}
-        <FlowDesignerCanvas />
-      </div>
-    </div>
+    <ReactFlowProvider>
+      <FlowDesignerCanvas />
+    </ReactFlowProvider>
   )
 }
