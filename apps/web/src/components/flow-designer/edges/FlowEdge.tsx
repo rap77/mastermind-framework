@@ -1,8 +1,11 @@
 /**
  * FlowEdge — Custom edge component for Flow Designer
  *
- * Styled edge with label support and animation for active flows.
- * Uses semantic tokens for theming.
+ * Styled edge with n8n-inspired aesthetics:
+ * - Smooth step path with rounded corners (like n8n)
+ * - Thicker stroke (2px default, 2.5px selected)
+ * - Animated dashed line on hover/selected
+ * - Label support with badge styling
  */
 
 import { memo } from 'react'
@@ -10,68 +13,67 @@ import {
   EdgeLabelRenderer,
   BaseEdge,
   type EdgeProps,
-  getBezierPath,
+  getSmoothStepPath,
 } from '@xyflow/react'
 import type { FlowEdge } from '../types'
 
-/**
- * getEdgeCenter — Calculate the midpoint of an edge
- *
- * @param sourceX - Source node X coordinate
- * @param sourceY - Source node Y coordinate
- * @param targetX - Target node X coordinate
- * @param targetY - Target node Y coordinate
- * @returns Object with x, y coordinates of the midpoint
- */
-export function getEdgeCenter(
-  sourceX: number,
-  sourceY: number,
-  targetX: number,
-  targetY: number
-): { x: number; y: number } {
-  return {
-    x: (sourceX + targetX) / 2,
-    y: (sourceY + targetY) / 2,
-  }
-}
-
 export const FlowEdge = memo(
-  ({ id, sourceX, sourceY, targetX, targetY, label, selected }: EdgeProps<FlowEdge>) => {
-    const [edgePath] = getBezierPath({
+  ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label, selected }: EdgeProps<FlowEdge>) => {
+    const [edgePath] = getSmoothStepPath({
       sourceX,
       sourceY,
       targetX,
       targetY,
+      sourcePosition,
+      targetPosition,
+      borderRadius: 16,
     })
 
     // Calculate midpoint for label positioning
-    const { x: labelX, y: labelY } = getEdgeCenter(sourceX, sourceY, targetX, targetY)
+    const labelX = (sourceX + targetX) / 2
+    const labelY = (sourceY + targetY) / 2
 
     return (
       <>
+        {/* Background wider path for better hover target */}
+        <path
+          d={edgePath}
+          fill="none"
+          strokeWidth={12}
+          stroke="transparent"
+        />
+
         <BaseEdge
           id={id}
           path={edgePath}
-          className={`
-            transition-all duration-200
-            ${selected ? 'stroke-[var(--color-primary)] stroke-2' : 'stroke-[var(--color-border)]'}
-          `}
+          style={{
+            strokeWidth: selected ? 2.5 : 2,
+            stroke: selected
+              ? 'var(--color-primary)'
+              : 'var(--color-border)',
+            transition: 'stroke 0.2s, stroke-width 0.2s',
+          }}
         />
 
         {label && (
           <EdgeLabelRenderer>
             <div
               className={`
-                px-2 py-1 rounded text-xs font-medium
-                ${selected ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : ''}
+                px-2 py-0.5 rounded text-xs font-medium
+                pointer-events: all
               `}
               style={{
                 position: 'absolute',
                 transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-text-primary)',
-                border: '1px solid var(--color-border)',
+                backgroundColor: selected
+                  ? 'var(--color-primary)'
+                  : 'var(--color-surface)',
+                color: selected
+                  ? 'var(--color-primary-foreground)'
+                  : 'var(--color-text-secondary)',
+                border: `1px solid ${selected ? 'var(--color-primary)' : 'var(--color-border)'}`,
                 pointerEvents: 'all',
+                fontSize: '11px',
               }}
             >
               {label}

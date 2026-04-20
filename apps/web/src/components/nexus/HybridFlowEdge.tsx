@@ -16,7 +16,7 @@
  */
 
 import { useMemo } from 'react'
-import { getBezierPath, BaseEdge } from '@xyflow/react'
+import { getSmoothStepPath, BaseEdge } from '@xyflow/react'
 import type { EdgeProps } from '@xyflow/react'
 import { useBrainState } from '@/stores/brainStore'
 
@@ -54,13 +54,14 @@ export function HybridFlowEdge({
   const sourceState = useBrainState(source)
   const reducedMotion = prefersReducedMotion()
 
-  const [edgePath] = getBezierPath({
+  const [edgePath] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 16,
   })
 
   const edgeStyle = useMemo(() => {
@@ -70,7 +71,7 @@ export function HybridFlowEdge({
       case 'active':
         return {
           stroke: 'var(--color-brain-active, #64FFDA)',
-          strokeWidth: 2,
+          strokeWidth: 2.5,
           opacity: 1,
           filter: reducedMotion ? undefined : 'drop-shadow(0 0 6px var(--color-brain-active, #64FFDA))',
         }
@@ -95,7 +96,7 @@ export function HybridFlowEdge({
       default:
         return {
           stroke: 'var(--color-brain-idle, #8892B0)',
-          strokeWidth: 1,
+          strokeWidth: 2,
           opacity: 0.3,
         }
     }

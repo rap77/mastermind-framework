@@ -15,7 +15,7 @@ export function GatewayNode({ data, selected }: NodeProps<FlowNodeData>) {
   return (
     <div
       className={`
-        px-4 py-2 rounded-lg border-2 min-w-[160px]
+        px-4 py-3 rounded-lg border-2 min-w-[220px]
         transition-all duration-200
         ${selected
           ? 'border-[var(--color-border-primary)] shadow-lg'

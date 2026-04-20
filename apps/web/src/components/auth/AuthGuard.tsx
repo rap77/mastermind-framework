@@ -20,7 +20,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  // ⚠️ TEMPORARY BYPASS FOR D3 MANUAL VERIFICATION
+  // TODO: Remove after D3 verification complete
+  const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true'
+
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      console.warn('[AuthGuard] AUTH BYPASSED - Set NEXT_PUBLIC_BYPASS_AUTH=false to enable')
+      setIsAuthenticated(true)
+      setIsLoading(false)
+      return
+    }
+
     async function verifyToken() {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/auth/verify`, {

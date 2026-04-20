@@ -70,11 +70,17 @@ function ReadOnlyNodeWrapper({ children, data }: { children: React.ReactNode; da
       styles.color = 'var(--color-error-foreground)'
     } else if (isRunning) {
       styles.boxShadow = '0 0 20px var(--color-primary)'
-      styles.border = '2px solid var(--color-primary)'
+      styles.borderWidth = '2px'
+      styles.borderStyle = 'solid'
+      styles.borderColor = 'var(--color-primary)'
     } else if (isSuccess) {
-      styles.border = '2px solid var(--color-success)'
+      styles.borderWidth = '2px'
+      styles.borderStyle = 'solid'
+      styles.borderColor = 'var(--color-success)'
     } else if (isSlow) {
-      styles.border = '2px solid var(--color-warning)'
+      styles.borderWidth = '2px'
+      styles.borderStyle = 'solid'
+      styles.borderColor = 'var(--color-warning)'
     }
 
     return styles

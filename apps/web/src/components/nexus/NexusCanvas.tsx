@@ -32,11 +32,11 @@ const EDGE_TYPES = {
 export const NODE_TYPES_EXPORT = NODE_TYPES
 export const EDGE_TYPES_EXPORT = EDGE_TYPES
 
-// Node dimensions — fixed constants, never use node.measured (Pitfall 2 from research)
-const BRAIN_NODE_W = 160
-const BRAIN_NODE_H = 60
-const COORDINATOR_W = 100
-const COORDINATOR_H = 100
+// Node dimensions — must match actual rendered node sizes
+const BRAIN_NODE_W = 220
+const BRAIN_NODE_H = 70
+const COORDINATOR_W = 120
+const COORDINATOR_H = 120
 
 // Module-level dagre graph singleton — reused between calls for stability
 const dagreGraph = new dagre.graphlib.Graph()
@@ -55,8 +55,8 @@ dagreGraph.setDefaultEdgeLabel(() => ({}))
 export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
   dagreGraph.setGraph({
     rankdir: 'LR',
-    nodesep: 40,
-    ranksep: 80,
+    nodesep: 80,
+    ranksep: 240,
   })
 
   // Clear previous graph state to ensure stability across multiple calls

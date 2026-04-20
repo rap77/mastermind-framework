@@ -41,60 +41,65 @@ const BrainNodeComponent = ({ id, data }: NodeProps) => {
   }
 
   return (
-    <>
-      {/* React Flow connection handles — not interactive so no nodrag/nopan needed */}
-      <Handle type="target" position={Position.Top} />
+    <Card
+      size="sm"
+      className={cn(
+        'w-[220px] transition-all duration-200 relative',
+        isGhost
+          ? 'border-dashed opacity-20'
+          : isIdleInFocusMode
+            ? 'border-solid opacity-30'
+            : 'border-solid opacity-100',
+        status === 'active' && 'ring-2 nexus-ring-active',
+        status === 'error' && 'ring-2 nexus-ring-error',
+        status === 'complete' && 'ring-2 nexus-ring-complete',
+      )}
+      style={isGhost ? { boxShadow: 'var(--shadow-ghost, none)' } : undefined}
+    >
+      {/* Input handle — left side, vertically centered */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ top: '50%' }}
+      />
 
-      <Card
-        size="sm"
-        className={cn(
-          'w-[160px] transition-all duration-200',
-          isGhost
-            ? 'border-dashed opacity-20'
-            : isIdleInFocusMode
-              ? 'border-solid opacity-30'
-              : 'border-solid opacity-100',
-          status === 'active' && 'ring-2 nexus-ring-active',
-          status === 'error' && 'ring-2 nexus-ring-error',
-          status === 'complete' && 'ring-2 nexus-ring-complete',
-        )}
-        style={isGhost ? { boxShadow: 'var(--shadow-ghost, none)' } : undefined}
-      >
-        <CardContent className="p-2 flex flex-col gap-1">
-          {/* CRITICAL: nodrag + nopan on ALL interactive elements (NEX-03) */}
-          <div className="flex items-center gap-1 justify-between">
-            <button
-              type="button"
-              className={cn(
-                'nodrag nopan',
-                'text-left text-xs font-semibold leading-tight truncate flex-1',
-                'hover:text-primary transition-colors cursor-pointer',
-                'bg-transparent border-0 p-0'
-              )}
-              onClick={handleSelect}
-              aria-label={nodeData.label}
-            >
-              {nodeData.label}
-            </button>
-            {/* Checkmark badge for completed tasks */}
-            {status === 'complete' && (
-              <span className="nodrag nopan text-[12px] nexus-text-complete font-bold">
-                ✓
-              </span>
+      <CardContent className="p-2 flex flex-col gap-1">
+        <div className="flex items-center gap-1 justify-between">
+          <button
+            type="button"
+            className={cn(
+              'nodrag nopan',
+              'text-left text-xs font-semibold leading-tight truncate flex-1',
+              'hover:text-primary transition-colors cursor-pointer',
+              'bg-transparent border-0 p-0'
             )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <NodeStatusIndicator status={status} />
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              ×{invocations}
+            onClick={handleSelect}
+            aria-label={nodeData.label}
+          >
+            {nodeData.label}
+          </button>
+          {status === 'complete' && (
+            <span className="nodrag nopan text-[12px] nexus-text-complete font-bold">
+              ✓
             </span>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
 
-      <Handle type="source" position={Position.Bottom} />
-    </>
+        <div className="flex items-center justify-between">
+          <NodeStatusIndicator status={status} />
+          <span className="text-[10px] text-muted-foreground tabular-nums">
+            ×{invocations}
+          </span>
+        </div>
+      </CardContent>
+
+      {/* Output handle — right side, vertically centered */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ top: '50%' }}
+      />
+    </Card>
   )
 }
 

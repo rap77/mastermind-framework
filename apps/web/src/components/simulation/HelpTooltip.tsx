@@ -37,7 +37,7 @@ export default function HelpTooltip({ className }: HelpTooltipProps) {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <span
             className={cn(
               'inline-flex items-center justify-center',

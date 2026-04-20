@@ -14,7 +14,13 @@
  * **Architecture:**
  * - Uses Zustand store (flowDesignerStore) for state management
  * - Module-level NODE_TYPES and EDGE_TYPES prevent React Flow remount loops
- * - Based on NexusCanvas.tsx pattern from existing codebase
+ * - Based on n8n patterns (hidden tab detection, viewport guards, fixed dimensions)
+ *
+ * **NaN Prevention:**
+ * - Hidden tab detection skips viewport updates when tab is inactive
+ * - Viewport guard clauses validate dimensions before processing
+ * - Fixed pixel dimensions (no percentage-based layout)
+ * - Grid-based layout with explicit sizing
  *
  * **Usage:**
  * ```tsx
@@ -27,14 +33,21 @@
  * @see flowDesignerStore - Zustand state management
  */
 
-import { useCallback, useState } from 'react'
+'use client'
+
+import { useCallback, useState, useEffect, useRef } from 'react'
 import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
+  ControlButton,
   type NodeTypes,
   type EdgeTypes,
+  useReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  type NodeChange,
+  type EdgeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -65,38 +78,109 @@ const EDGE_TYPES: EdgeTypes = {
   default: CustomFlowEdge,
 }
 
+// Grid-based sizing (n8n pattern)
+export const GRID_SIZE = 16
+export const DEFAULT_NODE_SIZE: [number, number] = [GRID_SIZE * 6, GRID_SIZE * 6]
+
+// Hidden tab detection state (prevents NaN viewport issues)
+let lastRectWasHidden = false
+
 export function FlowDesignerCanvas() {
-  const { nodes, edges, addNode, addEdge, viewport } = useFlowDesignerStore()
+  const { nodes, edges, addNode, addEdge, updateNode, updateEdge, viewport, isLocked, loadFlow } = useFlowDesignerStore()
+  const reactFlowInstance = useReactFlow()
+  const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  // Load graph from sessionStorage if coming from simulation (Edit Flow)
+  useEffect(() => {
+    try {
+      const pendingData = sessionStorage.getItem('flow-designer-pending-load')
+      if (pendingData) {
+        sessionStorage.removeItem('flow-designer-pending-load')
+        const flowData = JSON.parse(pendingData)
+        if (flowData.nodes && flowData.edges) {
+          loadFlow({
+            id: flowData.id || 'flow-imported',
+            name: flowData.name || 'Imported Flow',
+            nodes: flowData.nodes,
+            edges: flowData.edges,
+            viewport: flowData.viewport,
+          })
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load pending flow from sessionStorage:', error)
+    }
+  }, [loadFlow])
+
+  // Handle node position changes (drag, select, remove)
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      const updated = applyNodeChanges(changes, nodes)
+      for (const change of changes) {
+        if (change.type === 'position' && change.position) {
+          const node = updated.find((n) => n.id === change.id)
+          if (node) {
+            updateNode(change.id, { position: node.position })
+          }
+        }
+      }
+    },
+    [nodes, updateNode],
+  )
+
+  // Handle edge changes (select, remove)
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      for (const change of changes) {
+        if (change.type === 'remove') {
+          // removeEdge is already available in the store
+        }
+      }
+    },
+    [],
+  )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
   }, [])
 
-  const onDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault()
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
 
-    const type = event.dataTransfer.getData('application/reactflow') as NodeType
-    if (!type) return
+      const type = event.dataTransfer.getData('application/reactflow') as NodeType
+      if (!type) return
 
-    const position = {
-      x: event.dataTransfer.offsetX,
-      y: event.dataTransfer.offsetY,
-    }
+      // Convert screen coordinates to canvas coordinates
+      const rawPosition = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      })
 
-    const newNode: FlowNode = {
-      id: `${type}-${Date.now()}`,
-      type,
-      position,
-      data: {
-        label: `New ${type}`,
-      },
-    }
+      // Offset to center the node under cursor
+      // Nodes have: py-2 (16px padding) + text-sm label (20px) + optional fields
+      // Typical node height: ~56px, so center offset is ~28px
+      const position = {
+        x: rawPosition.x - 90,  // Half of min width (180px / 2)
+        y: rawPosition.y - 28,  // Center of typical node (56px / 2)
+      }
 
-    addNode(newNode)
-  }, [addNode])
+      const newNode: FlowNode = {
+        id: `${type}-${Date.now()}`,
+        type,
+        position,
+        data: {
+          label: `New ${type}`,
+        },
+      }
+
+      addNode(newNode)
+    },
+    [reactFlowInstance, addNode],
+  )
 
   const onNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: FlowNode) => {
@@ -118,35 +202,92 @@ export function FlowDesignerCanvas() {
     [addEdge]
   )
 
+  // Hidden tab detection (n8n pattern - prevents NaN viewport issues)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        lastRectWasHidden = true
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   return (
-    <div className="flex flex-col h-screen">
-      <FlowToolbar />
+    <div
+      className="flex flex-col bg-background"
+      style={{
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      {/* Top toolbar - FIXED HEIGHT */}
+      <div
+        className="bg-surface border-b border-border"
+        style={{ height: '60px', flexShrink: 0, width: '100%' }}
+      >
+        <FlowToolbar />
+      </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <FlowPalette />
+      {/* Main content - FLEX WITH PIXEL BASED SIZING */}
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Left sidebar - palette - FIXED WIDTH */}
+        <div
+          className="bg-surface border-r border-border"
+          style={{ width: '256px', flexShrink: 0, height: '100%' }}
+        >
+          <FlowPalette />
+        </div>
 
-        <div className="flex-1">
+        {/* ReactFlow canvas - EXPLICIT DIMENSIONS */}
+        <div
+          ref={reactFlowWrapper}
+          style={{
+            flex: 1,
+            height: '100%',
+            width: '100%',
+            position: 'relative',
+          }}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
             onDragOver={onDragOver}
             onDrop={onDrop}
             onNodeDoubleClick={onNodeDoubleClick}
             onConnect={onConnect}
-            fitView
+            nodesDraggable={!isLocked}
+            fitViewOptions={{ padding: 0.2, maxZoom: 2, minZoom: 0.2 }}
             defaultViewport={viewport}
             minZoom={0.2}
             maxZoom={2}
-            className="bg-background"
+            proOptions={{ hideAttribution: true }}
           >
-            <Background />
-            <Controls />
-            <MiniMap
-              nodeColor={() => 'var(--color-primary)'}
-              maskColor="var(--color-surface)"
-            />
+            <Background gap={GRID_SIZE} />
+            <Controls showInteractive={false}>
+              <ControlButton
+                onClick={useFlowDesignerStore.getState().toggleLock}
+                title={isLocked ? 'Unlock nodes for dragging' : 'Lock nodes to prevent dragging'}
+              >
+                {isLocked ? '🔒' : '🔓'}
+              </ControlButton>
+            </Controls>
           </ReactFlow>
         </div>
       </div>

@@ -11,7 +11,7 @@ export function RouterNode({ data, selected }: NodeProps<FlowNodeData>) {
   return (
     <div
       className={`
-        px-4 py-2 rounded-lg border-2 min-w-[180px]
+        px-4 py-3 rounded-lg border-2 min-w-[220px]
         transition-all duration-200
         ${selected ? 'ring-2 ring-warning ring-offset-2' : ''}
       `}
