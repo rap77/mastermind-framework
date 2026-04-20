@@ -26,6 +26,8 @@ SKILLS_WHITELIST = {
     "brain-persistence",
     "discover",
     "safe-commit",
+    "review",
+    "ship",
 }
 AGENTS_WHITELIST = {
     "brain-01-product",
@@ -91,6 +93,8 @@ def detect_stack(target: Path) -> list[str]:
         stack.append("rust")
     if (target / "go.mod").exists():
         stack.append("go")
+    if (target / "CLAUDE.md").exists():
+        stack.append("claude-code")
     return stack or ["unknown"]
 
 
