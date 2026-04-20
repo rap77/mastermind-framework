@@ -1,122 +1,221 @@
-# MasterMind v3.0 — Task List
+# MasterMind Framework v3.0 Completion — Checklist
 
-**Generated:** 2026-04-15
+**Generated:** 2026-04-20
 **Based on:** tasks/plan.md
 
-## Status Legend
-- [ ] Pending
-- [~] In Progress
-- [x] Complete
+---
+
+## PHASE A — Cleanup GSD Dependencies
+
+### A1: Eliminar GSD Wrapper Commands ✅
+- [x] Borrar `.claude/commands/mm/new-milestone.md`
+- [x] Borrar `.claude/commands/mm/plan-phase.md`
+- [x] Borrar `.claude/commands/mm/execute-phase.md`
+- [x] Borrar `.claude/commands/mm/complete-phase.md`
+- [x] Borrar `.claude/commands/mm/verify-task.md`
+- [x] Verificar: `/mm:discover` aparece en autocomplete
+- [x] Verificar: `/mm:complete-task` aparece en autocomplete
+- [x] Verificar: `/mm:safe-commit` aparece en autocomplete
+
+### A2: Eliminar Skills Huerfanos
+- [ ] Borrar directorio `.claude/skills/mm/plan-phase/` (SKILL.md + README.md)
+- [ ] Borrar directorio `.claude/skills/mm/verify-task/` (SKILL.md + assets/ + references/)
+- [ ] Verificar: skills restantes = brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
+- [ ] Verificar: sin referencias a `plan-phase` o `verify-task` en archivos existentes
+
+### A3: Limpiar Agent Markers Huerfanos
+- [ ] Borrar `.planning/.agent-B2-running`
+- [ ] Borrar `.planning/.agent-D1-running`
+- [ ] Borrar `.planning/.agent-D2-running`
+- [ ] Verificar: no hay otros `.agent-*-running` huerfanos en `.planning/`
 
 ---
 
-## PHASE A — Foundation
+## PHASE B — `/mm:init` Command
 
-### A1: Theming Engine
-- [x] Create `apps/web/src/components/theme-provider.tsx` (location differs from plan)
-  - Read from `localStorage("theme")` (note: key is "theme", not "mastermind-theme")
-  - Fallback to `prefers-color-scheme`
-  - Toggle `.dark` class on `<html>`
-  - Export ThemeContext + useTheme hook
-- [x] Create `apps/web/src/components/theme-toggle/theme-toggle.tsx` (location differs from plan)
-  - Sun/moon icons
-  - Smooth icon transition
-- [x] Extend `apps/web/src/app/globals.css` (uses existing Tailwind 4 CSS variables)
-  - Semantic tokens already exist in `@theme inline` block
-  - `--color-primary`, `--color-success`, `--color-warning`, `--color-error`, `--color-info`
-  - `--color-surface`, `--color-border`, `--spacing-*`, `--shadow-*`, `--radius-*`
-- [x] Modify `apps/web/src/app/layout.tsx`
-  - Wrap with ThemeProvider
-- [x] Write 3 unit tests for ThemeProvider
-- [x] Write 1 component test for ThemeToggle
+### B1: Crear init-handler.py
+- [ ] Crear `.claude/commands/mm/init-handler.py`
+- [ ] Implementar flag `--target <path>` (default: CWD)
+- [ ] Implementar flag `--check` (verificar instalacion)
+- [ ] Implementar flag `--force` (sobreescribir)
+- [ ] Implementar deteccion de stack (package.json, pyproject.toml, CLAUDE.md)
+- [ ] Implementar copia de `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers)
+- [ ] Implementar copia de `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)
+- [ ] Implementar copia de `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)
+- [ ] Implementar creacion de `.mastermind/config.yaml` con stack detectado
+- [ ] Output: `STATUS: installed|not-installed` o `ERROR: <reason>`
+- [ ] Proteccion: no sobreescribir sin `--force`
+- [ ] Proteccion: advertir si target == mastermind source
+- [ ] Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`
 
-### A2: UI Redesign — Design Tokens + Base Components
-- [x] Add semantic token block to `apps/web/src/app/globals.css`
-- [x] Redesign `apps/web/src/components/ui/button.tsx` with token variants
-- [x] Redesign `apps/web/src/components/ui/card.tsx` with token variants
-- [x] Redesign `apps/web/src/components/ui/input.tsx` with token variants (added label, error, icons)
-- [x] Redesign `apps/web/src/components/ui/dialog.tsx` with token variants
-- [x] Create `apps/web/src/components/ui/dropdown.tsx`
-- [x] Create `apps/web/src/components/ui/tooltip.tsx`
-- [x] Create `apps/web/src/components/ui/badge.tsx` (replaces StatusBadge)
-- [x] Create `apps/web/src/components/ui/toggle.tsx`
-- [x] Verify zero hardcoded hex in components
-- [x] All 660 tests pass (100% success rate)
+### B2: Crear init.md
+- [ ] Crear `.claude/commands/mm/init.md`
+- [ ] YAML front matter: name `mm:init`, description, argument-hint
+- [ ] Usage con ejemplos (sin flags, --target, --check, --force)
+- [ ] Protocol section: Step 1 ejecutar handler, Step 2 parsear output, Step 3 notificar
+- [ ] Sigue formato de `discover.md`
+- [ ] `/mm:init` aparece en autocomplete de Claude Code
 
----
-
-## PHASE B — Visual Orchestration
-
-### B1: Flow Designer (n8n-style)
-- [x] Create `apps/web/src/components/flow-designer/types.ts`
-- [x] Create `apps/web/src/stores/flowDesignerStore.ts` (457 lines with Immer)
-- [x] Create `apps/web/src/lib/flow-serializer.ts` (export/import JSON + validation)
-- [x] Create `apps/web/src/components/flow-designer/nodes/BrainNode.tsx`
-- [x] Create `apps/web/src/components/flow-designer/nodes/GatewayNode.tsx`
-- [x] Create `apps/web/src/components/flow-designer/nodes/AdapterNode.tsx`
-- [x] Create `apps/web/src/components/flow-designer/nodes/RouterNode.tsx`
-- [x] Create `apps/web/src/components/flow-designer/nodes/ConditionNode.tsx`
-- [x] Create `apps/web/src/components/flow-designer/edges/FlowEdge.tsx`
-- [x] Create `apps/web/src/components/flow-designer/FlowPalette.tsx`
-- [x] Create `apps/web/src/components/flow-designer/FlowToolbar.tsx`
-- [x] Create `apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx`
-- [x] Create `apps/web/src/app/(protected)/flow-designer/page.tsx`
-- [x] Write 10+ tests for flow-serializer (14 tests, all passing)
-- [x] Write 5+ tests for FlowDesignerCanvas (5 tests, all passing)
-
-### B2: Simulation & Replay Engine
-- [x] Create `apps/web/src/stores/simulationStore.ts` (24 tests, ✅ 100% pass)
-- [x] Create `apps/web/src/components/simulation/ReplayControls.tsx` (111 lines)
-- [x] Create `apps/web/src/components/simulation/TimelineScrubber.tsx` (255 lines)
-- [x] Create `apps/web/src/components/simulation/EventLog.tsx` (148 lines)
-- [x] Create `apps/web/src/components/simulation/ErrorSummary.tsx` (81 lines)
-- [x] Create `apps/web/src/components/simulation/SimulationCanvas.tsx` (237 lines)
-- [x] Create `apps/web/src/app/(protected)/simulation/page.tsx` (280 lines)
-- [x] Write 8+ tests for simulationStore (24 tests, ✅ 100% pass)
-- [x] Write 5+ tests for SimulationCanvas (30 tests, ✅ 100% pass)
+### B3: Validar /mm:init End-to-End
+- [ ] Crear directorio vacio `/tmp/test-project`
+- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project`
+- [ ] Verificar: `/tmp/test-project/.mastermind/config.yaml` existe
+- [ ] Verificar: `/tmp/test-project/.claude/commands/mm/` tiene los 5 comandos + handlers
+- [ ] Verificar: `/tmp/test-project/.claude/skills/mm/` tiene skills
+- [ ] Verificar: `/tmp/test-project/.claude/agents/mm/` tiene brains + agents
+- [ ] Ejecutar `python3 init-handler.py --check --target /tmp/test-project` → `STATUS: installed`
+- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project` (sin --force) → advierte
+- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project --force` → sobreescribe
+- [ ] En mastermind: `python3 init-handler.py --check` → `STATUS: installed`
 
 ---
 
-## PHASE C — Phase 19 Completion
+## PHASE C — `/mm:review` Command
 
-### C1: Phase 19-05 Statusline Extension
-- [x] Extend `~/.claude/hooks/mm-flow-statusline.js`
-  - Preserve lines 24-43
-  - Add phase state display
-  - Add active brain status
-- [x] Verify no breaking changes to existing statusline
+### C1: Crear review-handler.py
+- [ ] Crear `.claude/commands/mm/review-handler.py`
+- [ ] Sin flags: generar `git diff` (uncommitted)
+- [ ] Flag `--staged`: generar `git diff --staged`
+- [ ] Flag `--branch <name>`: generar `git diff <name>...HEAD`
+- [ ] Flag `--files <paths>`: leer archivos directamente
+- [ ] Flag `--last-commit`: generar `git diff HEAD~1..HEAD`
+- [ ] Truncar diff a 500 lineas por defecto
+- [ ] Detectar lenguaje de archivos modificados
+- [ ] Output: `MODE`, `SCOPE`, `FILES`, `LINES`, `LAUNCH: code-reviewer`, `PAYLOAD`
+- [ ] Handler ejecuta sin errores: `python3 review-handler.py`
+- [ ] `--staged` genera diff correcto
+- [ ] `--last-commit` genera diff del ultimo commit
+
+### C2: Crear review.md
+- [ ] Crear `.claude/commands/mm/review.md`
+- [ ] YAML front matter: name `mm:review`, description, argument-hint
+- [ ] Usage con 5 modos (default, --staged, --branch, --files, --last-commit)
+- [ ] Protocol: handler -> parse -> launch code-reviewer agent -> notify
+- [ ] Brain integration: Brain #6 + Brain #7
+- [ ] `/mm:review` aparece en autocomplete
+
+### C3: Crear review/SKILL.md
+- [ ] Crear directorio `.claude/skills/mm/review/`
+- [ ] Crear `.claude/skills/mm/review/SKILL.md`
+- [ ] Seccion "Cuando Usar" (proactivo: antes de commit, post-implementation)
+- [ ] Protocolo de review: 5 ejes (correctness, readability, architecture, security, performance)
+- [ ] Brain #6: QA standards, testing strategy, edge cases
+- [ ] Brain #7: Systems thinking, impact analysis, risk assessment
+- [ ] Formato de reporte: `.planning/REVIEWS/<timestamp>-review.md`
+- [ ] Criterios de severidad: CRITICAL / WARNING / SUGGESTION
+- [ ] Sigue formato de `discover/SKILL.md`
+
+### C4: Crear code-reviewer Agent
+- [ ] Crear directorio `.claude/agents/mm/code-reviewer/`
+- [ ] Crear `.claude/agents/mm/code-reviewer/code-reviewer.md`
+- [ ] Recibe payload con diff + contexto
+- [ ] Consulta Brain #6 para QA standards
+- [ ] Consulta Brain #7 para systems evaluation
+- [ ] Genera reporte con 5 secciones (correctness, readability, architecture, security, performance)
+- [ ] Guarda reporte en `.planning/REVIEWS/<timestamp>-review.md`
+- [ ] Sigue formato de `task-executor.md`
+
+### C5: Validar /mm:review
+- [ ] Hacer un cambio pequeno en cualquier archivo (sin commitear)
+- [ ] Ejecutar `python3 review-handler.py` → genera payload con diff
+- [ ] Verificar que payload incluye archivos modificados y diff
+- [ ] `/mm:review --staged` solo genera diff de staged changes
+- [ ] `/mm:review --last-commit` genera diff del ultimo commit
+- [ ] Reporte se guarda en `.planning/REVIEWS/`
 
 ---
 
-## PHASE D — Integration & Polish
+## PHASE D — `/mm:ship` Command
 
-### D1: All Screens Theme-Aware
-- [x] Command Center: replace hardcoded colors with tokens
-- [x] Nexus: replace hardcoded colors with tokens
-- [x] Strategy Vault: replace hardcoded colors with tokens
-- [x] Engine Room: replace hardcoded colors with tokens
-- [x] React Flow canvas adapts to theme (Nexus + Flow Designer)
-- [x] Verify zero hardcoded hex in screen components
-- [x] All 628+ tests pass
+### D1: Crear ship-handler.py
+- [ ] Crear `.claude/commands/mm/ship-handler.py`
+- [ ] Flag `--verify`: solo verificar, no crear tag (dry-run)
+- [ ] Flag `--tag vX.Y.Z`: tag explicito
+- [ ] Flag `--patch`: incrementar patch (default)
+- [ ] Flag `--minor`: incrementar minor
+- [ ] Flag `--major`: incrementar major
+- [ ] Flag `--archive`: solo archivar artefactos
+- [ ] Flag `--cleanup`: solo limpiar archivos temporales
+- [ ] Verificar: no hay cambios uncommitted (`git diff --quiet`)
+- [ ] Verificar: SPEC.md existe
+- [ ] Leer ultimo tag de git (`git describe --tags --abbrev=0`)
+- [ ] Generar changelog desde ultimo tag (`git log vX.Y.Z..HEAD --oneline`)
+- [ ] Calcular siguiente version (patch/minor/major)
+- [ ] Output: `MODE`, `CURRENT_TAG`, `NEXT_TAG`, `CHANGELOG`, `PRECONDITIONS`, `LAUNCH`, `PAYLOAD`
+- [ ] Handler ejecuta sin errores: `python3 ship-handler.py --verify`
 
-### D2: Flow Designer ↔ Simulation Wiring
-- [x] Create `apps/web/src/lib/flow-execution-adapter.ts`
-- [x] Add "Simulate" button to FlowDesignerCanvas
-- [x] Add "Edit Flow" button to SimulationCanvas
-- [x] Handle unmapped nodes gracefully
+### D2: Crear ship.md
+- [ ] Crear `.claude/commands/mm/ship.md`
+- [ ] YAML front matter: name `mm:ship`, description, argument-hint
+- [ ] Usage con flags: --verify, --tag, --patch, --minor, --major, --archive, --cleanup
+- [ ] Protocol: handler -> parse -> launch ship-executor agent -> notify
+- [ ] `/mm:ship` aparece en autocomplete
 
-### D3: End-to-End Verification
-- [ ] Verify 10 Frontend success criteria (F1-F10)
-- [ ] Verify 6 Backend success criteria (B1-B6)
-- [ ] Verify 7 Functional success criteria (X1-X7)
-- [ ] Verify 5 Integration success criteria (I1-I5)
-- [ ] Python: 820+ tests passing
-- [ ] TypeScript: 628+ tests passing
-- [ ] Manual: Flow Designer create → edit → export → import
-- [ ] Manual: Simulation load → replay → detect errors
-- [ ] Manual: Theme toggle light ↔ dark on all 6 screens
+### D3: Crear ship/SKILL.md
+- [ ] Crear directorio `.claude/skills/mm/ship/`
+- [ ] Crear `.claude/skills/mm/ship/SKILL.md`
+- [ ] Seccion "Cuando Usar" (al completar milestone/version)
+- [ ] Pre-condiciones: tests pass, no uncommitted, SPEC exists
+- [ ] Flujo: verify -> tag -> archive -> cleanup
+- [ ] Formato de changelog
+- [ ] Formato de archive: `.planning/archive/<version>/`
+- [ ] Sigue formato de `discover/SKILL.md`
+
+### D4: Crear ship-executor Agent
+- [ ] Crear directorio `.claude/agents/mm/ship-executor/`
+- [ ] Crear `.claude/agents/mm/ship-executor/ship-executor.md`
+- [ ] Ejecutar tests (frontend + backend) y reportar resultado
+- [ ] Crear git tag semantico
+- [ ] Mover `tasks/` a `.planning/archive/<version>/`
+- [ ] Limpiar `.agent-*-running` y `task-progress.json` viejos
+- [ ] Actualizar `.mastermind/config.yaml` con version
+- [ ] Mostrar resumen del ship
+- [ ] Sigue formato de `task-executor.md`
+
+### D5: Validar /mm:ship
+- [ ] Ejecutar `python3 ship-handler.py --verify` → reporta estado
+- [ ] Verificar: reporta ultimo tag correctamente
+- [ ] Verificar: reporta si hay uncommitted changes
+- [ ] Verificar: sugiere proximo tag (patch por defecto)
+- [ ] Ejecutar `python3 ship-handler.py --cleanup` → elimina `.agent-*-running`
+- [ ] Sin crear tag real (usar --verify para pruebas)
 
 ---
 
-**Total: 8 tasks, ~65 subtasks**
-**Critical path: A1 → A2 → B1 → D2 → D3**
+## PHASE E — End-to-End Validation
+
+### E1: Flujo Completo en Proyecto de Prueba
+- [ ] Crear proyecto temporal: `mkdir -p /tmp/mm-test-project && cd /tmp/mm-test-project && git init`
+- [ ] Paso 1: `/mm:init --target /tmp/mm-test-project` → estructura creada
+- [ ] Paso 2: `/mm:discover "App de TODO simple"` → SPEC + plan + todo generados
+- [ ] Paso 3: `/mm:complete-task A1` → subtarea ejecutada
+- [ ] Paso 4: `/mm:review --last-commit` → reporte con 5 secciones generado
+- [ ] Paso 5: `/mm:ship --verify` → estado reportado correctamente
+- [ ] Verificar: cero errores en flujo completo
+- [ ] Verificar: `/mm:discover` y `/mm:complete-task` siguen funcionando post-cleanup
+
+### E2: Commit Final
+- [ ] Stage: archivos nuevos (init, review, ship commands + handlers + skills + agents)
+- [ ] Stage: archivos eliminados (GSD wrappers + skills huerfanos + markers)
+- [ ] Verificar: tests existentes pasan (backend + frontend)
+- [ ] Commit: `feat(mm-commands): add init, review, ship commands and remove GSD wrappers`
+- [ ] Verificar: `/mm:discover` funciona post-commit
+- [ ] Verificar: `/mm:complete-task` funciona post-commit
+- [ ] Verificar: `/mm:safe-commit` funciona post-commit
+
+---
+
+## Summary
+
+| Phase | Tasks | Items | Status |
+|-------|-------|-------|--------|
+| A — Cleanup | 3 | 16 | [ ] |
+| B — Init | 3 | 22 | [ ] |
+| C — Review | 5 | 26 | [ ] |
+| D — Ship | 5 | 24 | [ ] |
+| E — E2E | 2 | 13 | [ ] |
+| **Total** | **18** | **101** | **[ ]** |
+
+**Archivos nuevos:** ~14
+**Archivos eliminados:** ~10
+**Estimacion:** 3-4 horas de trabajo
