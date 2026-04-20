@@ -23,11 +23,11 @@
 - [x] Verificar: skills restantes = brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
 - [x] Verificar: sin referencias a `plan-phase` o `verify-task` en archivos existentes
 
-### A3: Limpiar Agent Markers Huerfanos
-- [ ] Borrar `.planning/.agent-B2-running`
-- [ ] Borrar `.planning/.agent-D1-running`
-- [ ] Borrar `.planning/.agent-D2-running`
-- [ ] Verificar: no hay otros `.agent-*-running` huerfanos en `.planning/`
+### A3: Limpiar Agent Markers Huerfanos ✅
+- [x] Borrar `.planning/.agent-B2-running`
+- [x] Borrar `.planning/.agent-D1-running`
+- [x] Borrar `.planning/.agent-D2-running`
+- [x] Verificar: no hay otros `.agent-*-running` huerfanos en `.planning/`
 
 ---
 

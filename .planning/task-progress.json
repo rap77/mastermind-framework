@@ -1,30 +1,30 @@
 {
-  "task_id": "A2",
-  "session_id": "sess-20260420-104526",
-  "started_at": "2026-04-20T10:45:26.517484",
+  "task_id": "A3",
+  "session_id": "sess-20260420-110125",
+  "started_at": "2026-04-20T11:01:25.517484",
   "phase": 19,
   "subtasks": {
-    "A2.1": {
-      "description": "Borrar directorio `.claude/skills/mm/plan-phase/` (SKILL.md + README.md)",
+    "A3.1": {
+      "description": "Borrar `.planning/.agent-B2-running`",
       "status": "completed",
       "retries": 0
     },
-    "A2.2": {
-      "description": "Borrar directorio `.claude/skills/mm/verify-task/` (SKILL.md + assets/ + references/)",
+    "A3.2": {
+      "description": "Borrar `.planning/.agent-D1-running`",
       "status": "completed",
       "retries": 0
     },
-    "A2.3": {
-      "description": "Verificar: skills restantes = brain-context, brain-persistence, discover, mastermind-consultant, safe-commit",
+    "A3.3": {
+      "description": "Borrar `.planning/.agent-D2-running`",
       "status": "completed",
       "retries": 0
     },
-    "A2.4": {
-      "description": "Verificar: sin referencias a `plan-phase` o `verify-task` en archivos existentes",
+    "A3.4": {
+      "description": "Verificar: no hay otros `.agent-*-running` huerfanos en `.planning/`",
       "status": "completed",
       "retries": 0
     }
   },
-  "last_checkpoint": "All 4 subtasks completed - Skills huérfanos eliminados correctamente",
+  "last_checkpoint": "All 4 subtasks completed - Agent marker huerfanos eliminados",
   "context_budget_exit": null
 }
