@@ -69,13 +69,25 @@ export default function SimulationPage() {
 
   // Navigate to flow designer
   const handleEditFlow = async () => {
+    const isMounted = { current: true }
     try {
       setIsNavigating(true)
+      // Save graph snapshot to sessionStorage so FlowDesigner can load it
+      if (currentExecution?.graph_snapshot) {
+        sessionStorage.setItem(
+          'flow-designer-pending-load',
+          JSON.stringify(currentExecution.graph_snapshot),
+        )
+      }
       await router.push('/flow-designer')
     } catch (error) {
-      console.warn('Router not available:', error)
+      if (isMounted.current) {
+        console.warn('Router not available:', error)
+      }
     } finally {
-      setIsNavigating(false)
+      if (isMounted.current) {
+        setIsNavigating(false)
+      }
     }
   }
 
@@ -106,6 +118,16 @@ export default function SimulationPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => router.push('/nexus')}
+            className="px-4 py-2 rounded text-sm font-medium border transition-colors hover:bg-muted"
+            style={{
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-foreground)',
+            }}
+          >
+            Explore
+          </button>
           <button
             onClick={handleExport}
             className="px-4 py-2 rounded text-sm font-medium border transition-colors hover:bg-muted"
@@ -144,7 +166,7 @@ export default function SimulationPage() {
           className="flex-1 flex items-center justify-center"
         >
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+            <LoadingSpinner size="lg" />
             <p className="mt-2 text-sm text-muted-foreground">Loading execution...</p>
           </div>
         </div>
@@ -216,7 +238,7 @@ export default function SimulationPage() {
       <ReplayControls />
 
       {/* Main Canvas Area */}
-      <div className="flex-1 px-6 py-4 overflow-hidden">
+      <div className="px-6 py-4 overflow-hidden" style={{ height: '60vh' }}>
         <SimulationCanvas />
       </div>
 

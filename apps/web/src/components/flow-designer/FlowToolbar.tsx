@@ -30,7 +30,7 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReactFlow } from '@xyflow/react'
 import { toastError } from '@/lib/toast'
-import { exportFlowToFile, importFlow } from '@/lib/flow-serializer'
+import { exportFlowToFile, importFlow, SerializerError } from '@/lib/flow-serializer'
 import { useFlowDesignerStore } from '@/stores/flowDesignerStore'
 import {
   Dialog,
@@ -43,8 +43,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-// File size limit for JSON import (5MB)
-const MAX_JSON_FILE_SIZE = 5 * 1024 * 1024
+// File size limit for JSON import (configurable via env, defaults to 5MB)
+const MAX_JSON_FILE_SIZE = Number(process.env.NEXT_PUBLIC_MAX_JSON_SIZE_MB || 5) * 1024 * 1024
 
 export function FlowToolbar() {
   const router = useRouter()
@@ -55,11 +55,18 @@ export function FlowToolbar() {
   const [isImporting, setIsImporting] = useState(false)
 
   const handleExport = useCallback(() => {
-    const flow = {
-      id: 'flow-1',
-      name: 'My Flow',
+    const { flowId, flowName, viewport } = useFlowDesignerStore.getState()
+    const flow: import('@/components/flow-designer/types').FlowDefinition = {
+      id: flowId || `flow-${Date.now()}`,
+      name: flowName || 'My Flow',
       nodes,
       edges,
+      viewport,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: '1.0.0',
+      },
     }
     exportFlowToFile(flow)
   }, [nodes, edges])
@@ -81,8 +88,9 @@ export function FlowToolbar() {
         return
       }
 
-      // Validate file type
-      if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+      // Validate file type (accept if EITHER check passes)
+      const isValidJson = file.name.endsWith('.json') || file.type === 'application/json'
+      if (!isValidJson) {
         toastError('Invalid file type. Please select a JSON file.')
         return
       }
@@ -91,11 +99,34 @@ export function FlowToolbar() {
       const reader = new FileReader()
       reader.onload = (event) => {
         try {
-          const json = event.target?.result as string
-          const flow = importFlow(json)
+          const json = event.target?.result
+          if (typeof json !== 'string') {
+            throw new Error('Failed to read file content')
+          }
+          const parsed = JSON.parse(json)
+
+          // Support both FlowDefinition format and raw graph format ({ nodes, edges })
+          let flow
+          if (parsed.nodes && parsed.edges) {
+            flow = importFlow(JSON.stringify({
+              id: parsed.id || `flow-${Date.now()}`,
+              name: parsed.name || 'Imported Flow',
+              nodes: parsed.nodes,
+              edges: parsed.edges,
+              viewport: parsed.viewport,
+              metadata: parsed.metadata,
+            }))
+          } else {
+            flow = importFlow(json)
+          }
+
           useFlowDesignerStore.getState().loadFlow(flow)
         } catch (error) {
-          toastError('Failed to parse JSON file. Please check the file format.')
+          if (error instanceof SerializerError) {
+            toastError(error.message)
+          } else {
+            toastError('Failed to parse JSON file. Please check the file format.')
+          }
           console.error('Import failed:', error)
         } finally {
           setIsImporting(false)
@@ -123,15 +154,20 @@ export function FlowToolbar() {
   const handleSimulate = useCallback(async () => {
     // Navigate to simulation page
     // The current flow state is automatically available in the store
+    const isMounted = { current: true }
     try {
       setIsNavigating(true)
       await router.push('/simulation')
     } catch (error) {
       // Router not available (e.g., in test environment)
-      toastError('Failed to open simulation. Please try again.')
-      console.warn('Router not available:', error)
+      if (isMounted.current) {
+        toastError('Failed to open simulation. Please try again.')
+        console.warn('Router not available:', error)
+      }
     } finally {
-      setIsNavigating(false)
+      if (isMounted.current) {
+        setIsNavigating(false)
+      }
     }
   }, [router])
 

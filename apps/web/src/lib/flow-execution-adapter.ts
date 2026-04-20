@@ -14,29 +14,7 @@
 
 import type { FlowDefinition, FlowNode } from '@/components/flow-designer/types'
 import type { Execution } from '@/stores/simulationStore'
-
-// Environment-aware logging
-const isDevelopment = process.env.NODE_ENV === 'development'
-
-/**
- * logWarning — environment-aware logging utility
- *
- * Logs warnings in development with structured context.
- * In production, warnings are silenced but could be sent to a logging service.
- *
- * @param context - logging context (e.g., 'brain_output_validation')
- * @param message - warning message
- * @param data - additional data to log
- */
-function logWarning(context: string, message: string, data?: unknown) {
-  if (isDevelopment) {
-    console.warn(`[flow-execution-adapter:${context}] ${message}`, data || '')
-  }
-  // Placeholder for production logging service:
-  // if (!isDevelopment) {
-  //   logToService('flow_execution_warning', { context, message, data })
-  // }
-}
+import { logger } from '@/lib/logger'
 
 // ─── Type Guards ────────────────────────────────────────────────────────────────
 
@@ -115,10 +93,14 @@ export function adaptExecutionToFlow(execution: Execution): FlowDefinition {
   // Extract edges from snapshot (default to empty array)
   const edges = Array.isArray(snapshot.edges) ? snapshot.edges : []
 
+  // Extract snapshot properties with proper type guards
+  const snapshotId = typeof snapshot.id === 'string' ? snapshot.id : execution.id
+  const snapshotName = typeof snapshot.name === 'string' ? snapshot.name : execution.brief
+
   // Build FlowDefinition
   return {
-    id: snapshot.id || execution.id,
-    name: snapshot.name || execution.brief || `Execution ${execution.id}`,
+    id: snapshotId,
+    name: snapshotName || `Execution ${execution.id}`,
     description: snapshot.description,
     nodes,
     edges,
@@ -158,10 +140,10 @@ export function mapExecutionEventsToNodes(
   Object.entries(execution.brain_outputs || {}).forEach(([brainId, output]) => {
     // Validate brain output structure
     if (!isValidBrainOutput(output)) {
-      logWarning('brain_output_validation', `Invalid brain output for brain_id: ${brainId}`, {
-        brainId,
-        output,
-      })
+      logger.warn(
+        `[flow-execution-adapter:brain_output_validation] Invalid brain output for brain_id: ${brainId}`,
+        { brainId, output }
+      )
       return
     }
 

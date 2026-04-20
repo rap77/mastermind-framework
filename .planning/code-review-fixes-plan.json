@@ -1,0 +1,88 @@
+{
+  "task_id": "D3-CODE-REVIEW-FIXES",
+  "title": "Implement All Code-Review Recommendations",
+  "description": "Implement 3 critical + 5 important + 2 suggestions from D3 code-review",
+  "subtasks": [
+    {
+      "id": "FIX-1",
+      "description": "Create ThemeProvider.tsx with React context (light/dark mode, localStorage persistence)",
+      "severity": "CRITICAL",
+      "files": ["apps/web/src/components/theme/ThemeProvider.tsx"]
+    },
+    {
+      "id": "FIX-2",
+      "description": "Create ThemeToggle.tsx with sun/moon icons and useTheme hook",
+      "severity": "CRITICAL",
+      "files": ["apps/web/src/components/theme/ThemeToggle.tsx"]
+    },
+    {
+      "id": "FIX-3",
+      "description": "Fix TimelineScrubber memory leak - event listener cleanup bug",
+      "severity": "CRITICAL",
+      "files": ["apps/web/src/components/simulation/TimelineScrubber.tsx"]
+    },
+    {
+      "id": "FIX-4",
+      "description": "Add accessibility labels (aria-label, aria-describedby) to FlowPalette draggable items",
+      "severity": "CRITICAL",
+      "files": ["apps/web/src/components/flow-designer/FlowPalette.tsx"]
+    },
+    {
+      "id": "FIX-5",
+      "description": "Fix TimelineScrubber performance - unnecessary re-renders in milestonePositions useMemo",
+      "severity": "IMPORTANT",
+      "files": ["apps/web/src/components/simulation/TimelineScrubber.tsx"]
+    },
+    {
+      "id": "FIX-6",
+      "description": "Create FlowDesignerErrorBoundary and SimulationErrorBoundary components",
+      "severity": "IMPORTANT",
+      "files": [
+        "apps/web/src/components/error/FlowDesignerErrorBoundary.tsx",
+        "apps/web/src/components/error/SimulationErrorBoundary.tsx"
+      ]
+    },
+    {
+      "id": "FIX-7",
+      "description": "Extract magic numbers to constants.ts (SIMULATION, FILE_IMPORT, ACCESSIBILITY, ZOOM)",
+      "severity": "IMPORTANT",
+      "files": ["apps/web/src/config/constants.ts"]
+    },
+    {
+      "id": "FIX-8",
+      "description": "Add loading and error states to SimulationCanvas",
+      "severity": "IMPORTANT",
+      "files": ["apps/web/src/components/simulation/SimulationCanvas.tsx"]
+    },
+    {
+      "id": "FIX-9",
+      "description": "Create centralized error handling (SimulationError, FlowValidationError, handleComponentError)",
+      "severity": "IMPORTANT",
+      "files": ["apps/web/src/lib/errors.ts"]
+    },
+    {
+      "id": "FIX-10",
+      "description": "Enable TypeScript strict mode in tsconfig.json",
+      "severity": "SUGGESTION",
+      "files": ["apps/web/tsconfig.json"]
+    },
+    {
+      "id": "FIX-11",
+      "description": "Add comprehensive JSDoc documentation to all components",
+      "severity": "SUGGESTION",
+      "files": [
+        "apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx",
+        "apps/web/src/components/flow-designer/FlowPalette.tsx",
+        "apps/web/src/components/flow-designer/FlowToolbar.tsx",
+        "apps/web/src/components/simulation/SimulationCanvas.tsx",
+        "apps/web/src/components/simulation/TimelineScrubber.tsx",
+        "apps/web/src/components/simulation/ReplayControls.tsx",
+        "apps/web/src/components/simulation/EventLog.tsx"
+      ]
+    }
+  ],
+  "total_subtasks": 11,
+  "critical_count": 4,
+  "important_count": 5,
+  "suggestion_count": 2
+}
