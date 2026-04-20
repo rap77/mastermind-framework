@@ -231,8 +231,8 @@ describe('simulationStore', () => {
       // Start playback
       store.play()
 
-      // Wait for animation frame to advance timeline
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for timeline to advance (BASE_DELAY_MS = 1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1100))
 
       // Timeline should have advanced
       const newStore = useSimulationStore.getState()

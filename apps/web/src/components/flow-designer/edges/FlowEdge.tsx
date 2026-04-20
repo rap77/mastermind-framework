@@ -17,6 +17,30 @@ import {
 } from '@xyflow/react'
 import type { FlowEdge } from '../types'
 
+/**
+ * Calculates the midpoint of an edge for label positioning
+ *
+ * @param sourceX - Source node X coordinate
+ * @param sourceY - Source node Y coordinate
+ * @param targetX - Target node X coordinate
+ * @param targetY - Target node Y coordinate
+ * @returns Object with x, y coordinates of the midpoint
+ * @example
+ * const center = getEdgeCenter(0, 0, 100, 100)
+ * // Returns: { x: 50, y: 50 }
+ */
+export const getEdgeCenter = (
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number
+): { x: number; y: number } => {
+  return {
+    x: (sourceX + targetX) / 2,
+    y: (sourceY + targetY) / 2,
+  }
+}
+
 export const FlowEdge = memo(
   ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, label, selected }: EdgeProps<FlowEdge>) => {
     const [edgePath] = getSmoothStepPath({
@@ -30,8 +54,7 @@ export const FlowEdge = memo(
     })
 
     // Calculate midpoint for label positioning
-    const labelX = (sourceX + targetX) / 2
-    const labelY = (sourceY + targetY) / 2
+    const { x: labelX, y: labelY } = getEdgeCenter(sourceX, sourceY, targetX, targetY)
 
     return (
       <>

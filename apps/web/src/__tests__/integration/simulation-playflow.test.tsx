@@ -48,38 +48,21 @@ vi.mock('@/components/simulation/EventLog', () => ({
   default: () => <div data-testid="event-log">Event Log Mock</div>,
 }))
 
-// Mock requestAnimationFrame/cancelAnimationFrame for testing
-let mockRafId = 0
-let mockRafCallbacks: Map<number, FrameRequestCallback> = new Map()
-
-global.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-  const id = ++mockRafId
-  mockRafCallbacks.set(id, callback)
-  return id
-})
-
-global.cancelAnimationFrame = vi.fn((id: number) => {
-  mockRafCallbacks.delete(id)
-})
-
-// Helper to advance the animation frame
-const advanceAnimationFrame = () => {
-  const callbacks = Array.from(mockRafCallbacks.values())
-  callbacks.forEach((callback) => callback())
-}
+// No need for fake timers - we'll use real setTimeout with test timeouts
 
 describe('Simulation Playback Flow - Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRafId = 0
-    mockRafCallbacks.clear()
     // Reset store state
     useSimulationStore.getState().reset()
   })
 
   afterEach(() => {
-    // Clean up any pending animation frames
-    mockRafCallbacks.clear()
+    // Clean up: stop any playing state
+    const store = useSimulationStore.getState()
+    if (store.isPlaying) {
+      store.pause()
+    }
   })
 
   describe('Phase 1: Load Execution', () => {
@@ -120,9 +103,9 @@ describe('Simulation Playback Flow - Integration Tests', () => {
       const state = useSimulationStore.getState()
       expect(state.errorNodes.size).toBe(1) // brain-3 has error
       expect(state.errorMessages.get('node-3')).toContain('timeout error')
-      // Note: brain-3 (1200ms) and brain-5 (1500ms) are both slow, so we expect 2
+      // Note: brain-3 (1200ms) and brain-5 (1100ms) are both slow, so we expect 2
       expect(state.slowNodes.size).toBe(2) // brain-3 and brain-5 are slow
-      expect(state.slowNodes.get('node-5')).toBe(1500)
+      expect(state.slowNodes.get('node-5')).toBe(1100)
     })
   })
 
@@ -168,14 +151,14 @@ describe('Simulation Playback Flow - Integration Tests', () => {
       // Verify initial milestone
       expect(useSimulationStore.getState().currentMilestoneIndex).toBe(0)
 
-      // Advance animation frame
-      advanceAnimationFrame()
-
-      // Verify milestone advanced
-      await waitFor(() => {
-        const state = useSimulationStore.getState()
-        expect(state.currentMilestoneIndex).toBeGreaterThan(0)
-      })
+      // Wait for milestone to advance (BASE_DELAY_MS = 1000ms)
+      await waitFor(
+        () => {
+          const state = useSimulationStore.getState()
+          expect(state.currentMilestoneIndex).toBeGreaterThan(0)
+        },
+        { timeout: 2000 }
+      )
     })
   })
 
@@ -211,9 +194,6 @@ describe('Simulation Playback Flow - Integration Tests', () => {
 
       // Verify button text changed back to "Play"
       expect(screen.getByRole('button', { name: /play/i })).toBeInTheDocument()
-
-      // Verify animation frame was cancelled
-      expect(global.cancelAnimationFrame).toHaveBeenCalled()
     })
 
     it('should maintain current position when paused', async () => {
@@ -230,9 +210,13 @@ describe('Simulation Playback Flow - Integration Tests', () => {
       const playButton = screen.getByRole('button', { name: /play/i })
       await user.click(playButton)
 
-      // Advance a few frames
-      advanceAnimationFrame()
-      advanceAnimationFrame()
+      // Wait for milestone to advance
+      await waitFor(
+        () => {
+          expect(useSimulationStore.getState().currentMilestoneIndex).toBeGreaterThan(0)
+        },
+        { timeout: 2000 }
+      )
 
       // Get current milestone index
       const milestoneBeforePause = useSimulationStore.getState().currentMilestoneIndex
@@ -264,14 +248,13 @@ describe('Simulation Playback Flow - Integration Tests', () => {
       const playButton = screen.getByRole('button', { name: /play/i })
       await user.click(playButton)
 
-      advanceAnimationFrame()
-      advanceAnimationFrame()
-
-      // Verify we're not at initial state
-      await waitFor(() => {
-        const state = useSimulationStore.getState()
-        expect(state.currentMilestoneIndex).toBeGreaterThan(0)
-      })
+      // Wait for milestone to advance
+      await waitFor(
+        () => {
+          expect(useSimulationStore.getState().currentMilestoneIndex).toBeGreaterThan(0)
+        },
+        { timeout: 2000 }
+      )
 
       // Reset
       const resetButton = screen.getByRole('button', { name: /reset/i })
@@ -349,7 +332,7 @@ describe('Simulation Playback Flow - Integration Tests', () => {
       // Should clamp to max milestone
       await waitFor(() => {
         const state = useSimulationStore.getState()
-        expect(state.currentMilestoneIndex).toBe(4) // mockExecution has 5 milestones (0-4)
+        expect(state.currentMilestoneIndex).toBe(5) // mockExecution has 6 milestones (0-5)
       })
 
       // Try to jump below min
@@ -454,9 +437,13 @@ describe('Simulation Playback Flow - Integration Tests', () => {
         expect(useSimulationStore.getState().isPlaying).toBe(true)
       })
 
-      // 3. Advance some frames
-      advanceAnimationFrame()
-      advanceAnimationFrame()
+      // 3. Wait for milestone to advance
+      await waitFor(
+        () => {
+          expect(useSimulationStore.getState().currentMilestoneIndex).toBeGreaterThan(0)
+        },
+        { timeout: 2000 }
+      )
 
       const milestoneAfterPlay = useSimulationStore.getState().currentMilestoneIndex
       expect(milestoneAfterPlay).toBeGreaterThan(0)

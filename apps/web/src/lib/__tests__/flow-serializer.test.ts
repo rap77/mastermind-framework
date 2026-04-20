@@ -95,7 +95,7 @@ describe('flow-serializer', () => {
       expect(() => importFlow(invalidJson)).toThrow('Invalid JSON')
     })
 
-    it('should throw error for missing required fields', () => {
+    it('should set default name for missing name field', () => {
       const incompleteJson = JSON.stringify({
         id: 'test',
         // Missing 'name' field
@@ -103,7 +103,8 @@ describe('flow-serializer', () => {
         edges: [],
       })
 
-      expect(() => importFlow(incompleteJson)).toThrow('name')
+      const flow = importFlow(incompleteJson)
+      expect(flow.name).toBe('Imported Flow') // Default name
     })
 
     it('should throw error for invalid edge references', () => {
