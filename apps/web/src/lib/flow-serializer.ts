@@ -88,10 +88,7 @@ export function importFlow(json: string): FlowDefinition {
     }
 
     if (!data.name || typeof data.name !== 'string') {
-      throw new SerializerError(
-        'Flow must have a name field',
-        'MISSING_NAME',
-      )
+      data.name = 'Imported Flow'
     }
 
     if (!Array.isArray(data.nodes)) {

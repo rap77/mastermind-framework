@@ -38,6 +38,9 @@ interface FlowDesignerState {
   // Validation state
   orphanedNodeCount: number
 
+  // Canvas lock state
+  isLocked: boolean
+
   // Actions — Node management
   addNode: (node: FlowNode) => void
   removeNode: (nodeId: string) => void
@@ -67,6 +70,9 @@ interface FlowDesignerState {
 
   // Actions — Validation
   validateFlow: () => { valid: boolean; errors: string[] }
+
+  // Actions — Canvas lock
+  toggleLock: () => void
 
   // Actions — Utilities
   getNodeById: (nodeId: string) => FlowNode | undefined
@@ -100,6 +106,7 @@ export const useFlowDesignerStore = create<FlowDesignerState>()(
       flowName: 'Untitled Flow',
       isDirty: false,
       orphanedNodeCount: 0,
+      isLocked: false,
 
       // ─── Node Management ───────────────────────────────────────────────────────
 
@@ -352,6 +359,15 @@ export const useFlowDesignerStore = create<FlowDesignerState>()(
       markClean: () => {
         set((state) => {
           state.isDirty = false
+        })
+      },
+
+      /**
+       * toggleLock — toggles the canvas lock state (prevents node dragging)
+       */
+      toggleLock: () => {
+        set((state) => {
+          state.isLocked = !state.isLocked
         })
       },
 

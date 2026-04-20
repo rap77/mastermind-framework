@@ -120,6 +120,12 @@ interface SimulationState {
 
 const SLOW_NODE_THRESHOLD_MS = 1000 // 1 second = perceptible delay
 
+// ─── Selector caches (prevent infinite loops from unstable references) ────────
+
+const EMPTY_EVENTS: SimulationEvent[] = []
+let _cachedFilteredEvents: SimulationEvent[] = EMPTY_EVENTS
+let _cachedFilterKey = ''
+
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
 /**
@@ -365,9 +371,9 @@ export const useSimulationStore = create<SimulationState>()(
     reset: () => {
       const state = get()
 
-      // Cancel any pending animation frame
+      // Cancel any pending timeout
       if (state.playbackFrameId !== null) {
-        cancelAnimationFrame(state.playbackFrameId)
+        clearTimeout(state.playbackFrameId)
       }
 
       set((state) => {
@@ -389,7 +395,8 @@ export const useSimulationStore = create<SimulationState>()(
     // ─── Playback Controls ───────────────────────────────────────────────────────
 
     /**
-     * play — starts playback from current position using requestAnimationFrame
+     * play — starts playback from current position
+     * Uses setTimeout with configurable delay per milestone step
      */
     play: () => {
       const state = get()
@@ -404,8 +411,10 @@ export const useSimulationStore = create<SimulationState>()(
         state.isPlaying = true
       })
 
-      // Start the animation loop
-      const animate = () => {
+      // Base delay between milestones (ms) — adjusted by playback speed
+      const BASE_DELAY_MS = 1000 // 1 second per step at 1x speed
+
+      const step = () => {
         const currentState = get()
 
         // Stop if not playing or no execution
@@ -426,29 +435,31 @@ export const useSimulationStore = create<SimulationState>()(
           state.currentMilestoneIndex = state.currentMilestoneIndex + 1
         })
 
-        // Schedule next frame (adjusted by playback speed)
-        const frameId = requestAnimationFrame(animate)
+        // Schedule next step with speed-adjusted delay
+        const delay = BASE_DELAY_MS / currentState.playbackSpeed
+        const frameId = window.setTimeout(step, delay)
         set((state) => {
           state.playbackFrameId = frameId
         })
       }
 
-      // Start the loop
-      const frameId = requestAnimationFrame(animate)
+      // Start the loop with initial delay
+      const delay = BASE_DELAY_MS / state.playbackSpeed
+      const frameId = window.setTimeout(step, delay)
       set((state) => {
         state.playbackFrameId = frameId
       })
     },
 
     /**
-     * pause — pauses playback and cancels animation frame
+     * pause — pauses playback and cancels timer
      */
     pause: () => {
       const state = get()
 
-      // Cancel the animation frame
+      // Cancel the timeout
       if (state.playbackFrameId !== null) {
-        cancelAnimationFrame(state.playbackFrameId)
+        clearTimeout(state.playbackFrameId)
       }
 
       set((state) => {
@@ -533,21 +544,30 @@ export const useSimulationStore = create<SimulationState>()(
 
     /**
      * getFilteredEvents — returns events up to current milestone timestamp
+     * Uses module-level cache to return stable references (prevents infinite loops)
      * @returns Array of SimulationEvent filtered by current position
      */
     getFilteredEvents: () => {
       const state = get()
 
       if (!state.currentExecution || state.currentExecution.milestones.length === 0) {
-        return []
+        return EMPTY_EVENTS
       }
 
       const currentMilestone = state.currentExecution.milestones[state.currentMilestoneIndex]
       if (!currentMilestone) {
-        return []
+        return EMPTY_EVENTS
       }
 
-      return filterEventsByTimestamp(state.filteredEvents, currentMilestone.timestamp)
+      // Cache key: milestone index + timestamp + events length
+      const cacheKey = `${state.currentMilestoneIndex}-${currentMilestone.timestamp}-${state.filteredEvents.length}`
+      if (cacheKey === _cachedFilterKey) {
+        return _cachedFilteredEvents
+      }
+
+      _cachedFilteredEvents = filterEventsByTimestamp(state.filteredEvents, currentMilestone.timestamp)
+      _cachedFilterKey = cacheKey
+      return _cachedFilteredEvents
     },
 
     /**
@@ -608,16 +628,30 @@ export const useSlowNodes = () => useSimulationStore((state) => state.slowNodes)
 
 /**
  * useErrorSummary — selector hook for computed error summary
+ * Uses shallow comparison to prevent infinite loops
  */
-export const useErrorSummary = () => useSimulationStore((state) => state.getErrorSummary())
+export const useErrorSummary = () =>
+  useSimulationStore(
+    (state) => state.getErrorSummary(),
+    (a, b) =>
+      a.totalErrors === b.totalErrors &&
+      a.slowNodes === b.slowNodes &&
+      a.totalTime === b.totalTime,
+  )
 
 /**
  * useFilteredEvents — selector hook for filtered events
+ * getFilteredEvents() returns cached stable references
  */
-export const useFilteredEvents = () => useSimulationStore((state) => state.getFilteredEvents())
+export const useFilteredEvents = () =>
+  useSimulationStore((state) => state.getFilteredEvents())
 
 /**
  * useCurrentGraphSnapshot — selector hook for current graph snapshot
+ * Uses reference comparison to prevent infinite loops
  */
 export const useCurrentGraphSnapshot = () =>
-  useSimulationStore((state) => state.getCurrentGraphSnapshot())
+  useSimulationStore(
+    (state) => state.getCurrentGraphSnapshot(),
+    (a, b) => a === b, // Reference comparison is fine for null/object
+  )
