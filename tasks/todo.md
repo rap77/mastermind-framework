@@ -17,11 +17,11 @@
 - [x] Verificar: `/mm:complete-task` aparece en autocomplete
 - [x] Verificar: `/mm:safe-commit` aparece en autocomplete
 
-### A2: Eliminar Skills Huerfanos
-- [ ] Borrar directorio `.claude/skills/mm/plan-phase/` (SKILL.md + README.md)
-- [ ] Borrar directorio `.claude/skills/mm/verify-task/` (SKILL.md + assets/ + references/)
-- [ ] Verificar: skills restantes = brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
-- [ ] Verificar: sin referencias a `plan-phase` o `verify-task` en archivos existentes
+### A2: Eliminar Skills Huerfanos ✅
+- [x] Borrar directorio `.claude/skills/mm/plan-phase/` (SKILL.md + README.md)
+- [x] Borrar directorio `.claude/skills/mm/verify-task/` (SKILL.md + assets/ + references/)
+- [x] Verificar: skills restantes = brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
+- [x] Verificar: sin referencias a `plan-phase` o `verify-task` en archivos existentes
 
 ### A3: Limpiar Agent Markers Huerfanos
 - [ ] Borrar `.planning/.agent-B2-running`
