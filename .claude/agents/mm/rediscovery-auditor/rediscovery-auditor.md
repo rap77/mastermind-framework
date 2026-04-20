@@ -15,36 +15,93 @@
 
 ## Protocol
 
-### Step 1: Audit Context Collection
+### Step 1: Fingerprint Project Structure
 
 ```python
-# Read all project files
+# Detect project structure and available stacks using agnostic core
 import subprocess
 from pathlib import Path
+import sys
 
-# Files to read
-context_files = {
-    "README.md": None,
-    "CLAUDE.md": None,
-    "tasks/plan.md": None,
-    "tasks/todo.md": None,
-    "SPEC.md": None,
-}
+# Add rediscovery core to path
+sys.path.insert(0, str(Path(__file__).parent))
 
-# Read existing files
-for file_path in context_files:
+from core.detector import ProjectDetector
+from core.orchestrator import Orchestrator
+
+# Step 1: Detect project fingerprint
+detector = ProjectDetector(Path.cwd())
+fingerprint = detector.detect()
+
+# Fingerprint contains:
+# - type: "monolito" or "monorepo"
+# - stacks: ["python", "node", "rust", "go"]
+# - structure: per-stack analysis (package manager, src/tests dirs)
+
+print(f"Project Type: {fingerprint['type']}")
+print(f"Stacks Detected: {', '.join(fingerprint['stacks'])}")
+```
+
+---
+
+### Step 2: Execute Multi-Stack Analysis
+
+```python
+# Step 2: Execute all strategies based on fingerprint
+orchestrator = Orchestrator(Path.cwd(), fingerprint)
+health_results = orchestrator.execute_all()
+
+# Results contain per-stack analysis:
+# - tests: passing/failing/skipped counts
+# - deps: outdated/vulnerable packages
+# - code: files, lines_of_code, modules
+# - coverage: percentage (if available)
+# - status: "success", "error", or "skipped"
+
+for stack_name, results in health_results.items():
+    if results.get("status") == "success":
+        print(f"{stack_name.title()}: Tests {results['tests']['passing']} passing")
+    else:
+        print(f"{stack_name.title()}: {results.get('reason', 'Failed')}")
+```
+
+---
+
+### Step 3: Generate Health Report
+
+```python
+# Step 3: Generate markdown health report
+health_report = orchestrator.format_health_report()
+
+# Save to planning directory
+health_path = Path(".planning/HEALTH-CHECK.md")
+health_path.parent.mkdir(exist_ok=True)
+health_path.write_text(health_report)
+
+print(f"Health report saved to {health_path}")
+```
+
+---
+
+### Step 4: Collect Context Files
+
+```python
+# Step 4: Read key project files (simplified)
+context_files = {}
+
+files_to_read = [
+    "README.md",
+    "CLAUDE.md",
+    "SPEC.md",
+    "tasks/plan.md",
+    "tasks/todo.md",
+]
+
+for file_path in files_to_read:
     full_path = Path(file_path)
     if full_path.exists():
         with open(full_path, 'r') as f:
             context_files[file_path] = f.read()
-
-# Read .planning directory
-planning_dir = Path(".planning")
-planning_files = {}
-if planning_dir.exists():
-    for file_path in planning_dir.glob("**/*.md"):
-        with open(file_path, 'r') as f:
-            planning_files[str(file_path)] = f.read()
 
 # Get git history
 git_log = subprocess.run(
@@ -53,111 +110,45 @@ git_log = subprocess.run(
     text=True
 ).stdout.strip()
 
-git_status = subprocess.run(
-    ["git", "status", "--porcelain"],
-    capture_output=True,
-    text=True
-).stdout.strip()
-
-# Get recent commits (detailed)
-git_diff = subprocess.run(
-    ["git", "diff", "--stat", "HEAD~5..HEAD"],
-    capture_output=True,
-    text=True
-).stdout.strip()
-
-context = {
-    "files": context_files,
-    "planning": planning_files,
-    "git": {
-        "log": git_log,
-        "status": git_status,
-        "diff": git_diff
-    }
+git_info = {
+    "log": git_log,
+    "status": subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True,
+        text=True
+    ).stdout.strip()
 }
 ```
 
 ---
 
-### Step 2: Code Analysis (using rg + fd)
+### Step 5: Brain #1 + #7 Rediscovery
 
 ```python
-# Use ripgrep and fd for code analysis (no heavy Serena dependency)
-code_files = {}
-code_stats = {}
-
-# Frontend analysis (TypeScript/TSX files)
-frontend_dirs = ["apps/web/src", "apps/web/app"]
-for dir_path in frontend_dirs:
-    if Path(dir_path).exists():
-        result = subprocess.run(
-            ["fd", "-e", "ts", "-e", "tsx", ".", dir_path],
-            capture_output=True,
-            text=True
-        )
-        for line in result.stdout.strip().split('\n'):
-            if line:
-                file_path = Path(line)
-                code_files[str(file_path)] = "frontend"
-
-# Backend analysis (Python files)
-backend_dirs = ["apps/api/src", "apps/api/app"]
-for dir_path in backend_dirs:
-    if Path(dir_path).exists():
-        result = subprocess.run(
-            ["fd", "-e", "py", ".", dir_path],
-            capture_output=True,
-            text=True
-        )
-        for line in result.stdout.strip().split('\n'):
-            if line:
-                file_path = Path(line)
-                code_files[str(file_path)] = "backend"
-
-# Count lines of code per module
-for file_path in code_files.keys():
-    result = subprocess.run(
-        ["wc", "-l", file_path],
-        capture_output=True,
-        text=True
-    )
-    if result.returncode == 0:
-        lines = int(result.stdout.strip().split()[0])
-        code_stats[file_path] = lines
-```
-
----
-
-### Step 3: Brain #1 + #7 Rediscovery
-
-```python
-# Brain #1: What was promised vs what's done?
+# Step 5: Query brains with fingerprint + health context
 brain1_query = f"""
-Original Project Promise (from SPEC.md if exists):
-{context['files'].get('SPEC.md', 'No SPEC.md found')}
+Project Fingerprint: {fingerprint['type']}
+Stacks Detected: {', '.join(fingerprint['stacks'])}
 
-Original Plan (from tasks/plan.md if exists):
-{context['files'].get('tasks/plan.md', 'No plan.md found')}
+Health Check Results:
+{health_report}
 
-Current State (from git log - last 20 commits):
-{context['git']['log']}
+Original Promise (from SPEC.md):
+{context_files.get('SPEC.md', 'No SPEC.md found')}
 
-Current Code Structure (from Serena analysis):
-{str(code_analysis)[:5000]}  # First 5000 chars
+Original Plan (from tasks/plan.md):
+{context_files.get('tasks/plan.md', 'No plan.md found')}
+
+Current State (git log - last 20 commits):
+{git_info['log']}
 
 Please analyze:
-1. What features were promised in the original spec?
-2. What features are actually implemented (from git log)?
-3. What's the gap between promised and delivered?
-4. What's blocking the completion of remaining features?
-5. What are the critical bugs or issues?
-6. What should we prioritize next?
+1. What features were promised vs delivered?
+2. What's the gap per stack detected?
+3. What are the critical blockers?
+4. What should we prioritize next?
 
-Focus on:
-- Features promised but not started
-- Features partially implemented (what's missing?)
-- Tests that are failing or missing
-- Documentation that's outdated
+Consider the health check results for each stack.
 """
 
 brain1_result = mcp__notebooklm_mcp__notebook_query(
@@ -166,26 +157,25 @@ brain1_result = mcp__notebooklm_mcp__notebook_query(
     timeout=180
 )
 
-# Brain #7: Quality and risk assessment
+# Brain #7: Quality assessment with health context
 brain7_query = f"""
 Project Context:
 {brain1_result[:3000]}
 
-Current Health Indicators:
-- Git status: {context['git']['status']}
-- Recent commits: {context['git']['log']}
+Health Check Summary:
+{health_report[:2000]}
+
+Git Status:
+{git_info['status']}
 
 Please assess:
-1. Is this project on track for its stated goals?
-2. What are the highest-impact gaps (features that block MVP)?
-3. What's the technical debt level (low/medium/high)?
-4. What's the risk assessment if we continue as-is?
-5. What should we prioritize to reach a stable MVP?
+1. Project trajectory based on health check
+2. Highest-impact gaps (consider test failures per stack)
+3. Technical debt level (low/medium/high)
+4. Risk assessment (Low/Medium/High)
+5. Recommended priority order
 
-Provide:
-- Risk level (Low/Medium/High)
-- Top 3 blockers for MVP
-- Recommended priority order
+Provide specific stack-level recommendations if issues found.
 """
 
 brain7_result = mcp__notebooklm_mcp__notebook_query(
@@ -198,11 +188,13 @@ brain7_result = mcp__notebooklm_mcp__notebook_query(
 **Parse brain outputs:**
 ```python
 rediscovery = {
-    "promised": [...],  # Features from original spec
-    "delivered": [...],  # Features actually done
-    "gaps": [...],  # Missing features
-    "blockers": [...],  # What's blocking progress
-    "bugs": [...],  # Known issues
+    "fingerprint": fingerprint,
+    "health": health_results,
+    "promised": [...],
+    "delivered": [...],
+    "gaps": [...],
+    "blockers": [...],
+    "bugs": [...],
     "priority": brain7_result['recommendations']
 }
 ```
