@@ -33,20 +33,20 @@
 
 ## PHASE B — `/mm:init` Command
 
-### B1: Crear init-handler.py
-- [ ] Crear `.claude/commands/mm/init-handler.py`
-- [ ] Implementar flag `--target <path>` (default: CWD)
-- [ ] Implementar flag `--check` (verificar instalacion)
-- [ ] Implementar flag `--force` (sobreescribir)
-- [ ] Implementar deteccion de stack (package.json, pyproject.toml, CLAUDE.md)
-- [ ] Implementar copia de `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers)
-- [ ] Implementar copia de `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)
-- [ ] Implementar copia de `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)
-- [ ] Implementar creacion de `.mastermind/config.yaml` con stack detectado
-- [ ] Output: `STATUS: installed|not-installed` o `ERROR: <reason>`
-- [ ] Proteccion: no sobreescribir sin `--force`
-- [ ] Proteccion: advertir si target == mastermind source
-- [ ] Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`
+### B1: Crear init-handler.py ✅
+- [x] Crear `.claude/commands/mm/init-handler.py`
+- [x] Implementar flag `--target <path>` (default: CWD)
+- [x] Implementar flag `--check` (verificar instalacion)
+- [x] Implementar flag `--force` (sobreescribir)
+- [x] Implementar deteccion de stack (package.json, pyproject.toml, CLAUDE.md)
+- [x] Implementar copia de `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers)
+- [x] Implementar copia de `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)
+- [x] Implementar copia de `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)
+- [x] Implementar creacion de `.mastermind/config.yaml` con stack detectado
+- [x] Output: `STATUS: installed|not-installed` o `ERROR: <reason>`
+- [x] Proteccion: no sobreescribir sin `--force`
+- [x] Proteccion: advertir si target == mastermind source
+- [x] Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`
 
 ### B2: Crear init.md
 - [ ] Crear `.claude/commands/mm/init.md`

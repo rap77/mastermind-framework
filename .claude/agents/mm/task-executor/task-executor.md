@@ -116,7 +116,7 @@ Before committing, ensure:
 
 ### Phase 6: Checkpoint
 
-Save state to BOTH:
+Save state to ALL THREE:
 
 **1. task-progress.json:**
 ```json
@@ -132,7 +132,26 @@ Save state to BOTH:
 }
 ```
 
-**2. Engram via mem_save:**
+**2. tasks/todo.md (CRITICAL — user-visible checklist):**
+After each successful subtask, UPDATE `tasks/todo.md` to mark checkboxes as `[x]`.
+
+This is the file the USER sees. If you don't update it, the user won't know progress was made.
+
+**How to update:**
+- Read `tasks/todo.md`
+- Find the corresponding subtask checkboxes
+- Change `[ ]` to `[x]` for completed subtasks
+- Write back to `tasks/todo.md`
+
+**Example:**
+```markdown
+### B1: Crear init-handler.py
+- [x] Crear `.claude/commands/mm/init-handler.py`  ← Mark as complete
+- [x] Implementar flag `--target <path>`  ← Mark as complete
+- [ ] Implementar flag `--check`  ← Leave pending if not done
+```
+
+**3. Engram via mem_save:**
 ```javascript
 mem_save(
   project="mastermind-framework",
@@ -344,6 +363,6 @@ When all subtasks complete (or you exit due to context limit):
 ## Files
 
 - `tasks/plan.md` — Task definitions with acceptance criteria
-- `tasks/todo.md` — Task checklist
+- `tasks/todo.md` — Task checklist (UPDATED ON CHECKPOINT — user-visible progress)
 - `.planning/task-progress.json` — Runtime state (checkpoint)
 - `.planning/.agent-{task_id}-running` — Agent marker file
