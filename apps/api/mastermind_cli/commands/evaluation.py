@@ -92,9 +92,9 @@ def show(evaluation_id: str) -> None:
         return
 
     # Header
-    click.echo(f"\n{'='*60}")
+    click.echo(f"\n{'=' * 60}")
     click.echo(f"📋 {eval_entry.evaluation_id}")
-    click.echo(f"{'='*60}\n")
+    click.echo(f"{'=' * 60}\n")
 
     # Metadata
     click.echo(f"📅 Date: {eval_entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC")
@@ -249,7 +249,7 @@ def stats(verdict: str) -> None:
     stats = logger.get_stats()
 
     click.echo("\n📊 Evaluation Statistics\n")
-    click.echo(f"{'='*40}")
+    click.echo(f"{'=' * 40}")
 
     if stats.get("total_evaluations", 0) == 0:
         click.echo("No evaluations recorded yet.")

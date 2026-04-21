@@ -9,7 +9,7 @@ import os
 import uuid
 
 import aiosqlite
-import asyncpg  # type: ignore[import-untyped]
+import asyncpg
 import bcrypt
 from typing import Optional, Any
 

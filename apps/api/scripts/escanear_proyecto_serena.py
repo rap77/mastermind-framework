@@ -199,9 +199,9 @@ Be thorough. The better the brief, the better the evaluation.
         Este método es para usar cuando Serena MCP no está disponible directamente.
         """
 
-        logger.info(f"\n{'='*70}")
+        logger.info(f"\n{'=' * 70}")
         logger.info("🔍 DEEP PROJECT SCANNER")
-        logger.info(f"{'='*70}")
+        logger.info(f"{'=' * 70}")
         logger.info(f"📁 Path: {self.project_path}")
 
         brief: dict[str, Any] = {
@@ -395,31 +395,31 @@ Be thorough. The better the brief, the better the evaluation.
 def format_generated_brief(brief: dict[str, Any]) -> str:
     """Formatea el brief generado para evaluación."""
     return f"""
-# Brief Generado: {brief['project_name']}
+# Brief Generado: {brief["project_name"]}
 
 ## Descripción
-{brief.get('description', 'No description detected')}
+{brief.get("description", "No description detected")}
 
 ## Stack Técnico
-{', '.join(brief.get('tech_stack', ['No detectado']))}
+{", ".join(brief.get("tech_stack", ["No detectado"]))}
 
 ## Features Detectadas
-{chr(10).join(f'- {f}' for f in brief.get('features', [])[:10]) if brief.get('features') else '- No se detectaron features explícitas'}
+{chr(10).join(f"- {f}" for f in brief.get("features", [])[:10]) if brief.get("features") else "- No se detectaron features explícitas"}
 
 ## Estructura de Código
-- Frontend dirs: {brief.get('code_structure', {}).get('frontend_dirs', 0)}
-- Backend dirs: {brief.get('code_structure', {}).get('backend_dirs', 0)}
-- Test files: {brief.get('code_structure', {}).get('test_files', 0)}
-- API files: {brief.get('code_structure', {}).get('api_files', 0)}
+- Frontend dirs: {brief.get("code_structure", {}).get("frontend_dirs", 0)}
+- Backend dirs: {brief.get("code_structure", {}).get("backend_dirs", 0)}
+- Test files: {brief.get("code_structure", {}).get("test_files", 0)}
+- API files: {brief.get("code_structure", {}).get("api_files", 0)}
 
 ## APIs Encontradas
-{chr(10).join(f'- {api}' for api in brief.get('apis', [])) if brief.get('apis') else '- No se detectaron APIs'}
+{chr(10).join(f"- {api}" for api in brief.get("apis", [])) if brief.get("apis") else "- No se detectaron APIs"}
 
 ## Modelos de Datos
-{chr(10).join(f'- {model}' for model in brief.get('models', [])) if brief.get('models') else '- No se detectaron modelos'}
+{chr(10).join(f"- {model}" for model in brief.get("models", [])) if brief.get("models") else "- No se detectaron modelos"}
 
 ## Documentación Analizada
-{chr(10).join(f'- {doc}' for doc in brief.get('docs_content', {}).keys())}
+{chr(10).join(f"- {doc}" for doc in brief.get("docs_content", {}).keys())}
 
 ---
 
@@ -496,9 +496,9 @@ def main() -> None:
     logger.info(brief_text)
 
     # Instrucciones para evaluar
-    logger.info(f"\n{'='*70}")
+    logger.info(f"\n{'=' * 70}")
     logger.info("📋 PRÓXIMO PASO: Evaluar este brief")
-    logger.info(f"{'='*70}")
+    logger.info(f"{'=' * 70}")
     logger.info("""
 Para evaluar este brief con MasterMind Framework:
 

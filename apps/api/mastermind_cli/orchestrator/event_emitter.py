@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-import asyncpg  # type: ignore[import-untyped]
+import asyncpg
 
 
 class EventEmitter:

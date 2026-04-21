@@ -34,19 +34,19 @@ def temp_project_structure(tmp_path):
 
         # Create some source files
         for i in range(3):
-            source_file = sources_dir / f"FUENTE-{i+1:03d}.md"
+            source_file = sources_dir / f"FUENTE-{i + 1:03d}.md"
             source_file.write_text(
                 f"""---
-source_id: "FUENTE-{i+1:03d}"
+source_id: "FUENTE-{i + 1:03d}"
 brain: "{brain_name}"
-title: "Test Source {i+1}"
-distillation_quality: "{'complete' if i < 2 else 'partial'}"
+title: "Test Source {i + 1}"
+distillation_quality: "{"complete" if i < 2 else "partial"}"
 loaded_in_notebook: {i % 2 == 0}
 ---
 
-# Test Content {i+1}
+# Test Content {i + 1}
 
-This is test content for source {i+1}.
+This is test content for source {i + 1}.
 """
             )
 
@@ -437,17 +437,17 @@ def test_framework_status_with_realistic_structure(tmp_path, runner):
     for i in range(10):
         complete = "complete" if i < 7 else "partial"
         loaded = i < 5
-        source = sources01 / f"FUENTE-{i+1:03d}.md"
+        source = sources01 / f"FUENTE-{i + 1:03d}.md"
         source.write_text(
             f"""---
-source_id: "FUENTE-{i+1:03d}"
+source_id: "FUENTE-{i + 1:03d}"
 brain: "brain-01"
-title: "Source {i+1}"
+title: "Source {i + 1}"
 distillation_quality: "{complete}"
 loaded_in_notebook: {str(loaded).lower()}
 ---
 
-# Content {i+1}
+# Content {i + 1}
 """
         )
 
@@ -459,17 +459,17 @@ loaded_in_notebook: {str(loaded).lower()}
 
     # Add fewer sources to brain-02
     for i in range(5):
-        source = sources02 / f"FUENTE-{i+1:03d}.md"
+        source = sources02 / f"FUENTE-{i + 1:03d}.md"
         source.write_text(
             f"""---
-source_id: "FUENTE-{i+1:03d}"
+source_id: "FUENTE-{i + 1:03d}"
 brain: "brain-02"
-title: "UX Source {i+1}"
+title: "UX Source {i + 1}"
 distillation_quality: "complete"
 loaded_in_notebook: true
 ---
 
-# UX Content {i+1}
+# UX Content {i + 1}
 """
         )
 

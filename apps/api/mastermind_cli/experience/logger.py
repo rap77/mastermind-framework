@@ -110,7 +110,9 @@ class ExperienceLogger:
         redacted_output = redact_for_storage(record.output_json)
 
         # Extract expires_at from custom_metadata for column storage
-        expires_at_value = custom_metadata.get("expires_at") if custom_metadata else None
+        expires_at_value = (
+            custom_metadata.get("expires_at") if custom_metadata else None
+        )
 
         await self.db.conn.execute(
             """INSERT INTO experience_records

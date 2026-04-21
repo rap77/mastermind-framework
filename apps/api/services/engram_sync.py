@@ -226,8 +226,7 @@ class EngramSyncService:
             "ON decisions(project_id, phase_num)"
         )
         await db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_decisions_engram_id "
-            "ON decisions(engram_id)"
+            "CREATE INDEX IF NOT EXISTS idx_decisions_engram_id ON decisions(engram_id)"
         )
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_brain_feedback_project_phase "

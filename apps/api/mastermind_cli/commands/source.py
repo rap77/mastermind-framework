@@ -92,7 +92,7 @@ type: "{type}"
 language: "es"
 year: {year}
 skills_covered: []
-distillation_date: "{datetime.now().strftime('%Y-%m-%d')}"
+distillation_date: "{datetime.now().strftime("%Y-%m-%d")}"
 distillation_quality: "pending"
 loaded_in_notebook: false
 ---
@@ -359,7 +359,7 @@ def source_status(brain: str) -> None:
 
     console.print(
         Panel.fit(
-            f"[bold]{brain}[/bold]\n\n" f"Total sources: {len(sources)}",
+            f"[bold]{brain}[/bold]\n\nTotal sources: {len(sources)}",
             title=f"Brain Status: {brain}",
             border_style="blue",
         )

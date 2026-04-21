@@ -138,9 +138,9 @@ class ProjectScanner:
         if not self.project_path.exists():
             raise ValueError(f"Project path does not exist: {self.project_path}")
 
-        logger.info(f"\n{'='*70}")
+        logger.info(f"\n{'=' * 70}")
         logger.info("🔍 ESCANEANDO PROYECTO")
-        logger.info(f"{'='*70}")
+        logger.info(f"{'=' * 70}")
         logger.info(f"📁 Path: {self.project_path}")
         logger.info(f"📊 Max depth: {self.max_depth}")
 
@@ -377,22 +377,22 @@ def format_brief_for_evaluation(brief: dict[str, Any]) -> str:
         Formatted Markdown string ready for evaluation.
     """
     return f"""
-# Brief Generado: {brief['project_name']}
+# Brief Generado: {brief["project_name"]}
 
 ## Descripción Detectada
-{brief['description']}
+{brief["description"]}
 
 ## Stack Técnico
-{', '.join(brief['tech_stack']) if brief['tech_stack'] else 'No detectado'}
+{", ".join(brief["tech_stack"]) if brief["tech_stack"] else "No detectado"}
 
 ## Features Detectadas
-{chr(10).join(f'- {f}' for f in brief['features_detected']) if brief['features_detected'] else '- No se detectaron features explícitas'}
+{chr(10).join(f"- {f}" for f in brief["features_detected"]) if brief["features_detected"] else "- No se detectaron features explícitas"}
 
 ## Documentación Encontrada
-{chr(10).join(f'- {f}' for f in brief['docs_found'][:10])}
+{chr(10).join(f"- {f}" for f in brief["docs_found"][:10])}
 
 ## Archivos Clave Analizados
-{chr(10).join(f'- {f}' for f in brief['key_files'])}
+{chr(10).join(f"- {f}" for f in brief["key_files"])}
 
 ---
 ⚠️  Este brief fue generado automáticamente por el Project Scanner.
@@ -415,9 +415,9 @@ def evaluate_scanned_project(brief_text: str, use_mcp: bool = False) -> dict[str
     """
     from mastermind_cli.orchestrator import Coordinator, OutputFormatter
 
-    logger.info(f"\n{'='*70}")
+    logger.info(f"\n{'=' * 70}")
     logger.info("🧠 EVALUANDO CON MENTE MAESTRA")
-    logger.info(f"{'='*70}")
+    logger.info(f"{'=' * 70}")
 
     formatter = OutputFormatter()
     coordinator = Coordinator(formatter=formatter, use_mcp=use_mcp)
@@ -460,9 +460,9 @@ def main() -> dict[str, Any]:
         logger.info(f"\n💾 Brief guardado en: {args.output}")
 
     # Mostrar brief generado
-    logger.info(f"\n{'='*70}")
+    logger.info(f"\n{'=' * 70}")
     logger.info("📋 BRIEF GENERADO")
-    logger.info(f"{'='*70}")
+    logger.info(f"{'=' * 70}")
     logger.info(brief_text)
 
     # Evaluar con MasterMind
@@ -470,9 +470,9 @@ def main() -> dict[str, Any]:
     result = evaluate_scanned_project(brief_text, use_mcp=args.mcp)
 
     # Mostrar resultado
-    logger.info(f"\n{'='*70}")
+    logger.info(f"\n{'=' * 70}")
     logger.info("📊 RESULTADO DE LA EVALUACIÓN")
-    logger.info(f"{'='*70}")
+    logger.info(f"{'=' * 70}")
     logger.info(f"Status: {result.get('status')}")
     logger.info(f"Veredicto: {result.get('veredict')}")
 

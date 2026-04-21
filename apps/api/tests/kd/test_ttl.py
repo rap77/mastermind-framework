@@ -19,9 +19,7 @@ class TestTTLMigration:
         await db.create_experience_schema()
 
         # Verify column exists
-        cursor = await db.conn.execute(
-            "PRAGMA table_info(experience_records)"
-        )
+        cursor = await db.conn.execute("PRAGMA table_info(experience_records)")
         columns = await cursor.fetchall()
         column_names = [col[1] for col in columns]
 

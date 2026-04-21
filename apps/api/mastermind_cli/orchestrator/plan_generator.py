@@ -61,7 +61,7 @@ class PlanGenerator:
         for i, brain_id in enumerate(sequence):
             task = self._task_for_brain(brain_id, brief, flow_type, i)
             task["dependencies"] = dependencies.copy() if dependencies else []
-            task["task_id"] = f"TASK-{i+1:03d}"
+            task["task_id"] = f"TASK-{i + 1:03d}"
             task["priority"] = 10 - i  # Earlier tasks have higher priority
 
             tasks.append(task)

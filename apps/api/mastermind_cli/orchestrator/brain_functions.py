@@ -130,8 +130,8 @@ def brain_01_product_strategy(
 
 BRIEF: {brief.problem_statement}
 CONTEXT: {brief.context}
-CONSTRAINTS: {', '.join(brief.constraints)}
-TARGET_AUDIENCE: {brief.target_audience or 'Not specified'}
+CONSTRAINTS: {", ".join(brief.constraints)}
+TARGET_AUDIENCE: {brief.target_audience or "Not specified"}
 
 Respond using EXACTLY these labeled sections:
 
@@ -193,7 +193,7 @@ def brain_02_ux_research(brain_input: BrainInput, mcp_client: MCPClient) -> UXRe
     query = f"""Analyze the user experience for the following product.
 
 BRIEF: {brief.problem_statement}
-TARGET_AUDIENCE: {brief.target_audience or 'General users'}{strategy_context}
+TARGET_AUDIENCE: {brief.target_audience or "General users"}{strategy_context}
 
 Respond using EXACTLY these labeled sections:
 
@@ -255,7 +255,7 @@ def brain_03_ui_design(brain_input: BrainInput, mcp_client: MCPClient) -> UIDesi
     query = f"""Based on the following product brief, provide a comprehensive UI design system.
 
 BRIEF: {brief.problem_statement}
-TARGET_AUDIENCE: {brief.target_audience or 'General users'}
+TARGET_AUDIENCE: {brief.target_audience or "General users"}
 CONTEXT: {brief.context}{ux_context}
 
 Respond using EXACTLY these labeled sections:
@@ -342,7 +342,7 @@ def brain_04_frontend(brain_input: BrainInput, mcp_client: MCPClient) -> Fronten
 
 BRIEF: {brief.problem_statement}
 CONTEXT: {brief.context}
-CONSTRAINTS: {', '.join(brief.constraints)}{design_context}
+CONSTRAINTS: {", ".join(brief.constraints)}{design_context}
 
 Respond using EXACTLY these labeled sections:
 
@@ -420,7 +420,7 @@ def brain_05_backend(brain_input: BrainInput, mcp_client: MCPClient) -> BackendD
 
 BRIEF: {brief.problem_statement}
 CONTEXT: {brief.context}
-CONSTRAINTS: {', '.join(brief.constraints)}{strategy_context}
+CONSTRAINTS: {", ".join(brief.constraints)}{strategy_context}
 
 Respond using EXACTLY these labeled sections:
 
@@ -685,7 +685,7 @@ Use the labeled format exactly. Questions must be specific to this brief."""
     if not interview_plan:
         interview_plan = [
             {
-                "question": f"Q{i}: {knowledge[i*100:(i+1)*100].strip()}",
+                "question": f"Q{i}: {knowledge[i * 100 : (i + 1) * 100].strip()}",
                 "context": "From NotebookLM",
             }
             for i in range(min(5, len(knowledge) // 100))
