@@ -1,75 +1,88 @@
 {
   "task_id": "B1",
-  "session_id": "sess-20260420-123507",
-  "started_at": "2026-04-20T12:35:07.603849",
+  "session_id": "sess-20260420-220233",
+  "started_at": "2026-04-20T22:02:33.942502",
   "phase": 19,
   "subtasks": {
     "B1.1": {
       "description": "Crear `.claude/commands/mm/init-handler.py`",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.2": {
       "description": "Implementar flag `--target <path>` (default: CWD)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.3": {
       "description": "Implementar flag `--check` (verificar instalacion)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.4": {
       "description": "Implementar flag `--force` (sobreescribir)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.5": {
       "description": "Implementar deteccion de stack (package.json, pyproject.toml, CLAUDE.md)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.6": {
       "description": "Implementar copia de `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.7": {
       "description": "Implementar copia de `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.8": {
       "description": "Implementar copia de `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.9": {
       "description": "Implementar creacion de `.mastermind/config.yaml` con stack detectado",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.10": {
       "description": "Output: `STATUS: installed|not-installed` o `ERROR: <reason>`",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.11": {
       "description": "Proteccion: no sobreescribir sin `--force`",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.12": {
       "description": "Proteccion: advertir si target == mastermind source",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     },
     "B1.13": {
       "description": "Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`",
       "status": "completed",
-      "retries": 0
+      "completed_at": "2026-04-20T19:29:03.000000",
+      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
     }
   },
-  "last_checkpoint": null,
+  "last_checkpoint": "B1.13",
   "context_budget_exit": null
 }
