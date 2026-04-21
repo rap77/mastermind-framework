@@ -1,0 +1,26 @@
+"""Type stubs for aiosqlite."""
+
+from typing import Any, Optional
+
+class Cursor:
+    """aiosqlite cursor stub."""
+
+    rowcount: int
+
+    async def fetchone(self) -> Optional[tuple[Any, ...]]: ...
+    async def fetchall(self) -> list[tuple[Any, ...]]: ...
+    async def close(self) -> None: ...
+
+class Connection:
+    """aiosqlite connection stub."""
+
+    async def execute(
+        self, sql: str, params: Optional[list[Any] | tuple[Any, ...]] = None
+    ) -> Cursor: ...
+    async def executemany(
+        self, sql: str, params: list[list[Any] | tuple[Any, ...]]
+    ) -> Cursor: ...
+    async def commit(self) -> None: ...
+    async def close(self) -> None: ...
+
+async def connect(database: str, **kwargs: Any) -> Connection: ...
