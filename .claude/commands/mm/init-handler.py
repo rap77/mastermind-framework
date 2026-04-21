@@ -43,7 +43,12 @@ AGENTS_WHITELIST = {
 }
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for init-handler.
+
+    Returns:
+        Parsed arguments including target path, check mode, and force flag.
+    """
     parser = argparse.ArgumentParser(
         description="Install MasterMind Framework in a project",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -74,6 +79,15 @@ def parse_args():
 
 
 def detect_stack(target: Path) -> list[str]:
+    """Detect the technology stack of a project.
+
+    Args:
+        target: Path to the project directory to scan.
+
+    Returns:
+        List of detected stack identifiers (e.g., ["nextjs", "python", "claude-code"]).
+        Returns ["unknown"] if no recognized technologies are found.
+    """
     stack = []
     if (target / "package.json").exists():
         try:
@@ -85,7 +99,8 @@ def detect_stack(target: Path) -> list[str]:
                 stack.append("react")
             else:
                 stack.append("nodejs")
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"WARNING: Failed to parse package.json: {e}")
             stack.append("nodejs")
     if (target / "pyproject.toml").exists() or (target / "requirements.txt").exists():
         stack.append("python")
@@ -99,19 +114,51 @@ def detect_stack(target: Path) -> list[str]:
 
 
 def copy_commands(src_root: Path, dest: Path) -> None:
+    """Copy MasterMind command files to target project.
+
+    Args:
+        src_root: Path to the MasterMind framework root directory.
+        dest: Path to the target project directory.
+    """
     src_commands = src_root / ".claude" / "commands" / "mm"
     dest_commands = dest / ".claude" / "commands" / "mm"
     dest_commands.mkdir(parents=True, exist_ok=True)
 
     for item in src_commands.iterdir():
-        if item.is_file():
-            if item.name in COMMANDS_WHITELIST:
-                shutil.copy2(item, dest_commands / item.name)
-            elif item.name.endswith("-handler.py") or item.name == "db_client.py":
-                shutil.copy2(item, dest_commands / item.name)
+        if item.is_file() and (
+            item.name in COMMANDS_WHITELIST
+            or item.name.endswith("-handler.py")
+            or item.name == "db_client.py"
+        ):
+            shutil.copy2(item, dest_commands / item.name)
+
+
+def _replace_directory_atomic(src: Path, dest: Path) -> None:
+    """Atomically replace destination directory with source.
+
+    Copies src to dest.tmp, then removes old dest and moves tmp into place.
+    If copy fails, tmp is cleaned up and original dest is preserved.
+    """
+    tmp_dest = dest.parent / f"{dest.name}.tmp"
+    try:
+        shutil.rmtree(tmp_dest, ignore_errors=True)
+        shutil.copytree(src, tmp_dest)
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.move(tmp_dest, dest)
+    except Exception:
+        # Clean up .tmp on failure
+        shutil.rmtree(tmp_dest, ignore_errors=True)
+        raise
 
 
 def copy_skills(src_root: Path, dest: Path) -> None:
+    """Copy MasterMind skill files to target project.
+
+    Args:
+        src_root: Path to the MasterMind framework root directory.
+        dest: Path to the target project directory.
+    """
     src_skills = src_root / ".claude" / "skills" / "mm"
     dest_skills = dest / ".claude" / "skills" / "mm"
 
@@ -120,11 +167,18 @@ def copy_skills(src_root: Path, dest: Path) -> None:
         if src_skill.exists():
             dest_skill = dest_skills / skill_name
             if dest_skill.exists():
-                shutil.rmtree(dest_skill)
-            shutil.copytree(src_skill, dest_skill)
+                _replace_directory_atomic(src_skill, dest_skill)
+            else:
+                shutil.copytree(src_skill, dest_skill)
 
 
 def copy_agents(src_root: Path, dest: Path) -> None:
+    """Copy MasterMind agent files to target project.
+
+    Args:
+        src_root: Path to the MasterMind framework root directory.
+        dest: Path to the target project directory.
+    """
     src_agents = src_root / ".claude" / "agents" / "mm"
     dest_agents = dest / ".claude" / "agents" / "mm"
 
@@ -133,29 +187,42 @@ def copy_agents(src_root: Path, dest: Path) -> None:
         if src_agent.exists():
             dest_agent = dest_agents / agent_name
             if dest_agent.exists():
-                shutil.rmtree(dest_agent)
-            shutil.copytree(src_agent, dest_agent)
+                _replace_directory_atomic(src_agent, dest_agent)
+            else:
+                shutil.copytree(src_agent, dest_agent)
+
+
+def _sanitize_yaml_string(value: str) -> str:
+    """Sanitize string for safe YAML embedding.
+
+    Prevents YAML injection by escaping special characters.
+    """
+    return (
+        value.replace('"', "'").replace(":", "-").replace("\n", " ").replace("\r", " ")
+    )
 
 
 def create_config(target: Path, stack: list[str]) -> None:
+    """Create MasterMind configuration file in target project.
+
+    Args:
+        target: Path to the target project directory.
+        stack: List of detected technology stack identifiers.
+    """
     mastermind_dir = target / ".mastermind"
     mastermind_dir.mkdir(exist_ok=True)
 
+    # Format stack as valid YAML list
+    stack_lines = ["stack:"] + [f"  - {s}" for s in stack]
+
     config_lines = [
         "project:",
-        f'  name: "{target.name}"',
-        f'  path: "{target}"',
+        f'  name: "{_sanitize_yaml_string(target.name)}"',
         "",
         "framework:",
         "  version: 3.0.0",
-        f'  source: "{FRAMEWORK_ROOT}"',
         "",
-        f"stack: {stack}",
-        "",
-        "db:",
-        "  host: localhost",
-        "  port: 5433",
-        "  name: mastermind_bd",
+        *stack_lines,
         "",
         "brains:",
         "  active: [1, 2, 3, 4, 5, 6, 7]",
@@ -163,16 +230,37 @@ def create_config(target: Path, stack: list[str]) -> None:
     (mastermind_dir / "config.yaml").write_text("\n".join(config_lines) + "\n")
 
 
-def main():
+def main() -> None:
+    """Install MasterMind Framework in a target project.
+
+    This function:
+    1. Parses command-line arguments (target, check, force)
+    2. Warns if installing into framework source itself
+    3. In --check mode, reports installation status without changes
+    4. Validates preconditions (not a file, not already installed without --force)
+    5. Detects technology stack
+    6. Copies commands, skills, and agents (whitelist only)
+    7. Creates .mastermind/config.yaml with detected stack
+
+    Exits with code 1 on error, 0 on success.
+    """
     args = parse_args()
     target = Path(args.target).resolve() if args.target else Path.cwd()
 
     # B1.12 — Warn if target == mastermind source
-    if target.resolve() == FRAMEWORK_ROOT.resolve():
-        print(
-            "WARNING: target is the MasterMind source directory itself — self-install detected"
-        )
-        print("WARNING: continuing anyway, but this may overwrite framework files")
+    try:
+        if target.samefile(FRAMEWORK_ROOT):
+            print(
+                "WARNING: target is the MasterMind source directory itself — self-install detected"
+            )
+            print("WARNING: continuing anyway, but this may overwrite framework files")
+    except FileNotFoundError:
+        # One or both paths don't exist yet, fall back to string comparison
+        if target == FRAMEWORK_ROOT.resolve():
+            print(
+                "WARNING: target is the MasterMind source directory itself — self-install detected"
+            )
+            print("WARNING: continuing anyway, but this may overwrite framework files")
 
     # B1.3 — --check mode
     if args.check:
@@ -189,6 +277,11 @@ def main():
         print(
             "ERROR: MasterMind already installed in target. Use --force to overwrite."
         )
+        sys.exit(1)
+
+    # Validate target is a directory, not a file
+    if target.exists() and not target.is_dir():
+        print("ERROR: target is not a directory")
         sys.exit(1)
 
     # Ensure target exists

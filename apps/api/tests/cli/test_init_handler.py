@@ -189,18 +189,21 @@ def test_config_yaml_has_stack():
         if config_path.exists():
             content = yaml.safe_load(config_path.read_text())
             assert "stack" in content, f"config.yaml missing 'stack' key: {content}"
+            # CRITICAL: Validate stack is a list, not a string representation
+            assert isinstance(
+                content["stack"], list
+            ), f"stack must be a list, got {type(content['stack'])}: {content['stack']}"
 
 
-def test_config_yaml_has_db_connection():
+def test_config_yaml_has_brains_active():
     with tempfile.TemporaryDirectory() as tmpdir:
         run_handler("--target", tmpdir)
 
         config_path = Path(tmpdir) / ".mastermind" / "config.yaml"
         if config_path.exists():
             content = yaml.safe_load(config_path.read_text())
-            assert "db" in content, f"config.yaml missing 'db' key: {content}"
-            assert content["db"].get("host") == "localhost"
-            assert content["db"].get("port") == 5433
+            assert "brains" in content, f"config.yaml missing 'brains' key: {content}"
+            assert content["brains"].get("active") == [1, 2, 3, 4, 5, 6, 7]
 
 
 # ---------------------------------------------------------------------------
@@ -296,3 +299,31 @@ def test_help_flag():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_config_yaml_multi_stack_parses_as_list():
+    """CRITICAL: Multiple stacks must parse as YAML list, not Python list string."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        # Create NextJS + Python project
+        (tmpdir / "package.json").write_text(
+            '{"name": "test", "dependencies": {"next": "^15.0.0"}}'
+        )
+        (tmpdir / "pyproject.toml").write_text('[project]\nname = "test"\n')
+
+        run_handler("--target", str(tmpdir))
+        config_path = tmpdir / ".mastermind" / "config.yaml"
+
+        assert config_path.exists(), "config.yaml not created"
+        content = yaml.safe_load(config_path.read_text())
+
+        # CRITICAL VALIDATION: stack must be a list with correct elements
+        assert isinstance(
+            content["stack"], list
+        ), f"stack must be list, got {type(content['stack'])}"
+        assert "nextjs" in content["stack"], "nextjs not in stack"
+        assert "python" in content["stack"], "python not in stack"
+        # NOT a string like "['nextjs', 'python']"
+        assert not isinstance(
+            content["stack"], str
+        ), f"stack is string, not list: {content['stack']!r}"

@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from mastermind_cli.memory.interview_logger import InterviewLogger
 
 
-def main():
+def main() -> None:
     """Apply retention policy to interview logs."""
     logger = InterviewLogger(enabled=True)
 

@@ -11,7 +11,7 @@ Reference: https://developers.facebook.com/docs/whatsapp/cloud-api/messages/send
 """
 
 import os
-from typing import Optional
+from typing import Any, Optional
 import httpx
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, status
@@ -40,7 +40,7 @@ class WhatsAppError(Exception):
         super().__init__(self.message)
 
 
-async def send_whatsapp_message(message: WhatsAppMessage) -> dict:
+async def send_whatsapp_message(message: WhatsAppMessage) -> dict[str, Any]:
     """Send a text message via WhatsApp Business Cloud API
 
     Args:
@@ -106,7 +106,7 @@ async def send_whatsapp_message(message: WhatsAppMessage) -> dict:
 
 async def send_whatsapp_media(
     to: str, media_type: str, media_url: str, caption: Optional[str] = None
-) -> dict:
+) -> dict[str, Any]:
     """Send a media message via WhatsApp Business Cloud API
 
     Args:
@@ -149,7 +149,7 @@ async def send_whatsapp_media(
     if media_type not in media_type_map:
         raise ValueError(f"Unsupported media type: {media_type}")
 
-    body = {
+    body: dict[str, Any] = {
         "messaging_product": "whatsapp",
         "to": to,
         "type": media_type,
@@ -183,7 +183,7 @@ async def send_whatsapp_media(
 
 
 @router.post("/api/channels/whatsapp/send")
-async def send_whatsapp_endpoint(message: WhatsAppMessage) -> dict:
+async def send_whatsapp_endpoint(message: WhatsAppMessage) -> dict[str, Any]:
     """FastAPI endpoint to send WhatsApp messages
 
     Args:

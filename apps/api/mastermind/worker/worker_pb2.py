@@ -27,7 +27,7 @@ _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "worker_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    DESCRIPTOR._loaded_options = None
+    DESCRIPTOR._loaded_options = None  # type: ignore[attr-defined]
     _globals["_PROCESSWEBHOOKREQUEST"]._serialized_start = 35
     _globals["_PROCESSWEBHOOKREQUEST"]._serialized_end = 151
     _globals["_PROCESSWEBHOOKRESPONSE"]._serialized_start = 154

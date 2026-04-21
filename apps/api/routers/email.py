@@ -110,7 +110,7 @@ class EmailError(Exception):
         super().__init__(self.message)
 
 
-async def send_email(message: EmailMessage) -> dict:
+async def send_email(message: EmailMessage) -> dict[str, str]:
     """Send an email via SMTP
 
     Args:
@@ -172,7 +172,7 @@ async def send_email(message: EmailMessage) -> dict:
         port = int(smtp_port)
         async with aiosmtplib.SMTP(hostname=smtp_host, port=port, use_tls=True) as smtp:
             await smtp.login(smtp_username, smtp_password)
-            response = await smtp.send_message(email)
+            _, response = await smtp.send_message(email)
             # Extract message ID from response
             message_id = (
                 response.split("<")[1].split(">")[0]
@@ -184,7 +184,7 @@ async def send_email(message: EmailMessage) -> dict:
         raise EmailError(f"Failed to send email: {str(e)}")
 
 
-async def send_html_email(message: EmailMessage) -> dict:
+async def send_html_email(message: EmailMessage) -> dict[str, str]:
     """Send an HTML email via SMTP
 
     This is a convenience function that calls send_email with HTML content.
@@ -206,7 +206,7 @@ async def send_html_email(message: EmailMessage) -> dict:
 
 
 @router.post("/api/channels/email/send")
-async def api_send_email(message: EmailMessage):
+async def api_send_email(message: EmailMessage) -> dict[str, str]:
     """API endpoint to send an email
 
     Args:

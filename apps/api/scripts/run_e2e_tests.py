@@ -97,14 +97,14 @@ def run_orchestration(brief: str, use_mcp: bool = True) -> Dict[str, Any]:
     }
 
 
-def print_header(text: str, char: str = "="):
+def print_header(text: str, char: str = "=") -> None:
     """Print a formatted header."""
     print(f"\n{char * 70}")
     print(f"  {text}")
     print(f"{char * 70}\n")
 
 
-def print_test_result(test_name: str, passed: bool, details: str = ""):
+def print_test_result(test_name: str, passed: bool, details: str = "") -> None:
     """Print test result with color."""
     icon = "✅" if passed else "❌"
     status = "PASS" if passed else "FAIL"
@@ -113,7 +113,7 @@ def print_test_result(test_name: str, passed: bool, details: str = ""):
         print(f"   {details}")
 
 
-def main():
+def main() -> None:
     """Run E2E tests."""
     print_header("MasterMind E2E Test Runner", "=")
 
@@ -127,7 +127,7 @@ def main():
 
     print(f"Found {len(test_files)} test files\n")
 
-    results = []
+    results: list[dict[str, Any]] = []
     summary = {
         "total": len(test_files),
         "passed": 0,

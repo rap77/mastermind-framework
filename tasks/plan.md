@@ -1,390 +1,459 @@
-# MasterMind v3.0 — Implementation Plan
+# MasterMind Framework v3.0 Completion — Plan de Implementacion
 
-**Generated:** 2026-04-15
-**Based on:** SPEC.md (15 sections, 27 success criteria)
-**Strategy:** Vertical slicing — each task delivers one complete path end-to-end
+**Generated:** 2026-04-20
+**Based on:** SPEC.md
+**Patron:** Horizontal slicing (Phase A, B, C, D...)
+**Cada phase = entregable completo y testeable**
 
 ---
 
 ## Dependency Graph
 
 ```
-PHASE A: Foundation (no dependencies)
-  A1. Theming Engine ─────────────────────────────┐
-  A2. UI Redesign (design tokens + base components)│
-                                                   │
-PHASE B: Visual Orchestration (depends on A)       │
-  B1. Flow Designer n8n-style ───────────┐         │
-  B2. Simulation & Replay Engine ────────┤         │
-                                         │         │
-PHASE C: Phase 19 Completion (independent)│        │
-  C1. Phase 19-05 Statusline Extension ──┤         │
-                                         │         │
-PHASE D: Integration & Polish (depends on all)     │
-  D1. All screens theme-aware ──────────┐│         │
-  D2. Flow Designer ↔ Simulation wiring─┘│         │
-  D3. End-to-end verification            │         │
-                                         ▼         ▼
-                                   [SHIP v3.0] ←───┘
-```
-
-**Critical path:** A1 → A2 → B1 → D2 → D3
-
----
-
-## PHASE A — Foundation (Theming + UI Redesign)
-
-### A1: Theming Engine
-
-**What:** Light/dark mode system with CSS custom properties, ThemeProvider, toggle component.
-
-**Why first:** Every subsequent component must be theme-aware from day one. Retrofitting theming later is 3x more expensive.
-
-**Current state:** `globals.css` has `@theme inline` with 40+ CSS vars and `@custom-variant dark (&:is(.dark *))`. Dark mode variant already defined but no toggle/persistence mechanism.
-
-**Files to create/modify:**
-- `apps/web/src/app/providers/theme-provider.tsx` — NEW
-- `apps/web/src/components/theme/ThemeToggle.tsx` — NEW
-- `apps/web/src/app/globals.css` — EXTEND with semantic tokens
-- `apps/web/src/app/layout.tsx` — Wrap with ThemeProvider
-
-**Acceptance Criteria:**
-- [x] ThemeProvider reads from `localStorage("theme")` (uses "theme" key, not "mastermind-theme")
-- [x] Falls back to `prefers-color-scheme` on first visit
-- [x] `.dark` class toggled on `<html>` element
-- [x] ThemeToggle component with sun/moon icons
-- [x] Smooth transitions: `transition: background-color 0.2s, color 0.2s`
-- [x] Persist selection across page reloads
-- [x] 3 unit tests for ThemeProvider logic
-- [x] 1 component test for ThemeToggle rendering
-
-**Status:** ✅ COMPLETE — Verified via code review 2026-04-16
-**Commit:** 3c9a62c6
-**Tests:** 660 total passing (4 new theming tests)
-**Review:** Approved — No Critical/Important issues. 2 minor suggestions.
-
-**Verification:**
-```bash
-cd apps/web && pnpm test -- --grep "theme"
+PHASE A: Cleanup GSD (sin dependencias, primero para workspace limpio)
+  A1. Eliminar wrappers    |
+  A2. Eliminar skills      |
+  A3. Eliminar markers     |
+                            |
+PHASE B: /mm:init + PostgreSQL (despues de A para workspace limpio)
+  B1. db_client.py         | ← NUEVO: modulo PostgreSQL compartido
+  B2. init-handler.py      | ← USA db_client
+  B3. init.md              |
+  B4. Validar init         |
+                            |
+PHASE C: /mm:review (depende de A + B1 para db_client)
+  C1. review-handler.py    | ← USA db_client
+  C2. review.md            |
+  C3. review skill         |
+  C4. code-reviewer agent  | ← ESCRIBE en PostgreSQL
+  C5. Validar review       |
+                            |
+PHASE D: /mm:ship (depende de A + B1 para db_client)
+  D1. ship-handler.py      | ← USA db_client
+  D2. ship.md              |
+  D3. ship skill           |
+  D4. ship-executor agent  | ← ESCRIBE en PostgreSQL
+  D5. Validar ship         |
+                            |
+PHASE E: End-to-End (depende de A + B + C + D)
+  E1. Flujo completo       |
+  E2. Commit final         |
 ```
 
 ---
 
-### A2: UI Redesign — Design Tokens + Base Components
+## PHASE A — Cleanup GSD Dependencies
 
-**What:** Semantic design tokens (colors, spacing, typography, shadows, radius) and 8 redesigned base components using tokens.
+**Objetivo:** Eliminar toda dependencia de GSD. Workspace limpio con solo comandos MasterMind autonomos.
 
-**Why:** Establishes the visual language all screens and new components inherit. Must come before Flow Designer and screen redesigns.
+### A1: Eliminar GSD Wrapper Commands
 
-**Current state:** 6 shadcn components exist (`button.tsx`, `card.tsx`, `dialog.tsx`, `input.tsx`, `sheet.tsx`, `StatusBadge.tsx`). Colors are hardcoded shadcn defaults, not semantic tokens.
+**Que:** Borrar los 5 archivos `.md` que son wrappers de GSD.
 
-**Files to create/modify:**
-- `apps/web/src/app/globals.css` — ADD semantic token block
-- `apps/web/src/components/ui/button.tsx` — REDESIGN with tokens
-- `apps/web/src/components/ui/card.tsx` — REDESIGN with tokens
-- `apps/web/src/components/ui/input.tsx` — REDESIGN with tokens
-- `apps/web/src/components/ui/dialog.tsx` — REDESIGN with tokens
-- `apps/web/src/components/ui/dropdown.tsx` — NEW
-- `apps/web/src/components/ui/tooltip.tsx` — NEW
-- `apps/web/src/components/ui/badge.tsx` — NEW (replaces StatusBadge)
-- `apps/web/src/components/ui/toggle.tsx` — NEW
+**Archivos:**
+- `.claude/commands/mm/new-milestone.md`
+- `.claude/commands/mm/plan-phase.md`
+- `.claude/commands/mm/execute-phase.md`
+- `.claude/commands/mm/complete-phase.md`
+- `.claude/commands/mm/verify-task.md`
 
-**Acceptance Criteria:**
-- [x] Semantic token block in globals.css: `--color-primary`, `--color-success`, `--color-warning`, `--color-error`, `--color-info`, `--color-surface`, `--color-border`, `--spacing-*`, `--shadow-*`, `--radius-*`
-- [x] Light mode tokens defined in `:root`
-- [x] Dark mode tokens defined in `.dark`
-- [x] All 8 components use `var(--color-*)` — zero hardcoded hex colors
-- [x] Button: variants (primary, secondary, ghost, danger) + sizes (sm, md, lg)
-- [x] Input: label, error state, icon support
-- [x] Dropdown: menu items, dividers, icons
-- [x] Tooltip: positions (top, right, bottom, left)
-- [x] Badge: variants (default, success, warning, error, info)
-- [x] All existing tests still pass: 660/660
+**Acceptance:**
+- [ ] Los 5 archivos no existen
+- [ ] `/mm:discover` sigue apareciendo en autocomplete de Claude Code
+- [ ] `/mm:complete-task` sigue apareciendo en autocomplete
+- [ ] `/mm:safe-commit` sigue apareciendo en autocomplete
 
-**Status:** ✅ COMPLETE — Verified 2026-04-16
-**Tests:** 660 passing (zero failures)
-**Verification:** Zero hardcoded hex colors confirmed
+### A2: Eliminar Skills Huerfanos
 
-**Verification:**
-```bash
-cd apps/web && pnpm test
-# Grep for hardcoded hex in components (should be zero):
-grep -rn '#[0-9a-fA-F]\{3,6\}' src/components/ui/ | grep -v 'var(' | grep -v '.test.'
-```
+**Que:** Borrar skills que solo servian a los wrappers GSD eliminados.
 
-**Checkpoint A:** Theme toggle works, all components theme-aware, all tests green.
+**Archivos:**
+- `.claude/skills/mm/plan-phase/` (directorio completo: SKILL.md, README.md)
+- `.claude/skills/mm/verify-task/` (directorio completo: SKILL.md, assets/, references/)
 
----
+**Acceptance:**
+- [ ] Los 2 directorios no existen
+- [ ] Skills restantes: brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
+- [ ] Ningun archivo existente referencia a `plan-phase` skill o `verify-task` skill
 
-## PHASE B — Visual Orchestration
+### A3: Limpiar Agent Markers Huerfanos
 
-### B1: Flow Designer (n8n-style)
+**Que:** Borrar archivos `.agent-*-running` huerfanos en `.planning/`.
 
-**What:** Visual canvas for designing agent workflows with drag-and-drop nodes, edges, and flow configuration.
+**Archivos:**
+- `.planning/.agent-B2-running`
+- `.planning/.agent-D1-running`
+- `.planning/.agent-D2-running`
 
-**Why:** Core differentiator — no competitor offers n8n-style agent flow design. Builds on existing React Flow expertise from Nexus.
-
-**Current state:** `NexusCanvas.tsx` (8.3K) already uses `@xyflow/react v12` with custom nodes (`BrainNode.tsx`), edges (`HybridFlowEdge.tsx`), and status indicators. `brainStore.ts` manages brain state. This is a solid foundation to build on.
-
-**Files to create/modify:**
-- `apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx` — NEW (main canvas)
-- `apps/web/src/components/flow-designer/FlowPalette.tsx` — NEW (drag source for node types)
-- `apps/web/src/components/flow-designer/FlowToolbar.tsx` — NEW (zoom, pan, export, import)
-- `apps/web/src/components/flow-designer/nodes/BrainNode.tsx` — NEW
-- `apps/web/src/components/flow-designer/nodes/GatewayNode.tsx` — NEW
-- `apps/web/src/components/flow-designer/nodes/AdapterNode.tsx` — NEW
-- `apps/web/src/components/flow-designer/nodes/RouterNode.tsx` — NEW
-- `apps/web/src/components/flow-designer/nodes/ConditionNode.tsx` — NEW
-- `apps/web/src/components/flow-designer/edges/FlowEdge.tsx` — NEW
-- `apps/web/src/components/flow-designer/types.ts` — NEW (FlowNode, FlowEdge, FlowDefinition)
-- `apps/web/src/stores/flowDesignerStore.ts` — NEW
-- `apps/web/src/lib/flow-serializer.ts` — NEW (export/import JSON)
-- `apps/web/src/app/(protected)/flow-designer/page.tsx` — NEW (route)
-- `apps/web/src/lib/api.ts` — ADD flow API endpoints
-
-**Acceptance Criteria:**
-- [x] Canvas renders with React Flow v12
-- [x] 5 node types with distinct colors per theme (light/dark):
-  - brain: blue, gateway: purple, adapter: green, router: orange, condition: yellow
-- [x] Drag node from palette → drops on canvas
-- [x] Connect nodes by dragging edge handles
-- [x] Double-click node → configuration panel (stub implementation)
-- [x] Toolbar: zoom in/out, fit view, export JSON, import JSON, clear
-- [x] Export produces valid `FlowDefinition` JSON
-- [x] Import restores canvas from JSON
-- [x] Minimap in bottom-right corner
-- [x] All nodes use theme tokens (`var(--color-*)`)
-- [x] 10+ unit tests for flow-serializer
-- [x] 5+ component tests for FlowDesignerCanvas rendering
-
-**Status:** ✅ COMPLETE — Verified 2026-04-17 (100% - all 12 criteria met)
-**Tests:** 690 passing (99.86%)
-**Files:** 13 new components + 2 test suites
-
-**Verification:**
-```bash
-cd apps/web && pnpm test
-# Manual: open /flow-designer, drag nodes, connect edges, export JSON
-```
+**Acceptance:**
+- [ ] Los 3 archivos no existen
+- [ ] No hay otros `.agent-*-running` huerfanos
+- [ ] Directorio `.planning/` solo contiene directorios y archivos utiles
 
 ---
 
-### B2: Simulation & Replay Engine
+## PHASE B — `/mm:init` Command + PostgreSQL Integration
 
-**What:** Visual replay of past executions with timeline scrubber, node status highlighting, latency on edges, and error detection.
+**Objetivo:** Comando que instala MasterMind Framework en cualquier proyecto. Verifica PostgreSQL, registra proyecto en DB, copia archivos. Handler-only (sin skill ni agent).
 
-**Why:** Lets operators debug failed/slow executions visually — unique feature that no competitor has. Detect errors by watching the flow execute step-by-step.
+### B1: Crear `db_client.py` (Modulo Compartido)
 
-**Current state:** `replayStore.ts` (4.3K) already has `BrainStateReplay`, `Snapshot`, `SnapshotMilestone` types with Map-based state. `SnapshotScrubber.tsx` (8.7K) already exists in Strategy Vault. This is 40% built already.
+**Que:** Modulo Python de conexion PostgreSQL compartido por todos los handlers.
 
-**Files to create/modify:**
-- `apps/web/src/components/simulation/SimulationCanvas.tsx` — NEW (reuses Flow Designer canvas with status overlay)
-- `apps/web/src/components/simulation/TimelineScrubber.tsx` — NEW (extends SnapshotScrubber pattern)
-- `apps/web/src/components/simulation/EventLog.tsx` — NEW
-- `apps/web/src/components/simulation/ReplayControls.tsx` — NEW (play/pause/reset/speed)
-- `apps/web/src/components/simulation/ErrorSummary.tsx` — NEW
-- `apps/web/src/stores/simulationStore.ts` — NEW (extends replayStore pattern)
-- `apps/web/src/app/(protected)/simulation/page.tsx` — NEW (route)
-- `apps/web/src/lib/api.ts` — ADD simulation data endpoints
+**Funcionalidad:**
+- Conexion centralizada a `localhost:5433` / `mastermind_bd`
+- Funciones helper: `save_brain_consultation()`, `save_decision()`, `save_artifact()`, `save_experience()`
+- Registro de proyectos: `register_project()`, `get_project()`
+- Session tracking: `save_session_state()`, `get_session_state()`
+- Provider check: `get_provider_status()`, `is_provider_available()`
+- Manejo de errores graceful (si PostgreSQL no esta, los handlers funcionan sin DB)
 
-**Acceptance Criteria:**
-- [x] Load execution from `execution_history`
-- [x] Timeline scrubber with play/pause/reset/skip controls
-- [x] Speed selector: 0.5x, 1x, 2x, 5x
-- [x] Node status highlighting at current timestamp:
-  - Blue glow = running
-  - Green border = success
-  - Red background + error tooltip = failed
-  - Yellow border + "SLOW" badge = latency > threshold
-- [x] Edge labels show latency in ms
-- [x] Event log filtered to current timestamp
-- [x] Error summary: total errors, slow nodes, total execution time
-- [x] All components theme-aware (light/dark)
-- [x] 8+ unit tests for simulationStore (24 tests, 100% pass)
-- [x] 5+ component tests for SimulationCanvas rendering (30 tests, 100% pass)
+**Acceptance:**
+- [ ] Modulo importa sin errores: `from db_client import MasterMindDB`
+- [ ] Conexion a PostgreSQL funciona: `MasterMindDB().ping()` retorna True
+- [ ] `register_project(name="test", path="/tmp/test")` inserta en tabla `projects`
+- [ ] `save_brain_consultation()` inserta en tabla `brain_consultations`
+- [ ] Si PostgreSQL no esta disponible, no crashea (graceful degradation)
 
-**Verification:**
-```bash
-cd apps/web && pnpm test -- --grep "simulation"
-# Manual: open /simulation, load execution, scrub timeline
-```
+### B2: Crear `init-handler.py`
 
-**Status:** ✅ COMPLETE — Verified 2026-04-17
-**Tests:** 708 passing (54 simulation tests: 24 simulationStore + 30 SimulationCanvas)
-**Files:** 6 new components + 1 page + 1 store (1,163 total lines)
+**Que:** Python handler que verifica servicios, detecta stack y copia archivos de MasterMind al proyecto destino.
 
-**Checkpoint B:** Flow Designer + Simulation both functional, all tests green.
+**Funcionalidad:**
+- `--target <path>` — Directorio destino (default: CWD)
+- `--check` — Verificar instalacion existente
+- `--force` — Sobreescribir si ya existe `.mastermind/`
+- **Verificar PostgreSQL** — docker compose ps + ping localhost:5433
+- **Verificar Rust Control Plane** — ping localhost:3001 (opcional, advertir si no esta)
+- **Verificar provider disponible** — check `backend_sessions` para tokens disponibles
+- Detectar stack: leer `package.json`, `pyproject.toml`, `CLAUDE.md`
+- Copiar `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers + db_client.py)
+- Copiar `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)
+- Copiar `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)
+- Crear `.mastermind/config.yaml` con stack detectado + conexion DB
+- **Registrar proyecto en PostgreSQL** — INSERT en tabla `projects`
+- Output: `STATUS: installed` o `ERROR: <reason>`
 
----
+**Acceptance:**
+- [ ] Handler ejecuta sin errores con `python3 init-handler.py --target /tmp/test-project`
+- [ ] Verifica PostgreSQL antes de continuar (falla si no esta)
+- [ ] Crea `.mastermind/config.yaml` con stack detectado + DB connection info
+- [ ] Crea `.claude/commands/mm/` con los 5 comandos + handlers + db_client.py
+- [ ] Registra proyecto en tabla `projects` de PostgreSQL
+- [ ] `--check` retorna `STATUS: installed` en proyecto ya instalado
+- [ ] `--check` retorna `STATUS: not-installed` en proyecto vacio
+- [ ] Proteccion: no sobreescribir sin `--force`
+- [ ] Advierte si Rust Control Plane no esta disponible (no bloquea)
 
-## PHASE C — Phase 19 Completion (Independent)
+### B3: Crear `init.md`
 
-### C1: Phase 19-05 Statusline Extension
+**Que:** Slash command interface siguiendo el patron de `discover.md`.
 
-**What:** Extend `mm-flow-statusline.js` with phase state + active brain status. Last pending plan in Phase 19.
+**Estructura:**
+- YAML front matter: name, description, argument-hint
+- Usage con ejemplos
+- Protocol (For Assistant): Step 1 ejecutar handler, Step 2 parsear output, Step 3 notificar
+- Flags: --target, --check, --force
+- Nota sobre PostgreSQL como prerequisito
 
-**Why:** Phase 19-05 is the only remaining plan to complete MM-Flow Completion milestone.
+**Acceptance:**
+- [ ] `/mm:init` aparece en autocomplete de Claude Code
+- [ ] Sigue el mismo formato que `discover.md`
+- [ ] Protocol section sigue el patron: handler -> parse -> notify
+- [ ] Documenta que PostgreSQL es prerequisito
 
-**Current state:** FASEs 1-4 COMPLETE. Plan 05 PENDING. Statusline exists at `~/.claude/hooks/mm-flow-statusline.js` (74 lines, lines 24-43 must be preserved).
+### B4: Validar `/mm:init` End-to-End
 
-**Files to create/modify:**
-- `~/.claude/hooks/mm-flow-statusline.js` — EXTEND (preserve lines 24-43)
-- `apps/api/mastermind_cli/mm_flow/` — any supporting backend changes
+**Que:** Probar init en directorio vacio y en proyecto existente.
 
-**Acceptance Criteria:**
-- [x] Lines 24-43 of statusline.js preserved unchanged
-- [x] Phase state displayed (current phase, plan, status)
-- [x] Active brain status displayed when dispatching
-- [x] Graceful fallback when phase data unavailable
-- [x] No breaking changes to existing statusline functionality
-
-**Status:** ✅ COMPLETE — Verified 2026-04-16
-**Verified:** Files exist, acceptance criteria met
-**Commit:** (pending - will be committed with this session)
-
-**Verification:**
-```bash
-# Check statusline output
-node ~/.claude/hooks/mm-flow-statusline.js
-```
-
----
-
-## PHASE D — Integration & Polish
-
-### D1: All Screens Theme-Aware
-
-**What:** Apply theming to all 4 existing screens (Command Center, Nexus, Strategy Vault, Engine Room) plus new screens (Flow Designer, Simulation).
-
-**Why:** Ensures visual consistency across the entire application.
-
-**Files to modify:**
-- `apps/web/src/components/command-center/*.tsx` — Replace hardcoded colors with tokens
-- `apps/web/src/components/nexus/*.tsx` — Replace hardcoded colors with tokens
-- `apps/web/src/components/strategy-vault/*.tsx` — Replace hardcoded colors with tokens
-- `apps/web/src/app/(protected)/engine-room/page.tsx` — Replace hardcoded colors with tokens
-
-**Acceptance Criteria:**
-- [x] Zero hardcoded hex colors in any screen component
-- [x] All screens render correctly in light mode
-- [x] All screens render correctly in dark mode
-- [x] React Flow canvas adapts to theme (Nexus + Flow Designer)
-- [x] All 628+ existing tests pass
-
-**Verification:**
-```bash
-cd apps/web && pnpm test
-grep -rn '#[0-9a-fA-F]\{3,6\}' src/components/ src/app/ | grep -v '.test.' | grep -v 'globals.css' | grep -v 'var('
-```
-
-**Status:** ✅ **COMPLETE** — Verified 2026-04-17 via `/mm:verify-task`
-- Zero hardcoded colors (only comments in NodeStatusIndicator.tsx)
-- All screens use Tailwind semantic tokens (text-foreground, bg-primary, etc.)
-- ThemeProvider configured with localStorage + system fallback
-- React Flow canvas uses var(--color-brain-*), var(--color-primary), var(--color-surface)
-- 728/728 tests passing (exceeds 628+ requirement)
+**Acceptance:**
+- [ ] En `/tmp/test-project` vacio: `/mm:init --target /tmp/test-project` crea estructura completa
+- [ ] Proyecto aparece en tabla `projects` de PostgreSQL
+- [ ] `.mastermind/config.yaml` tiene `db.host: localhost`, `db.port: 5433`
+- [ ] En proyecto existente (mastermind): `/mm:init --check` retorna installed
+- [ ] Sin `--force`: `/mm:init --target /tmp/test-project` (ya instalado) advierte sin sobreescribir
+- [ ] Con `--force`: sobreescribe correctamente
 
 ---
 
-### D2: Flow Designer ↔ Simulation Wiring
+## PHASE C — `/mm:review` Command
 
-**What:** Connect Flow Designer flows to Simulation engine — user designs a flow, then replays a past execution on that same flow.
+**Objetivo:** Code review con brains. Handler + skill + agent.
 
-**Why:** The "design → simulate → debug" loop is the core user workflow.
+### C1: Crear `review-handler.py`
 
-**Files to create/modify:**
-- `apps/web/src/lib/flow-execution-adapter.ts` — NEW (maps execution_history → FlowDefinition)
-- `apps/web/src/components/flow-designer/FlowDesignerCanvas.tsx` — ADD "Simulate" button
-- `apps/web/src/components/simulation/SimulationCanvas.tsx` — ADD "Edit Flow" button
-- `apps/web/src/stores/flowDesignerStore.ts` — ADD simulation linking
+**Que:** Python handler que detecta scope del review y genera payload para agent. Escribe en PostgreSQL.
 
-**Acceptance Criteria:**
-- [x] "Simulate" button in Flow Designer → loads last execution on that flow
-- [x] "Edit Flow" button in Simulation → opens flow in designer
-- [x] Execution events correctly map to flow nodes
-- [x] Unmapped nodes handled gracefully (grayed out)
+**Funcionalidad:**
+- Sin flags: `git diff` (uncommitted changes)
+- `--staged`: `git diff --staged`
+- `--branch <name>`: `git diff <name>...HEAD`
+- `--files <paths>`: Leer archivos directamente
+- `--last-commit`: `git diff HEAD~1..HEAD`
+- Truncar diff a 500 lineas (configurable)
+- Detectar lenguaje de los archivos modificados
+- Generar payload con diff + contexto
+- **Guardar en PostgreSQL:** `artifacts` con referencia al review pendiente
 
-**Status:** ✅ **COMPLETE** — Executed via `/mm:complete-task D2` (2026-04-17)
-**Session:** sess-20260417-180457
-**Commits:**
-- 8ba65137 — D2.1: flow-execution-adapter.ts + tests
-- 2470653b — D2.2: Simulate button in FlowToolbar
-- a8155f54 — D2.3: Edit Flow button in Simulation page
-- d1a7f0e8 — D2.4: Unmapped nodes (handled in D2.1)
-
-**Test Results:** 728/728 passing (100%)
-
-**Verification:**
-```bash
-cd apps/web && pnpm test
-# Manual: open /flow-designer, click "Simulate", verify /simulation loads
-# Manual: open /simulation, click "Edit Flow", verify /flow-designer loads
+**Output:**
 ```
+MODE: review
+SCOPE: uncommitted|staged|branch|files|last-commit
+FILES: [lista de archivos modificados]
+LINES: N lines changed
+DB: connected|unavailable
+LAUNCH: code-reviewer
+PAYLOAD: {json}
+```
+
+**Acceptance:**
+- [ ] Handler ejecuta sin errores con `python3 review-handler.py`
+- [ ] `--staged` genera diff correcto de staged changes
+- [ ] `--last-commit` genera diff del ultimo commit
+- [ ] Payload incluye lista de archivos y diff truncado
+
+### C2: Crear `review.md`
+
+**Que:** Slash command interface.
+
+**Estructura:**
+- YAML front matter
+- Usage: `/mm:review`, `/mm:review --staged`, `/mm:review --branch main`, etc.
+- Protocol: handler -> parse -> launch agent -> notify
+- Brain integration: Brain #6 (QA) + Brain #7 (Growth)
+
+**Acceptance:**
+- [ ] `/mm:review` aparece en autocomplete
+- [ ] Sigue patron de `discover.md`
+- [ ] Documenta los 5 modos de review
+
+### C3: Crear `review/SKILL.md`
+
+**Que:** Skill protocolo para review. Define como consultar brains durante review.
+
+**Contenido:**
+- Cuando usar (proactivo: antes de commit, post-implementation)
+- Protocolo de review: 5 ejes (correctness, readability, architecture, security, performance)
+- Brain #6: QA standards, testing strategy, edge cases
+- Brain #7: Systems thinking, impact analysis, risk assessment
+- Formato de reporte: `.planning/REVIEWS/<timestamp>-review.md`
+- Criterios de severidad: CRITICAL / WARNING / SUGGESTION
+
+**Acceptance:**
+- [ ] SKILL.md sigue formato de `discover/SKILL.md`
+- [ ] Define 5 ejes de review con criterios claros
+- [ ] Incluye formato de reporte
+
+### C4: Crear `code-reviewer` Agent
+
+**Que:** Agent que ejecuta code review consultando brains.
+
+**Directorio:** `.claude/agents/mm/code-reviewer/code-reviewer.md`
+
+**Funcionalidad:**
+- Recibe payload con diff + contexto
+- Consulta Brain #6 para QA standards
+- Consulta Brain #7 para systems evaluation
+- **Escribe en PostgreSQL:**
+  - `brain_consultations` — cada consulta a Brain #6 y #7 (input, output, confidence)
+  - `brain_feedback` — aprendizajes del review
+  - `artifacts` — referencia al reporte generado
+- Genera reporte en `.planning/REVIEWS/<timestamp>-review.md`
+- Reporte: 5 secciones con CRITICAL / WARNING / SUGGESTION
+
+**Acceptance:**
+- [ ] Agent file sigue formato de `task-executor.md`
+- [ ] Consulta Brain #6 y Brain #7
+- [ ] Genera reporte con 5 secciones
+- [ ] Guarda en `.planning/REVIEWS/`
+
+### C5: Validar `/mm:review`
+
+**Que:** Probar review con cambios reales.
+
+**Acceptance:**
+- [ ] `/mm:review` en proyecto con cambios uncommitted genera reporte
+- [ ] Reporte tiene 5 secciones (correctness, readability, architecture, security, performance)
+- [ ] `/mm:review --staged` solo reviewea staged changes
+- [ ] `/mm:review --last-commit` reviewea ultimo commit
+- [ ] Reporte se guarda en `.planning/REVIEWS/`
 
 ---
 
-### D3: End-to-End Verification
+## PHASE D — `/mm:ship` Command
 
-**What:** Full regression test of all components together. Verify all 27 success criteria from SPEC.md.
+**Objetivo:** Tag + archive + cleanup. Handler + skill + agent.
 
-**Acceptance Criteria:**
-- [x] All 10 Frontend success criteria (F1-F10) verified
-- [x] All 6 Backend success criteria (B1-B6) verified
-- [x] All 7 Functional success criteria (X1-X7) verified
-- [x] All 5 Integration success criteria (I1-I5) verified
-- [x] Python tests: 820+ passing (99.0%+)
-- [x] TypeScript tests: 628+ passing (100%)
-- [x] Zero hardcoded colors in production components
-- [x] Light/dark toggle works on all screens
-- [x] Flow Designer: create, edit, export, import a flow
-- [x] Simulation: load execution, replay, detect errors
+### D1: Crear `ship-handler.py`
 
-**Status:** ✅ **COMPLETE** — Verified 2026-04-20
-**Test Results:**
-- Frontend: 849/849 passing (100%)
-- Backend: 824 passing, 9 skipped (100%)
+**Que:** Python handler que verifica pre-condiciones y genera payload para agent.
 
-**Verification:**
-```bash
-cd apps/api && uv run pytest
-cd apps/web && pnpm test
-cd apps/control-plane && cargo test
+**Funcionalidad:**
+- `--verify`: Solo verificar, no crear tag (dry-run)
+- `--tag vX.Y.Z`: Tag explicito
+- `--patch`: Incrementar patch (default)
+- `--minor`: Incrementar minor
+- `--major`: Incrementar major
+- `--archive`: Solo archivar artefactos
+- `--cleanup`: Solo limpiar archivos temporales
+- Verificar: tests pasan, no hay uncommitted, SPEC.md existe
+- Leer ultimo tag de git
+- Generar changelog desde ultimo tag (git log)
+
+**Output:**
+```
+MODE: ship|verify|archive|cleanup
+CURRENT_TAG: vX.Y.Z
+NEXT_TAG: vX.Y.Z+1
+CHANGELOG: [N commits since last tag]
+PRECONDITIONS: pass|fail
+LAUNCH: ship-executor
+PAYLOAD: {json}
 ```
 
-**Checkpoint D:** ✅ ALL 8/8 tasks complete → v3.0 READY TO SHIP
+**Acceptance:**
+- [ ] Handler detecta ultimo tag correctamente
+- [ ] `--verify` ejecuta checks sin crear tag
+- [ ] Genera changelog desde ultimo tag
+- [ ] Falla si hay cambios uncommitted
+- [ ] `--patch` incrementa patch, `--minor` minor, `--major` major
+
+### D2: Crear `ship.md`
+
+**Que:** Slash command interface.
+
+**Acceptance:**
+- [ ] `/mm:ship` aparece en autocomplete
+- [ ] Documenta flags: --verify, --tag, --patch, --minor, --major, --archive, --cleanup
+
+### D3: Crear `ship/SKILL.md`
+
+**Que:** Skill protocolo para ship.
+
+**Contenido:**
+- Cuando usar: al completar milestone/version
+- Pre-condiciones: tests pass, no uncommitted, SPEC exists
+- Flujo: verify -> tag -> archive -> cleanup
+- Formato de changelog
+- Formato de archive: `.planning/archive/<version>/`
+
+**Acceptance:**
+- [ ] Sigue formato de `discover/SKILL.md`
+- [ ] Define flujo completo con pre-condiciones
+
+### D4: Crear `ship-executor` Agent
+
+**Que:** Agent que ejecuta el ship (verify, tag, archive, cleanup).
+
+**Directorio:** `.claude/agents/mm/ship-executor/ship-executor.md`
+
+**Funcionalidad:**
+- Ejecutar tests (frontend + backend)
+- Crear git tag
+- Mover `tasks/` a `.planning/archive/<version>/`
+- Limpiar `.agent-*-running`, `task-progress.json` viejos
+- Actualizar `.mastermind/config.yaml` con version
+- **Escribir en PostgreSQL:**
+  - `decisions` — registro del ship (version, tests result, changelog)
+  - `artifacts` — referencia al archive generado
+  - `dev_sessions` — actualiza estado a `completed`
+- Mostrar resumen del ship
+
+**Acceptance:**
+- [ ] Agent sigue formato de `task-executor.md`
+- [ ] Ejecuta tests antes de crear tag
+- [ ] Crea tag semantico
+- [ ] Archiva `tasks/` correctamente
+- [ ] Limpia archivos temporales
+
+### D5: Validar `/mm:ship`
+
+**Que:** Probar ship con `--verify` (dry-run, no crea tag real).
+
+**Acceptance:**
+- [ ] `/mm:ship --verify` ejecuta checks y reporta estado
+- [ ] Reporta tests pasando/fallando
+- [ ] Reporta cambios uncommitted
+- [ ] Sugiere proximo tag basado en ultimo tag
+- [ ] `/mm:ship --cleanup` elimina archivos `.agent-*-running`
+
+---
+
+## PHASE E — End-to-End Validation
+
+**Objetivo:** Validar flujo completo de los 5 comandos.
+
+### E1: Flujo Completo en Proyecto de Prueba
+
+**Que:** Ejecutar el flujo completo en un proyecto temporal.
+
+**Flujo:**
+1. Crear proyecto temporal: `/tmp/mm-test-project`
+2. `/mm:init --target /tmp/mm-test-project`
+3. `/mm:discover "Test app de TODO"`
+4. `/mm:complete-task A1`
+5. `/mm:review --last-commit`
+6. `/mm:ship --verify`
+
+**Acceptance:**
+- [ ] Init crea estructura completa
+- [ ] Discover genera SPEC + plan + todo
+- [ ] Complete-task ejecuta subtarea
+- [ ] Review genera reporte con 5 secciones
+- [ ] Ship --verify reporta estado correcto
+- [ ] Cero errores en flujo completo
+
+### E2: Commit Final
+
+**Que:** Commit de todos los archivos nuevos y eliminados.
+
+**Acceptance:**
+- [ ] Commit con mensaje: `feat(mm-commands): add init, review, ship commands and remove GSD wrappers`
+- [ ] Solo archivos nuevos/modificados/eliminados, nada extra
+- [ ] Tests existentes pasan
+- [ ] `/mm:discover` y `/mm:complete-task` funcionan post-commit
 
 ---
 
 ## Task Summary
 
-| ID | Task | Depends On | Est. Complexity | Files | Status |
-|----|------|------------|-----------------|-------|--------|
-| A1 | Theming Engine | — | Medium | 3 new, 2 modify | ✅ Complete |
-| A2 | UI Redesign + Tokens | A1 | Medium-High | 8 modify/create | ✅ Complete |
-| B1 | Flow Designer | A2 | High | 13 new, 1 modify | ✅ Complete |
-| B2 | Simulation & Replay | A2 | High | 7 new, 1 modify | ✅ Complete |
-| C1 | Phase 19-05 Statusline | — | Low | 1 modify | ✅ Complete |
-| D1 | All Screens Theme-Aware | A1, A2, B1, B2 | Medium | ~15 modify | ✅ Complete |
-| D2 | Flow ↔ Simulation Wiring | B1, B2 | Medium | 4 modify | ✅ Complete |
-| D3 | E2E Verification | All | Low | 0 new (verification only) | ✅ Complete |
+| ID | Task | Depends On | Complexity | Files | DB | Status |
+|----|------|------------|------------|-------|-----|--------|
+| A1 | Eliminar wrapper commands | — | Low | 5 delete | — | [ ] |
+| A2 | Eliminar skills huerfanos | — | Low | 2 dirs delete | — | [ ] |
+| A3 | Limpiar markers huerfanos | — | Low | 3 delete | — | [ ] |
+| B1 | db_client.py (modulo PostgreSQL) | — | Medium | 1 new | SI | [ ] |
+| B2 | init-handler.py | B1 | Medium | 1 new | SI | [ ] |
+| B3 | init.md | B2 | Low | 1 new | — | [ ] |
+| B4 | Validar init | B1-B3 | Low | 0 new | SI | [ ] |
+| C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
+| C2 | review.md | C1 | Low | 1 new | — | [ ] |
+| C3 | review/SKILL.md | C1 | Medium | 1 new | — | [ ] |
+| C4 | code-reviewer agent | C3 | Medium | 1 new | SI | [ ] |
+| C5 | Validar review | C1-C4 | Low | 0 new | SI | [ ] |
+| D1 | ship-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
+| D2 | ship.md | D1 | Low | 1 new | — | [ ] |
+| D3 | ship/SKILL.md | D1 | Medium | 1 new | — | [ ] |
+| D4 | ship-executor agent | D3 | Medium | 1 new | SI | [ ] |
+| D5 | Validar ship | D1-D4 | Low | 0 new | SI | [ ] |
+| E1 | Flujo E2E | All | Medium | 0 new | SI | [ ] |
+| E2 | Commit final | E1 | Low | 0 new | — | [ ] |
 
-**Overall Progress:** 8/8 complete (100%) 🎉
+**Total: 5 phases, 19 tasks, ~15 files nuevos, ~10 archivos eliminados**
 
 **Parallel tracks:**
-- Track 1 (frontend foundation): A1 → A2 → B1 → D2 ✅
-- Track 2 (simulation): A2 → B2 → D2 ✅
-- Track 3 (Phase 19): C1 ✅ (independent, can run anytime)
+- Track 1 (cleanup): A1 + A2 + A3 (secuencial rapido)
+- Track 2 (init + DB): B1 -> B2 -> B3 -> B4 (primero: db_client es prerequisito de C y D)
+- Track 3 (review): C1 -> C2 -> C3 -> C4 -> C5 (despues de A + B1)
+- Track 4 (ship): D1 -> D2 -> D3 -> D4 -> D5 (despues de A + B1, paralelo con C)
+- Track 5 (E2E): E1 -> E2 (despues de todo)
 
 **Recommended execution order:**
-1. ~~**C1** (Phase 19-05)~~ — ✅ Complete
-2. ~~**A1** (Theming)~~ — ✅ Complete
-3. ~~**A2** (UI Redesign)~~ — ✅ Complete
-4. ~~**B1 + B2** (Flow Designer + Simulation)~~ — ✅ Complete
-5. ~~**D1** (Theme all screens)~~ — ✅ Complete
-6. ~~**D2** (Flow ↔ Simulation wiring)~~ — ✅ Complete
-7. ~~**D3** (E2E verification)~~ — ✅ Complete
-
-**🚀 READY TO SHIP v3.0** 🚀
+1. **A1-A3** (Cleanup) — 10 minutos, workspace limpio
+2. **B1** (db_client.py) — 20 minutos, PRIMERO (C y D dependen de este)
+3. **B2-B4** (Init) — 30 minutos, handler + command + validacion
+4. **C1-C5 + D1-D5** (Review + Ship) — 90 minutos, pueden ir en paralelo
+5. **E1-E2** (E2E) — 30 minutos, al final
 
 ---
 
@@ -392,13 +461,13 @@ cd apps/control-plane && cargo test
 
 | Risk | Mitigation |
 |------|------------|
-| React Flow performance with 50+ nodes | Virtual rendering, limit visible nodes, benchmark early |
-| Dark mode contrast in React Flow | Test with WCAG AA checker, custom node styles |
-| Existing tests break from theming changes | Incremental migration, run full suite after each task |
-| SnapshotScrubber → TimelineScrubber overlap | Reuse existing patterns, don't duplicate |
-| globals.css bloat from tokens | Organize with CSS layers, keep shadcn tokens separate |
+| `/mm:init` copia archivos del propio mastermind (meta) | Detectar si target == mastermind source, advertir |
+| Eliminar wrappers rompe flujo existente | Verificar no hay fases pendientes en `.planning/phases/` |
+| Review con diffs grandes (>500 lineas) | Truncar por defecto, flag `--full` para completo |
+| Ship asume tags semanticos | Detectar ultimo tag, sugerir `v0.1.0` si no hay |
+| Safe-commit depende de GGA | Init incluye opcion para GGA, safe-commit advierte si falta |
 
 ---
 
-*Plan based on SPEC.md — single source of truth for implementation.*
-*Last updated: 2026-04-15*
+*Plan basado en SPEC.md — single source of truth para implementacion.*
+*Last updated: 2026-04-20*

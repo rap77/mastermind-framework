@@ -13,6 +13,7 @@ import logging
 import sys
 import os
 import argparse
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ def print_header(text: str) -> None:
 
 def evaluar_brief(
     brief: str, use_mcp: bool = False, flow: str = "validation_only"
-) -> dict:
+) -> dict[str, Any]:
     """Evalúa un brief usando el MasterMind Framework.
 
     Args:

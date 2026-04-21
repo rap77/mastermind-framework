@@ -31,7 +31,7 @@ if _version_not_supported:
 class WorkerStub(object):
     """Webhook processing service"""
 
-    def __init__(self, channel):
+    def __init__(self, channel):  # type: ignore[no-untyped-def]
         """Constructor.
 
         Args:
@@ -39,8 +39,8 @@ class WorkerStub(object):
         """
         self.ProcessWebhook = channel.unary_unary(
             "/mastermind.worker.Worker/ProcessWebhook",
-            request_serializer=worker__pb2.ProcessWebhookRequest.SerializeToString,
-            response_deserializer=worker__pb2.ProcessWebhookResponse.FromString,
+            request_serializer=worker__pb2.ProcessWebhookRequest.SerializeToString,  # type: ignore[attr-defined]
+            response_deserializer=worker__pb2.ProcessWebhookResponse.FromString,  # type: ignore[attr-defined]
             _registered_method=True,
         )
 
@@ -48,19 +48,19 @@ class WorkerStub(object):
 class WorkerServicer(object):
     """Webhook processing service"""
 
-    def ProcessWebhook(self, request, context):
+    def ProcessWebhook(self, request, context):  # type: ignore[no-untyped-def]
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
 
-def add_WorkerServicer_to_server(servicer, server):
+def add_WorkerServicer_to_server(servicer, server):  # type: ignore[no-untyped-def]
     rpc_method_handlers = {
         "ProcessWebhook": grpc.unary_unary_rpc_method_handler(
             servicer.ProcessWebhook,
-            request_deserializer=worker__pb2.ProcessWebhookRequest.FromString,
-            response_serializer=worker__pb2.ProcessWebhookResponse.SerializeToString,
+            request_deserializer=worker__pb2.ProcessWebhookRequest.FromString,  # type: ignore[attr-defined]
+            response_serializer=worker__pb2.ProcessWebhookResponse.SerializeToString,  # type: ignore[attr-defined]
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -77,7 +77,7 @@ class Worker(object):
     """Webhook processing service"""
 
     @staticmethod
-    def ProcessWebhook(
+    def ProcessWebhook(  # type: ignore[no-untyped-def]
         request,
         target,
         options=(),
@@ -89,12 +89,12 @@ class Worker(object):
         timeout=None,
         metadata=None,
     ):
-        return grpc.experimental.unary_unary(
+        return grpc.experimental.unary_unary(  # type: ignore[attr-defined]
             request,
             target,
             "/mastermind.worker.Worker/ProcessWebhook",
-            worker__pb2.ProcessWebhookRequest.SerializeToString,
-            worker__pb2.ProcessWebhookResponse.FromString,
+            worker__pb2.ProcessWebhookRequest.SerializeToString,  # type: ignore[attr-defined]
+            worker__pb2.ProcessWebhookResponse.FromString,  # type: ignore[attr-defined]
             options,
             channel_credentials,
             insecure,

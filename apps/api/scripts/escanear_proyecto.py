@@ -18,6 +18,7 @@ import os
 import sys
 import argparse
 from pathlib import Path
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ class ProjectScanner:
     def __init__(self, project_path: str, max_depth: int = 3) -> None:
         self.project_path = Path(project_path).resolve()
         self.max_depth = max_depth
-        self.findings = {
+        self.findings: dict[str, Any] = {
             "name": "",
             "description": "",
             "tech_stack": [],
@@ -132,7 +133,7 @@ class ProjectScanner:
             "architecture_notes": [],
         }
 
-    def scan(self) -> dict:
+    def scan(self) -> dict[str, Any]:
         """Ejecuta el escaneo completo del proyecto."""
         if not self.project_path.exists():
             raise ValueError(f"Project path does not exist: {self.project_path}")
@@ -166,7 +167,7 @@ class ProjectScanner:
     def _extract_project_name(self) -> None:
         """Extrae el nombre del proyecto."""
         # Intentar desde package.json, pyproject.toml, etc.
-        config_files = [
+        config_files: list[tuple[str, Any]] = [
             ("package.json", lambda c: c.get("name", "")),
             ("pyproject.toml", lambda c: c.get("project", {}).get("name", "")),
             ("Cargo.toml", lambda c: c.get("package", {}).get("name", "")),
@@ -314,7 +315,7 @@ class ProjectScanner:
         if self.findings["tech_stack"]:
             logger.info(f"   Detected: {', '.join(self.findings['tech_stack'])}")
 
-    def _generate_brief(self) -> dict:
+    def _generate_brief(self) -> dict[str, Any]:
         """Genera un brief estructurado basado en los findings."""
         logger.info("\n📝 Generando brief...")
 
@@ -366,7 +367,7 @@ class ProjectScanner:
         return brief
 
 
-def format_brief_for_evaluation(brief: dict) -> str:
+def format_brief_for_evaluation(brief: dict[str, Any]) -> str:
     """Format a scan brief for MasterMind evaluation.
 
     Args:
@@ -402,7 +403,7 @@ Para mejores resultados, completa manualmente:
 """
 
 
-def evaluate_scanned_project(brief_text: str, use_mcp: bool = False) -> dict:
+def evaluate_scanned_project(brief_text: str, use_mcp: bool = False) -> dict[str, Any]:
     """Evalúa el brief generado con el MasterMind Framework.
 
     Args:
@@ -428,7 +429,7 @@ def evaluate_scanned_project(brief_text: str, use_mcp: bool = False) -> dict:
     return result
 
 
-def main() -> dict:
+def main() -> dict[str, Any]:
     """Entry point for the MasterMind project scanner."""
     parser = argparse.ArgumentParser(
         description="Escanea un proyecto y lo evalúa con MasterMind Framework",

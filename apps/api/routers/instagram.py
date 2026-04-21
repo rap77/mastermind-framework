@@ -13,7 +13,7 @@ Reference: https://developers.facebook.com/docs/instagram-api/reference/comment
 """
 
 import os
-from typing import Optional
+from typing import Any, Optional
 import httpx
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
@@ -62,11 +62,11 @@ class InstagramError(Exception):
         self.status_code = status_code
         super().__init__(self.message)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.message
 
 
-async def send_instagram_comment(comment: InstagramComment) -> dict:
+async def send_instagram_comment(comment: InstagramComment) -> dict[str, Any]:
     """Send a comment via Instagram Graph API
 
     Posts a comment on an Instagram media post.
@@ -135,7 +135,7 @@ async def send_instagram_comment(comment: InstagramComment) -> dict:
             raise InstagramError(f"Network error: {str(e)}", 503)
 
 
-async def send_instagram_direct(recipient_id: str, message_text: str) -> dict:
+async def send_instagram_direct(recipient_id: str, message_text: str) -> dict[str, Any]:
     """Send a direct message via Instagram Graph API
 
     Sends a direct message to an Instagram user.
@@ -201,7 +201,7 @@ async def send_instagram_direct(recipient_id: str, message_text: str) -> dict:
 
 
 @router.post("/api/channels/instagram/send")
-async def send_comment_endpoint(comment: InstagramComment) -> dict:
+async def send_comment_endpoint(comment: InstagramComment) -> dict[str, Any]:
     """FastAPI endpoint for sending Instagram comments
 
     Args:
@@ -222,7 +222,7 @@ async def send_comment_endpoint(comment: InstagramComment) -> dict:
 
 
 @router.post("/api/channels/instagram/direct")
-async def send_direct_endpoint(message: InstagramDirectMessage) -> dict:
+async def send_direct_endpoint(message: InstagramDirectMessage) -> dict[str, Any]:
     """FastAPI endpoint for sending Instagram direct messages
 
     Args:

@@ -78,7 +78,7 @@ class ChannelRouter:
     FALLBACK_CHANNEL: ChannelType = "email"
     CHANNEL_PRIORITY: list[ChannelType] = ["whatsapp", "instagram", "email"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Channel Router"""
         # TODO: Load ML model, user preferences, historical data
         pass

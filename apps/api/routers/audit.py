@@ -669,9 +669,7 @@ async def record_decision(
     async with DatabaseConnection(db_path) as db:
         await _ensure_audit_schema(db)
 
-        decision_id = str(
-            UUID(int=0)
-        )  # Placeholder, will use proper UUID in production
+        decision_id = UUID(int=0)  # Placeholder, will use proper UUID in production
         now = datetime.now(timezone.utc)
 
         await db.conn.execute(
@@ -681,7 +679,7 @@ async def record_decision(
                 impact_description, made_by, status, tags, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
-                decision_id,
+                str(decision_id),
                 str(project_id),
                 phase_num,
                 decision.decision_type,
@@ -1433,11 +1431,12 @@ async def compare_phases(
                         else "stable",
                     }
 
+        phase_rows_list = list(phase_rows)
         return {
-            "phases_analyzed": len(phase_rows),
+            "phases_analyzed": len(phase_rows_list),
             "time_series": time_series,
             "improvements": improvements,
-            "total_phases": len(phase_rows),
+            "total_phases": len(phase_rows_list),
         }
 
 

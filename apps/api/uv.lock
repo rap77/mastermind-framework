@@ -1132,6 +1132,8 @@ dev = [
     { name = "pytest-playwright" },
     { name = "scipy" },
     { name = "sentence-transformers" },
+    { name = "types-grpcio" },
+    { name = "types-protobuf" },
     { name = "types-pyyaml" },
 ]
 
@@ -1180,6 +1182,8 @@ dev = [
     { name = "pytest-playwright", specifier = ">=0.5.0" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "sentence-transformers", specifier = ">=5.3.0" },
+    { name = "types-grpcio", specifier = ">=1.0.0.20260408" },
+    { name = "types-protobuf", specifier = ">=7.34.1.20260408" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
 ]
 
@@ -2653,6 +2657,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f5/24/cb09efec5cc954f7f9b930bf8279447d24618bb6758d4f6adf2574c41780/typer-0.24.1.tar.gz", hash = "sha256:e39b4732d65fbdcde189ae76cf7cd48aeae72919dea1fdfc16593be016256b45", size = 118613, upload-time = "2026-02-21T16:54:40.609Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/91/48db081e7a63bb37284f9fbcefda7c44c277b18b0e13fbc36ea2335b71e6/typer-0.24.1-py3-none-any.whl", hash = "sha256:112c1f0ce578bfb4cab9ffdabc68f031416ebcc216536611ba21f04e9aa84c9e", size = 56085, upload-time = "2026-02-21T16:54:41.616Z" },
+]
+
+[[package]]
+name = "types-grpcio"
+version = "1.0.0.20260408"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/5d/e8af15d909e1f7bf46bac6f21e3faa0f16a92b4d5bd685d52e2c25ee26ca/types_grpcio-1.0.0.20260408.tar.gz", hash = "sha256:c8ebe07f91492a32e0f3a3810669d236828d5a2a1e540ab16cca8b5a46f8ee5d", size = 14551, upload-time = "2026-04-08T04:27:51.156Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/b2/965d99a23d94e4697a76c88c17afcaf8013332583087551697a391b972bd/types_grpcio-1.0.0.20260408-py3-none-any.whl", hash = "sha256:256f2738a4a3eb2ebabd6d027f4fc7eace024822afb3b629e82811e0b661fc35", size = 15209, upload-time = "2026-04-08T04:27:50.02Z" },
+]
+
+[[package]]
+name = "types-protobuf"
+version = "7.34.1.20260408"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/b1/4521e68c2cc17703d80eb42796751345376dd4c706f84007ef5e7c707774/types_protobuf-7.34.1.20260408.tar.gz", hash = "sha256:e2c0a0430e08c75b52671a6f0035abfdcc791aad12af16274282de1b721758ab", size = 68835, upload-time = "2026-04-08T04:26:43.613Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/b5/0bc9874d89c58fb0ce851e150055ce732d254dbb10b06becbc7635d0d635/types_protobuf-7.34.1.20260408-py3-none-any.whl", hash = "sha256:ebbcd4e27b145aef6a59bc0cb6c013b3528151c1ba5e7f7337aeee355d276a5e", size = 86012, upload-time = "2026-04-08T04:26:42.566Z" },
 ]
 
 [[package]]

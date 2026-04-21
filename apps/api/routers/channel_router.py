@@ -5,7 +5,7 @@ Future: Integrate customer preferences, channel metrics, message type compatibil
 """
 
 import structlog
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 from enum import Enum
 
 
@@ -31,7 +31,7 @@ class ChannelSuggestion(NamedTuple):
 def suggest_channel(
     original_channel: str,
     message_type: str = "text",
-    customer_id: str = None,
+    customer_id: Optional[str] = None,
 ) -> ChannelSuggestion:
     """Suggest optimal channel for message delivery
 
@@ -69,7 +69,7 @@ def suggest_channel(
 async def suggest_channel_async(
     original_channel: str,
     message_type: str = "text",
-    customer_id: str = None,
+    customer_id: Optional[str] = None,
 ) -> ChannelSuggestion:
     """Async version of suggest_channel
 

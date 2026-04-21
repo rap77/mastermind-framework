@@ -80,11 +80,11 @@ class EngramDecision:
     impact_level: str = "medium"
     impact_description: Optional[str] = None
     made_by: str = "system"
-    tags: List[str] = None
-    created_at: datetime = None
-    metadata: Dict[str, Any] = None
+    tags: Optional[List[str]] = None
+    created_at: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.tags is None:
             self.tags = []
         if self.metadata is None:
@@ -104,10 +104,10 @@ class EngramBrainFeedback:
     content: str
     confidence: Optional[float] = None
     impact_on_phase: Optional[str] = None
-    created_at: datetime = None
-    metadata: Dict[str, Any] = None
+    created_at: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.metadata is None:
             self.metadata = {}
         if self.created_at is None:
@@ -273,7 +273,7 @@ class EngramSyncService:
             }
         """
 
-        results = {
+        results: Dict[str, Any] = {
             "synced_count": 0,
             "failed_count": 0,
             "errors": [],
@@ -301,11 +301,13 @@ class EngramSyncService:
                         continue
 
                     # Parse and link to phase execution
+                    # Use current time if created_at is None
+                    timestamp = engram_decision.created_at or datetime.utcnow()
                     phase_exec_id = await self._find_phase_execution_id(
                         org_id=org_id,
                         project_id=project_id,
                         phase_number=phase_number,
-                        timestamp=engram_decision.created_at,
+                        timestamp=timestamp,
                     )
 
                     # Upsert into decisions table
@@ -370,7 +372,7 @@ class EngramSyncService:
             }
         """
 
-        results = {
+        results: Dict[str, Any] = {
             "synced_count": 0,
             "failed_count": 0,
             "errors": [],
@@ -391,11 +393,13 @@ class EngramSyncService:
             for feedback in feedback_items:
                 try:
                     # Find phase execution
+                    # Use current time if created_at is None
+                    timestamp = feedback.created_at or datetime.utcnow()
                     phase_exec_id = await self._find_phase_execution_id(
                         org_id=org_id,
                         project_id=project_id,
                         phase_number=phase_number,
-                        timestamp=feedback.created_at,
+                        timestamp=timestamp,
                     )
 
                     # Upsert feedback
@@ -963,7 +967,7 @@ class EngramSyncService:
             if "confidence" in engram_obs:
                 confidence = float(engram_obs["confidence"])
 
-            created_at = None
+            created_at: Optional[datetime] = None
             if engram_obs.get("created_at"):
                 try:
                     created_at = datetime.fromisoformat(
@@ -984,7 +988,7 @@ class EngramSyncService:
                 impact_description=learnings,
                 made_by=engram_obs.get("created_by", "system"),
                 tags=engram_obs.get("tags", []),
-                created_at=created_at,
+                created_at=created_at if created_at is not None else datetime.utcnow(),
             )
 
         except Exception as e:
@@ -1060,7 +1064,7 @@ class EngramSyncService:
             # Map observation type to feedback type
             feedback_type = self._map_feedback_type(obs_type)
 
-            created_at = None
+            created_at: Optional[datetime] = None
             if engram_obs.get("created_at"):
                 try:
                     created_at = datetime.fromisoformat(
@@ -1083,7 +1087,7 @@ class EngramSyncService:
                 feedback_type=feedback_type,
                 content=content,
                 confidence=confidence,
-                created_at=created_at,
+                created_at=created_at if created_at is not None else datetime.utcnow(),
             )
 
         except Exception as e:
@@ -1145,7 +1149,7 @@ class PhaseExecutionRecorder:
         )
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # db_session: Session
         self.logger = logging.getLogger(__name__)
 

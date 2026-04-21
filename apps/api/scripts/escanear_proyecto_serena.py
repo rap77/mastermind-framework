@@ -18,6 +18,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -191,7 +192,7 @@ Use Serena MCP tools to:
 Be thorough. The better the brief, the better the evaluation.
 """
 
-    def generate_brief_from_manual_analysis(self) -> dict:
+    def generate_brief_from_manual_analysis(self) -> dict[str, Any]:
         """
         Genera un brief basado en análisis manual del proyecto.
 
@@ -203,7 +204,7 @@ Be thorough. The better the brief, the better the evaluation.
         logger.info(f"{'='*70}")
         logger.info(f"📁 Path: {self.project_path}")
 
-        brief = {
+        brief: dict[str, Any] = {
             "project_name": self.project_path.name,
             "description": "",
             "problem": "",
@@ -267,7 +268,7 @@ Be thorough. The better the brief, the better the evaluation.
 
         return " ".join(descriptions) if descriptions else "No description found"
 
-    def _extract_features(self, content: str) -> list:
+    def _extract_features(self, content: str) -> list[str]:
         """Extrae features listadas en el contenido."""
         features = []
         in_features = False
@@ -284,7 +285,7 @@ Be thorough. The better the brief, the better the evaluation.
 
         return features[:10]  # Top 10 features
 
-    def _detect_tech_stack(self) -> list:
+    def _detect_tech_stack(self) -> list[str]:
         """Detecta el stack técnico."""
         stack = []
 
@@ -325,7 +326,7 @@ Be thorough. The better the brief, the better the evaluation.
 
         return list(set(stack))
 
-    def _analyze_code_structure(self) -> dict:
+    def _analyze_code_structure(self) -> dict[str, Any]:
         """Analiza la estructura del código."""
 
         structure = {
@@ -357,7 +358,7 @@ Be thorough. The better the brief, the better the evaluation.
 
         return structure
 
-    def _find_apis(self) -> list:
+    def _find_apis(self) -> list[str]:
         """Busca definiciones de API."""
 
         apis = []
@@ -370,7 +371,7 @@ Be thorough. The better the brief, the better the evaluation.
 
         return apis[:5]  # Top 5
 
-    def _find_models(self) -> list:
+    def _find_models(self) -> list[str]:
         """Busca modelos de datos."""
 
         models = []
@@ -391,7 +392,7 @@ Be thorough. The better the brief, the better the evaluation.
         )
 
 
-def format_generated_brief(brief: dict) -> str:
+def format_generated_brief(brief: dict[str, Any]) -> str:
     """Formatea el brief generado para evaluación."""
     return f"""
 # Brief Generado: {brief['project_name']}

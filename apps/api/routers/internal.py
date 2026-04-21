@@ -10,7 +10,7 @@ Environment Variables:
 
 import asyncio
 import os
-from typing import Optional
+from typing import Any, Optional
 
 import grpc
 import structlog
@@ -40,7 +40,7 @@ class WorkerService(WorkerServicer):
     """
 
     async def ProcessWebhook(
-        self, request: ProcessWebhookRequest, context
+        self, request: ProcessWebhookRequest, context: grpc.ServicerContext
     ) -> ProcessWebhookResponse:
         """Process webhook from Rust control plane
 
@@ -97,7 +97,7 @@ class WorkerService(WorkerServicer):
                 processing_duration_ms=0,
             )
 
-    async def _send_whatsapp(self, payload: str):
+    async def _send_whatsapp(self, payload: str) -> None:
         """Send message via WhatsApp Business Cloud API
 
         Args:
@@ -118,7 +118,7 @@ class WorkerService(WorkerServicer):
         )
         await send_whatsapp_message(message)
 
-    async def _send_instagram(self, payload: str):
+    async def _send_instagram(self, payload: str) -> None:
         """Send message via Instagram Graph API
 
         Args:
@@ -138,7 +138,7 @@ class WorkerService(WorkerServicer):
         )
         await send_instagram_comment(message)
 
-    async def _send_email(self, payload: str):
+    async def _send_email(self, payload: str) -> None:
         """Send message via SMTP email
 
         Args:
@@ -153,8 +153,10 @@ class WorkerService(WorkerServicer):
         message = EmailMessage(
             to=data.get("to", ""),
             subject=data.get("subject", ""),
-            body=data.get("body", ""),
+            plain_text=data.get("body", ""),
             html_body=data.get("html_body"),
+            thread_id=data.get("thread_id"),
+            in_reply_to=data.get("in_reply_to"),
         )
         await send_email(message)
 
@@ -162,7 +164,7 @@ class WorkerService(WorkerServicer):
 async def start_grpc_server(
     host: Optional[str] = None,
     port: Optional[int] = None,
-):
+) -> Any:
     """Start gRPC server in background
 
     Args:
@@ -195,12 +197,12 @@ async def start_grpc_server(
 # For running server directly (useful for testing)
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         server = await start_grpc_server()
         logger.info("Press Ctrl+C to stop")
         try:
             await server.wait_for_termination()
         except KeyboardInterrupt:
-            await server.stop(grace_period=0.1)
+            await server.stop(None)
 
     asyncio.run(main())
