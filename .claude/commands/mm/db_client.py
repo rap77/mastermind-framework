@@ -156,7 +156,7 @@ class MasterMindDB:
             self._conn = None
             return False
 
-    def register_project(self, name: str, path: str, stack: list[str]) -> int | None:
+    def register_project(self, name: str, path: str, stack: list[str]) -> str | None:
         """Register or update project in database.
 
         Args:
@@ -165,29 +165,54 @@ class MasterMindDB:
             stack: List of detected technologies (e.g., ["nextjs", "python"])
 
         Returns:
-            Project ID (int) if successful, None if DB unavailable
+            Project ID (UUID as string) if successful, None if DB unavailable
         """
         if not self._conn:
             return None
 
         try:
             import asyncio
+            from slugify import slugify
 
-            async def _register() -> int:
+            async def _get_or_create_default_org() -> str:
+                """Get or create default organization."""
                 assert self._conn is not None
+                query = """
+                    INSERT INTO organizations (id, name, slug)
+                    VALUES ($1, 'Default', 'default')
+                    ON CONFLICT (id) DO NOTHING
+                    RETURNING id
+                """
+                default_org_id = "00000000-0000-0000-0000-000000000001"
+                row = await self._conn.fetchrow(query, default_org_id)
+                return row["id"]
+
+            async def _register() -> str | None:
+                assert self._conn is not None
+                # Get or create default organization
+                org_id = await _get_or_create_default_org()
+
+                # Generate slug from name
+                slug = slugify(name, max_length=100)
+
+                # Build metadata JSONB with path and stack
+                metadata = {"path": path, "stack": stack}
+
                 # Use INSERT ... ON CONFLICT (upsert)
                 query = """
-                    INSERT INTO projects (name, path, stack, created_at, updated_at)
-                    VALUES ($1, $2, $3, NOW(), NOW())
-                    ON CONFLICT (path)
+                    INSERT INTO projects (org_id, slug, name, project_type, metadata, created_at, updated_at)
+                    VALUES ($1, $2, $3, 'software', $4, NOW(), NOW())
+                    ON CONFLICT (org_id, slug)
                     DO UPDATE SET
                         name = EXCLUDED.name,
-                        stack = EXCLUDED.stack,
+                        metadata = EXCLUDED.metadata,
                         updated_at = NOW()
                     RETURNING id
                 """
-                row = await self._conn.fetchrow(query, name, path, json.dumps(stack))
-                return row["id"] if row else None
+                row = await self._conn.fetchrow(
+                    query, org_id, slug, name, json.dumps(metadata)
+                )
+                return str(row["id"]) if row else None
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -199,7 +224,7 @@ class MasterMindDB:
             return None
 
     def get_project(self, path: str) -> dict[str, Any] | None:
-        """Get project by path.
+        """Get project by path (searches in metadata).
 
         Args:
             path: Project file path
@@ -215,7 +240,8 @@ class MasterMindDB:
 
             async def _get() -> dict[str, Any] | None:
                 assert self._conn is not None
-                query = "SELECT * FROM projects WHERE path = $1"
+                # Search in metadata JSONB where path matches
+                query = "SELECT * FROM projects WHERE metadata->>'path' = $1"
                 row = await self._conn.fetchrow(query, path)
                 return dict(row) if row else None
 
