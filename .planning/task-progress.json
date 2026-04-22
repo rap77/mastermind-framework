@@ -1,88 +1,47 @@
 {
-  "task_id": "B1",
-  "session_id": "sess-20260420-220233",
-  "started_at": "2026-04-20T22:02:33.942502",
+  "task_id": "B2",
+  "session_id": "sess-20260421-215549",
+  "started_at": "2026-04-21T21:55:49.609167",
   "phase": 19,
   "subtasks": {
-    "B1.1": {
-      "description": "Crear `.claude/commands/mm/init-handler.py`",
+    "B2.1": {
+      "description": "Crear `.claude/commands/mm/init.md`",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     },
-    "B1.2": {
-      "description": "Implementar flag `--target <path>` (default: CWD)",
+    "B2.2": {
+      "description": "YAML front matter: name `mm:init`, description, argument-hint",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     },
-    "B1.3": {
-      "description": "Implementar flag `--check` (verificar instalacion)",
+    "B2.3": {
+      "description": "Usage con ejemplos (sin flags, --target, --check, --force)",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     },
-    "B1.4": {
-      "description": "Implementar flag `--force` (sobreescribir)",
+    "B2.4": {
+      "description": "Protocol section: Step 1 ejecutar handler, Step 2 parsear output, Step 3 notificar",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     },
-    "B1.5": {
-      "description": "Implementar deteccion de stack (package.json, pyproject.toml, CLAUDE.md)",
+    "B2.5": {
+      "description": "Sigue formato de `discover.md`",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     },
-    "B1.6": {
-      "description": "Implementar copia de `.claude/commands/mm/` (solo init, discover, complete-task, review, ship + handlers)",
+    "B2.6": {
+      "description": "`/mm:init` aparece en autocomplete de Claude Code",
       "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.7": {
-      "description": "Implementar copia de `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.8": {
-      "description": "Implementar copia de `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.9": {
-      "description": "Implementar creacion de `.mastermind/config.yaml` con stack detectado",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.10": {
-      "description": "Output: `STATUS: installed|not-installed` o `ERROR: <reason>`",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.11": {
-      "description": "Proteccion: no sobreescribir sin `--force`",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.12": {
-      "description": "Proteccion: advertir si target == mastermind source",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
-    },
-    "B1.13": {
-      "description": "Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`",
-      "status": "completed",
-      "completed_at": "2026-04-20T19:29:03.000000",
-      "commit_sha": "80cf68827c389baf4b35dce0d572f4914097b833"
+      "retries": 0,
+      "completed_at": "2026-04-21T21:57:00Z"
     }
   },
-  "last_checkpoint": "B1.13",
+  "last_checkpoint": "B2_COMPLETE",
+  "completed_at": "2026-04-21T21:57:00Z",
   "context_budget_exit": null
 }

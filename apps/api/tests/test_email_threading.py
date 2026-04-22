@@ -32,7 +32,7 @@ class TestEmailThreading:
         mock_smtp = mocker.patch("routers.email.aiosmtplib.SMTP")
         mock_smtp.return_value.__aenter__.return_value.login = mocker.AsyncMock()
         mock_smtp.return_value.__aenter__.return_value.send_message = mocker.AsyncMock(
-            return_value="250 OK <message-id@example.com>"
+            return_value=({}, "250 OK <message-id@example.com>")
         )
 
         result = await send_email(message)
@@ -69,7 +69,7 @@ class TestEmailThreading:
         mock_smtp = mocker.patch("routers.email.aiosmtplib.SMTP")
         mock_smtp.return_value.__aenter__.return_value.login = mocker.AsyncMock()
         mock_smtp.return_value.__aenter__.return_value.send_message = mocker.AsyncMock(
-            return_value="250 OK <message-id@example.com>"
+            return_value=({}, "250 OK <message-id@example.com>")
         )
 
         result = await send_email(message)
@@ -104,7 +104,7 @@ class TestEmailThreading:
         mock_smtp = mocker.patch("routers.email.aiosmtplib.SMTP")
         mock_smtp.return_value.__aenter__.return_value.login = mocker.AsyncMock()
         mock_smtp.return_value.__aenter__.return_value.send_message = mocker.AsyncMock(
-            return_value="250 OK <message-id@example.com>"
+            return_value=({}, "250 OK <message-id@example.com>")
         )
 
         result = await send_email(message)
@@ -137,7 +137,7 @@ class TestEmailThreading:
         mock_smtp = mocker.patch("routers.email.aiosmtplib.SMTP")
         mock_smtp.return_value.__aenter__.return_value.login = mocker.AsyncMock()
         mock_smtp.return_value.__aenter__.return_value.send_message = mocker.AsyncMock(
-            return_value="250 OK <message-id@example.com>"
+            return_value=({}, "250 OK <message-id@example.com>")
         )
 
         result = await send_email(message)

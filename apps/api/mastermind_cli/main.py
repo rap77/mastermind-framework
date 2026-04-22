@@ -1,7 +1,6 @@
 """MasterMind Framework CLI - Main entry point."""
 
 import click
-from rich.console import Console
 from rich.panel import Panel
 
 from . import __version__
@@ -12,7 +11,7 @@ from .commands.orchestrate import orchestrate
 from .commands.install import install
 from .commands.evaluation import evaluation
 
-console = Console()
+from .utils.console import get_console
 
 
 @click.group()
@@ -39,7 +38,7 @@ cli.add_command(evaluation, name="eval")
 @cli.command()
 def info() -> None:
     """Show framework information."""
-    console.print(
+    get_console().print(
         Panel.fit(
             """
 [bold cyan]MasterMind Framework[/bold cyan]

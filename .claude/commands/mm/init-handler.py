@@ -12,6 +12,16 @@ import shutil
 import sys
 from pathlib import Path
 
+# Import db_client for PostgreSQL integration
+# Graceful degradation: works even if asyncpg not installed
+try:
+    from db_client import MasterMindDB
+
+    DB_CLIENT_AVAILABLE = True
+except ImportError:
+    DB_CLIENT_AVAILABLE = False
+    MasterMindDB = None  # type: ignore
+
 FRAMEWORK_ROOT = Path(__file__).parent.parent.parent.parent
 
 COMMANDS_WHITELIST = {
@@ -247,6 +257,9 @@ def main() -> None:
     args = parse_args()
     target = Path(args.target).resolve() if args.target else Path.cwd()
 
+    # Initialize DB client if available
+    db = MasterMindDB() if DB_CLIENT_AVAILABLE else None
+
     # B1.12 — Warn if target == mastermind source
     try:
         if target.samefile(FRAMEWORK_ROOT):
@@ -324,8 +337,28 @@ def main() -> None:
         print(f"ERROR: Failed to create config: {e}")
         sys.exit(1)
 
+    # B1.11 — Register project in database (if DB available)
+    db_status = "unavailable"
+    if db and db.available:
+        try:
+            project_id = db.register_project(
+                name=target.name, path=str(target), stack=stack
+            )
+            if project_id:
+                db_status = "connected"
+                print(f"INFO: Project registered in database (ID: {project_id})")
+            else:
+                db_status = "unavailable"
+                print("WARNING: Database connection failed - project not registered")
+        except Exception as e:
+            db_status = "error"
+            print(f"WARNING: Failed to register project: {e}")
+    else:
+        print("INFO: PostgreSQL not available - project not registered")
+
     # B1.10 — Output
     print("STATUS: installed")
+    print(f"DB: {db_status}")
 
 
 if __name__ == "__main__":

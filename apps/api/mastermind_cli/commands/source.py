@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 
 import click
-from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
@@ -13,7 +12,7 @@ from ..utils.yaml import read_yaml_frontmatter, update_yaml_metadata
 from ..utils.git import git_commit
 from ..utils.validation import validate_brain_sources, find_sources_by_id
 
-console = Console()
+from ..utils.console import get_console as console
 
 
 def get_project_root() -> Path:
@@ -65,17 +64,17 @@ def source_new(
     )
 
     if not sources_dir.exists():
-        console.print(f"[red]Error: Brain directory not found: {sources_dir}[/red]")
-        console.print("[yellow]Available brains:[/yellow]")
+        console().print(f"[red]Error: Brain directory not found: {sources_dir}[/red]")
+        console().print("[yellow]Available brains:[/yellow]")
         for d in (project_root / "docs" / "software-development").iterdir():
             if d.is_dir() and d.name.endswith("-brain"):
-                console.print(f"  • {d.name.replace('-brain', '')}")
+                console().print(f"  • {d.name.replace('-brain', '')}")
         raise click.Abort()
 
     # Check if source_id already exists
     existing_file = sources_dir / f"{source_id}.md"
     if existing_file.exists():
-        console.print(
+        console().print(
             f"[red]Error: Source {source_id} already exists at {existing_file}[/red]"
         )
         raise click.Abort()
@@ -173,7 +172,7 @@ TODO: Agregar resumen ejecutivo de 2-3 oraciones.
 
     existing_file.write_text(template, encoding="utf-8")
 
-    console.print(
+    console().print(
         Panel.fit(
             f"[green]✓[/green] Source created: [bold]{source_id}[/bold]\n\n"
             f"Location: {existing_file}\n\n"
@@ -199,14 +198,14 @@ def source_update(source_id: str, change: str) -> None:
     matches = find_sources_by_id(source_id, [str(p) for p in search_paths])
 
     if not matches:
-        console.print(f"[red]Error: Source {source_id} not found[/red]")
-        console.print(f"[yellow]Search paths:[/yellow] {search_paths}")
+        console().print(f"[red]Error: Source {source_id} not found[/red]")
+        console().print(f"[yellow]Search paths:[/yellow] {search_paths}")
         raise click.Abort()
 
     if len(matches) > 1:
-        console.print("[yellow]Warning: Found multiple sources:[/yellow]")
+        console().print("[yellow]Warning: Found multiple sources:[/yellow]")
         for m in matches:
-            console.print(f"  • {m}")
+            console().print(f"  • {m}")
         source_file = matches[0]
     else:
         source_file = matches[0]
@@ -215,7 +214,9 @@ def source_update(source_id: str, change: str) -> None:
     metadata, content = read_yaml_frontmatter(source_file)
 
     if metadata is None:
-        console.print(f"[red]Error: No YAML front matter found in {source_file}[/red]")
+        console().print(
+            f"[red]Error: No YAML front matter found in {source_file}[/red]"
+        )
         raise click.Abort()
 
     # Get current version or default to 1.0.0
@@ -251,7 +252,7 @@ def source_update(source_id: str, change: str) -> None:
     commit_msg = f"update(source): {source_id}: {change}"
     try:
         commit_sha = git_commit(source_file, commit_msg)
-        console.print(
+        console().print(
             Panel.fit(
                 f"[green]✓[/green] Source updated: [bold]{source_id}[/bold]\n\n"
                 f"Version: {current_version} → [green]{new_version}[/green]\n"
@@ -262,8 +263,8 @@ def source_update(source_id: str, change: str) -> None:
             )
         )
     except Exception as e:
-        console.print(f"[yellow]Warning: Could not create git commit: {e}[/yellow]")
-        console.print(
+        console().print(f"[yellow]Warning: Could not create git commit: {e}[/yellow]")
+        console().print(
             f"[green]✓[/green] Source updated: [bold]{source_id}[/bold] (v{new_version})"
         )
 
@@ -276,13 +277,13 @@ def source_validate(brain: str) -> None:
     brain_path = project_root / "docs" / "software-development" / f"{brain}-brain"
 
     if not brain_path.exists():
-        console.print(f"[red]Error: Brain directory not found: {brain_path}[/red]")
+        console().print(f"[red]Error: Brain directory not found: {brain_path}[/red]")
         raise click.Abort()
 
     results = validate_brain_sources(str(brain_path))
 
     if not results:
-        console.print(f"[yellow]No sources found in {brain_path}/sources/[/yellow]")
+        console().print(f"[yellow]No sources found in {brain_path}/sources/[/yellow]")
         return
 
     # Display results table
@@ -302,8 +303,8 @@ def source_validate(brain: str) -> None:
         if result.is_valid:
             valid_count += 1
 
-    console.print(table)
-    console.print(f"\nSummary: {valid_count}/{len(results)} sources valid")
+    console().print(table)
+    console().print(f"\nSummary: {valid_count}/{len(results)} sources valid")
 
 
 @source.command("list")
@@ -335,11 +336,11 @@ def source_list() -> None:
                     source_file.parent.parent.name.replace("-brain", ""),
                 )
         except Exception as e:
-            console.print(
+            console().print(
                 f"[yellow]Warning: Could not read {source_file}: {e}[/yellow]"
             )
 
-    console.print(table)
+    console().print(table)
 
 
 @source.command("status")
@@ -352,12 +353,12 @@ def source_status(brain: str) -> None:
     )
 
     if not sources_dir.exists():
-        console.print(f"[red]Error: Sources directory not found: {sources_dir}[/red]")
+        console().print(f"[red]Error: Sources directory not found: {sources_dir}[/red]")
         raise click.Abort()
 
     sources = list(sources_dir.glob("FUENTE-*.md"))
 
-    console.print(
+    console().print(
         Panel.fit(
             f"[bold]{brain}[/bold]\n\nTotal sources: {len(sources)}",
             title=f"Brain Status: {brain}",
@@ -394,7 +395,7 @@ def source_status(brain: str) -> None:
         except (OSError, ValueError, KeyError):
             pass
 
-    console.print(table)
+    console().print(table)
 
 
 @source.command("export")
@@ -409,7 +410,7 @@ def source_export(brain: str, output: str) -> None:
     output_dir = project_root / output / brain
 
     if not sources_dir.exists():
-        console.print(f"[red]Error: Sources directory not found: {sources_dir}[/red]")
+        console().print(f"[red]Error: Sources directory not found: {sources_dir}[/red]")
         raise click.Abort()
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -425,11 +426,11 @@ def source_export(brain: str, output: str) -> None:
             output_file.write_text(content, encoding="utf-8")
             exported += 1
         except Exception as e:
-            console.print(
+            console().print(
                 f"[yellow]Warning: Could not export {source_file}: {e}[/yellow]"
             )
 
-    console.print(
+    console().print(
         Panel.fit(
             f"[green]✓[/green] Exported [bold]{exported}[/bold] sources\n\n"
             f"Output: {output_dir}",

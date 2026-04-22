@@ -8,11 +8,11 @@ from typing import Any, Optional
 from mastermind_cli.brain_registry import BRAIN_REGISTRY
 
 import click
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-console = Console()
+from ..utils.console import get_console as console
+
 logger = logging.getLogger(__name__)
 
 
@@ -156,12 +156,12 @@ def init(
             framework_root = root
 
     if not framework_root or not framework_root.exists():
-        console.print("[red]❌ Could not find MasterMind Framework directory[/red]")
-        console.print("\n[yellow]Solutions:[/yellow]")
-        console.print("  1. Set MASTERMIND_FRAMEWORK_PATH environment variable")
-        console.print("  2. Use --framework-path option")
-        console.print("  3. Clone framework to ~/proy/mastermind")
-        console.print(
+        console().print("[red]❌ Could not find MasterMind Framework directory[/red]")
+        console().print("\n[yellow]Solutions:[/yellow]")
+        console().print("  1. Set MASTERMIND_FRAMEWORK_PATH environment variable")
+        console().print("  2. Use --framework-path option")
+        console().print("  3. Clone framework to ~/proy/mastermind")
+        console().print(
             "\n[dim]Framework should contain docs/design/00-PRD-MasterMind-Framework.md[/dim]"
         )
         raise click.Abort()
@@ -169,11 +169,11 @@ def init(
     # Check if already installed (project-level activation file)
     active_file = project_path / ".mastermind-active"
     if active_file.exists() and not force:
-        console.print(
+        console().print(
             "[yellow]⚠ MasterMind is already installed in this project[/yellow]"
         )
-        console.print("   Use --force to reinstall")
-        console.print("\n   Run: [cyan]mastermind install status[/cyan]")
+        console().print("   Use --force to reinstall")
+        console().print("\n   Run: [cyan]mastermind install status[/cyan]")
         raise click.Abort()
 
     # Parse brains selection
@@ -184,8 +184,8 @@ def init(
     if brain_ids:
         invalid = [b for b in brain_ids if b not in registry]
         if invalid:
-            console.print(f"[red]❌ Invalid brain IDs: {', '.join(invalid)}[/red]")
-            console.print(
+            console().print(f"[red]❌ Invalid brain IDs: {', '.join(invalid)}[/red]")
+            console().print(
                 f"\n[yellow]Valid brains:[/yellow] {', '.join(registry.keys())}"
             )
             raise click.Abort()
@@ -196,7 +196,7 @@ def init(
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        console=console,
+        console=console(),
     ) as progress:
         task = progress.add_task(
             f"Installing MasterMind Framework [{install_mode}]...", total=None
@@ -386,7 +386,7 @@ Run `mastermind install status` for more information.
         else f"[cyan]Scope:[/cyan] Local — this project only\n"
         f"[dim]Assets installed to: {target_claude_dir}[/dim]"
     )
-    console.print(
+    console().print(
         Panel.fit(
             f"[green bold]✓ MasterMind Framework installed successfully![/green bold]\n\n"
             f"[cyan]Project:[/cyan] {project_path.name}\n"
@@ -415,9 +415,9 @@ def status() -> None:
     config_file = project_path / ".mastermind" / "config.yaml"
 
     if not active_file.exists():
-        console.print("[red]❌ MasterMind is not installed in this project[/red]")
-        console.print("\n[yellow]To install:[/yellow]")
-        console.print("  [cyan]mastermind install init[/cyan]")
+        console().print("[red]❌ MasterMind is not installed in this project[/red]")
+        console().print("\n[yellow]To install:[/yellow]")
+        console().print("  [cyan]mastermind install init[/cyan]")
         raise click.Abort()
 
     # Read activation file
@@ -429,7 +429,7 @@ def status() -> None:
                 active_data[key] = value
 
     # Display status
-    console.print(
+    console().print(
         Panel.fit(
             f"[green bold]✓ MasterMind Framework Active[/green bold]\n\n"
             f"[cyan]Version:[/cyan] {active_data.get('version', 'unknown')}\n"
@@ -443,7 +443,7 @@ def status() -> None:
 
     # Show brain status if config exists
     if config_file.exists():
-        console.print("\n[bold]Active Brains:[/bold]\n")
+        console().print("\n[bold]Active Brains:[/bold]\n")
 
         try:
             with open(config_file) as f:
@@ -452,35 +452,35 @@ def status() -> None:
             if config and "brains" in config:
                 for brain_id, brain_config in config["brains"].items():
                     if brain_config.get("active"):
-                        console.print(
+                        console().print(
                             f"  [cyan]{brain_id}[/cyan] {brain_config.get('name', 'Unknown')}"
                             f" - [dim]{brain_config.get('expertise', '')}[/dim]"
                         )
         except ImportError:
-            console.print("[dim](Install pyyaml to see brain details)[/dim]")
+            console().print("[dim](Install pyyaml to see brain details)[/dim]")
 
     # Show integration files
-    console.print("\n[bold]Integration Files:[/bold]\n")
-    console.print("  [cyan].mastermind-active[/cyan] - Activation file")
-    console.print("  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
-    console.print(
+    console().print("\n[bold]Integration Files:[/bold]\n")
+    console().print("  [cyan].mastermind-active[/cyan] - Activation file")
+    console().print("  [cyan].mastermind/config.yaml[/cyan] - Project configuration")
+    console().print(
         "  [cyan].claude/commands/mm/[/cyan] - Available commands (mm namespace)"
     )
 
     # Show available slash commands
-    console.print("\n[bold]Available Slash Commands:[/bold]\n")
-    console.print("  [cyan]/mm:ask-product[/cyan] - Consult Product Strategy brain")
-    console.print("  [cyan]/mm:ask-ux[/cyan] - Consult UX Research brain")
-    console.print("  [cyan]/mm:project-audit[/cyan] - Full 7-brain project analysis")
-    console.print("  [cyan]/mm:lite-prd-generator[/cyan] - Generate PRD from idea")
-    console.print("  [cyan]...and 15 more commands[/cyan]")
-    console.print("\n[dim]Run: ls .claude/commands/mm/ to see all commands[/dim]")
+    console().print("\n[bold]Available Slash Commands:[/bold]\n")
+    console().print("  [cyan]/mm:ask-product[/cyan] - Consult Product Strategy brain")
+    console().print("  [cyan]/mm:ask-ux[/cyan] - Consult UX Research brain")
+    console().print("  [cyan]/mm:project-audit[/cyan] - Full 7-brain project analysis")
+    console().print("  [cyan]/mm:lite-prd-generator[/cyan] - Generate PRD from idea")
+    console().print("  [cyan]...and 15 more commands[/cyan]")
+    console().print("\n[dim]Run: ls .claude/commands/mm/ to see all commands[/dim]")
 
     # Show available CLI commands
-    console.print("\n[bold]Available CLI Commands:[/bold]\n")
-    console.print("  [cyan]mastermind install status[/cyan] - Show this status")
-    console.print("  [cyan]mastermind install uninstall[/cyan] - Remove from project")
-    console.print("  [cyan]mastermind brain status[/cyan] - Check brain status")
+    console().print("\n[bold]Available CLI Commands:[/bold]\n")
+    console().print("  [cyan]mastermind install status[/cyan] - Show this status")
+    console().print("  [cyan]mastermind install uninstall[/cyan] - Remove from project")
+    console().print("  [cyan]mastermind brain status[/cyan] - Check brain status")
 
 
 @install.command()
@@ -504,15 +504,17 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
     mastermind_dir = project_path / ".mastermind"
 
     if not active_file.exists():
-        console.print("[yellow]⚠ MasterMind is not installed in this project[/yellow]")
+        console().print(
+            "[yellow]⚠ MasterMind is not installed in this project[/yellow]"
+        )
         raise click.Abort()
 
-    console.print("\n[yellow]Uninstalling MasterMind Framework...[/yellow]\n")
+    console().print("\n[yellow]Uninstalling MasterMind Framework...[/yellow]\n")
 
     # Remove activation file
     if active_file.exists():
         active_file.unlink()
-        console.print("[green]✓ Removed .mastermind-active[/green]")
+        console().print("[green]✓ Removed .mastermind-active[/green]")
 
     # Remove mm namespace folders
     claude_dir = project_path / ".claude"
@@ -523,10 +525,10 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
         if ns_path.exists():
             try:
                 shutil.rmtree(ns_path)
-                console.print(f"[green]✓ Removed .claude/{ns_folder}/[/green]")
+                console().print(f"[green]✓ Removed .claude/{ns_folder}/[/green]")
                 removed_count += 1
             except OSError as e:
-                console.print(
+                console().print(
                     f"[yellow]⚠ Could not remove .claude/{ns_folder}/: {e}[/yellow]"
                 )
 
@@ -536,16 +538,16 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
         if parent_path.exists() and not list(parent_path.iterdir()):
             try:
                 parent_path.rmdir()
-                console.print(f"[dim]✓ Removed empty .claude/{parent_dir}/[/dim]")
+                console().print(f"[dim]✓ Removed empty .claude/{parent_dir}/[/dim]")
             except OSError:
                 pass
 
     # Optionally remove config directory
     if not keep_config and mastermind_dir.exists():
         shutil.rmtree(mastermind_dir)
-        console.print("[green]✓ Removed .mastermind/ directory[/green]")
+        console().print("[green]✓ Removed .mastermind/ directory[/green]")
     elif keep_config:
-        console.print("[dim]Kept .mastermind/ directory (--keep-config)[/dim]")
+        console().print("[dim]Kept .mastermind/ directory (--keep-config)[/dim]")
 
     # Optionally remove README section
     if remove_readme:
@@ -560,13 +562,13 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
                 new_content = re.sub(pattern, "", content, flags=re.DOTALL)
                 if new_content != content:
                     readme.write_text(new_content)
-                    console.print(
+                    console().print(
                         "[green]✓ Removed MasterMind section from README.md[/green]"
                     )
             except Exception as e:
-                console.print(f"[yellow]⚠ Could not update README.md: {e}[/yellow]")
+                console().print(f"[yellow]⚠ Could not update README.md: {e}[/yellow]")
 
-    console.print(
+    console().print(
         Panel.fit(
             f"[green bold]✓ MasterMind Framework uninstalled[/green bold]\n\n"
             f"[cyan]Removed:[/cyan] {removed_count} namespace folder(s)\n"
@@ -597,14 +599,14 @@ def run(uvx: bool) -> None:
         uvx --from mastermind-framework mastermind
     """
     if uvx:
-        console.print("[yellow]Launching MasterMind with uvx...[/yellow]")
-        console.print("\n[cyan]This is experimental. For production use:[/cyan]")
-        console.print("  [dim]uv add mastermind-framework[/dim]")
-        console.print("\n[green]✓ uvx mode ready[/green]")
+        console().print("[yellow]Launching MasterMind with uvx...[/yellow]")
+        console().print("\n[cyan]This is experimental. For production use:[/cyan]")
+        console().print("  [dim]uv add mastermind-framework[/dim]")
+        console().print("\n[green]✓ uvx mode ready[/green]")
     else:
-        console.print("[yellow]MasterMind is already running![/yellow]")
-        console.print("\n[cyan]Available commands:[/cyan]")
-        console.print("  mastermind install init")
-        console.print("  mastermind install status")
-        console.print("  mastermind brain status")
-        console.print("  mastermind framework status")
+        console().print("[yellow]MasterMind is already running![/yellow]")
+        console().print("\n[cyan]Available commands:[/cyan]")
+        console().print("  mastermind install init")
+        console().print("  mastermind install status")
+        console().print("  mastermind brain status")
+        console().print("  mastermind framework status")

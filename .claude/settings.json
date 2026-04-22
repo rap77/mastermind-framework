@@ -1,26 +1,18 @@
 {
   "permissions": {
-    "allow": [
-      "Write(.claude/commands/mm/*)",
-      "Edit(.claude/commands/mm/*)",
-      "Write(.claude/skills/mm/**)",
-      "Edit(.claude/skills/mm/**)",
-      "Write(.claude/agents/mm/**)",
-      "Edit(.claude/agents/mm/**)",
-      "Write(.planning/task-progress.json)",
-      "Edit(.planning/task-progress.json)",
-      "Write(.planning/.mm-flow/runtime-state.json)",
-      "Edit(.planning/.mm-flow/runtime-state.json)",
-      "Write(SPEC.md)",
-      "Edit(SPEC.md)",
-      "Write(tasks/plan.md)",
-      "Edit(tasks/plan.md)",
-      "Write(tasks/todo.md)",
-      "Edit(tasks/todo.md)",
-      "Write(apps/**)",
-      "Edit(apps/**)",
-      "Write(rust_control_plane/**)",
-      "Edit(rust_control_plane/**)"
-    ]
+    "allowByTopic": {
+      "mm-workspace": [
+        "MasterMind Framework workspace files",
+        "Including: .claude/commands/mm/, .claude/skills/mm/, .claude/agents/mm/, .mastermind/, .planning/, SPEC.md, tasks/"
+      ],
+      "app-development": [
+        "Frontend and backend application code",
+        "Including: apps/web/ (Next.js), apps/api/ (Python), rust_control_plane/ (Rust)"
+      ],
+      "git-operations": [
+        "Git commands for version control",
+        "Including: status, log, diff, commit, tag, push"
+      ]
+    }
   }
 }

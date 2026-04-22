@@ -3,13 +3,12 @@
 from pathlib import Path
 
 import click
-from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
 from ..utils.yaml import read_yaml_frontmatter
 
-console = Console()
+from ..utils.console import get_console as console
 
 
 def get_project_root() -> Path:
@@ -36,7 +35,7 @@ def framework_status() -> None:
     software_dev_path = project_root / "docs" / "software-development"
 
     if not software_dev_path.exists():
-        console.print("[red]Error: software-development directory not found[/red]")
+        console().print("[red]Error: software-development directory not found[/red]")
         raise click.Abort()
 
     # Collect all brain data
@@ -79,7 +78,7 @@ def framework_status() -> None:
         total_complete += complete_count
 
     # Display dashboard
-    console.print(
+    console().print(
         Panel.fit(
             f"[bold]MasterMind Framework[/bold]\n\n"
             f"Version: 0.1.0\n"
@@ -113,8 +112,8 @@ def framework_status() -> None:
             progress,
         )
 
-    console.print("\n")
-    console.print(table)
+    console().print("\n")
+    console().print(table)
 
 
 @framework.command("release")
@@ -133,7 +132,7 @@ def framework_release(version: str, message: str) -> None:
         )
         repo.create_tag(version, message=tag_message)
 
-        console.print(
+        console().print(
             Panel.fit(
                 f"[green]✓[/green] Release [bold]{version}[/bold] created\n\n"
                 f"Tag: {version}\n"
@@ -144,5 +143,5 @@ def framework_release(version: str, message: str) -> None:
         )
 
     except Exception as e:
-        console.print(f"[red]Error creating release: {e}[/red]")
+        console().print(f"[red]Error creating release: {e}[/red]")
         raise click.Abort()

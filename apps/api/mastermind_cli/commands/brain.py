@@ -3,13 +3,11 @@
 from pathlib import Path
 
 import click
-from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
 from ..utils.yaml import read_yaml_frontmatter
-
-console = Console()
+from ..utils.console import get_console
 
 
 def get_project_root() -> Path:
@@ -37,11 +35,11 @@ def brain_status(brain_id: str) -> None:
     brain_path = project_root / "docs" / "software-development" / f"{brain_id}-brain"
 
     if not brain_path.exists():
-        console.print(f"[red]Error: Brain not found: {brain_id}[/red]")
-        console.print("\n[yellow]Available brains:[/yellow]")
+        get_console().print(f"[red]Error: Brain not found: {brain_id}[/red]")
+        get_console().print("\n[yellow]Available brains:[/yellow]")
         for d in (project_root / "docs" / "software-development").iterdir():
             if d.is_dir() and d.name.endswith("-brain"):
-                console.print(f"  • {d.name.replace('-brain', '')}")
+                get_console().print(f"  • {d.name.replace('-brain', '')}")
         raise click.Abort()
 
     sources_dir = brain_path / "sources"
@@ -74,7 +72,7 @@ def brain_status(brain_id: str) -> None:
             pass
 
     # Display status
-    console.print(
+    get_console().print(
         Panel.fit(
             f"[bold]{brain_id}[/bold]\n\n"
             f"Sources: {len(sources)}\n"
@@ -109,8 +107,8 @@ def brain_status(brain_id: str) -> None:
         except Exception:
             pass
 
-    console.print("\n")
-    console.print(table)
+    get_console().print("\n")
+    get_console().print(table)
 
 
 @brain.command("validate")
@@ -121,7 +119,7 @@ def brain_validate(brain_id: str) -> None:
     brain_path = project_root / "docs" / "software-development" / f"{brain_id}-brain"
 
     if not brain_path.exists():
-        console.print(f"[red]Error: Brain not found: {brain_id}[/red]")
+        get_console().print(f"[red]Error: Brain not found: {brain_id}[/red]")
         raise click.Abort()
 
     from ..utils.validation import validate_brain_sources
@@ -129,7 +127,7 @@ def brain_validate(brain_id: str) -> None:
     results = validate_brain_sources(str(brain_path))
 
     if not results:
-        console.print("[yellow]No sources found to validate[/yellow]")
+        get_console().print("[yellow]No sources found to validate[/yellow]")
         return
 
     # Count issues
@@ -137,7 +135,7 @@ def brain_validate(brain_id: str) -> None:
     total_warnings = sum(len(r.warnings) for r in results.values())
     valid_count = sum(1 for r in results.values() if r.is_valid)
 
-    console.print(
+    get_console().print(
         Panel.fit(
             f"Total Sources: {len(results)}\n"
             f"Valid: [green]{valid_count}[/green]\n"
@@ -149,10 +147,10 @@ def brain_validate(brain_id: str) -> None:
     )
 
     if total_errors > 0:
-        console.print("\n[red]Sources with errors:[/red]")
+        get_console().print("\n[red]Sources with errors:[/red]")
         for filename, result in results.items():
             if result.errors:
-                console.print(f"  • {filename}: {len(result.errors)} errors")
+                get_console().print(f"  • {filename}: {len(result.errors)} errors")
 
 
 @brain.command("package")
@@ -165,7 +163,7 @@ def brain_package(brain_id: str, output: str) -> None:
     output_dir = project_root / output
 
     if not brain_path.exists():
-        console.print(f"[red]Error: Brain not found: {brain_id}[/red]")
+        get_console().print(f"[red]Error: Brain not found: {brain_id}[/red]")
         raise click.Abort()
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -174,7 +172,7 @@ def brain_package(brain_id: str, output: str) -> None:
     sources_dir = brain_path / "sources"
     sources = list(sources_dir.glob("FUENTE-*.md")) if sources_dir.exists() else []
 
-    console.print(
+    get_console().print(
         Panel.fit(
             f"[bold]{brain_id}[/bold]\n\n"
             f"Sources: {len(sources)}\n"
@@ -196,10 +194,10 @@ def brain_compile_radar(brain_id: str) -> None:
     and anti-patrones.md files from brains 1-6.
     """
     if brain_id != "07":
-        console.print(
+        get_console().print(
             "[yellow]compile-radar only applies to brain 07 (Critical Evaluator)[/yellow]"
         )
-        console.print(
+        get_console().print(
             "\n[dim]The evaluator needs consolidated criteria from all other brains.[/dim]"
         )
         raise click.Abort()
@@ -212,7 +210,7 @@ def brain_compile_radar(brain_id: str) -> None:
     # ============================================================================
     # STEP 1: Compile evaluation criteria → FUENTE-709
     # ============================================================================
-    console.print("[cyan]Step 1/2: Compiling evaluation criteria...[/cyan]")
+    get_console().print("[cyan]Step 1/2: Compiling evaluation criteria...[/cyan]")
 
     criteria_sections = []
     brains_found = []
@@ -243,9 +241,9 @@ def brain_compile_radar(brain_id: str) -> None:
             if criteria_file.exists():
                 content = criteria_file.read_text(encoding="utf-8")
                 criteria_sections.append(f"## From {brain_num}\n\n{content}\n")
-                console.print(f"  [green]✓[/green] Found in {brain_name}")
+                get_console().print(f"  [green]✓[/green] Found in {brain_name}")
             else:
-                console.print(
+                get_console().print(
                     f"  [dim]⊘[/dim] No evaluation-criteria.md in {brain_name}"
                 )
 
@@ -300,12 +298,12 @@ correctamente sus frameworks y principios.
     (output_dir / "FUENTE-709-checklist-evaluacion-por-cerebro.md").write_text(
         fuente_709, encoding="utf-8"
     )
-    console.print("[green]✓ FUENTE-709 created[/green]")
+    get_console().print("[green]✓ FUENTE-709 created[/green]")
 
     # ============================================================================
     # STEP 2: Compile anti-patterns → FUENTE-710
     # ============================================================================
-    console.print("\n[cyan]Step 2/2: Compiling anti-patterns...[/cyan]")
+    get_console().print("\n[cyan]Step 2/2: Compiling anti-patterns...[/cyan]")
 
     anti_pattern_sections = []
 
@@ -322,9 +320,11 @@ correctamente sus frameworks y principios.
             if anti_file.exists():
                 content = anti_file.read_text(encoding="utf-8")
                 anti_pattern_sections.append(f"## From {brain_name}\n\n{content}\n")
-                console.print(f"  [green]✓[/green] Found in {brain_name}")
+                get_console().print(f"  [green]✓[/green] Found in {brain_name}")
             else:
-                console.print(f"  [dim]⊘[/dim] No anti-patrones.md in {brain_name}")
+                get_console().print(
+                    f"  [dim]⊘[/dim] No anti-patrones.md in {brain_name}"
+                )
 
     # Generate FUENTE-710
     fuente_710 = """---
@@ -375,13 +375,13 @@ falla en los outputs.
     (output_dir / "FUENTE-710-antipatrones-consolidados.md").write_text(
         fuente_710, encoding="utf-8"
     )
-    console.print("[green]✓ FUENTE-710 created[/green]")
+    get_console().print("[green]✓ FUENTE-710 created[/green]")
 
     # ============================================================================
     # SUMMARY
     # ============================================================================
-    console.print("\n")
-    console.print(
+    get_console().print("\n")
+    get_console().print(
         Panel.fit(
             f"[bold green]✓ Radar compiled for brain 07[/bold green]\n\n"
             f"Brains scanned: {len(set(brains_found))}\n"

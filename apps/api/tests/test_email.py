@@ -54,7 +54,8 @@ class TestEmailSender:
         """Test sending a plain text email successfully"""
         # Mock aiosmtplib SMTP client
         mock_smtp_client = AsyncMock()
-        mock_smtp_client.send_message.return_value = "<message-id@example.com>"
+        # send_message returns tuple[dict[str, SMTPResponse], str]
+        mock_smtp_client.send_message.return_value = ({}, "<message-id@example.com>")
 
         with patch("routers.email.aiosmtplib.SMTP") as mock_smtp:
             mock_smtp.return_value.__aenter__.return_value = mock_smtp_client
@@ -75,7 +76,10 @@ class TestEmailSender:
     async def test_send_html_email_success(self, mock_smtp_env, html_email_message):
         """Test sending an HTML email successfully"""
         mock_smtp_client = AsyncMock()
-        mock_smtp_client.send_message.return_value = "<html-message-id@example.com>"
+        mock_smtp_client.send_message.return_value = (
+            {},
+            "<html-message-id@example.com>",
+        )
 
         with patch("routers.email.aiosmtplib.SMTP") as mock_smtp:
             mock_smtp.return_value.__aenter__.return_value = mock_smtp_client
@@ -95,7 +99,7 @@ class TestEmailSender:
     async def test_email_threading_headers(self, mock_smtp_env, html_email_message):
         """Test that threading headers (In-Reply-To, References) are preserved"""
         mock_smtp_client = AsyncMock()
-        mock_smtp_client.send_message.return_value = "<threaded@example.com>"
+        mock_smtp_client.send_message.return_value = ({}, "<threaded@example.com>")
 
         with patch("routers.email.aiosmtplib.SMTP") as mock_smtp:
             mock_smtp.return_value.__aenter__.return_value = mock_smtp_client
@@ -149,7 +153,7 @@ class TestEmailSender:
         )
 
         mock_smtp_client = AsyncMock()
-        mock_smtp_client.send_message.return_value = "<html-only@example.com>"
+        mock_smtp_client.send_message.return_value = ({}, "<html-only@example.com>")
 
         with patch("routers.email.aiosmtplib.SMTP") as mock_smtp:
             mock_smtp.return_value.__aenter__.return_value = mock_smtp_client
