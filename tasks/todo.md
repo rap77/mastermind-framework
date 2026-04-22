@@ -48,13 +48,13 @@
 - [x] Proteccion: advertir si target == mastermind source
 - [x] Handler ejecuta sin errores: `python3 init-handler.py --target /tmp/test-project`
 
-### B2: Crear init.md
-- [ ] Crear `.claude/commands/mm/init.md`
-- [ ] YAML front matter: name `mm:init`, description, argument-hint
-- [ ] Usage con ejemplos (sin flags, --target, --check, --force)
-- [ ] Protocol section: Step 1 ejecutar handler, Step 2 parsear output, Step 3 notificar
-- [ ] Sigue formato de `discover.md`
-- [ ] `/mm:init` aparece en autocomplete de Claude Code
+### B2: Crear init.md ✅
+- [x] Crear `.claude/commands/mm/init.md`
+- [x] YAML front matter: name `mm:init`, description, argument-hint
+- [x] Usage con ejemplos (sin flags, --target, --check, --force)
+- [x] Protocol section: Step 1 ejecutar handler, Step 2 parsear output, Step 3 notificar
+- [x] Sigue formato de `discover.md`
+- [x] `/mm:init` aparece en autocomplete de Claude Code
 
 ### B3: Validar /mm:init End-to-End
 - [ ] Crear directorio vacio `/tmp/test-project`
