@@ -53,7 +53,16 @@ class BrainRuntimeServicer:
         # Create execution record in SQLite
         # Note: In VS, we simplify to synchronous insert
         # Full async BackgroundTask execution comes in Phase 15
-        db_path = "mastermind.db"  # TODO: Use MM_DB_PATH env var
+        import os
+
+        db_path = os.getenv("MM_DB_PATH", "mastermind.db")
+
+        # Ensure directory exists for relative paths
+        if not os.path.isabs(db_path):
+            db_dir = os.path.dirname(db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
+
         async with DatabaseConnection(db_path) as db:
             # Ensure schema exists
             await db.create_task_schema()

@@ -602,20 +602,24 @@ def test_evaluation_export_with_custom_output_path(mock_logger_enabled, runner):
 
 def test_evaluation_export_default_filename(mock_logger_enabled, runner):
     """Test export command uses default filename when no output specified."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        import os
+    import os
 
-        os.chdir(tmpdir)
-        default_filename = "test-eval-001.yaml"
+    original_dir = os.getcwd()
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.chdir(tmpdir)
+            default_filename = "test-eval-001.yaml"
 
-        result = runner.invoke(export, ["test-eval-001"])
+            result = runner.invoke(export, ["test-eval-001"])
 
-        assert result.exit_code == 0
-        assert f"Exported to {default_filename}" in result.output
-        assert Path(default_filename).exists()
+            assert result.exit_code == 0
+            assert f"Exported to {default_filename}" in result.output
+            assert Path(default_filename).exists()
 
-        # Clean up
-        Path(default_filename).unlink()
+            # Clean up
+            Path(default_filename).unlink()
+    finally:
+        os.chdir(original_dir)
 
 
 def test_evaluation_export_yaml_content(mock_logger_enabled, runner):
