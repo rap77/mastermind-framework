@@ -9,8 +9,11 @@ Detects stack, copies files, creates config.
 import argparse
 import json
 import shutil
+import socket
+import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Import db_client for PostgreSQL integration
 # Graceful degradation: works even if asyncpg not installed
@@ -23,6 +26,117 @@ except ImportError:
     MasterMindDB = None  # type: ignore
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent.parent.parent
+
+
+def check_postgresql() -> bool:
+    """Verify PostgreSQL is running and accessible.
+
+    Checks:
+    1. Docker compose ps shows PostgreSQL container running
+    2. Port 5433 on localhost is accepting connections
+
+    Returns:
+        True if PostgreSQL is running and accessible, False otherwise.
+    """
+    print("INFO: Checking PostgreSQL service...")
+
+    # Check 1: Docker compose ps
+    try:
+        result = subprocess.run(
+            ["docker", "compose", "ps"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if "postgres" in result.stdout.lower() and "Up" in result.stdout:
+            print("INFO: PostgreSQL container is running (docker compose ps)")
+        else:
+            print("ERROR: PostgreSQL container not found or not running")
+            print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
+            return False
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        print(f"ERROR: Failed to check docker compose: {e}")
+        print("ERROR: Ensure Docker is running and PostgreSQL container is up")
+        return False
+
+    # Check 2: Ping localhost:5433
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        result = sock.connect_ex(("localhost", 5433))
+        sock.close()
+
+        if result == 0:
+            print("INFO: PostgreSQL is listening on localhost:5433")
+            return True
+        else:
+            print("ERROR: PostgreSQL is not listening on localhost:5433")
+            print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
+            return False
+    except Exception as e:
+        print(f"ERROR: Failed to connect to PostgreSQL: {e}")
+        return False
+
+
+def check_rust_control_plane() -> bool:
+    """Check if Rust Control Plane is available (optional).
+
+    Warns if not available but does not fail the installation.
+
+    Returns:
+        True if Rust Control Plane is available, False otherwise.
+    """
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(("localhost", 3001))
+        sock.close()
+
+        if result == 0:
+            print("INFO: Rust Control Plane is available on localhost:3001")
+            return True
+        else:
+            print(
+                "WARNING: Rust Control Plane not detected on localhost:3001 (optional, continuing)"
+            )
+            return False
+    except Exception:
+        print(
+            "WARNING: Could not verify Rust Control Plane on localhost:3001 (optional, continuing)"
+        )
+        return False
+
+
+def check_provider_available(db: Optional[MasterMindDB]) -> bool:
+    """Check if at least one AI provider has available tokens.
+
+    Args:
+        db: MasterMindDB instance (may be None if DB not available).
+
+    Returns:
+        True if at least one provider has tokens, False otherwise.
+    """
+    if not db or not db.available:
+        print("WARNING: Cannot check provider availability (DB unavailable)")
+        return True  # Don't fail if DB is unavailable
+
+    try:
+        providers_status = db.get_provider_status()
+        available_providers = [
+            name for name, available in providers_status.items() if available
+        ]
+
+        if available_providers:
+            print(f"INFO: Available providers: {', '.join(available_providers)}")
+            return True
+        else:
+            print("ERROR: No AI providers have available tokens")
+            print("ERROR: Configure provider tokens in backend_sessions")
+            return False
+    except Exception as e:
+        print(f"WARNING: Failed to check provider availability: {e}")
+        return True  # Don't fail if check fails
+
 
 COMMANDS_WHITELIST = {
     "init.md",
@@ -247,10 +361,14 @@ def main() -> None:
     1. Parses command-line arguments (target, check, force)
     2. Warns if installing into framework source itself
     3. In --check mode, reports installation status without changes
-    4. Validates preconditions (not a file, not already installed without --force)
-    5. Detects technology stack
-    6. Copies commands, skills, and agents (whitelist only)
-    7. Creates .mastermind/config.yaml with detected stack
+    4. Verifies PostgreSQL is running (REQUIRED, fails if not available)
+    5. Checks provider availability (warns if not available)
+    6. Checks Rust Control Plane (optional, warns if not available)
+    7. Validates preconditions (not a file, not already installed without --force)
+    8. Detects technology stack
+    9. Copies commands, skills, and agents (whitelist only)
+    10. Creates .mastermind/config.yaml with detected stack
+    11. Registers project in PostgreSQL (if available)
 
     Exits with code 1 on error, 0 on success.
     """
@@ -258,7 +376,9 @@ def main() -> None:
     target = Path(args.target).resolve() if args.target else Path.cwd()
 
     # Initialize DB client if available
-    db = MasterMindDB() if DB_CLIENT_AVAILABLE else None
+    db: Optional[MasterMindDB] = None
+    if DB_CLIENT_AVAILABLE:
+        db = MasterMindDB()
 
     # B1.12 — Warn if target == mastermind source
     try:
@@ -283,6 +403,19 @@ def main() -> None:
         else:
             print("STATUS: not-installed")
         return
+
+    # B2.1 — Verify PostgreSQL is running (REQUIRED, fails if not available)
+    if not check_postgresql():
+        print("ERROR: PostgreSQL verification failed - cannot proceed")
+        print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
+        sys.exit(1)
+
+    # B2.2 — Check provider availability (warns if not available, does not fail)
+    if not check_provider_available(db):
+        print("WARNING: No AI providers available - continuing anyway")
+
+    # B2.3 — Check Rust Control Plane (optional, warns if not available)
+    check_rust_control_plane()
 
     # B1.11 — Protection: no overwrite without --force
     mastermind_dir = target / ".mastermind"
