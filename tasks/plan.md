@@ -167,12 +167,12 @@ PHASE E: End-to-End (depende de A + B + C + D)
 **Que:** Probar init en directorio vacio y en proyecto existente.
 
 **Acceptance:**
-- [ ] En `/tmp/test-project` vacio: `/mm:init --target /tmp/test-project` crea estructura completa
-- [ ] Proyecto aparece en tabla `projects` de PostgreSQL
-- [ ] `.mastermind/config.yaml` tiene `db.host: localhost`, `db.port: 5433`
-- [ ] En proyecto existente (mastermind): `/mm:init --check` retorna installed
-- [ ] Sin `--force`: `/mm:init --target /tmp/test-project` (ya instalado) advierte sin sobreescribir
-- [ ] Con `--force`: sobreescribe correctamente
+- [x] En `/tmp/test-project` vacio: `/mm:init --target /tmp/test-project` crea estructura completa
+- [x] Proyecto aparece en tabla `projects` de PostgreSQL
+- [x] `.mastermind/config.yaml` tiene `db.host: localhost`, `db.port: 5433`
+- [x] En proyecto existente (mastermind): `/mm:init --check` retorna installed
+- [x] Sin `--force`: `/mm:init --target /tmp/test-project` (ya instalado) advierte sin sobreescribir
+- [x] Con `--force`: sobreescribe correctamente
 
 ---
 
@@ -425,7 +425,7 @@ PAYLOAD: {json}
 | B1 | db_client.py (modulo PostgreSQL) | — | Medium | 1 new | SI | [x] |
 | B2 | init-handler.py | B1 | Medium | 1 new | SI | [x] |
 | B3 | init.md | B2 | Low | 1 new | — | [x] |
-| B4 | Validar init | B1-B3 | Low | 0 new | SI | [ ] |
+| B4 | Validar init | B1-B3 | Low | 0 new | SI | [x] |
 | C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
 | C2 | review.md | C1 | Low | 1 new | — | [ ] |
 | C3 | review/SKILL.md | C1 | Medium | 1 new | — | [ ] |

@@ -13,6 +13,10 @@
         "Git commands for version control",
         "Including: status, log, diff, commit, tag, push"
       ]
+    },
+    "write": {
+      "enabled": true,
+      "description": "Allow creating and modifying files in the project"
     }
   }
 }

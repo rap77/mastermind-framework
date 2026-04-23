@@ -346,6 +346,10 @@ def create_config(target: Path, stack: list[str]) -> None:
         "framework:",
         "  version: 3.0.0",
         "",
+        "database:",
+        "  host: localhost",
+        "  port: 5433",
+        "",
         *stack_lines,
         "",
         "brains:",
@@ -475,7 +479,7 @@ def main() -> None:
     if db and db.available:
         try:
             project_id = db.register_project(
-                name=target.name, path=str(target), stack=stack
+                name=target.name, metadata={"path": str(target), "stack": stack}
             )
             if project_id:
                 db_status = "connected"

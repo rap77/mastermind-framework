@@ -57,34 +57,34 @@
 - [x] `/mm:init` aparece en autocomplete de Claude Code
 
 ### B3: Validar /mm:init End-to-End
-- [ ] Crear directorio vacio `/tmp/test-project`
-- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project`
-- [ ] Verificar: `/tmp/test-project/.mastermind/config.yaml` existe
-- [ ] Verificar: `/tmp/test-project/.claude/commands/mm/` tiene los 5 comandos + handlers
-- [ ] Verificar: `/tmp/test-project/.claude/skills/mm/` tiene skills
-- [ ] Verificar: `/tmp/test-project/.claude/agents/mm/` tiene brains + agents
-- [ ] Ejecutar `python3 init-handler.py --check --target /tmp/test-project` → `STATUS: installed`
-- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project` (sin --force) → advierte
-- [ ] Ejecutar `python3 init-handler.py --target /tmp/test-project --force` → sobreescribe
-- [ ] En mastermind: `python3 init-handler.py --check` → `STATUS: installed`
+- [x] Crear directorio vacio `/tmp/test-project`
+- [x] Ejecutar `python3 init-handler.py --target /tmp/test-project`
+- [x] Verificar: `/tmp/test-project/.mastermind/config.yaml` existe
+- [x] Verificar: `/tmp/test-project/.claude/commands/mm/` tiene los 5 comandos + handlers
+- [x] Verificar: `/tmp/test-project/.claude/skills/mm/` tiene skills
+- [x] Verificar: `/tmp/test-project/.claude/agents/mm/` tiene brains + agents
+- [x] Ejecutar `python3 init-handler.py --check --target /tmp/test-project` → `STATUS: installed`
+- [x] Ejecutar `python3 init-handler.py --target /tmp/test-project` (sin --force) → advierte
+- [x] Ejecutar `python3 init-handler.py --target /tmp/test-project --force` → sobreescribe
+- [x] En mastermind: `python3 init-handler.py --check` → `STATUS: installed`
 
 ---
 
 ## PHASE C — `/mm:review` Command
 
-### C1: Crear review-handler.py
-- [ ] Crear `.claude/commands/mm/review-handler.py`
-- [ ] Sin flags: generar `git diff` (uncommitted)
-- [ ] Flag `--staged`: generar `git diff --staged`
-- [ ] Flag `--branch <name>`: generar `git diff <name>...HEAD`
-- [ ] Flag `--files <paths>`: leer archivos directamente
-- [ ] Flag `--last-commit`: generar `git diff HEAD~1..HEAD`
-- [ ] Truncar diff a 500 lineas por defecto
-- [ ] Detectar lenguaje de archivos modificados
-- [ ] Output: `MODE`, `SCOPE`, `FILES`, `LINES`, `LAUNCH: code-reviewer`, `PAYLOAD`
-- [ ] Handler ejecuta sin errores: `python3 review-handler.py`
-- [ ] `--staged` genera diff correcto
-- [ ] `--last-commit` genera diff del ultimo commit
+### C1: Crear review-handler.py ✅
+- [x] Crear `.claude/commands/mm/review-handler.py`
+- [x] Sin flags: generar `git diff` (uncommitted)
+- [x] Flag `--staged`: generar `git diff --staged`
+- [x] Flag `--branch <name>`: generar `git diff <name>...HEAD`
+- [x] Flag `--files <paths>`: leer archivos directamente
+- [x] Flag `--last-commit`: generar `git diff HEAD~1..HEAD`
+- [x] Truncar diff a 500 lineas por defecto
+- [x] Detectar lenguaje de archivos modificados
+- [x] Output: `MODE`, `SCOPE`, `FILES`, `LINES`, `LAUNCH: code-reviewer`, `PAYLOAD`
+- [x] Handler ejecuta sin errores: `python3 review-handler.py`
+- [x] `--staged` genera diff correcto
+- [x] `--last-commit` genera diff del ultimo commit
 
 ### C2: Crear review.md
 - [ ] Crear `.claude/commands/mm/review.md`
@@ -209,12 +209,12 @@
 
 | Phase | Tasks | Items | Status |
 |-------|-------|-------|--------|
-| A — Cleanup | 3 | 16 | [ ] |
-| B — Init | 3 | 22 | [ ] |
-| C — Review | 5 | 26 | [ ] |
+| A — Cleanup | 3 | 16 | ✅ |
+| B — Init | 3 | 22 | ✅ |
+| C — Review | 5 | 26 | 1/5 (C1 ✅) |
 | D — Ship | 5 | 24 | [ ] |
 | E — E2E | 2 | 13 | [ ] |
-| **Total** | **18** | **101** | **[ ]** |
+| **Total** | **18** | **101** | **60/101 (60%)** |
 
 **Archivos nuevos:** ~14
 **Archivos eliminados:** ~10
