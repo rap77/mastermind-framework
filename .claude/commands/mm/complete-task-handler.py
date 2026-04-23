@@ -491,7 +491,7 @@ def resume_task(task_id: str) -> None:
     mm_info(f"Previous session: {state['session_id']}")
     mm_info(f"Last checkpoint: {state.get('last_checkpoint', 'none')}")
 
-    # Show current status
+    # Show current status from runtime state
     completed = [
         sid for sid, info in state["subtasks"].items() if info["status"] == "completed"
     ]
@@ -503,10 +503,63 @@ def resume_task(task_id: str) -> None:
     if completed:
         mm_info(f"Completed subtasks: {sorted(completed)}")
 
+    # Check if task is actually complete
+    if not pending:
+        mm_status("TASK COMPLETE - all subtasks completed in runtime state")
+        return
+
+    mm_pending(len(pending))
     if pending:
         mm_info(f"Pending subtasks: {sorted(pending)}")
 
-    # Launch with resume flag
+    # Build pending subtasks list from runtime state
+    pending_subtasks = []
+    for sid in pending:
+        st_info = state["subtasks"][sid]
+        pending_subtasks.append(
+            {
+                "id": sid,
+                "description": st_info["description"],
+                "completed": False,
+            }
+        )
+
+    # Detect permissions for pending subtasks
+    permission_warnings = detect_required_permissions(task_id, pending_subtasks)
+    if permission_warnings:
+        mm_info("PERMISSION CHECK:")
+        for warning in permission_warnings:
+            print(warning, flush=True)
+        mm_info(
+            "Please ensure Claude Code has these permissions enabled in settings.json"
+        )
+
+    # Update runtime state with new session
+    session_id = f"sess-resume-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    state["session_id"] = session_id
+    state["resumed_at"] = datetime.now().isoformat()
+    try:
+        RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+    except OSError as e:
+        mm_error(f"Failed to update runtime state: {e}")
+        raise
+
+    mm_info(f"Runtime state: {RUNTIME_STATE_PATH}")
+    mm_info(f"Session ID: {session_id}")
+
+    # Launch task-executor with pending subtasks
+    payload = {
+        "task_id": task_id,
+        "task_title": read_task_from_plan(task_id)["title"],
+        "subtasks": pending_subtasks,
+        "total_subtasks": len(state["subtasks"]),
+        "pending_count": len(pending_subtasks),
+        "context_budget_threshold": 0.75,
+        "resume": True,
+        "resumed_from_checkpoint": state.get("last_checkpoint"),
+    }
+    print("LAUNCH: task-executor", flush=True)
+    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
     mm_status("RESUMING FROM CHECKPOINT")
 
 
