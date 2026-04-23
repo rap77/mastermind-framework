@@ -58,10 +58,10 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - `.claude/commands/mm/verify-task.md`
 
 **Acceptance:**
-- [ ] Los 5 archivos no existen
-- [ ] `/mm:discover` sigue apareciendo en autocomplete de Claude Code
-- [ ] `/mm:complete-task` sigue apareciendo en autocomplete
-- [ ] `/mm:safe-commit` sigue apareciendo en autocomplete
+- [x] Los 5 archivos no existen
+- [x] `/mm:discover` sigue apareciendo en autocomplete de Claude Code
+- [x] `/mm:complete-task` sigue apareciendo en autocomplete
+- [x] `/mm:safe-commit` sigue apareciendo en autocomplete
 
 ### A2: Eliminar Skills Huerfanos
 
@@ -72,9 +72,9 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - `.claude/skills/mm/verify-task/` (directorio completo: SKILL.md, assets/, references/)
 
 **Acceptance:**
-- [ ] Los 2 directorios no existen
-- [ ] Skills restantes: brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
-- [ ] Ningun archivo existente referencia a `plan-phase` skill o `verify-task` skill
+- [x] Los 2 directorios no existen
+- [x] Skills restantes: brain-context, brain-persistence, discover, mastermind-consultant, safe-commit
+- [x] Ningun archivo existente referencia a `plan-phase` skill o `verify-task` skill
 
 ### A3: Limpiar Agent Markers Huerfanos
 
@@ -86,9 +86,9 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - `.planning/.agent-D2-running`
 
 **Acceptance:**
-- [ ] Los 3 archivos no existen
-- [ ] No hay otros `.agent-*-running` huerfanos
-- [ ] Directorio `.planning/` solo contiene directorios y archivos utiles
+- [x] Los 3 archivos no existen
+- [x] No hay otros `.agent-*-running` huerfanos
+- [x] Directorio `.planning/` solo contiene directorios y archivos utiles
 
 ---
 
@@ -109,11 +109,11 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - Manejo de errores graceful (si PostgreSQL no esta, los handlers funcionan sin DB)
 
 **Acceptance:**
-- [ ] Modulo importa sin errores: `from db_client import MasterMindDB`
-- [ ] Conexion a PostgreSQL funciona: `MasterMindDB().ping()` retorna True
-- [ ] `register_project(name="test", path="/tmp/test")` inserta en tabla `projects`
-- [ ] `save_brain_consultation()` inserta en tabla `brain_consultations`
-- [ ] Si PostgreSQL no esta disponible, no crashea (graceful degradation)
+- [x] Modulo importa sin errores: `from db_client import MasterMindDB`
+- [x] Conexion a PostgreSQL funciona: `MasterMindDB().ping()` retorna True
+- [x] `register_project(name="test", path="/tmp/test")` inserta en tabla `projects`
+- [x] `save_brain_consultation()` inserta en tabla `brain_consultations`
+- [x] Si PostgreSQL no esta disponible, no crashea (graceful degradation)
 
 ### B2: Crear `init-handler.py`
 
@@ -135,15 +135,15 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - Output: `STATUS: installed` o `ERROR: <reason>`
 
 **Acceptance:**
-- [ ] Handler ejecuta sin errores con `python3 init-handler.py --target /tmp/test-project`
-- [ ] Verifica PostgreSQL antes de continuar (falla si no esta)
-- [ ] Crea `.mastermind/config.yaml` con stack detectado + DB connection info
-- [ ] Crea `.claude/commands/mm/` con los 5 comandos + handlers + db_client.py
-- [ ] Registra proyecto en tabla `projects` de PostgreSQL
-- [ ] `--check` retorna `STATUS: installed` en proyecto ya instalado
-- [ ] `--check` retorna `STATUS: not-installed` en proyecto vacio
-- [ ] Proteccion: no sobreescribir sin `--force`
-- [ ] Advierte si Rust Control Plane no esta disponible (no bloquea)
+- [x] Handler ejecuta sin errores con `python3 init-handler.py --target /tmp/test-project`
+- [x] Verifica PostgreSQL antes de continuar (falla si no esta)
+- [x] Crea `.mastermind/config.yaml` con stack detectado + DB connection info
+- [x] Crea `.claude/commands/mm/` con los 5 comandos + handlers + db_client.py
+- [x] Registra proyecto en tabla `projects` de PostgreSQL
+- [x] `--check` retorna `STATUS: installed` en proyecto ya instalado
+- [x] `--check` retorna `STATUS: not-installed` en proyecto vacio
+- [x] Proteccion: no sobreescribir sin `--force`
+- [x] Advierte si Rust Control Plane no esta disponible (no bloquea)
 
 ### B3: Crear `init.md`
 
@@ -157,10 +157,10 @@ PHASE E: End-to-End (depende de A + B + C + D)
 - Nota sobre PostgreSQL como prerequisito
 
 **Acceptance:**
-- [ ] `/mm:init` aparece en autocomplete de Claude Code
-- [ ] Sigue el mismo formato que `discover.md`
-- [ ] Protocol section sigue el patron: handler -> parse -> notify
-- [ ] Documenta que PostgreSQL es prerequisito
+- [x] `/mm:init` aparece en autocomplete de Claude Code
+- [x] Sigue el mismo formato que `discover.md`
+- [x] Protocol section sigue el patron: handler -> parse -> notify
+- [x] Documenta que PostgreSQL es prerequisito
 
 ### B4: Validar `/mm:init` End-to-End
 
@@ -419,12 +419,12 @@ PAYLOAD: {json}
 
 | ID | Task | Depends On | Complexity | Files | DB | Status |
 |----|------|------------|------------|-------|-----|--------|
-| A1 | Eliminar wrapper commands | — | Low | 5 delete | — | [ ] |
-| A2 | Eliminar skills huerfanos | — | Low | 2 dirs delete | — | [ ] |
-| A3 | Limpiar markers huerfanos | — | Low | 3 delete | — | [ ] |
-| B1 | db_client.py (modulo PostgreSQL) | — | Medium | 1 new | SI | [ ] |
-| B2 | init-handler.py | B1 | Medium | 1 new | SI | [ ] |
-| B3 | init.md | B2 | Low | 1 new | — | [ ] |
+| A1 | Eliminar wrapper commands | — | Low | 5 delete | — | [x] |
+| A2 | Eliminar skills huerfanos | — | Low | 2 dirs delete | — | [x] |
+| A3 | Limpiar markers huerfanos | — | Low | 3 delete | — | [x] |
+| B1 | db_client.py (modulo PostgreSQL) | — | Medium | 1 new | SI | [x] |
+| B2 | init-handler.py | B1 | Medium | 1 new | SI | [x] |
+| B3 | init.md | B2 | Low | 1 new | — | [x] |
 | B4 | Validar init | B1-B3 | Low | 0 new | SI | [ ] |
 | C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
 | C2 | review.md | C1 | Low | 1 new | — | [ ] |
