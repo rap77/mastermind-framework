@@ -72,7 +72,7 @@
 
 ## PHASE C — `/mm:review` Command
 
-### C1: Crear review-handler.py
+### C1: Crear review-handler.py ✅
 - [x] Crear `.claude/commands/mm/review-handler.py`
 - [x] Sin flags: generar `git diff` (uncommitted)
 - [x] Flag `--staged`: generar `git diff --staged`

@@ -40,29 +40,29 @@ class TestMasterMindDBConnection:
         assert isinstance(db.available, bool)
 
     def test_db_attributes(self):
-        """Database connection attributes should be set correctly."""
+        """Database connection should expose available status."""
         db = MasterMindDB()
-        assert db.host == "localhost"
-        assert db.port == 5433
-        assert db.database == "mastermind_bd"
+        # MasterMindDB doesn't expose host/port/database attributes
+        # It only exposes 'available' status
+        assert isinstance(db.available, bool)
 
 
 class TestProjectOperations:
     """Test project table operations."""
 
     def test_register_project_returns_id_or_none(self):
-        """register_project should return project_id (int) or None if DB down."""
+        """register_project should return project_id (str) or None if DB down."""
         db = MasterMindDB()
         result = db.register_project(
-            name="test-project", path="/tmp/test-project", stack=["nextjs", "python"]
+            name="test-project", metadata={"stack": ["nextjs", "python"]}
         )
-        # Should return int or None (never crash)
-        assert result is None or isinstance(result, int)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
     def test_get_project_returns_dict_or_none(self):
         """get_project should return project dict or None."""
         db = MasterMindDB()
-        result = db.get_project(path="/tmp/test-project")
+        result = db.get_project(name="test-project")
         # Should return dict or None (never crash)
         assert result is None or isinstance(result, dict)
 
@@ -74,13 +74,14 @@ class TestBrainConsultations:
         """save_brain_consultation should return consultation_id or None."""
         db = MasterMindDB()
         result = db.save_brain_consultation(
-            brain_id="brain-01-product",
-            input_data={"brief": "test brief"},
-            output_data={"response": "test response"},
+            brain_id=1,
+            phase=1,
+            consultation_input='{"brief": "test brief"}',
+            consultation_output='{"response": "test response"}',
             confidence=0.8,
         )
-        # Should return int or None (never crash)
-        assert result is None or isinstance(result, int)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
 
 class TestArtifactsAndDecisions:
@@ -90,25 +91,27 @@ class TestArtifactsAndDecisions:
         """save_artifact should return artifact_id or None."""
         db = MasterMindDB()
         result = db.save_artifact(
-            project_id=1,
             artifact_type="spec",
-            content={"title": "Test Spec"},
+            name="Test Spec",
+            description="Test artifact",
             metadata={"version": "1.0"},
         )
-        # Should return int or None (never crash)
-        assert result is None or isinstance(result, int)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
     def test_save_decision_returns_id_or_none(self):
         """save_decision should return decision_id or None."""
         db = MasterMindDB()
         result = db.save_decision(
-            project_id=1,
-            decision="Use Next.js for frontend",
+            decision_type="tech-stack",
+            title="Use Next.js for frontend",
             rationale="Best performance and DX",
-            impact="High",
+            chosen_option="Next.js",
+            made_by="team",
+            impact_level="high",
         )
-        # Should return int or None (never crash)
-        assert result is None or isinstance(result, int)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
 
 class TestExperiences:
@@ -118,35 +121,46 @@ class TestExperiences:
         """save_experience should return experience_id or None."""
         db = MasterMindDB()
         result = db.save_experience(
-            project_id=1,
-            session_id="sess-test-123",
-            experience="Brain #1 recommended pivot",
-            context={"phase": "discovery"},
+            brain_id="brain-01-product",
+            session_id="b0000000-0000-0000-0000-000000000001",
+            insights=["Brain #1 recommended pivot"],
+            patterns=["discovery"],
         )
-        # Should return int or None (never crash)
-        assert result is None or isinstance(result, int)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
 
 class TestSessionState:
     """Test session state management."""
 
-    def test_save_session_state_returns_bool(self):
-        """save_session_state should return boolean."""
+    def test_save_session_returns_id_or_none(self):
+        """save_session should return session_id or None."""
         db = MasterMindDB()
-        result = db.save_session_state(
-            session_id="sess-test-123",
-            state={"current_phase": 1, "status": "running"},
-            ttl_seconds=3600,
+        result = db.save_session(
+            started_by="test-user",
+            phase_number=1,
+            backend_used="claude",
         )
-        # Should return bool (never crash)
-        assert isinstance(result, bool)
+        # Should return str (UUID) or None (never crash)
+        assert result is None or isinstance(result, str)
 
-    def test_get_session_state_returns_dict_or_none(self):
-        """get_session_state should return state dict or None."""
+    def test_update_session_returns_bool(self):
+        """update_session should return boolean."""
         db = MasterMindDB()
-        result = db.get_session_state(session_id="sess-test-123")
-        # Should return dict or None (never crash)
-        assert result is None or isinstance(result, dict)
+        # First create a session
+        session_id = db.save_session(started_by="test-user")
+        if session_id:
+            result = db.update_session(
+                session_id=session_id,
+                status="completed",
+                tasks_completed=5,
+                tasks_total=10,
+            )
+            # Should return bool (never crash)
+            assert isinstance(result, bool)
+        else:
+            # If DB unavailable, test passes gracefully
+            assert True
 
 
 class TestProviderStatus:
