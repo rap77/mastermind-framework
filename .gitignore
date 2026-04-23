@@ -52,3 +52,6 @@ dist/
 .claude/checkpoints/
 .worktrees/
 rust_control_plane/target/
+
+# Credentials / API keys
+.claude/zai.sh
