@@ -97,16 +97,16 @@
 - [x] Brain integration: Brain #6 + Brain #7
 - [x] `/mm:review` aparece en autocomplete
 
-### C3: Crear review/SKILL.md
-- [ ] Crear directorio `.claude/skills/mm/review/`
-- [ ] Crear `.claude/skills/mm/review/SKILL.md`
-- [ ] Seccion "Cuando Usar" (proactivo: antes de commit, post-implementation)
-- [ ] Protocolo de review: 5 ejes (correctness, readability, architecture, security, performance)
-- [ ] Brain #6: QA standards, testing strategy, edge cases
-- [ ] Brain #7: Systems thinking, impact analysis, risk assessment
-- [ ] Formato de reporte: `.planning/REVIEWS/<timestamp>-review.md`
-- [ ] Criterios de severidad: CRITICAL / WARNING / SUGGESTION
-- [ ] Sigue formato de `discover/SKILL.md`
+### C3: Crear review/SKILL.md ✅ VERIFIED
+- [x] Crear directorio `.claude/skills/mm/review/`
+- [x] Crear `.claude/skills/mm/review/SKILL.md`
+- [x] Seccion "Cuando Usar" (proactivo: antes de commit, post-implementation)
+- [x] Protocolo de review: 5 ejes (correctness, readability, architecture, security, performance)
+- [x] Brain #6: QA standards, testing strategy, edge cases
+- [x] Brain #7: Systems thinking, impact analysis, risk assessment
+- [x] Formato de reporte: `.planning/REVIEWS/<timestamp>-review.md`
+- [x] Criterios de severidad: CRITICAL / WARNING / SUGGESTION
+- [x] Sigue formato de `discover/SKILL.md`
 
 ### C4: Crear code-reviewer Agent
 - [ ] Crear directorio `.claude/agents/mm/code-reviewer/`
