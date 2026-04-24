@@ -566,6 +566,9 @@ def resume_task(task_id: str) -> None:
 def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
     """Mark all subtasks as complete in todo.md and commit.
 
+    Note: This does NOT verify acceptance criteria in plan.md.
+    Use /mm:verify-criteria to manually verify what was implemented.
+
     Args:
         task_id: Task identifier.
         subtasks: List of subtask dicts.
@@ -584,7 +587,7 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
 
     TODO_MD.write_text(todo_content)
 
-    # Commit
+    # Commit todo.md only
     task = read_task_from_plan(task_id)
     task_letter = task_id[0]
     commit_msg = f"feat(phase-{task_letter}): {task['title']}"
@@ -606,6 +609,7 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
 
     if result.returncode == 0:
         mm_info(f"Committed: {commit_msg}")
+        mm_info("NOTE: Use /mm:verify-criteria to mark acceptance criteria in plan.md")
     else:
         mm_info("No changes to commit")
 

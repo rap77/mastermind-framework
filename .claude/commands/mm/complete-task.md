@@ -70,6 +70,8 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 
 **`STATUS: TASK COMPLETE`**: Mark all checkboxes in todo.md as complete, no agent needed.
 
+**IMPORTANT**: After task completion, use `/mm:verify-criteria <task-id>` to manually verify and mark acceptance criteria in plan.md.
+
 **Handler ERROR**: Show error to user, suggest next steps.
 
 ## What Happens

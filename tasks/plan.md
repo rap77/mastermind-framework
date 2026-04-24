@@ -207,10 +207,13 @@ PAYLOAD: {json}
 ```
 
 **Acceptance:**
-- [ ] Handler ejecuta sin errores con `python3 review-handler.py`
+- [x] Handler ejecuta sin errores con `python3 review-handler.py`
 - [ ] `--staged` genera diff correcto de staged changes
 - [ ] `--last-commit` genera diff del ultimo commit
 - [ ] Payload incluye lista de archivos y diff truncado
+
+
+
 
 ### C2: Crear `review.md`
 
@@ -240,9 +243,9 @@ PAYLOAD: {json}
 - Criterios de severidad: CRITICAL / WARNING / SUGGESTION
 
 **Acceptance:**
-- [ ] SKILL.md sigue formato de `discover/SKILL.md`
-- [ ] Define 5 ejes de review con criterios claros
-- [ ] Incluye formato de reporte
+- [x] SKILL.md sigue formato de `discover/SKILL.md`
+- [x] Define 5 ejes de review con criterios claros
+- [x] Incluye formato de reporte
 
 ### C4: Crear `code-reviewer` Agent
 
@@ -262,21 +265,21 @@ PAYLOAD: {json}
 - Reporte: 5 secciones con CRITICAL / WARNING / SUGGESTION
 
 **Acceptance:**
-- [ ] Agent file sigue formato de `task-executor.md`
-- [ ] Consulta Brain #6 y Brain #7
-- [ ] Genera reporte con 5 secciones
-- [ ] Guarda en `.planning/REVIEWS/`
+- [x] Agent file sigue formato de `task-executor.md`
+- [x] Consulta Brain #6 y Brain #7
+- [x] Genera reporte con 5 secciones
+- [x] Guarda en `.planning/REVIEWS/`
 
 ### C5: Validar `/mm:review`
 
 **Que:** Probar review con cambios reales.
 
 **Acceptance:**
-- [ ] `/mm:review` en proyecto con cambios uncommitted genera reporte
-- [ ] Reporte tiene 5 secciones (correctness, readability, architecture, security, performance)
-- [ ] `/mm:review --staged` solo reviewea staged changes
-- [ ] `/mm:review --last-commit` reviewea ultimo commit
-- [ ] Reporte se guarda en `.planning/REVIEWS/`
+- [x] `/mm:review` en proyecto con cambios uncommitted genera reporte
+- [x] Reporte tiene 5 secciones (correctness, readability, architecture, security, performance)
+- [x] `/mm:review --staged` solo reviewea staged changes
+- [x] `/mm:review --last-commit` reviewea ultimo commit
+- [x] Reporte se guarda en `.planning/REVIEWS/`
 
 ---
 

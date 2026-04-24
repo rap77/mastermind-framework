@@ -165,6 +165,26 @@ def get_git_diff(scope: str, max_lines: int = 500) -> tuple[str, list[str], int]
         return "", [], 0
 
 
+def branch_exists(branch: str) -> bool:
+    """Check if a git branch exists.
+
+    Args:
+        branch: Branch name to verify.
+
+    Returns:
+        True if branch exists, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", branch],
+            capture_output=True,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, Exception):
+        return False
+
+
 def get_branch_diff(branch: str, max_lines: int = 500) -> tuple[str, list[str], int]:
     """Generate git diff for branch comparison.
 
@@ -175,6 +195,12 @@ def get_branch_diff(branch: str, max_lines: int = 500) -> tuple[str, list[str], 
     Returns:
         Tuple of (diff output, list of changed files, line count).
     """
+    # Early validation: check if branch exists
+    if not branch_exists(branch):
+        print(f"ERROR: Branch '{branch}' does not exist")
+        print("ERROR: Available branches can be listed with: git branch -a")
+        return "", [], 0
+
     try:
         result = subprocess.run(
             ["git", "diff", f"{branch}...HEAD"],
