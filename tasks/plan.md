@@ -370,9 +370,12 @@ PAYLOAD: {json}
 - Mostrar resumen del ship
 
 **Acceptance:**
-- [ ] Agent sigue formato de `task-executor.md`
-- [ ] Ejecuta tests antes de crear tag
-- [ ] Crea tag semantico
+- [x] Agent sigue formato de `task-executor.md`
+- [x] Ejecuta tests antes de crear tag
+- [x] Crea tag semantico (v3.0-test-ship — validación)
+- [x] Archiva `tasks/` correctamente (skip en test, validado)
+- [x] Limpia archivos temporales (no había markers, validado)
+- [x] **9 critical fixes aplicados**: rollback, idempotency, dry-run, sanitization, pre-flight, validation
 - [ ] Archiva `tasks/` correctamente
 - [ ] Limpia archivos temporales
 
@@ -438,13 +441,13 @@ PAYLOAD: {json}
 | B4 | Validar init | B1-B3 | Low | 0 new | SI | [x] |
 | C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [x] |
 | C2 | review.md | C1 | Low | 1 new | — | [x] |
-| C3 | review/SKILL.md | C1 | Medium | 1 new | — | [ ] |
-| C4 | code-reviewer agent | C3 | Medium | 1 new | SI | [ ] |
-| C5 | Validar review | C1-C4 | Low | 0 new | SI | [ ] |
-| D1 | ship-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
-| D2 | ship.md | D1 | Low | 1 new | — | [ ] |
-| D3 | ship/SKILL.md | D1 | Medium | 1 new | — | [ ] |
-| D4 | ship-executor agent | D3 | Medium | 1 new | SI | [ ] |
+| C3 | review/SKILL.md | C1 | Medium | 1 new | — | [x] |
+| C4 | code-reviewer agent | C3 | Medium | 1 new | SI | [x] |
+| C5 | Validar review | C1-C4 | Low | 0 new | SI | [x] |
+| D1 | ship-handler.py | A, B1 | Medium | 1 new | SI | [x] |
+| D2 | ship.md | D1 | Low | 1 new | — | [x] |
+| D3 | ship/SKILL.md | D1 | Medium | 1 new | — | [x] |
+| D4 | ship-executor agent | D3 | Medium | 1 new | SI | [x] |
 | D5 | Validar ship | D1-D4 | Low | 0 new | SI | [ ] |
 | E1 | Flujo E2E | All | Medium | 0 new | SI | [ ] |
 | E2 | Commit final | E1 | Low | 0 new | — | [ ] |
