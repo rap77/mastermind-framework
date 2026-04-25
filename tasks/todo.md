@@ -185,13 +185,13 @@
 
 > **NOTA:** Archive y cleanup completo se ejecutarán en D5 cuando el milestone esté realmente completo.
 
-### D5: Validar /mm:ship
-- [ ] Ejecutar `python3 ship-handler.py --verify` → reporta estado
-- [ ] Verificar: reporta ultimo tag correctamente
-- [ ] Verificar: reporta si hay uncommitted changes
-- [ ] Verificar: sugiere proximo tag (patch por defecto)
-- [ ] Ejecutar `python3 ship-handler.py --cleanup` → elimina `.agent-*-running`
-- [ ] Sin crear tag real (usar --verify para pruebas)
+### D5: Validar /mm:ship ✅
+- [x] Ejecutar `python3 ship-handler.py --verify` → reporta estado
+- [x] Verificar: reporta ultimo tag correctamente
+- [x] Verificar: reporta si hay uncommitted changes
+- [x] Verificar: sugiere proximo tag (patch por defecto)
+- [x] Ejecutar `python3 ship-handler.py --cleanup` → elimina `.agent-*-running`
+- [x] Sin crear tag real (usar --verify para pruebas)
 
 ---
 
