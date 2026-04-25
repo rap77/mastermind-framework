@@ -280,30 +280,30 @@ Luego tu backend llama internamente a `ArchitectureAgent` con esos parámetros.
 ## 7. Cómo lo usaría en la práctica (tú ahora)
 
 1. Monta un backend con solo estos endpoints:
-    
+
     - `POST /projects`
-        
+
     - `POST /projects/:id/discovery/chat`
-        
+
     - `POST /projects/:id/discovery/generate-vision`
-        
+
     - `POST /projects/:id/architecture/generate`
-        
+
     - `POST /projects/:id/planning/generate`
-        
+
 2. Implementa un front muy simple con:
-    
+
     - Lista de proyectos
-        
+
     - Wizard de nuevo proyecto + chat
-        
+
     - Vistas de visión / arquitectura / roadmap mostrando los JSON de respuesta bonitos.
-        
+
 3. Por detrás, cada agente puede ser:
-    
+
     - Una función que prepara un prompt y llama al LLM
-        
+
     - Recibe el input (Vision, Arquitectura, etc.) y devuelve el schema que definimos.
-        
+
 
 Si me dices qué stack exacto quieres usar (por ejemplo: Node/Nest + React, o Laravel + Vue, etc.), en el próximo mensaje puedo darte un ejemplo de código de un endpoint y la “función agente” para que tengas el esqueleto real.

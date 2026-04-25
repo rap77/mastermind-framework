@@ -31,7 +31,7 @@ describe('costStore', () => {
   describe('updateMetric', () => {
     it('should add new brain metric', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -54,7 +54,7 @@ describe('costStore', () => {
 
     it('should update existing brain metric', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -80,7 +80,7 @@ describe('costStore', () => {
 
     it('should recalculate total spent when adding metric', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -106,7 +106,7 @@ describe('costStore', () => {
 
     it('should update spent when metric is replaced', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -134,14 +134,14 @@ describe('costStore', () => {
     it('should update budget', () => {
       const store = useCostStore.getState()
       store.setBudget(200)
-      
+
       expect(useCostStore.getState().budget).toBe(200)
     })
 
     it('should allow zero budget', () => {
       const store = useCostStore.getState()
       store.setBudget(0)
-      
+
       expect(useCostStore.getState().budget).toBe(0)
     })
   })
@@ -149,7 +149,7 @@ describe('costStore', () => {
   describe('resetMetrics', () => {
     it('should clear all metrics', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -166,7 +166,7 @@ describe('costStore', () => {
 
     it('should reset spent to zero', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -184,7 +184,7 @@ describe('costStore', () => {
     it('should not reset budget', () => {
       const store = useCostStore.getState()
       store.setBudget(200)
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -203,7 +203,7 @@ describe('costStore', () => {
   describe('persist middleware', () => {
     it('should persist state to localStorage', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,
@@ -216,7 +216,7 @@ describe('costStore', () => {
       // Check localStorage has the data
       const stored = localStorage.getItem('mastermind-costs')
       expect(stored).toBeDefined()
-      
+
       if (stored) {
         const parsed = JSON.parse(stored)
         expect(parsed.state.metrics['brain-01'].totalCost).toBe(0.50)
@@ -250,14 +250,14 @@ describe('costStore', () => {
         // Selector not implemented yet
         return
       }
-      
+
       const metric = getCostState('brain-99')
       expect(metric).toBeUndefined()
     })
 
     it('should return metric for existing brain', () => {
       const store = useCostStore.getState()
-      
+
       store.updateMetric('brain-01', {
         brainId: 'brain-01',
         totalTokens: 1000,

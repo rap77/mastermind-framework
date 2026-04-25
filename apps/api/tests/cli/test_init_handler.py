@@ -18,7 +18,13 @@ FRAMEWORK_ROOT = Path(__file__).parent.parent.parent.parent.parent
 
 
 def run_handler(*args, timeout=15):
-    """Helper to run init-handler.py with given args."""
+    """Helper to run init-handler.py with given args.
+
+    Automatically adds --skip-postgres-check for testing.
+    """
+    # Add --skip-postgres-check unless it's already present or we're in --check mode
+    if "--skip-postgres-check" not in args and "--check" not in args:
+        args = (*args, "--skip-postgres-check")
     return subprocess.run(
         ["python3", str(HANDLER_PATH), *args],
         capture_output=True,

@@ -109,43 +109,45 @@
 - [x] Sigue formato de `discover/SKILL.md`
 
 ### C4: Crear code-reviewer Agent
-- [ ] Crear directorio `.claude/agents/mm/code-reviewer/`
-- [ ] Crear `.claude/agents/mm/code-reviewer/code-reviewer.md`
-- [ ] Recibe payload con diff + contexto
-- [ ] Consulta Brain #6 para QA standards
-- [ ] Consulta Brain #7 para systems evaluation
-- [ ] Genera reporte con 5 secciones (correctness, readability, architecture, security, performance)
-- [ ] Guarda reporte en `.planning/REVIEWS/<timestamp>-review.md`
-- [ ] Sigue formato de `task-executor.md`
+- [x] Crear directorio `.claude/agents/mm/code-reviewer/`
+- [x] Crear `.claude/agents/mm/code-reviewer/code-reviewer.md`
+- [x] Recibe payload con diff + contexto
+- [x] Consulta Brain #6 para QA standards
+- [x] Consulta Brain #7 para systems evaluation
+- [x] Genera reporte con 5 secciones (correctness, readability, architecture, security, performance)
+- [x] Guarda reporte en `.planning/REVIEWS/<timestamp>-review.md`
+- [x] Sigue formato de `task-executor.md`
 
 ### C5: Validar /mm:review
-- [ ] Hacer un cambio pequeno en cualquier archivo (sin commitear)
-- [ ] Ejecutar `python3 review-handler.py` → genera payload con diff
-- [ ] Verificar que payload incluye archivos modificados y diff
-- [ ] `/mm:review --staged` solo genera diff de staged changes
-- [ ] `/mm:review --last-commit` genera diff del ultimo commit
-- [ ] Reporte se guarda en `.planning/REVIEWS/`
+- [x] Hacer un cambio pequeno en cualquier archivo (sin commitear)
+- [x] Ejecutar `python3 review-handler.py` → genera payload con diff
+- [x] Verificar que payload incluye archivos modificados y diff
+- [x] `/mm:review --staged` solo genera diff de staged changes
+- [x] `/mm:review --last-commit` genera diff del ultimo commit
+- [x] Reporte se guarda en `.planning/REVIEWS/`
 
 ---
 
 ## PHASE D — `/mm:ship` Command
 
-### D1: Crear ship-handler.py
-- [ ] Crear `.claude/commands/mm/ship-handler.py`
-- [ ] Flag `--verify`: solo verificar, no crear tag (dry-run)
-- [ ] Flag `--tag vX.Y.Z`: tag explicito
-- [ ] Flag `--patch`: incrementar patch (default)
-- [ ] Flag `--minor`: incrementar minor
-- [ ] Flag `--major`: incrementar major
-- [ ] Flag `--archive`: solo archivar artefactos
-- [ ] Flag `--cleanup`: solo limpiar archivos temporales
-- [ ] Verificar: no hay cambios uncommitted (`git diff --quiet`)
-- [ ] Verificar: SPEC.md existe
-- [ ] Leer ultimo tag de git (`git describe --tags --abbrev=0`)
-- [ ] Generar changelog desde ultimo tag (`git log vX.Y.Z..HEAD --oneline`)
-- [ ] Calcular siguiente version (patch/minor/major)
-- [ ] Output: `MODE`, `CURRENT_TAG`, `NEXT_TAG`, `CHANGELOG`, `PRECONDITIONS`, `LAUNCH`, `PAYLOAD`
-- [ ] Handler ejecuta sin errores: `python3 ship-handler.py --verify`
+### D1: Crear ship-handler.py ✅
+- [x] Crear `.claude/commands/mm/ship-handler.py`
+- [x] Flag `--verify`: solo verificar, no crear tag (dry-run)
+- [x] Flag `--tag vX.Y.Z`: tag explicito
+- [x] Flag `--patch`: incrementar patch (default)
+- [x] Flag `--minor`: incrementar minor
+- [x] Flag `--major`: incrementar major
+- [x] Flag `--archive`: solo archivar artefactos
+- [x] Flag `--cleanup`: solo limpiar archivos temporales
+- [x] Verificar: no hay cambios uncommitted (`git diff --quiet`)
+- [x] Verificar: SPEC.md existe
+- [x] Leer ultimo tag de git (`git describe --tags --abbrev=0`)
+- [x] Generar changelog desde ultimo tag (`git log vX.Y.Z..HEAD --oneline`)
+- [x] Calcular siguiente version (patch/minor/major)
+- [x] Output: `MODE`, `CURRENT_TAG`, `NEXT_TAG`, `CHANGELOG`, `PRECONDITIONS`, `LAUNCH`, `PAYLOAD`
+- [x] Handler ejecuta sin errores: `python3 ship-handler.py --verify`
+- [x] **All 15 subtasks completed with TDD approach**
+- [x] **Test suite: apps/api/tests/mm_flow/test_ship_handler.py (15/15 passing)**
 
 ### D2: Crear ship.md
 - [ ] Crear `.claude/commands/mm/ship.md`

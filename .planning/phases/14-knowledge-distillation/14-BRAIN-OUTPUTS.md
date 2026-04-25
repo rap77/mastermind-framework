@@ -27,7 +27,7 @@ def calculate_quality_score(
     """
     Hormozi value equation:
     Quality Score = (Precision × Success_Probability) / (T1 × Tokens)
-    
+
     Thresholds:
         - >= 3.0: Store as template candidate
         - >= 1.0: Store as experience record
@@ -36,7 +36,7 @@ def calculate_quality_score(
     t1_sec = max(t1_ms / 1000, 1.0)
     token_count = max(tokens, 1)
     base_score = (precision * success_probability) / (t1_sec * token_count) * 1000
-    
+
     # Penalties
     if output_text:
         word_count = len(output_text.split())
@@ -44,7 +44,7 @@ def calculate_quality_score(
             base_score *= 0.5  # Twaddle penalty
         if not _can_invert(output_text):
             base_score *= 0.7  # Inversion check penalty
-    
+
     return base_score
 ```
 
@@ -86,7 +86,7 @@ ALTER TABLE experience_records ADD COLUMN expires_at TEXT;
 CREATE INDEX idx_experience_records_expires_at ON experience_records(expires_at);
 
 -- Default TTL: 90 days
-UPDATE experience_records 
+UPDATE experience_records
 SET expires_at = datetime(timestamp, '+90 days')
 WHERE expires_at IS NULL;
 ```
@@ -121,14 +121,14 @@ class KnowledgeDistillationService:
         3. Invoked via /mm:complete-phase
         """
         duration_sec = task.duration_ms / 1000
-        
+
         if duration_sec > 300:  # >5 min
             return True
         if task.planning_score_delta is not None and task.planning_score_delta != 0:
             return True
         if task.invocation_method == "mm:complete-phase":
             return True
-        
+
         return False
 ```
 
@@ -164,14 +164,14 @@ def test_twaddle_penalty():
 ```python
 async def test_rejected_records_not_retrieved(async_db):
     logger = ExperienceLogger(async_db)
-    
+
     # Seed: approved + rejected + approved
     await logger.log_execution(..., status="success", quality_score=3.0)
     await logger.log_execution(..., status="rejected", quality_score=0.0)
     await logger.log_execution(..., status="success", quality_score=2.5)
-    
+
     records = await logger.get_recent_by_brain("brain-01", limit=10)
-    
+
     # ASSERT: Solo 2 aprobados retornan
     assert len(records) == 2
     assert all(r.status != "rejected" for r in records)
@@ -185,12 +185,12 @@ async def test_rejected_records_not_retrieved(async_db):
 async def test_expired_record_not_retrieved(async_db):
     logger = ExperienceLogger(async_db)
     yesterday = (datetime.now() - timedelta(days=1)).isoformat()
-    
+
     await logger.log_execution(..., expires_at=yesterday)
     await logger.log_execution(..., expires_at=None)
-    
+
     records = await logger.get_recent_by_brain("brain-01", limit=10)
-    
+
     assert len(records) == 1
     assert records[0].input_json["q"] == "fresh"
 ```
@@ -206,7 +206,7 @@ def test_duration_over_5_minutes_triggers_evaluation():
         planning_score_delta=0,
         invocation_method="mm:execute-phase"
     )
-    
+
     assert service._is_high_value_session(task) is True
 
 def test_planning_score_change_triggers_evaluation():
@@ -215,7 +215,7 @@ def test_planning_score_change_triggers_evaluation():
         planning_score_delta=1,  # Pivot detected
         invocation_method="mm:execute-phase"
     )
-    
+
     assert service._is_high_value_session(task) is True
 ```
 

@@ -199,6 +199,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Force overwrite if .mastermind/ already exists",
     )
+    parser.add_argument(
+        "--skip-postgres-check",
+        action="store_true",
+        help=argparse.SUPPRESS,  # Hidden flag for testing only
+    )
     return parser.parse_args()
 
 
@@ -409,10 +414,12 @@ def main() -> None:
         return
 
     # B2.1 — Verify PostgreSQL is running (REQUIRED, fails if not available)
-    if not check_postgresql():
-        print("ERROR: PostgreSQL verification failed - cannot proceed")
-        print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
-        sys.exit(1)
+    # Skip check if --skip-postgres-check flag is set (for testing)
+    if not args.skip_postgres_check:
+        if not check_postgresql():
+            print("ERROR: PostgreSQL verification failed - cannot proceed")
+            print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
+            sys.exit(1)
 
     # B2.2 — Check provider availability (warns if not available, does not fail)
     if not check_provider_available(db):

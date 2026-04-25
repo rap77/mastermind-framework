@@ -1,84 +1,59 @@
 {
-  "task_id": "C1",
-  "session_id": "sess-20260423-003826",
-  "started_at": "2026-04-23T00:38:26.964845",
-  "completed_at": "2026-04-23T00:40:00.000000",
+  "task_id": "D3",
+  "session_id": "sess-20260424-091214",
+  "started_at": "2026-04-24T09:12:14.607378",
+  "completed_at": "2026-04-24T09:18:00.000000",
   "phase": 19,
   "subtasks": {
-    "C1.1": {
-      "description": "Crear `.claude/commands/mm/review-handler.py`",
+    "D3.1": {
+      "description": "Crear directorio `.claude/skills/mm/ship/`",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:16:00.000000",
+      "retries": 0
     },
-    "C1.2": {
-      "description": "Sin flags: generar `git diff` (uncommitted)",
+    "D3.2": {
+      "description": "Crear `.claude/skills/mm/ship/SKILL.md`",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:16:00.000000",
+      "retries": 0
     },
-    "C1.3": {
-      "description": "Flag `--staged`: generar `git diff --staged`",
+    "D3.3": {
+      "description": "Seccion \"Cuando Usar\" (al completar milestone/version)",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:17:00.000000",
+      "retries": 0
     },
-    "C1.4": {
-      "description": "Flag `--branch <name>`: generar `git diff <name>...HEAD`",
+    "D3.4": {
+      "description": "Pre-condiciones: tests pass, no uncommitted, SPEC exists",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:17:00.000000",
+      "retries": 0
     },
-    "C1.5": {
-      "description": "Flag `--files <paths>`: leer archivos directamente",
+    "D3.5": {
+      "description": "Flujo: verify -> tag -> archive -> cleanup",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:17:00.000000",
+      "retries": 0
     },
-    "C1.6": {
-      "description": "Flag `--last-commit`: generar `git diff HEAD~1..HEAD`",
+    "D3.6": {
+      "description": "Formato de changelog",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:17:00.000000",
+      "retries": 0
     },
-    "C1.7": {
-      "description": "Truncar diff a 500 lineas por defecto",
+    "D3.7": {
+      "description": "Formato de archive: `.planning/archive/<version>/`",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:18:00.000000",
+      "retries": 0
     },
-    "C1.8": {
-      "description": "Detectar lenguaje de archivos modificados",
+    "D3.8": {
+      "description": "Sigue formato de `discover/SKILL.md`",
       "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
-    },
-    "C1.9": {
-      "description": "Output: `MODE`, `SCOPE`, `FILES`, `LINES`, `LAUNCH: code-reviewer`, `PAYLOAD`",
-      "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
-    },
-    "C1.10": {
-      "description": "Handler ejecuta sin errores: `python3 review-handler.py`",
-      "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
-    },
-    "C1.11": {
-      "description": "`--staged` genera diff correcto",
-      "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
-    },
-    "C1.12": {
-      "description": "`--last-commit` genera diff del ultimo commit",
-      "status": "completed",
-      "completed_at": "2026-04-23T00:39:00.000000",
-      "verified": true
+      "completed_at": "2026-04-24T09:18:00.000000",
+      "retries": 0
     }
   },
-  "last_checkpoint": "C1.12",
-  "completion_method": "verified",
-  "notes": "All subtasks verified - review-handler.py exists and is fully functional with all required modes and features."
+  "last_checkpoint": "D3.8",
+  "context_budget_exit": null
 }

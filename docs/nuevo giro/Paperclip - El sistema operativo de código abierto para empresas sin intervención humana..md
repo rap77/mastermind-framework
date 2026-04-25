@@ -62,10 +62,10 @@ La arquitectura de Paperclip se basa en unos pocos elementos básicos clave que 
 
 Cada despliegue comienza con la definición de la empresa: un nombre y una declaración de misión. Esta misión se propaga hacia abajo, de modo que cada objetivo, cada proyecto y cada tarea se remontan a ella. Cuando un agente toma un ticket, ve el historial completo:
 
-"Estoy investigando anuncios de Facebook para Granola" (tarea actual)   
-  → porque necesito crear anuncios de Facebook para nuestro software (padre)   
-    → porque necesito aumentar los registros en  100 usuarios (padre)   
-      → porque necesito ingresos de $ 2,000 esta semana (padre)→ porque nuestra misión es construir la aplicación de toma de notas con IA número 1  
+"Estoy investigando anuncios de Facebook para Granola" (tarea actual)
+  → porque necesito crear anuncios de Facebook para nuestro software (padre)
+    → porque necesito aumentar los registros en  100 usuarios (padre)
+      → porque necesito ingresos de $ 2,000 esta semana (padre)→ porque nuestra misión es construir la aplicación de toma de notas con IA número 1
 
 Esta ejecución orientada a objetivos implica que los agentes siempre saben _por qué_ trabajan, no solo _qué_ hacer. Y en la práctica, esa distinción resulta ser muy importante.
 
@@ -115,18 +115,18 @@ Paperclip no impone ninguna preferencia sobre los entornos de ejecución de los 
 
 Para los agentes que se ejecutan en la misma máquina, Paperclip los crea como subprocesos. El `claude_local`adaptador, por ejemplo, inicia directamente las sesiones de Claude Code:
 
-{   
-  "adapterType" :  "process" ,   
-  "adapterConfig" :  {   
-    "adapter" :  "claude_local" ,   
-    "model" :  "claude-sonnet-4-20250514" ,   
-    "billingType" :  "api" ,   
-    "sessionBehavior" :  "resume-or-new" ,   
-    "heartbeatSchedule" :  {   
-      "enabled" :  true ,   
-      "intervalSec" :  1800   
-    }   
-  }   
+{
+  "adapterType" :  "process" ,
+  "adapterConfig" :  {
+    "adapter" :  "claude_local" ,
+    "model" :  "claude-sonnet-4-20250514" ,
+    "billingType" :  "api" ,
+    "sessionBehavior" :  "resume-or-new" ,
+    "heartbeatSchedule" :  {
+      "enabled" :  true ,
+      "intervalSec" :  1800
+    }
+  }
 }
 
 Esta `sessionBehavior: "resume-or-new"`opción es digna de mención. Significa que los agentes reanudan el mismo contexto de tarea entre latidos en lugar de reiniciar desde cero cada vez.
@@ -135,23 +135,23 @@ Esta `sessionBehavior: "resume-or-new"`opción es digna de mención. Significa 
 
 Para los agentes que se ejecutan en infraestructuras separadas, incluidas las instancias remotas de OpenClaw, Paperclip se comunica mediante webhooks HTTP:
 
-{   
-  "adapterType" :  "http" ,   
-  "adapterConfig" :  {   
-    "url" :  "https://openclaw.example.com/invoke" ,   
-    "method" :  "POST" ,   
-    "headers" :  {   
-      "Authorization" :  "Bearer {{OPENCLAW_TOKEN}}"   
-    } ,   
-    "timeoutMs" :  30000 ,   
-    "payloadTemplate" :  {   
-      "paperclip" :  {   
-        "agentId" :  "{{agent.id}}" ,   
-        "companyId" :  "{{company.id}}" ,   
-        "runId" :  "{{run.id}}"   
-      }   
-    }   
-  }   
+{
+  "adapterType" :  "http" ,
+  "adapterConfig" :  {
+    "url" :  "https://openclaw.example.com/invoke" ,
+    "method" :  "POST" ,
+    "headers" :  {
+      "Authorization" :  "Bearer {{OPENCLAW_TOKEN}}"
+    } ,
+    "timeoutMs" :  30000 ,
+    "payloadTemplate" :  {
+      "paperclip" :  {
+        "agentId" :  "{{agent.id}}" ,
+        "companyId" :  "{{company.id}}" ,
+        "runId" :  "{{run.id}}"
+      }
+    }
+  }
 }
 
 Los secretos se almacenan cifrados en una `company_secrets`tabla y se inyectan en tiempo de ejecución. Nunca se incluyen de forma fija en la configuración del adaptador.
@@ -190,19 +190,19 @@ Esto instala todo, crea una base de datos local y abre el panel de control en `
 
 ## De la fuente
 
-git clone https://github.com/paperclipai/paperclip.git   
-cd paperclip   
-pnpm instalar   
+git clone https://github.com/paperclipai/paperclip.git
+cd paperclip
+pnpm instalar
 pnpm dev
 
 Comandos de desarrollo útiles:
 
-pnpm dev           # Desarrollo completo (API + UI, modo de observación)  
- pnpm dev:server    # Solo servidor  
- pnpm build         # Compilar todo  
- pnpm typecheck     # Verificación de tipos  
- pnpm test :run      # Ejecutar pruebas  
- pnpm db:generate   # Generar migración de base de datos  
+pnpm dev           # Desarrollo completo (API + UI, modo de observación)
+ pnpm dev:server    # Solo servidor
+ pnpm build         # Compilar todo
+ pnpm typecheck     # Verificación de tipos
+ pnpm test :run      # Ejecutar pruebas
+ pnpm db:generate   # Generar migración de base de datos
  pnpm db:migrate    # Aplicar migraciones
 
 ## Creación de la primera empresa

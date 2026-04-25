@@ -1,22 +1,34 @@
 ---
 description: Pre-commit cognitive barrier that enforces GGA validation and Brain #6 testing standards. Blocks --no-verify, validates tests pass, checks conventional commits, integrates with Brain #6 QA/DevOps. Auto-corrects errors before committing.
-argument-hint: "[--check | --fix | --help]"
+argument-hint: "[--check | --fix | --message <msg>]"
 ---
 
 # /mm:safe-commit
 
-**Barrera cognitiva reactiva que nunca permite `--no-verify`.**
+**Barrera cognitiva programática que NUNCA permite `--no-verify`.**
 
-Valida ANTES de commitear: tests pasando (0 fallas), GGA hook configurado, formato convencional correcto, sin "Co-Authored-By". Se integra con Brain #6 QA/DevOps para estrategia de testing.
+Handler Python que valida ANTES de commitear: tests pasando (0 fallas), GGA hook configurado, formato convencional correcto, sin "Co-Authored-By". Si detecta `--no-verify`, REVIERTE el commit automáticamente.
 
 ## Usage
 
 ```bash
-/mm:safe-commit              # Valida TODO y commitea cambios staged
-/mm:safe-commit --check      # Solo checkea (dry-run), no commitea
-/mm:safe-commit --fix        # Auto-corrige issues y commitea
-/mm:safe-commit --help       # Muestra esta ayuda
+/mm:safe-commit                    # Valida TODO y commitea cambios staged
+/mm:safe-commit --check            # Solo checkea (dry-run), no commitea
+/mm:safe-commit --fix              # Auto-corrige issues de GGA y commitea
+/mm:safe-commit --message "feat(x): message"  # Commit con mensaje específico
 ```
+
+## Handler Execution
+
+Este comando ejecuta `safe-commit-handler.py` que implementa:
+
+1. **Detección de `--no-verify`** → Revierte commit + explicación detallada
+2. **Tests backend** → `cd apps/api && uv run pytest` (0 fallas toleradas)
+3. **Tests frontend** → `pnpm --prefix apps/web test run` (0 fallas toleradas)
+4. **GGA hook** → Verifica `.pre-commit-config.yaml` en ROOT
+5. **GGA validación** → `pre-commit run --all-files`
+6. **Formato convencional** → `type(scope): description`
+7. **Sin AI attribution** → Remueve "Co-Authored-By:"
 
 ## What Happens
 

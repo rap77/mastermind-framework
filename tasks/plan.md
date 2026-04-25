@@ -208,9 +208,9 @@ PAYLOAD: {json}
 
 **Acceptance:**
 - [x] Handler ejecuta sin errores con `python3 review-handler.py`
-- [ ] `--staged` genera diff correcto de staged changes
-- [ ] `--last-commit` genera diff del ultimo commit
-- [ ] Payload incluye lista de archivos y diff truncado
+- [x] `--staged` genera diff correcto de staged changes
+- [x] `--last-commit` genera diff del ultimo commit
+- [x] Payload incluye lista de archivos y diff truncado
 
 
 
@@ -226,9 +226,9 @@ PAYLOAD: {json}
 - Brain integration: Brain #6 (QA) + Brain #7 (Growth)
 
 **Acceptance:**
-- [ ] `/mm:review` aparece en autocomplete
-- [ ] Sigue patron de `discover.md`
-- [ ] Documenta los 5 modos de review
+- [x] `/mm:review` aparece en autocomplete
+- [x] Sigue patron de `discover.md`
+- [x] Documenta los 5 modos de review
 
 ### C3: Crear `review/SKILL.md`
 
@@ -246,6 +246,8 @@ PAYLOAD: {json}
 - [x] SKILL.md sigue formato de `discover/SKILL.md`
 - [x] Define 5 ejes de review con criterios claros
 - [x] Incluye formato de reporte
+
+
 
 ### C4: Crear `code-reviewer` Agent
 
@@ -270,6 +272,7 @@ PAYLOAD: {json}
 - [x] Genera reporte con 5 secciones
 - [x] Guarda en `.planning/REVIEWS/`
 
+
 ### C5: Validar `/mm:review`
 
 **Que:** Probar review con cambios reales.
@@ -286,6 +289,7 @@ PAYLOAD: {json}
 ## PHASE D — `/mm:ship` Command
 
 **Objetivo:** Tag + archive + cleanup. Handler + skill + agent.
+
 
 ### D1: Crear `ship-handler.py`
 
@@ -315,19 +319,21 @@ PAYLOAD: {json}
 ```
 
 **Acceptance:**
-- [ ] Handler detecta ultimo tag correctamente
-- [ ] `--verify` ejecuta checks sin crear tag
-- [ ] Genera changelog desde ultimo tag
-- [ ] Falla si hay cambios uncommitted
-- [ ] `--patch` incrementa patch, `--minor` minor, `--major` major
+- [x] Handler detecta ultimo tag correctamente
+- [x] `--verify` ejecuta checks sin crear tag
+- [x] Genera changelog desde ultimo tag
+- [x] Falla si hay cambios uncommitted
+- [x] `--patch` incrementa patch, `--minor` minor, `--major` major
+
 
 ### D2: Crear `ship.md`
 
 **Que:** Slash command interface.
 
 **Acceptance:**
-- [ ] `/mm:ship` aparece en autocomplete
-- [ ] Documenta flags: --verify, --tag, --patch, --minor, --major, --archive, --cleanup
+- [x] `/mm:ship` aparece en autocomplete
+- [x] Documenta flags: --verify, --tag, --patch, --minor, --major, --archive, --cleanup
+
 
 ### D3: Crear `ship/SKILL.md`
 
@@ -341,8 +347,9 @@ PAYLOAD: {json}
 - Formato de archive: `.planning/archive/<version>/`
 
 **Acceptance:**
-- [ ] Sigue formato de `discover/SKILL.md`
-- [ ] Define flujo completo con pre-condiciones
+- [x] Sigue formato de `discover/SKILL.md`
+- [x] Define flujo completo con pre-condiciones
+
 
 ### D4: Crear `ship-executor` Agent
 
@@ -429,8 +436,8 @@ PAYLOAD: {json}
 | B2 | init-handler.py | B1 | Medium | 1 new | SI | [x] |
 | B3 | init.md | B2 | Low | 1 new | — | [x] |
 | B4 | Validar init | B1-B3 | Low | 0 new | SI | [x] |
-| C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [ ] |
-| C2 | review.md | C1 | Low | 1 new | — | [ ] |
+| C1 | review-handler.py | A, B1 | Medium | 1 new | SI | [x] |
+| C2 | review.md | C1 | Low | 1 new | — | [x] |
 | C3 | review/SKILL.md | C1 | Medium | 1 new | — | [ ] |
 | C4 | code-reviewer agent | C3 | Medium | 1 new | SI | [ ] |
 | C5 | Validar review | C1-C4 | Low | 0 new | SI | [ ] |
