@@ -376,8 +376,6 @@ PAYLOAD: {json}
 - [x] Archiva `tasks/` correctamente (skip en test, validado)
 - [x] Limpia archivos temporales (no había markers, validado)
 - [x] **9 critical fixes aplicados**: rollback, idempotency, dry-run, sanitization, pre-flight, validation
-- [ ] Archiva `tasks/` correctamente
-- [ ] Limpia archivos temporales
 
 ### D5: Validar `/mm:ship`
 
