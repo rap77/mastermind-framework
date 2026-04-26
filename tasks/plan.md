@@ -382,11 +382,11 @@ PAYLOAD: {json}
 **Que:** Probar ship con `--verify` (dry-run, no crea tag real).
 
 **Acceptance:**
-- [ ] `/mm:ship --verify` ejecuta checks y reporta estado
-- [ ] Reporta tests pasando/fallando
-- [ ] Reporta cambios uncommitted
-- [ ] Sugiere proximo tag basado en ultimo tag
-- [ ] `/mm:ship --cleanup` elimina archivos `.agent-*-running`
+- [x] `/mm:ship --verify` ejecuta checks y reporta estado
+- [x] Reporta tests pasando/fallando
+- [x] Reporta cambios uncommitted
+- [x] Sugiere proximo tag basado en ultimo tag
+- [x] `/mm:ship --cleanup` elimina archivos `.agent-*-running`
 
 ---
 
@@ -446,7 +446,7 @@ PAYLOAD: {json}
 | D2 | ship.md | D1 | Low | 1 new | — | [x] |
 | D3 | ship/SKILL.md | D1 | Medium | 1 new | — | [x] |
 | D4 | ship-executor agent | D3 | Medium | 1 new | SI | [x] |
-| D5 | Validar ship | D1-D4 | Low | 0 new | SI | [ ] |
+| D5 | Validar ship | D1-D4 | Low | 0 new | SI | [x] |
 | E1 | Flujo E2E | All | Medium | 0 new | SI | [ ] |
 | E2 | Commit final | E1 | Low | 0 new | — | [ ] |
 

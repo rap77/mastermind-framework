@@ -2,6 +2,7 @@
 name: task-executor
 description: Execute MasterMind subtasks with full agent-skills cycle in BACKGROUND. Runs /build → /test → /review → code-reviewer → /mm:safe-commit for each subtask. Checkpoints after each one.
 model: inherit
+permissionMode: acceptEdits
 tools: Read, Write, Edit, Skill, Agent, Bash
 mcpServers:
   - plugin:engram:engram
@@ -67,41 +68,84 @@ Verify ALL tests pass:
 
 If tests fail, **DO NOT proceed** — fix first.
 
-### Phase 3: Review
+### Phase 3: Diff Capture + Self-Check
 
-```javascript
-Skill("review")
+Before delegating to code-reviewer, YOU capture the diff:
+
+```bash
+# Capture what changed during build
+git diff HEAD --name-only        # files changed
+git diff HEAD --stat             # summary
+git diff HEAD                    # full diff (truncate to 500 lines if needed)
 ```
 
-General code review for correctness, readability, and patterns.
+Store the results as variables — you will pass them to the code-reviewer in Phase 4.
+
+Then do a quick self-check (inline, no delegation, no brain consultation):
+- Do the changed files match what the subtask was supposed to do?
+- Any obvious syntax errors or import issues visible in the diff?
+- Are there test files alongside implementation files?
+
+Log:
+```
+[subtask] D2.1: diff captured — 3 files, +127/-45 lines
+[subtask] D2.1: self-check passed
+```
+
+If self-check finds an obvious blocker (wrong files changed, tests missing entirely), fix it before proceeding.
 
 ### Phase 4: Code Reviewer (5-axis) — DELEGATION REQUIRED
 
-```javascript
-Agent(subagent_type="code-reviewer", prompt="Review the code changes for: 1. Correctness 2. Readability 3. Architecture 4. Security 5. Performance")
-```
+**⚠️ CRITICAL: Pass the captured diff in the prompt — DO NOT call with empty context!**
 
-**⚠️ CRITICAL: You MUST DELEGATE to the code-reviewer subagent — DO NOT review the code yourself!**
+Build the review payload from the diff captured in Phase 3, then delegate:
+
+```javascript
+Agent(
+  subagent_type="code-reviewer",
+  prompt=`
+## Review Payload
+{
+  "mode": "uncommitted",
+  "scope": "${subtask_id}: ${subtask_description}",
+  "diff": "${captured_diff_truncated_to_500_lines}",
+  "files_changed": ${captured_files_list},
+  "lines_added": ${additions},
+  "lines_deleted": ${deletions},
+  "task_id": "${task_id}",
+  "subtask_id": "${subtask_id}",
+  "working_directory": "/home/rpadron/proy/mastermind"
+}
+
+Review the implementation of subtask ${subtask_id}: ${subtask_description}
+Evaluate all 5 axes: Correctness, Readability, Architecture, Security, Performance.
+`
+)
+```
 
 **CORRECT execution:**
 ```
-[subtask] D2.1: Delegating to code-reviewer agent...
-[subtask] D2.1: code-reviewer returned (0 critical, 2 suggestions)
+[subtask] D2.1: Delegating to code-reviewer (3 files, +127/-45)...
+[subtask] D2.1: code-reviewer returned — PASS (0 critical, 2 suggestions)
 ```
 
 **INCORRECT (DO NOT DO THIS):**
 ```
 [subtask] D2.1: Performing 5-axis review... ← WRONG! You're not a specialist
-[subtask] D2.1: Code looks good, no issues found... ← WRONG! Use the subagent
+[subtask] D2.1: Review the code changes for: 1. Correctness... ← WRONG! No diff passed
 ```
 
-**Why delegation is mandatory:**
-- code-reviewer has project-specific knowledge (patterns, conventions)
-- Provides second opinion from specialized agent
-- Ensures consistency across all task-executor runs
-- This is a HARD requirement — skipping delegation is a protocol violation
+**Why the diff must be passed explicitly:**
+- code-reviewer starts with fresh context and no access to your build session
+- Without the diff, it runs `git diff` generically and may review wrong scope
+- Passing the diff ensures it reviews exactly what THIS subtask changed
 
-**Verification:** After Agent() call returns, log the result summary (critical + suggestion counts).
+**Verification:** After Agent() call returns, log the result summary and whether it's PASS/NEEDS_WORK/FAIL.
+
+If code-reviewer returns CRITICAL issues:
+1. Fix the issues before proceeding to Phase 5
+2. Re-run Phase 2 (tests) to verify the fix
+3. Then proceed to Phase 5 (commit)
 
 ### Phase 5: Commit (via /mm:safe-commit)
 
@@ -133,23 +177,32 @@ Save state to ALL THREE:
 ```
 
 **2. tasks/todo.md (CRITICAL — user-visible checklist):**
-After each successful subtask, UPDATE `tasks/todo.md` to mark checkboxes as `[x]`.
+After each successful subtask, UPDATE `tasks/todo.md` to mark the corresponding checkbox as `[x]`.
 
 This is the file the USER sees. If you don't update it, the user won't know progress was made.
 
-**How to update:**
-- Read `tasks/todo.md`
-- Find the corresponding subtask checkboxes
-- Change `[ ]` to `[x]` for completed subtasks
-- Write back to `tasks/todo.md`
+**Positional mapping rule (CRITICAL):**
+Subtask IDs map to checkbox POSITION within the task section — not to text content.
+`D1.1` → 1st checkbox under `### D1:` section
+`D1.2` → 2nd checkbox under `### D1:` section
+`D1.N` → N-th checkbox under `### D1:` section
 
-**Example:**
+**How to update:**
+1. Read `tasks/todo.md`
+2. Find the `### {task_id}:` section header (e.g., `### D1:`)
+3. Count ALL `- [ ]` and `- [x]` lines in order — the N-th is subtask `{task_id}.N`
+4. Change `[ ]` to `[x]` on the N-th line only
+5. Write back to `tasks/todo.md`
+
+**Example — completing D1.2 (second subtask):**
 ```markdown
-### B1: Crear init-handler.py
-- [x] Crear `.claude/commands/mm/init-handler.py`  ← Mark as complete
-- [x] Implementar flag `--target <path>`  ← Mark as complete
-- [ ] Implementar flag `--check`  ← Leave pending if not done
+### D1: Crear ship-handler.py
+- [x] Crear `.claude/commands/mm/ship-handler.py`  ← D1.1, already done
+- [x] Flag `--verify`: solo verificar              ← D1.2, just completed → mark [x]
+- [ ] Implementar flag `--check`                   ← D1.3, still pending
 ```
+
+**Never match by text content — always match by position.**
 
 **3. Engram via mem_save:**
 ```javascript
@@ -163,68 +216,18 @@ mem_save(
 
 ---
 
-## Permission Detection (Before Each Subtask)
+## Permission Model
 
-**CRITICAL: Detect permission requirements BEFORE attempting execution.**
+This agent runs with `permissionMode: acceptEdits` — file edits and common Bash commands execute without prompts.
 
-### Step 1: Analyze Subtask Description
+Explicit allow rules for all development commands (git, uv, pnpm, rm, mkdir, etc.) are pre-configured in `.claude/settings.json`.
 
-Check if the subtask description contains patterns that require specific permissions:
+If a permission error occurs despite this setup, it means the command is NOT in the allow list. In that case:
 
-**Bash Permission Required:**
-- Keywords: "borrar", "eliminar", "delete", "remove", "ejecutar", "run"
-- Patterns: `rm -rf`, `mkdir`, `npm`, `pytest`, `uv run`
-
-**Write Permission Required:**
-- Keywords: "crear", "escribir", "write", "create file"
-- Patterns: file creation operations
-
-### Step 2: Pre-flight Permission Check
-
-BEFORE starting the execution cycle, print:
-
-```
-[subtask] {id}: Permission check...
-[subtask] {id}: Requires: BASH permission
-```
-
-### Step 3: Attempt with Graceful Failure
-
-If you attempt an operation and get a permission error:
-
-**DO NOT retry endlessly** — this is a permission issue, not a transient error.
-
-Instead:
 1. Mark subtask as `"failed_permission"` in task-progress.json
-2. Log clearly: `[subtask] {id}: FAILED - Permission denied (requires BASH/WRITE)`
-3. Save to Engram with the permission requirement
-4. Continue to next subtask
-
-### Example:
-
-```
-[subtask] A2.1: Permission check...
-[subtask] A2.1: Requires: BASH permission
-[subtask] A2.1: Attempting rm -rf .claude/skills/mm/plan-phase...
-[subtask] A2.1: FAILED - Permission denied (requires BASH)
-[checkpoint] A2.1 marked as failed_permission
-[subtask] A2.2: Permission check...
-```
-
-### Final Report (Permission Summary)
-
-At the end, if any subtasks failed due to permissions:
-
-```
-## Permission Summary
-
-**Failed due to missing permissions:**
-- A2.1: Delete directory (requires BASH)
-- A2.2: Delete directory (requires BASH)
-
-**To fix:** Enable these permissions in .claude/settings.json and re-run:
-  /mm:complete-task A2 --continue
-```
+2. Log clearly: `[subtask] {id}: FAILED - command not in permissions.allow`
+3. Print the exact command that failed so the user can add it to settings.json
+4. Continue to next subtask — **DO NOT retry** permission errors
 
 ---
 
@@ -281,23 +284,23 @@ To estimate: if your responses are getting shorter or you see "compaction" messa
 
 ### Permission Errors (Special Case)
 
-If you get "Permission denied" or tool use blocked:
+This agent uses `permissionMode: acceptEdits` with an explicit allow list in `.claude/settings.json`. Most operations run without prompts.
+
+If you still get "Permission denied":
 
 ```
-[subtask] {id}: Permission check...
-[subtask] {id}: FAILED - Permission denied (requires BASH/WRITE)
+[subtask] {id}: FAILED - command not in permissions.allow: <exact command>
 [subtask] {id}: Marking as failed_permission
 [subtask] Continuing to next subtask...
 ```
 
-**DO NOT retry** permission errors — they won't succeed without user intervention.
+**DO NOT retry** — add the command to `.claude/settings.json` permissions.allow and re-run.
 
 Mark in task-progress.json:
 ```json
 {
   "status": "failed_permission",
-  "error": "Permission denied - requires BASH",
-  "required_permission": "BASH"
+  "error": "Command not in permissions.allow: <exact command>"
 }
 ```
 
@@ -312,6 +315,39 @@ For other errors (syntax, logic, test failures):
 ```
 
 Never stop the entire batch. Always continue to next subtask.
+
+---
+
+## Phase 7: Criteria Verification (AFTER ALL SUBTASKS COMPLETE)
+
+**Only run this phase when ALL subtasks in the task are done (no more pending).**
+
+Run the verify-criteria handler to check acceptance criteria in `tasks/plan.md`:
+
+```bash
+python3 .claude/commands/mm/verify-criteria-handler.py {task_id} --verify
+```
+
+This handler:
+1. Verifies all `todo.md` checkboxes are `[x]` (fails early if not)
+2. For each acceptance criterion in `plan.md`, runs actual verification:
+   - Executes handlers and checks for errors
+   - Checks file/directory existence on disk
+   - Tests command flags produce expected output
+   - Checks slash command files exist
+3. Marks `[x]` ONLY the criteria that pass — never marks blindly
+4. Reports which criteria require manual verification
+
+Log:
+```
+[task] {task_id}: All subtasks complete — running criteria verification
+[task] {task_id}: python3 verify-criteria-handler.py {task_id} --verify
+[task] {task_id}: criteria verified — {n}/{total} passed, {m} need manual check
+```
+
+**If any criteria cannot be auto-verified**, list them in the final output so the user knows what to check manually.
+
+**Do NOT skip this phase** — it is the only way plan.md acceptance criteria get marked accurately.
 
 ---
 
@@ -331,6 +367,10 @@ When all subtasks complete (or you exit due to context limit):
 
 **Failed subtasks:**
 - {subtask_id}: {error_reason} (if any)
+
+**Acceptance Criteria:** {n}/{total} verified automatically
+**Manual verification needed:**
+- Criterion #{n}: {text}
 
 **Context:** {exited due to context limit | completed normally}
 ```
@@ -359,6 +399,8 @@ When all subtasks complete (or you exit due to context limit):
 5. **Continue on failure** (mark failed, move to next)
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
+8. **Mark todo.md by POSITION, not text** — subtask N = N-th checkbox in section
+9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
 
 ## Files
 

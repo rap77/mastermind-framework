@@ -107,25 +107,27 @@ def read_context_files(root_dir: Path) -> dict:
     return context
 
 
-def generate_new_project_payload(idea: str, mode: str) -> dict:
+def generate_new_project_payload(idea: str, mode: str, root_dir: Path) -> dict:
     """Generate payload for new project discovery."""
     return {
         "mode": "new",
         "idea": idea,
         "discovery_mode": mode,
-        "working_dir": "/home/rpadron/proy/mastermind",
+        "working_dir": str(root_dir),
         "timestamp": datetime.now().isoformat(),
         "session_id": f"discover-new-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
     }
 
 
-def generate_existing_project_payload(context: dict, options: dict) -> dict:
+def generate_existing_project_payload(
+    context: dict, options: dict, root_dir: Path
+) -> dict:
     """Generate payload for existing project audit."""
     return {
         "mode": "existing",
         "context": context,
         "options": options,
-        "working_dir": "/home/rpadron/proy/mastermind",
+        "working_dir": str(root_dir),
         "timestamp": datetime.now().isoformat(),
         "session_id": f"discover-existing-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
     }
@@ -164,6 +166,7 @@ def main():
                 "replan": args.replan,
                 "mode": args.mode,
             },
+            root_dir,
         )
 
         print("MODE: existing")
@@ -181,7 +184,7 @@ def main():
             print('Usage: /mm:discover "<your idea>"')
             sys.exit(1)
 
-        payload = generate_new_project_payload(args.idea, args.mode)
+        payload = generate_new_project_payload(args.idea, args.mode, root_dir)
 
         print("MODE: new")
         print("TASK: discover-planner")

@@ -60,7 +60,7 @@ class TestTODOParsing:
     def test_get_todos_for_empty_task(self):
         """Empty task section should return empty list."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n\n## C2\n")
+            f.write("### C1\n\n### C2\n")
             temp_path = Path(f.name)
 
         try:
@@ -74,7 +74,7 @@ class TestTODOParsing:
         """Should parse checkbox status correctly."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(
-                "## C1\n"
+                "### C1\n"
                 "- [x] First completed task\n"
                 "- [ ] Second pending task\n"
                 "- [x] Third completed task\n"
@@ -94,7 +94,7 @@ class TestTODOParsing:
     def test_get_todos_with_task_name(self):
         """Should parse task with name after ID."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1: Crear handler\n" "- [ ] Task one\n" "- [x] Task two\n")
+            f.write("### C1: Crear handler\n- [ ] Task one\n- [x] Task two\n")
             temp_path = Path(f.name)
 
         try:
@@ -109,7 +109,7 @@ class TestTODOParsing:
     def test_get_todos_stops_at_next_task(self):
         """Should not include TODOs from next task section."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n" "- [x] C1 task\n" "## C2\n" "- [ ] C2 task\n")
+            f.write("### C1\n- [x] C1 task\n### C2\n- [ ] C2 task\n")
             temp_path = Path(f.name)
 
         try:
@@ -127,7 +127,7 @@ class TestTODOVerification:
     def test_verify_all_todos_completed_returns_true(self):
         """All TODOs completed should return True."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n" "- [x] Task 1\n" "- [x] Task 2\n")
+            f.write("### C1\n- [x] Task 1\n- [x] Task 2\n")
             temp_path = Path(f.name)
 
         try:
@@ -140,7 +140,7 @@ class TestTODOVerification:
     def test_verify_incomplete_todos_returns_false(self):
         """Incomplete TODOs should return False."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n" "- [x] Task 1\n" "- [ ] Task 2\n")
+            f.write("### C1\n- [x] Task 1\n- [ ] Task 2\n")
             temp_path = Path(f.name)
 
         try:
@@ -153,7 +153,7 @@ class TestTODOVerification:
     def test_verify_no_todos_returns_true(self):
         """Task with no TODOs should return True (not an error)."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n\n")
+            f.write("### C1\n\n")
             temp_path = Path(f.name)
 
         try:
@@ -280,10 +280,7 @@ class TestEdgeCases:
         """Malformed checkboxes should be ignored."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(
-                "## C1\n"
-                "- [x] Valid task\n"
-                "- malformed task\n"
-                "- [ ] Another valid task\n"
+                "### C1\n- [x] Valid task\n- malformed task\n- [ ] Another valid task\n"
             )
             temp_path = Path(f.name)
 
@@ -297,7 +294,7 @@ class TestEdgeCases:
     def test_trailing_whitespace_in_todos(self):
         """TODOs with trailing whitespace should be trimmed."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("## C1\n" "- [x] Task with spaces   \n")
+            f.write("### C1\n- [x] Task with spaces   \n")
             temp_path = Path(f.name)
 
         try:

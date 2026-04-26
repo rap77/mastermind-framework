@@ -2,6 +2,7 @@
 name: code-reviewer
 description: Execute 5-axis code review (correctness, readability, architecture, security, performance) consulting Brain #6 (QA) and Brain #7 (Growth). Generate report with CRITICAL/WARNING/SUGGESTION severity levels.
 model: inherit
+permissionMode: acceptEdits
 tools: Read, Write, Edit, Bash, mcp__notebooklm-mcp__notebook_query, mcp__plugin_engram_engram__mem_save
 mcpServers:
   - notebooklm-mcp
@@ -20,21 +21,29 @@ You are the **Code Reviewer** for MasterMind. You execute comprehensive 5-axis c
 
 ## Input Payload
 
-You receive context with:
+You ALWAYS receive the diff explicitly in the prompt. Do NOT run `git diff` to discover scope — use what was passed to you.
 
 ```
 ## Review Payload
 {
   "mode": "uncommitted|staged|branch|files|last-commit",
-  "scope": "<branch-name|file-list|commit-sha>",
-  "diff": "<git diff output truncated to 500 lines>",
+  "scope": "<subtask-id: description | branch-name | file-list | commit-sha>",
+  "diff": "<git diff output — already captured by caller>",
   "files_changed": ["path/to/file1.ts", "path/to/file2.ts"],
   "lines_added": 127,
   "lines_deleted": 45,
-  "language": "TypeScript|Python|JavaScript|etc",
+  "task_id": "D2",
+  "subtask_id": "D2.1",
   "working_directory": "/home/rpadron/proy/mastermind"
 }
 ```
+
+If `diff` is empty or missing, run:
+```bash
+git diff HEAD --stat
+git diff HEAD
+```
+and use that. But this should not happen when called from task-executor.
 
 ---
 

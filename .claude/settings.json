@@ -1,22 +1,66 @@
 {
   "permissions": {
-    "allowByTopic": {
-      "mm-workspace": [
-        "MasterMind Framework workspace files",
-        "Including: .claude/commands/mm/, .claude/skills/mm/, .claude/agents/mm/, .mastermind/, .planning/, SPEC.md, tasks/"
-      ],
-      "app-development": [
-        "Frontend and backend application code",
-        "Including: apps/web/ (Next.js), apps/api/ (Python), rust_control_plane/ (Rust)"
-      ],
-      "git-operations": [
-        "Git commands for version control",
-        "Including: status, log, diff, commit, tag, push"
-      ]
-    },
-    "write": {
-      "enabled": true,
-      "description": "Allow creating and modifying files in the project"
-    }
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)",
+      "Bash(uv run:*)",
+      "Bash(uv add:*)",
+      "Bash(uv sync:*)",
+      "Bash(pnpm:*)",
+      "Bash(python3:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(rm -rf:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(touch:*)",
+      "Bash(ruff:*)",
+      "Bash(fd:*)",
+      "Bash(rg:*)",
+      "Bash(bat:*)",
+      "Bash(eza:*)",
+      "Bash(echo:*)",
+      "Bash(date:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(sort:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(tr:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(jq:*)",
+      "Bash(chmod:*)",
+      "WebSearch",
+      "mcp__notebooklm-mcp__notebook_query",
+      "mcp__notebooklm-mcp__notebook_create",
+      "mcp__notebooklm-mcp__source_add",
+      "mcp__notebooklm-mcp__notebook_get",
+      "mcp__notebooklm-mcp__chat_configure",
+      "mcp__plugin_engram_engram__mem_save",
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__plugin_engram_engram__mem_get_observation",
+      "mcp__plugin_engram_engram__mem_context",
+      "mcp__plugin_engram_engram__mem_session_summary",
+      "mcp__plugin_engram_engram__mem_update",
+      "mcp__plugin_engram_engram__mem_suggest_topic_key"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/secrets/*)",
+      "Read(**/*credential*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
   }
 }

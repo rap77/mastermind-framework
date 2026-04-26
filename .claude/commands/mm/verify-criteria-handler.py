@@ -4,6 +4,7 @@
 VERIFICA REALMENTE que:
 1. Los TODOs de la tarea están completados
 2. Los acceptance criteria funcionan (no solo que archivos existen)
+3. Actualiza la tabla de resumen de plan.md cuando todos los criterios pasan
 """
 
 import re
@@ -42,7 +43,10 @@ def mm_warn(msg: str) -> None:
 
 
 def get_todos_for_task(task_id: str) -> list[tuple[int, str, bool]]:
-    """Get all TODOs associated with a task.
+    """Get all TODOs associated with a task from todo.md.
+
+    todo.md uses ### headers (triple hash) for task sections.
+    e.g.: ### A1: Eliminar GSD Wrapper Commands
 
     Args:
         task_id: Task identifier (e.g., "C1").
@@ -55,17 +59,16 @@ def get_todos_for_task(task_id: str) -> list[tuple[int, str, bool]]:
 
     content = TODO_MD.read_text()
 
-    # Find task section (e.g., "## C1" or "## C1: Task Name")
-    task_pattern = rf"(## {task_id}[^\n]*\n)(.*?)(?=## [A-Z]\d|\Z|\n## [A-Z]|\Z)"
+    # todo.md uses ### for task headers (triple hash, not double)
+    # Boundary: next ### task header OR next ## phase header OR end of file
+    task_pattern = rf"(### {task_id}[^\n]*\n)(.*?)(?=\n### [A-Z]\d|\n## |\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
     if not task_match:
-        # No TODOs for this task
         return []
 
     todo_section = task_match.group(2)
 
-    # Parse TODOs
     todos = []
     for line in todo_section.split("\n"):
         if line.strip().startswith("- ["):
@@ -89,7 +92,7 @@ def verify_todos_completed(task_id: str) -> bool:
     todos = get_todos_for_task(task_id)
 
     if not todos:
-        mm_info(f"No TODOs found for task {task_id} (may be already archived)")
+        mm_warn(f"No TODOs found for task {task_id} in todo.md — check header format")
         return True
 
     completed = sum(1 for _, _, is_completed in todos if is_completed)
@@ -170,7 +173,6 @@ def verify_handler_flag(handler_name: str, flag: str) -> bool:
             text=True,
             timeout=10,
         )
-        # Check if it produced valid output
         if (
             result.returncode == 0
             or "MODE:" in result.stdout
@@ -189,14 +191,7 @@ def verify_handler_flag(handler_name: str, flag: str) -> bool:
 
 
 def verify_skill_exists(skill_name: str) -> bool:
-    """Verify that a skill file exists.
-
-    Args:
-        skill_name: Skill name (e.g., "review" for mm/review/SKILL.md)
-
-    Returns:
-        True if skill file exists, False otherwise.
-    """
+    """Verify that a skill file exists."""
     skill_path = PROJECT_ROOT / ".claude" / "skills" / "mm" / skill_name / "SKILL.md"
 
     if skill_path.exists():
@@ -207,27 +202,14 @@ def verify_skill_exists(skill_name: str) -> bool:
 
 
 def verify_skill_has_sections(skill_name: str, sections: list[str]) -> bool:
-    """Verify that a skill has specific sections.
-
-    Args:
-        skill_name: Skill name
-        sections: List of section names that must exist
-
-    Returns:
-        True if all sections exist, False otherwise.
-    """
+    """Verify that a skill has specific sections."""
     skill_path = PROJECT_ROOT / ".claude" / "skills" / "mm" / skill_name / "SKILL.md"
 
     if not skill_path.exists():
         return False
 
     content = skill_path.read_text()
-    missing = []
-
-    for section in sections:
-        # Check if section exists as ## header
-        if f"## {section}" not in content:
-            missing.append(section)
+    missing = [s for s in sections if f"## {s}" not in content]
 
     if missing:
         mm_verify(f"❌ Skill missing sections: {', '.join(missing)}")
@@ -238,14 +220,7 @@ def verify_skill_has_sections(skill_name: str, sections: list[str]) -> bool:
 
 
 def verify_agent_exists(agent_name: str) -> bool:
-    """Verify that an agent file exists.
-
-    Args:
-        agent_name: Agent directory name (e.g., "code-reviewer")
-
-    Returns:
-        True if agent file exists, False otherwise.
-    """
+    """Verify that an agent file exists."""
     agent_path = (
         PROJECT_ROOT / ".claude" / "agents" / "mm" / agent_name / f"{agent_name}.md"
     )
@@ -258,15 +233,8 @@ def verify_agent_exists(agent_name: str) -> bool:
 
 
 def verify_command_exists(cmd_name: str) -> bool:
-    """Verify that a slash command file exists.
-
-    Args:
-        cmd_name: Command name (e.g., "/mm:review" or just "review")
-
-    Returns:
-        True if command file exists, False otherwise.
-    """
-    cmd_file = cmd_name.replace("/mm:", "").replace("/", "") + ".md"
+    """Verify that a slash command file exists."""
+    cmd_file = cmd_name.replace("/mm:", "").replace("/", "").strip("`") + ".md"
     cmd_path = PROJECT_ROOT / ".claude" / "commands" / "mm" / cmd_file
 
     if cmd_path.exists():
@@ -277,14 +245,7 @@ def verify_command_exists(cmd_name: str) -> bool:
 
 
 def verify_file_exists(file_path: str) -> bool:
-    """Verify that a file exists.
-
-    Args:
-        file_path: Path relative to project root or absolute.
-
-    Returns:
-        True if file exists, False otherwise.
-    """
+    """Verify that a file exists."""
     path = (
         PROJECT_ROOT / file_path if not file_path.startswith("/") else Path(file_path)
     )
@@ -297,14 +258,7 @@ def verify_file_exists(file_path: str) -> bool:
 
 
 def verify_file_not_exists(file_path: str) -> bool:
-    """Verify that a file does NOT exist (for cleanup tasks).
-
-    Args:
-        file_path: Path to check.
-
-    Returns:
-        True if file does NOT exist, False otherwise.
-    """
+    """Verify that a file does NOT exist (for cleanup tasks)."""
     path = (
         PROJECT_ROOT / file_path if not file_path.startswith("/") else Path(file_path)
     )
@@ -328,71 +282,74 @@ def verify_criterion_functionally(task_id: str, criterion_text: str) -> bool:
     """
     criterion_lower = criterion_text.lower()
 
-    # Pattern 1: Handler execution
+    # Pattern 1: Handler execution — "Handler ejecuta sin errores: python3 X-handler.py"
     if "handler" in criterion_lower and "ejecuta sin errores" in criterion_lower:
         handler_match = re.search(r"(\w+-handler\.py)", criterion_text)
         if handler_match:
             return verify_handler_executes(handler_match.group(1))
 
-    # Pattern 2: Handler with specific flag
+    # Pattern 2: Handler with specific flag — "X-handler.py --flag funciona"
+    # Must NOT match Pattern 1 (those don't have a meaningful --flag to test)
     if "handler" in criterion_lower and "--" in criterion_text:
-        handler_match = re.search(r"(\w+-handler\.py)", criterion_text)
-        flag_match = re.search(r"--[\w-]+", criterion_text)
-        if handler_match and flag_match:
-            return verify_handler_flag(handler_match.group(1), flag_match.group(0))
+        # Exclude "ejecuta sin errores" — that's Pattern 1
+        if "ejecuta sin errores" not in criterion_lower:
+            handler_match = re.search(r"(\w+-handler\.py)", criterion_text)
+            flag_match = re.search(r"--[\w-]+", criterion_text)
+            if handler_match and flag_match:
+                return verify_handler_flag(handler_match.group(1), flag_match.group(0))
 
-    # Pattern 3: Skill file + specific sections
+    # Pattern 3: Skill file format check — "Sigue formato de discover/SKILL.md"
     if "skill" in criterion_lower and "sigue formato" in criterion_lower:
         skill_match = re.search(r"(\w+)/SKILL\.md", criterion_text)
         if skill_match:
             skill_name = skill_match.group(1)
-            # For skill format verification, check for standard sections
             standard_sections = ["¿Cuándo Usar?", "Brain Protocol"]
             return verify_skill_exists(skill_name) and verify_skill_has_sections(
                 skill_name, standard_sections
             )
 
-    # Pattern 4: Skill with specific content (5 ejes, report format, etc.)
+    # Pattern 4: Skill content verification
     if "skill" in criterion_lower or "skill.md" in criterion_lower:
         if "5 ejes" in criterion_lower or "5 axes" in criterion_lower:
             skill_match = re.search(r"(\w+)/SKILL\.md", criterion_text)
             if skill_match:
-                skill_name = skill_match.group(1)
-                required_sections = [
-                    "Correctness",
-                    "Readability",
-                    "Architecture",
-                    "Security",
-                    "Performance",
-                ]
-                return verify_skill_has_sections(skill_name, required_sections)
+                return verify_skill_has_sections(
+                    skill_match.group(1),
+                    [
+                        "Correctness",
+                        "Readability",
+                        "Architecture",
+                        "Security",
+                        "Performance",
+                    ],
+                )
         if (
             "formato de reporte" in criterion_lower
             or "report format" in criterion_lower
         ):
             skill_match = re.search(r"(\w+)/SKILL\.md", criterion_text)
             if skill_match:
-                skill_name = skill_match.group(1)
-                return verify_skill_has_sections(skill_name, ["Formato de Reporte"])
+                return verify_skill_has_sections(
+                    skill_match.group(1), ["Formato de Reporte"]
+                )
 
-    # Pattern 5: Agent exists
+    # Pattern 5: Agent file exists — matches backtick-quoted agent names
+    # Criteria format: "Agent file sigue formato de `task-executor.md`"
+    # or: "Crear directorio `.claude/agents/mm/code-reviewer/`"
     if "agent" in criterion_lower:
-        agent_match = re.search(r"(\w+-\w+) agent", criterion_lower)
-        if agent_match:
-            agent_name = agent_match.group(1)
+        # Try backtick-quoted agent name first
+        backtick_match = re.search(r"`([\w-]+)\.md`", criterion_text)
+        if backtick_match:
+            agent_name = backtick_match.group(1)
             return verify_agent_exists(agent_name)
+        # Fallback: "X-Y agent" pattern
+        inline_match = re.search(r"([\w-]+) agent", criterion_lower)
+        if inline_match:
+            agent_name = inline_match.group(1)
+            if "-" in agent_name:  # only hyphenated names are real agent names
+                return verify_agent_exists(agent_name)
 
-    # Pattern 6: File existence (still useful for some cases)
-    if (
-        "existe" in criterion_lower
-        or "creado" in criterion_lower
-        or "creada" in criterion_lower
-    ):
-        file_match = re.search(r"[\w./-]+\.(md|py|yaml|json|txt|sh)", criterion_text)
-        if file_match:
-            return verify_file_exists(file_match.group(0))
-
-    # Pattern 7: File NOT existence (cleanup)
+    # Pattern 6: File NOT existence (cleanup tasks)
     if (
         "no existe" in criterion_lower
         or "borrar" in criterion_lower
@@ -402,7 +359,7 @@ def verify_criterion_functionally(task_id: str, criterion_text: str) -> bool:
         if file_match:
             return verify_file_not_exists(file_match.group(0))
 
-    # Pattern 8: Autocomplete / command exists
+    # Pattern 7: Autocomplete / command exists
     if (
         "autocomplete" in criterion_lower
         or "aparece en autocomplete" in criterion_lower
@@ -411,7 +368,18 @@ def verify_criterion_functionally(task_id: str, criterion_text: str) -> bool:
         if cmd_match:
             return verify_command_exists(cmd_match.group(0))
 
-    # Cannot verify automatically - requires manual functional test
+    # Pattern 8: Generic file existence — last resort
+    # Only triggers on explicit "existe" / "creado" / "creada" to avoid false positives
+    if (
+        "existe" in criterion_lower
+        or "creado" in criterion_lower
+        or "creada" in criterion_lower
+    ):
+        file_match = re.search(r"[\w./-]+\.(md|py|yaml|json|txt|sh)", criterion_text)
+        if file_match:
+            return verify_file_exists(file_match.group(0))
+
+    # Cannot verify automatically
     return False
 
 
@@ -434,7 +402,7 @@ def read_task_criteria(task_id: str) -> tuple[str, list[tuple[int, str, bool]]]:
 
     content = PLAN_MD.read_text()
 
-    # Find task section
+    # plan.md uses ### for task headers
     task_pattern = rf"(### {task_id}:.*?\n)(.*?)(?=### [A-Z]\d:|\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
@@ -444,27 +412,24 @@ def read_task_criteria(task_id: str) -> tuple[str, list[tuple[int, str, bool]]]:
     title_line = task_match.group(1)
     task_content = task_match.group(2)
 
-    # Extract title from header
     title_match = re.search(r"### [A-Z]\d+: (.*)", title_line)
     title = title_match.group(1).strip() if title_match else "Unknown"
 
-    # Find Acceptance section
-    acceptance_pattern = r"\*\*Acceptance:\*\*\n((?:- \[[ x]\].*\n)*)"
-    acceptance_match = re.search(acceptance_pattern, task_content, re.DOTALL)
+    # Find Acceptance section — criteria may have blank lines between them
+    acceptance_pattern = r"\*\*Acceptance:\*\*\n((?:\s*- \[[ x]\][^\n]*\n)*)"
+    acceptance_match = re.search(acceptance_pattern, task_content)
 
     if not acceptance_match:
         return title, []
 
     criteria_section = acceptance_match.group(1)
 
-    # Parse criteria
     criteria = []
     for line in criteria_section.split("\n"):
-        if line.strip().startswith("- ["):
-            checkbox_match = re.match(r"- \[([ x])\] (.*)", line)
-            if checkbox_match:
-                status, text = checkbox_match.groups()
-                criteria.append((len(criteria) + 1, text.strip(), status == "x"))
+        checkbox_match = re.match(r"\s*- \[([ x])\] (.*)", line)
+        if checkbox_match:
+            status, text = checkbox_match.groups()
+            criteria.append((len(criteria) + 1, text.strip(), status == "x"))
 
     return title, criteria
 
@@ -487,7 +452,6 @@ def mark_criteria(
 
     content = PLAN_MD.read_text()
 
-    # Find task section
     task_pattern = rf"(### {task_id}:.*?\n)(.*?)(?=### [A-Z]\d:|\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
@@ -497,9 +461,8 @@ def mark_criteria(
     header = task_match.group(1)
     task_content = task_match.group(2)
 
-    # Find Acceptance section
-    acceptance_pattern = r"(\*\*Acceptance:\*\*\n)((?:- \[[ x]\].*\n)*)"
-    acceptance_match = re.search(acceptance_pattern, task_content, re.DOTALL)
+    acceptance_pattern = r"(\*\*Acceptance:\*\*\n)((?:\s*- \[[ x]\][^\n]*\n)*)"
+    acceptance_match = re.search(acceptance_pattern, task_content)
 
     if not acceptance_match:
         raise ValueError(f"No Acceptance section found in task {task_id}")
@@ -507,32 +470,33 @@ def mark_criteria(
     acceptance_header = acceptance_match.group(1)
     criteria_section = acceptance_match.group(2)
 
-    # Parse and update criteria
     lines = criteria_section.split("\n")
     updated_lines = []
     marked_count = 0
     criterion_index = 0
 
     for line in lines:
-        if line.strip().startswith("- ["):
+        checkbox_match = re.match(r"(\s*)- \[([ x])\] (.*)", line)
+        if checkbox_match:
             criterion_index += 1
-            checkbox_match = re.match(r"- \[([ x])\] (.*)", line)
+            indent, status, text = checkbox_match.groups()
 
-            if checkbox_match:
-                status, text = checkbox_match.groups()
-
-                if criterion_index in criterion_numbers and status == " ":
-                    updated_lines.append(f"- [x] {text}")
-                    marked_count += 1
-                else:
-                    updated_lines.append(line)
+            if criterion_index in criterion_numbers and status == " ":
+                updated_lines.append(f"{indent}- [x] {text}")
+                marked_count += 1
             else:
                 updated_lines.append(line)
         else:
             updated_lines.append(line)
 
-    # Reconstruct sections
-    new_acceptance_section = acceptance_header + "\n".join(updated_lines) + "\n"
+    # Reconstruct without adding an extra blank line (Bug 2 fix)
+    # criteria_section already ends with \n; split produces trailing ""
+    # strip that trailing empty element before joining
+    while updated_lines and updated_lines[-1] == "":
+        updated_lines.pop()
+    new_criteria = "\n".join(updated_lines) + "\n"
+
+    new_acceptance_section = acceptance_header + new_criteria
     new_task_content = (
         task_content[: acceptance_match.start()]
         + new_acceptance_section
@@ -545,17 +509,48 @@ def mark_criteria(
 
     PLAN_MD.write_text(new_content)
 
-    total_count = len([line for line in lines if line.strip().startswith("- [")])
-
+    total_count = criterion_index
     return marked_count, total_count
 
 
-def show_criteria_status(task_id: str) -> None:
-    """Show current status of acceptance criteria.
+def mark_task_complete_in_summary(task_id: str) -> bool:
+    """Mark task as complete in the Task Summary table at the bottom of plan.md.
+
+    The table has rows like: | A1 | description | ... | [ ] |
+    When all criteria pass, update to: | A1 | description | ... | [x] |
 
     Args:
-        task_id: Task identifier.
+        task_id: Task identifier (e.g., "C1").
+
+    Returns:
+        True if the row was found and updated (or was already [x]), False otherwise.
     """
+    if not PLAN_MD.exists():
+        return False
+
+    content = PLAN_MD.read_text()
+
+    # Match table row with task_id — e.g.: | A1 | ... | [ ] |  or  | A1 | ... | [x] |
+    row_pattern = rf"(\| {re.escape(task_id)} \|[^\n]*)\| \[ \] \|"
+    row_match = re.search(row_pattern, content)
+
+    if not row_match:
+        # Either already [x] or row not found — both are fine
+        return False
+
+    new_content = (
+        content[: row_match.start()]
+        + row_match.group(1)
+        + "| [x] |"
+        + content[row_match.end() :]
+    )
+    PLAN_MD.write_text(new_content)
+    mm_verify(f"✓ Task summary table: {task_id} marked [x]")
+    return True
+
+
+def show_criteria_status(task_id: str) -> None:
+    """Show current status of acceptance criteria."""
     try:
         title, criteria = read_task_criteria(task_id)
     except (FileNotFoundError, ValueError) as e:
@@ -612,7 +607,6 @@ def main() -> None:
 
     task_id = sys.argv[1].upper()
     mode = "status"
-
     criterion_numbers: list[int] = []
 
     if "--verify" in sys.argv:
@@ -639,7 +633,6 @@ def main() -> None:
             show_criteria_status(task_id)
 
         elif mode == "verify_auto":
-            # STEP 1: Verify TODOs are completed
             print(flush=True)
             mm_info("=" * 60)
             mm_info("STEP 1: Verifying TODOs completion")
@@ -656,7 +649,6 @@ def main() -> None:
             mm_info("STEP 2: Functionally verifying acceptance criteria")
             mm_info("=" * 60)
 
-            # STEP 2: Verify criteria functionally
             title, criteria = read_task_criteria(task_id)
 
             if not criteria:
@@ -684,12 +676,22 @@ def main() -> None:
                     )
                     manual_count += 1
 
-            # Mark only the ones that passed
             if verified_numbers:
                 marked, total = mark_criteria(task_id, verified_numbers)
                 mm_info(f"\n✓ Marked {marked}/{total} verified criteria")
             else:
                 mm_info("\n⚠ No criteria could be auto-verified")
+
+            # STEP 3: If all criteria now verified, mark task complete in summary table
+            _, updated_criteria = read_task_criteria(task_id)
+            all_verified = all(is_checked for _, _, is_checked in updated_criteria)
+
+            if all_verified and updated_criteria:
+                print(flush=True)
+                mm_info("=" * 60)
+                mm_info("STEP 3: All criteria verified — updating task summary table")
+                mm_info("=" * 60)
+                mark_task_complete_in_summary(task_id)
 
             if manual_count > 0:
                 mm_info(f"⚠ {manual_count} criteria require MANUAL functional testing")
@@ -710,6 +712,7 @@ def main() -> None:
 
             marked, total = mark_criteria(task_id, all_unchecked)
             mm_info(f"Marked {marked}/{total} criteria (MANUAL - no verification)")
+            mark_task_complete_in_summary(task_id)
             show_criteria_status(task_id)
 
         elif mode == "mark_specific":
@@ -721,6 +724,15 @@ def main() -> None:
             mm_info(
                 f"Marked {marked}/{len(criterion_numbers)} criteria (MANUAL - no verification)"
             )
+
+            # Check if all are now verified to update summary
+            _, updated_criteria = read_task_criteria(task_id)
+            if (
+                all(is_checked for _, _, is_checked in updated_criteria)
+                and updated_criteria
+            ):
+                mark_task_complete_in_summary(task_id)
+
             show_criteria_status(task_id)
 
     except (FileNotFoundError, ValueError) as e:
