@@ -84,7 +84,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy strict mode
-        entry: bash -c 'cd apps/api && uv run mypy .'
+        entry: bash -c 'cd apps/api && /home/rpadron/.local/bin/uv run mypy .'
         language: system
         pass_filenames: false
         types: [python]
@@ -96,7 +96,7 @@ repos:
     hooks:
       - id: pytest-unit
         name: Pytest Unit Tests
-        entry: bash -c 'cd apps/api && uv run pytest tests/unit/ -v -x'
+        entry: bash -c 'cd apps/api && /home/rpadron/.local/bin/uv run pytest tests/unit/ -v -x'
         language: system
         pass_filenames: false
         stages: [pre-push]

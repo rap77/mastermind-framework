@@ -99,21 +99,27 @@ def parse_args() -> argparse.Namespace:
 
 
 def get_last_tag() -> str | None:
-    """Get the most recent git tag.
+    """Get the most recent git tag, preferring semver tags.
 
-    Returns:
-        Tag string (e.g., "v0.1.0") or None if no tags exist.
+    Returns the most recent semver tag (vX.Y.Z) if one exists,
+    otherwise the most recent tag of any kind.
     """
     try:
+        # List all tags sorted by version, most recent first
         result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
+            ["git", "tag", "--sort=-version:refname"],
             capture_output=True,
             text=True,
             timeout=5,
         )
         if result.returncode == 0:
-            tag = result.stdout.strip()
-            return tag if tag else None
+            tags = [t.strip() for t in result.stdout.splitlines() if t.strip()]
+            # Prefer first tag that parses as semver
+            for tag in tags:
+                if parse_version(tag):
+                    return tag
+            # Fall back to most recent tag of any kind
+            return tags[0] if tags else None
         return None
     except (subprocess.TimeoutExpired, Exception):
         return None
