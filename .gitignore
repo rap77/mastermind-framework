@@ -57,3 +57,4 @@ rust_control_plane/target/
 .claude/zai.sh
 
 .claude/worktrees/
+apps/api/mastermind.db

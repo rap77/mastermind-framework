@@ -1,46 +1,35 @@
 {
-  "task_id": "D5",
-  "session_id": "sess-20260425-193337",
-  "started_at": "2026-04-25T19:33:37.964868",
+  "task_id": "F1",
+  "session_id": "sess-20260426-014325",
+  "started_at": "2026-04-26T01:43:25.762302",
   "phase": 19,
   "subtasks": {
-    "D5.1": {
-      "description": "Ejecutar `python3 ship-handler.py --verify` \u2192 reporta estado",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:35:00Z",
+    "F1.1": {
+      "description": "Agregar `@pytest.mark.integration` + `reason=\"Requires WS server on localhost:8080\"` a los 3 WebSocket tests",
+      "status": "pending",
       "retries": 0
     },
-    "D5.2": {
-      "description": "Verificar: reporta ultimo tag correctamente",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:35:15Z",
+    "F1.2": {
+      "description": "Silenciar `UserWarning: Cold start` en `test_template_extraction.py` con `pytest.warns` o `warnings.filterwarnings`",
+      "status": "pending",
       "retries": 0
     },
-    "D5.3": {
-      "description": "Verificar: reporta si hay uncommitted changes",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:35:15Z",
+    "F1.3": {
+      "description": "Verificar 3 export tests tienen skip `reason` claro (frontend-only)",
+      "status": "pending",
       "retries": 0
     },
-    "D5.4": {
-      "description": "Verificar: sugiere proximo tag (patch por defecto)",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:36:00Z",
+    "F1.4": {
+      "description": "Verificar 1 sync injection test tiene skip `reason` claro (requires momento-2.md)",
+      "status": "pending",
       "retries": 0
     },
-    "D5.5": {
-      "description": "Ejecutar `python3 ship-handler.py --cleanup` \u2192 elimina `.agent-*-running`",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:37:00Z",
-      "retries": 0
-    },
-    "D5.6": {
-      "description": "Sin crear tag real (usar --verify para pruebas)",
-      "status": "completed",
-      "completed_at": "2026-04-25T19:37:15Z",
+    "F1.5": {
+      "description": "Ejecutar `uv run pytest apps/api/ -v` \u2192 sin warnings inesperados, 7 skipped documentados",
+      "status": "pending",
       "retries": 0
     }
   },
-  "last_checkpoint": "D5.6",
+  "last_checkpoint": null,
   "context_budget_exit": null
 }
