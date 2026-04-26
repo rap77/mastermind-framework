@@ -142,6 +142,7 @@ COMMANDS_WHITELIST = {
     "init.md",
     "discover.md",
     "complete-task.md",
+    "execute-milestone.md",
     "review.md",
     "ship.md",
 }
@@ -164,6 +165,7 @@ AGENTS_WHITELIST = {
     "discover-planner",
     "rediscovery-auditor",
     "task-executor",
+    "milestone-executor",
     "code-reviewer",
 }
 
@@ -378,6 +380,50 @@ def _write_project_id_to_config(target: Path, project_id: str) -> None:
     config_path.write_text("\n".join(lines) + "\n")
 
 
+def install_python_deps(target: Path) -> None:
+    """Install required Python dependencies (psycopg2-binary) for DB support.
+
+    Tries two strategies in order:
+    1. uv pip install inside target project (uses target's venv if present)
+    2. uv pip install --system (installs into system Python used by handlers)
+
+    Never fails the installation — warns and continues if both strategies fail.
+    """
+    pkg = "psycopg2-binary"
+
+    # Strategy 1: install into target project's venv (if uv project exists)
+    try:
+        result = subprocess.run(
+            ["uv", "pip", "install", pkg],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=target,
+        )
+        if result.returncode == 0:
+            print(f"INFO: {pkg} installed (target venv)")
+            return
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Strategy 2: install into system Python (used directly by handlers)
+    try:
+        result = subprocess.run(
+            ["uv", "pip", "install", pkg, "--system"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode == 0:
+            print(f"INFO: {pkg} installed (system Python)")
+            return
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    print(f"WARNING: Could not install {pkg} — DB features disabled")
+    print(f"WARNING: Fix manually: uv pip install {pkg}")
+
+
 def main() -> None:
     """Install MasterMind Framework in a target project.
 
@@ -486,6 +532,9 @@ def main() -> None:
     except Exception as e:
         print(f"ERROR: Failed to copy agents: {e}")
         sys.exit(1)
+
+    # B1.8b — Install Python dependencies (psycopg2-binary for DB support)
+    install_python_deps(target)
 
     # B1.9 — Create config.yaml
     try:

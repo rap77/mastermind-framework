@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# mastermind — MasterMind Framework CLI
+# Runs init-handler.py using the framework's .venv (has psycopg2).
+#
+# Usage:
+#   mastermind --target ~/proy/mi-proyecto
+#   mastermind --target ~/proy/mi-proyecto --force
+#   mastermind --check --target ~/proy/mi-proyecto
+
+FRAMEWORK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+PYTHON="$FRAMEWORK_DIR/.venv/bin/python3"
+HANDLER="$FRAMEWORK_DIR/.claude/commands/mm/init-handler.py"
+BIN_DIR="$HOME/.local/bin"
+
+# Auto-install symlinks on first run (idempotent)
+_install_symlinks() {
+  mkdir -p "$BIN_DIR"
+  local self
+  self="$(readlink -f "${BASH_SOURCE[0]}")"
+  for name in mastermind mm; do
+    local link="$BIN_DIR/$name"
+    if [[ ! -L "$link" ]] || [[ "$(readlink -f "$link")" != "$self" ]]; then
+      ln -sf "$self" "$link"
+      echo "INFO: $name → $link"
+    fi
+  done
+}
+
+_install_symlinks
+
+if [[ ! -x "$PYTHON" ]]; then
+  echo "ERROR: .venv not found in $FRAMEWORK_DIR — run 'uv sync' first" >&2
+  exit 1
+fi
+
+exec "$PYTHON" "$HANDLER" "$@"
