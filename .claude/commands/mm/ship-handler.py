@@ -219,12 +219,12 @@ def check_uncommitted_changes() -> bool:
 
 
 def check_spec_exists() -> bool:
-    """Check if SPEC.md exists in .planning/tasks/ directory.
+    """Check if SPEC.md exists in tasks/ directory.
 
     Returns:
         True if SPEC.md exists, False otherwise.
     """
-    spec_path = Path(".planning/tasks/SPEC.md")
+    spec_path = Path("tasks/SPEC.md")
     return spec_path.exists()
 
 
@@ -406,7 +406,7 @@ def main() -> None:
         if not preconditions["no_uncommitted"]:
             print("  - There are uncommitted changes")
         if not preconditions["spec_exists"]:
-            print("  - SPEC.md does not exist in .planning/tasks/")
+            print("  - SPEC.md does not exist in tasks/")
 
     if changelog:
         print(f"INFO: Changelog ({len(changelog)} commits):")
