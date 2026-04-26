@@ -3,6 +3,17 @@ project:
 
 framework:
   version: 3.0.0
+  last_shipped: "2026-04-26"
+  tag: "v3.0"
+  changelog:
+    - "Phase 13: Vertical Slice complete"
+    - "Phase 14: Knowledge Distillation complete"
+    - "Phase 15: Rust Control Plane complete"
+    - "Phase 16: Observability + WS Hub complete"
+    - "Phase 17: UI Evolution complete"
+    - "Phase 18: Multi-channel Gateway complete"
+    - "Phase 19: MM-Flow completion"
+    - "Phase D: Visual Orchestration & Simulation complete"
 
 stack:
   - nextjs
