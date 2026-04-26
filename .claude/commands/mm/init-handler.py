@@ -164,6 +164,7 @@ AGENTS_WHITELIST = {
     "discover-planner",
     "rediscovery-auditor",
     "task-executor",
+    "code-reviewer",
 }
 
 
@@ -257,7 +258,7 @@ def copy_commands(src_root: Path, dest: Path) -> None:
         if item.is_file() and (
             item.name in COMMANDS_WHITELIST
             or item.name.endswith("-handler.py")
-            or item.name == "db_client.py"
+            or item.name in ("db_client.py", "db_write.py")
         ):
             shutil.copy2(item, dest_commands / item.name)
 
@@ -363,6 +364,20 @@ def create_config(target: Path, stack: list[str]) -> None:
     (mastermind_dir / "config.yaml").write_text("\n".join(config_lines) + "\n")
 
 
+def _write_project_id_to_config(target: Path, project_id: str) -> None:
+    """Append project_id to .mastermind/config.yaml for per-project DB isolation."""
+    config_path = target / ".mastermind" / "config.yaml"
+    if not config_path.exists():
+        return
+    content = config_path.read_text()
+    # Remove existing project_id line (idempotent re-registration)
+    lines = [
+        ln for ln in content.splitlines() if not ln.strip().startswith("project_id:")
+    ]
+    lines.append(f'project_id: "{project_id}"')
+    config_path.write_text("\n".join(lines) + "\n")
+
+
 def main() -> None:
     """Install MasterMind Framework in a target project.
 
@@ -413,13 +428,12 @@ def main() -> None:
             print("STATUS: not-installed")
         return
 
-    # B2.1 — Verify PostgreSQL is running (REQUIRED, fails if not available)
+    # B2.1 — Verify PostgreSQL is running (OPTIONAL — warn only, do not block install)
     # Skip check if --skip-postgres-check flag is set (for testing)
     if not args.skip_postgres_check:
         if not check_postgresql():
-            print("ERROR: PostgreSQL verification failed - cannot proceed")
-            print("ERROR: Run 'docker compose up -d' to start PostgreSQL")
-            sys.exit(1)
+            print("WARNING: PostgreSQL not available — DB features will be disabled")
+            print("WARNING: Run 'docker compose up -d' to enable DB integration")
 
     # B2.2 — Check provider availability (warns if not available, does not fail)
     if not check_provider_available(db):
@@ -481,7 +495,7 @@ def main() -> None:
         print(f"ERROR: Failed to create config: {e}")
         sys.exit(1)
 
-    # B1.11 — Register project in database (if DB available)
+    # B1.11 — Register project in database (if DB available) + persist project_id
     db_status = "unavailable"
     if db and db.available:
         try:
@@ -491,6 +505,8 @@ def main() -> None:
             if project_id:
                 db_status = "connected"
                 print(f"INFO: Project registered in database (ID: {project_id})")
+                # Persist project_id to config.yaml for per-project DB isolation
+                _write_project_id_to_config(target, project_id)
             else:
                 db_status = "unavailable"
                 print("WARNING: Database connection failed - project not registered")

@@ -420,6 +420,145 @@ class MasterMindDB:
             return None
 
     # ------------------------------------------------------------------ #
+    # Brain Feedback, Checkpoints, Audit
+    # ------------------------------------------------------------------ #
+
+    def save_brain_feedback(
+        self,
+        brain_id: int,
+        feedback_type: str,
+        title: str,
+        content: str,
+        confidence: float | None = None,
+        impact_on_phase: str | None = None,
+        engram_sync_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        project_id: str | None = None,
+    ) -> str | None:
+        """Save brain feedback (insight, risk, lesson, recommendation). Returns UUID or None."""
+        if not self._conn:
+            return None
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO brain_feedback
+                        (org_id, project_id, brain_id, feedback_type, title, content,
+                         confidence, impact_on_phase, engram_sync_id, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        ORG_ID,
+                        project_id or PROJECT_ID,
+                        brain_id,
+                        feedback_type,
+                        title,
+                        content,
+                        confidence,
+                        impact_on_phase,
+                        engram_sync_id,
+                        json.dumps(metadata or {}),
+                    ),
+                )
+                row = cur.fetchone()
+                return str(row[0]) if row else None
+        except Exception as e:
+            warnings.warn(f"save_brain_feedback failed: {e}")
+            return None
+
+    def save_context_checkpoint(
+        self,
+        phase: int,
+        reason: str,
+        workspace_id: str,
+        state_data: dict[str, Any] | None = None,
+        from_backend: str | None = None,
+        to_backend: str | None = None,
+        tokens_at_checkpoint: int = 0,
+        project_id: str | None = None,
+    ) -> str | None:
+        """Save context checkpoint (before backend switch or context limit). Returns UUID or None.
+
+        workspace_id is required (FK to workspaces table — NOT NULL constraint).
+        """
+        if not self._conn:
+            return None
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO context_checkpoints
+                        (org_id, project_id, workspace_id, phase, reason,
+                         state_data, from_backend, to_backend, tokens_at_checkpoint)
+                    VALUES (%s, %s, %s::uuid, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        ORG_ID,
+                        project_id or PROJECT_ID,
+                        workspace_id,
+                        phase,
+                        reason,
+                        json.dumps(state_data or {}),
+                        from_backend,
+                        to_backend,
+                        tokens_at_checkpoint,
+                    ),
+                )
+                row = cur.fetchone()
+                return str(row[0]) if row else None
+        except Exception as e:
+            warnings.warn(f"save_context_checkpoint failed: {e}")
+            return None
+
+    def save_audit_log(
+        self,
+        action_type: str,
+        actor: str,
+        description: str,
+        actor_type: str = "system",
+        phase_number: int | None = None,
+        related_entity_type: str | None = None,
+        related_entity_id: str | None = None,
+        severity: str = "info",
+        metadata: dict[str, Any] | None = None,
+        project_id: str | None = None,
+    ) -> str | None:
+        """Save audit log entry. Returns UUID or None."""
+        if not self._conn:
+            return None
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO audit_log
+                        (org_id, project_id, action_type, actor, actor_type, description,
+                         phase_number, related_entity_type, related_entity_id, severity, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        ORG_ID,
+                        project_id or PROJECT_ID,
+                        action_type,
+                        actor,
+                        actor_type,
+                        description,
+                        phase_number,
+                        related_entity_type,
+                        related_entity_id,
+                        severity,
+                        json.dumps(metadata or {}),
+                    ),
+                )
+                row = cur.fetchone()
+                return str(row[0]) if row else None
+        except Exception as e:
+            warnings.warn(f"save_audit_log failed: {e}")
+            return None
+
+    # ------------------------------------------------------------------ #
     # Lifecycle
     # ------------------------------------------------------------------ #
 

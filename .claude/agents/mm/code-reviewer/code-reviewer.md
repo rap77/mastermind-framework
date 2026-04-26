@@ -247,74 +247,50 @@ Answer with:
 
 ## PostgreSQL Integration
 
-**CRITICAL: Save all brain consultations to PostgreSQL.**
+**Save brain consultations and artifacts via `db_write.py` (Bash-callable).**
 
-### 1. brain_consultations Table
+This agent cannot import psycopg2 directly. Use the CLI bridge for all DB writes.
+If `db_write.py` is not available or returns `STATUS: error`, continue normally — DB is non-blocking.
 
-For EACH brain consultation (Brain #6 and Brain #7):
+### 1. brain_consultations — after EACH brain axis query
 
-```python
-# Pseudo-code for saving consultation
-INSERT INTO brain_consultations (
-    brain_id,
-    consultation_type,
-    input_summary,
-    output_summary,
-    confidence_level,
-    timestamp,
-    review_id
-) VALUES (
-    'BRAIN_06_QA_DEVOPS',  -- or 'BRAIN_07_GROWTH'
-    'code_review_correctness',  -- or 'readability', 'architecture', etc
-    '{first 200 chars of query}',
-    '{key findings from output}',
-    'HIGH',  -- or 'MEDIUM', 'LOW'
-    NOW(),
-    '{review_id}'
-)
+```bash
+python3 .claude/commands/mm/db_write.py --type brain_consultation \
+  --payload '{
+    "brain_id": 6,
+    "phase": 19,
+    "input": "<first 300 chars of query>",
+    "output": "<key findings from output>",
+    "confidence": 0.8
+  }'
+# Repeat with brain_id: 7 for Brain #7 queries
 ```
 
-### 2. brain_feedback Table
+### 2. brain_feedback — after generating the report (patterns found)
 
-After generating the report, save learnings:
-
-```python
-# Patterns discovered across reviews
-INSERT INTO brain_feedback (
-    brain_id,
-    feedback_type,
-    pattern_description,
-    frequency_count,
-    severity,
-    timestamp
-) VALUES (
-    'BRAIN_06_QA_DEVOPS',
-    'missing_error_handling',
-    'Functions returning null without error handling',
-    5,
-    'WARNING',
-    NOW()
-)
+```bash
+python3 .claude/commands/mm/db_write.py --type brain_feedback \
+  --payload '{
+    "brain_id": 6,
+    "feedback_type": "lesson_learned",
+    "title": "Pattern: missing error handling in <context>",
+    "content": "<detailed finding>",
+    "impact_on_phase": "medium"
+  }'
 ```
 
-### 3. artifacts Table
+### 3. artifact — after writing the review report to disk
 
-Reference the generated report:
-
-```python
-INSERT INTO artifacts (
-    artifact_type,
-    file_path,
-    description,
-    metadata,
-    created_at
-) VALUES (
-    'code_review_report',
-    '.planning/REVIEWS/2026-04-23-143052-review.md',
-    'Code review for {task_id}',
-    '{"critical": 2, "warning": 3, "suggestion": 1}',
-    NOW()
-)
+```bash
+python3 .claude/commands/mm/db_write.py --type artifact \
+  --payload '{
+    "artifact_type": "code_review_report",
+    "name": "<timestamp>-review.md",
+    "file_path": ".planning/REVIEWS/<timestamp>-review.md",
+    "description": "Code review for <task_id>",
+    "created_by": "code-reviewer",
+    "metadata": {"critical": <n>, "warning": <n>, "suggestion": <n>}
+  }'
 ```
 
 ---
@@ -456,7 +432,7 @@ After completing the review, print:
 🟢 SUGGESTION: {suggestion_count} items
 
 [code-reviewer] Report: .planning/REVIEWS/{timestamp}-review.md
-[code-reviewer] Saved to PostgreSQL: brain_consultations ({consultations_count}), artifacts (1)
+[code-reviewer] DB: brain_consultations ({consultations_count} saved), artifacts (1 saved)
 
 {if critical_count > 0}
 ⚠️  BLOCK: Fix CRITICAL items before committing

@@ -33,12 +33,19 @@ You receive context with:
   ],
   "total_subtasks": 2,
   "pending_count": 2,
-  "context_budget_threshold": 0.75
+  "context_budget_threshold": 0.75,
+  "working_directory": "/path/to/project",
+  "stack": ["nextjs", "python", "claude-code"]
 }
 ```
 
-Working directory: `/home/rpadron/proy/mastermind`
-Stack: Next.js 16, React 19, Zustand, Tailwind 4
+**Working directory:** use `payload.working_directory` (populated from git root at launch time).
+**Stack:** use `payload.stack` (populated from `.mastermind/config.yaml` at launch time).
+
+If `working_directory` is missing from the payload, detect it at runtime:
+```bash
+git rev-parse --show-toplevel
+```
 
 Start with first pending subtask and proceed sequentially.
 
@@ -114,7 +121,7 @@ Agent(
   "lines_deleted": ${deletions},
   "task_id": "${task_id}",
   "subtask_id": "${subtask_id}",
-  "working_directory": "/home/rpadron/proy/mastermind"
+  "working_directory": "${payload.working_directory}"
 }
 
 Review the implementation of subtask ${subtask_id}: ${subtask_description}
@@ -213,6 +220,19 @@ mem_save(
   content="**What**: Created flow-execution-adapter.ts\n**Why**: Part of D2 Flow↔Simulation wiring\n**Where**: apps/web/src/lib/flow-execution-adapter.ts\n**Learned**: ... (any gotchas)"
 )
 ```
+
+**4. PostgreSQL via db_write.py (non-blocking — skip if DB unavailable):**
+```bash
+# Write experience record to DB
+python3 .claude/commands/mm/db_write.py --type experience \
+  --payload '{"brain_id": "task-executor", "session_id": "${payload.db_session_id}", "quality_score": 0.8, "insights": ["subtask D2.1 completed"], "patterns": []}'
+
+# Close dev session when ALL subtasks complete (last checkpoint only)
+python3 .claude/commands/mm/db_write.py --type session_close \
+  --payload '{"session_id": "${payload.db_session_id}", "status": "completed", "tasks_completed": ${completed_count}, "tasks_total": ${total_count}, "commits_count": ${commits_count}}'
+```
+
+If `db_session_id` is missing from payload, skip the DB writes — graceful degradation.
 
 ---
 

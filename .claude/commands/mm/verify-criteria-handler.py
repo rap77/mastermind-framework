@@ -12,7 +12,25 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path.home() / "proy/mastermind"
+
+def _find_project_root() -> Path:
+    """Find project root via git, fallback to file-relative path."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except Exception:
+        pass
+    # Fallback: this file lives at <root>/.claude/commands/mm/
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+PROJECT_ROOT = _find_project_root()
 PLAN_MD = PROJECT_ROOT / "tasks" / "plan.md"
 TODO_MD = PROJECT_ROOT / "tasks" / "todo.md"
 

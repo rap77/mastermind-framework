@@ -12,6 +12,34 @@ import subprocess
 from pathlib import Path
 
 
+def _find_project_root() -> Path:
+    """Find project root via git, fallback to file-relative path."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except Exception:
+        pass
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+def _read_project_id() -> str | None:
+    """Read project_id from .mastermind/config.yaml."""
+    config_path = _find_project_root() / ".mastermind" / "config.yaml"
+    if not config_path.exists():
+        return None
+    for line in config_path.read_text().splitlines():
+        if line.strip().startswith("project_id:"):
+            value = line.split(":", 1)[1].strip().strip('"').strip("'")
+            return value if value else None
+    return None
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments for ship-handler.
 
@@ -353,6 +381,8 @@ def main() -> None:
         "increment_type": increment_type,
         "explicit_tag": args.tag,
         "preconditions": preconditions,
+        "working_directory": str(_find_project_root()),
+        "project_id": _read_project_id(),
     }
 
     # Output

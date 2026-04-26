@@ -29,7 +29,57 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path.home() / "proy/mastermind"
+
+def _find_project_root() -> Path:
+    """Find project root via git, fallback to file-relative path."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except Exception:
+        pass
+    # Fallback: this file lives at <root>/.claude/commands/mm/
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+def _read_stack_from_config(project_root: Path) -> list[str]:
+    """Read stack list from .mastermind/config.yaml (no external deps)."""
+    config_path = project_root / ".mastermind" / "config.yaml"
+    if not config_path.exists():
+        return []
+    in_stack = False
+    stack: list[str] = []
+    for line in config_path.read_text().splitlines():
+        stripped = line.strip()
+        if stripped == "stack:":
+            in_stack = True
+            continue
+        if in_stack:
+            if stripped.startswith("- "):
+                stack.append(stripped[2:].strip())
+            elif stripped and not line[0].isspace():
+                break
+    return stack
+
+
+def _read_project_id_from_config(project_root: Path) -> str | None:
+    """Read project_id from .mastermind/config.yaml (written by /mm:init after DB registration)."""
+    config_path = project_root / ".mastermind" / "config.yaml"
+    if not config_path.exists():
+        return None
+    for line in config_path.read_text().splitlines():
+        if line.strip().startswith("project_id:"):
+            value = line.split(":", 1)[1].strip().strip('"').strip("'")
+            return value if value else None
+    return None
+
+
+PROJECT_ROOT = _find_project_root()
 TASKS_DIR = PROJECT_ROOT / "tasks"
 PLANNING_DIR = PROJECT_ROOT / ".planning"
 RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
@@ -71,8 +121,36 @@ def mm_pending(count: int) -> None:
 
 
 def mm_launch(task_id: str) -> None:
-    """Print launch command."""
+    """Print launch command (no DB session — legacy path)."""
     payload = get_task_payload(task_id)
+    print("LAUNCH: task-executor", flush=True)
+    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
+
+
+def _open_db_session(task_id: str, pending_count: int) -> str | None:
+    """Open a dev session in the DB. Returns session UUID or None if DB unavailable."""
+    try:
+        sys.path.insert(0, str(PLANNING_DIR.parent / ".claude" / "commands" / "mm"))
+        from db_client import MasterMindDB  # noqa: PLC0415
+
+        project_id = _read_project_id_from_config(PROJECT_ROOT)
+        with MasterMindDB() as db:
+            if not db.available:
+                return None
+            return db.save_session(
+                started_by="complete-task-handler",
+                phase_number=None,
+                project_id=project_id,
+            )
+    except Exception:
+        return None
+
+
+def _mm_launch_with_db(task_id: str, db_session_id: str | None) -> None:
+    """Print launch command including db_session_id in payload."""
+    payload = get_task_payload(task_id)
+    if db_session_id:
+        payload["db_session_id"] = db_session_id
     print("LAUNCH: task-executor", flush=True)
     print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
 
@@ -317,6 +395,7 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
             if st["id"] not in git_completed and not st["completed"]
         ]
 
+        project_id = _read_project_id_from_config(PROJECT_ROOT)
         return {
             "task_id": task_id,
             "task_title": task["title"],
@@ -324,6 +403,9 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
             "total_subtasks": len(subtasks),
             "pending_count": len(pending_subtasks),
             "context_budget_threshold": 0.75,  # Exit at 75% context
+            "working_directory": str(PROJECT_ROOT),
+            "stack": _read_stack_from_config(PROJECT_ROOT),
+            "project_id": project_id,
         }
     except (ValueError, FileNotFoundError, OSError):
         # Re-raise expected exceptions with context
@@ -464,8 +546,13 @@ def start_task(task_id: str) -> None:
     mm_info(f"Runtime state: {RUNTIME_STATE_PATH}")
     mm_info(f"Session ID: {runtime_state['session_id']}")
 
+    # Open dev session in DB (non-blocking — continues if DB unavailable)
+    db_session_id = _open_db_session(task_id, len(pending_subtasks))
+    if db_session_id:
+        mm_info(f"DB session opened: {db_session_id}")
+
     # Launch task-executor
-    mm_launch(task_id)
+    _mm_launch_with_db(task_id, db_session_id)
 
 
 def resume_task(task_id: str) -> None:

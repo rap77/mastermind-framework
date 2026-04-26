@@ -45,10 +45,11 @@ Si el hook falla, arreglá el error. No lo salteés."
 
 ### ✅ Tests deben pasar (0 fallas toleradas)
 
-Baseline actual del proyecto:
-- Backend: **570/570** tests passing (`cd apps/api && uv run pytest`)
-- Frontend: **407/407** tests passing (`pnpm --prefix apps/web test run`)
-- **Cero fallas pre-existentes** — Brain #6 no acepta "ya venía fallando"
+Lee los comandos de test desde `.mastermind/config.yaml` del proyecto. Si no existe, usá las convenciones del stack detectado:
+- Python → `uv run pytest`
+- Node.js/Next.js → `pnpm test run` o `pnpm --prefix <app-dir> test run`
+
+**Cero fallas pre-existentes** — Brain #6 no acepta "ya venía fallando".
 
 Si algún test falla, lo arreglás ANTES de commitear. No es opcional.
 
@@ -72,7 +73,7 @@ Verificar que `.pre-commit-config.yaml` existe en el ROOT del repo.
 
 ```bash
 # Si no existe, explicarle por qué es necesario
-ls -la /home/rpadron/proy/mastermind/.pre-commit-config.yaml
+ls -la "$(git rev-parse --show-toplevel)/.pre-commit-config.yaml"
 ```
 
 ## Checklist Pre-Commit
@@ -92,10 +93,11 @@ Brain #6 es el Reliability Fundamentalist. Antes de commitear:
 ```python
 # Consultar Brain #6 para validar estrategia de testing
 mcp__notebooklm-mcp__notebook_query(
-    notebook_id="74cd3a81-1350-4927-af14-c0c4fca41a8e",
+    notebook_id="BRAIN_06_QA_DEVOPS",
     query="""
-    Project: MasterMind Framework
+    Project: {project_name} (from .mastermind/config.yaml)
     Context: Pre-commit validation
+    Stack: {stack} (from .mastermind/config.yaml)
 
     Questions:
     - ¿Esta change tiene test coverage adecuado?
@@ -104,10 +106,9 @@ mcp__notebooklm-mcp__notebook_query(
     - ¿Hay algún riesgo de introducir regressions?
 
     Constraints:
-    - Backend tests: cd apps/api && uv run pytest
-    - Frontend tests: pnpm --prefix apps/web test run
+    - Test commands: read from .mastermind/config.yaml or infer from stack
     - pnpm NO npm, uv NO pip
-    - Hooks desde ROOT, no desde apps/api/
+    - Hooks desde ROOT, no desde subdirectorios
     """
 )
 ```
@@ -115,8 +116,8 @@ mcp__notebooklm-mcp__notebook_query(
 **Correcciones de Brain #6 que siempre respetás:**
 - ✅ pnpm no npm
 - ✅ uv no pip
-- ✅ Tests desde apps/api/ no desde root
-- ✅ Hooks desde ROOT
+- ✅ Tests desde el subdirectorio correcto (leer de `.mastermind/config.yaml`)
+- ✅ Hooks desde ROOT del repo (`git rev-parse --show-toplevel`)
 - ✅ Cero tolerancia a fallas pre-existentes
 
 ## Flujo de Auto-Correción
@@ -180,9 +181,8 @@ Si el hook falla, es porque algo está mal. Arreglá el problema, no salteás la
 ### Qué tests deben pasar
 
 ```
-Baseline actual del proyecto:
-- Backend: 570/570 tests (cd apps/api && uv run pytest)
-- Frontend: 407/407 tests (pnpm --prefix apps/web test run)
+Lee .mastermind/config.yaml para saber qué tests correr en este proyecto.
+Si no hay config, inferí desde el stack (Python → uv run pytest, Node → pnpm test run).
 
 Si rompiste tests, arreglás lo que rompiste. No es opcional.
 
@@ -239,8 +239,8 @@ mcp__plugin_engram_engram__mem_save(
 # → Activar skill automáticamente
 
 # 1. Detectar: ¿Hay --no-verify? No → OK
-# 2. Tests: cd apps/api && uv run pytest → 570/570 passing ✅
-# 3. Tests: pnpm --prefix apps/web test run → 407/407 passing ✅
+# 2. Tests backend (según .mastermind/config.yaml o stack detectado) → passing ✅
+# 3. Tests frontend (según .mastermind/config.yaml o stack detectado) → passing ✅
 # 4. GGA: pre-commit run --all-files → passing ✅
 # 5. Mensaje: feat(qa): add safe-commit skill → OK ✅
 # 6. Commit: git commit -m "feat(qa): add safe-commit skill"
@@ -258,12 +258,10 @@ mcp__plugin_engram_engram__mem_save(
 ## Referencias del Proyecto
 
 - **Brain #6 QA/DevOps**: `.claude/agents/mm/brain-06-qa/brain-06-qa.md`
-- **GGA Hook**: `.pre-commit-config.yaml` (en ROOT)
-- **Test Commands**:
-  - Backend: `cd apps/api && uv run pytest`
-  - Frontend: `pnpm --prefix apps/web test run`
+- **GGA Hook**: `.pre-commit-config.yaml` (en ROOT del repo)
+- **Test Commands**: leer de `.mastermind/config.yaml` → campo `test_commands` (si existe), o inferir desde `stack`
 - **Package Managers**: uv (Python), pnpm (Node.js)
-- **Test Baseline**: 570/570 + 407/407 = 977/977 tests passing
+- **Config**: `.mastermind/config.yaml` — fuente de verdad para stack y comandos del proyecto
 
 ---
 
