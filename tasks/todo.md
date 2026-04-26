@@ -197,24 +197,26 @@
 
 ## PHASE E — End-to-End Validation
 
-### E1: Flujo Completo en Proyecto de Prueba
-- [ ] Crear proyecto temporal: `mkdir -p /tmp/mm-test-project && cd /tmp/mm-test-project && git init`
-- [ ] Paso 1: `/mm:init --target /tmp/mm-test-project` → estructura creada
-- [ ] Paso 2: `/mm:discover "App de TODO simple"` → SPEC + plan + todo generados
-- [ ] Paso 3: `/mm:complete-task A1` → subtarea ejecutada
-- [ ] Paso 4: `/mm:review --last-commit` → reporte con 5 secciones generado
-- [ ] Paso 5: `/mm:ship --verify` → estado reportado correctamente
-- [ ] Verificar: cero errores en flujo completo
-- [ ] Verificar: `/mm:discover` y `/mm:complete-task` siguen funcionando post-cleanup
+### E1: Flujo Completo en Proyecto de Prueba ✅
+- [x] Crear proyecto temporal: `mkdir -p /tmp/mm-test-project && cd /tmp/mm-test-project && git init`
+- [x] Paso 1: `/mm:init --target /tmp/mm-test-project` → estructura creada
+- [x] Paso 2: `/mm:discover "App de TODO simple"` → SPEC + plan + todo generados
+- [x] Paso 3: `/mm:complete-task A1` → subtarea ejecutada
+- [x] Paso 4: `/mm:review --last-commit` → reporte con 5 secciones generado
+- [x] Paso 5: `/mm:ship --verify` → estado reportado correctamente
+- [x] Verificar: cero errores en flujo completo
+- [x] Verificar: `/mm:discover` y `/mm:complete-task` siguen funcionando post-cleanup
+- [x] **NOTA:** Bugs #1 y #2 ya estaban arreglados (commit 41ba22fd)
 
-### E2: Commit Final
-- [ ] Stage: archivos nuevos (init, review, ship commands + handlers + skills + agents)
-- [ ] Stage: archivos eliminados (GSD wrappers + skills huerfanos + markers)
-- [ ] Verificar: tests existentes pasan (backend + frontend)
-- [ ] Commit: `feat(mm-commands): add init, review, ship commands and remove GSD wrappers`
-- [ ] Verificar: `/mm:discover` funciona post-commit
-- [ ] Verificar: `/mm:complete-task` funciona post-commit
-- [ ] Verificar: `/mm:safe-commit` funciona post-commit
+### E2: Commit Final ✅
+- [x] Stage: archivos nuevos (init, review, ship commands + handlers + skills + agents)
+- [x] Stage: archivos eliminados (GSD wrappers + skills huerfanos + markers)
+- [x] Verificar: tests existentes pasan (backend + frontend)
+- [x] Commit: `feat(mm-commands): add init, review, ship commands and remove GSD wrappers`
+- [x] Verificar: `/mm:discover` funciona post-commit
+- [x] Verificar: `/mm:complete-task` funciona post-commit
+- [x] Verificar: `/mm:safe-commit` funciona post-commit
+- [x] **NOTA:** Archivos ya commiteados en fases B/C/D (commits 8a715ed4, 55adbd3e, 5ed8540b)
 
 ---
 
@@ -222,12 +224,12 @@
 
 | Phase | Tasks | Items | Status |
 |-------|-------|-------|--------|
-| A — Cleanup | 3 | 16 | ✅ |
-| B — Init | 3 | 22 | ✅ |
-| C — Review | 5 | 26 | 5/5 (C1 ✅, C2 ✅, C3 ✅, C4 ✅, C5 ✅) |
-| D — Ship | 5 | 24 | 4/5 (D1 ✅, D2 ✅, D3 ✅, D4 ✅) |
-| E — E2E | 2 | 13 | [ ] |
-| **Total** | **18** | **101** | **91/101 (90%)** |
+| A — Cleanup | 3 | 16 | ✅ Complete |
+| B — Init | 3 | 22 | ✅ Complete |
+| C — Review | 5 | 26 | ✅ Complete (C1-C5) |
+| D — Ship | 5 | 24 | ✅ Complete (D1-D5) |
+| E — E2E | 2 | 13 | ✅ Complete (E1-E2) |
+| **Total** | **18** | **101** | **101/101 (100%)** ✅ |
 
 **Archivos nuevos:** ~14
 **Archivos eliminados:** ~10
