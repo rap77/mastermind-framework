@@ -18,8 +18,13 @@ from websockets.exceptions import ConnectionClosed
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_websocket_ghost_mode_replay():
-    """Test Ghost Mode replay returns last 100 events with P95 latency < 500ms"""
+    """Test Ghost Mode replay returns last 100 events with P95 latency < 500ms.
+
+    Requires WebSocket server running on localhost:8080.
+    Run manually: start Rust control plane first (cargo run in rust_control_plane/).
+    """
     uri = "ws://localhost:8080/ws"
     latencies: List[float] = []
 
@@ -69,8 +74,12 @@ async def test_websocket_ghost_mode_replay():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_websocket_trace_id_propagation():
-    """Test 100% of events contain trace_id (SLI-3)"""
+    """Test 100% of events contain trace_id (SLI-3).
+
+    Requires WebSocket server running on localhost:8080.
+    """
     uri = "ws://localhost:8080/ws"
 
     try:
@@ -115,8 +124,12 @@ async def test_websocket_trace_id_propagation():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_websocket_connection_stability():
-    """Test 1000 concurrent connections (stress test)"""
+    """Test 1000 concurrent connections (stress test).
+
+    Requires WebSocket server running on localhost:8080.
+    """
     uri = "ws://localhost:8080/ws"
     num_connections = 1000
 

@@ -449,8 +449,12 @@ PAYLOAD: {json}
 | D5 | Validar ship | D1-D4 | Low | 0 new | SI | [x] |
 | E1 | Flujo E2E | All | Medium | 0 new | SI | [ ] |
 | E2 | Commit final | E1 | Low | 0 new | — | [ ] |
+| F1 | Resolver 7 skipped + 1 warning | E1-E2 | Low | 1 edit | — | [x] |
+| F2 | 19-05-PLAN.md + SUMMARY.md | F1 | Low | 2 new | — | [x] |
+| F3 | Actualizar runtime-state + cerrar Phase 19 | F2 | Low | 2 edit | — | [x] |
+| F4 | Ship v3.0 | F3 | Low | 0 new | SI | [ ] |
 
-**Total: 5 phases, 19 tasks, ~15 files nuevos, ~10 archivos eliminados**
+**Total: 6 phases, 23 tasks, ~17 files nuevos/editados, ~10 archivos eliminados**
 
 **Parallel tracks:**
 - Track 1 (cleanup): A1 + A2 + A3 (secuencial rapido)
@@ -480,5 +484,65 @@ PAYLOAD: {json}
 
 ---
 
+## PHASE F — Phase 19 Closure + v3.0 Ship
+
+**Objetivo:** Cerrar formalmente Phase 19 (plan 05 pendiente), resolver los 7 tests skipped + 1 warning del test suite, actualizar runtime-state.json, y hacer ship de v3.0.
+
+**Contexto:** Plans 01-04 de Phase 19 fueron completados y verificados (23/23 must_haves). Sin embargo:
+- `runtime-state.json` todavia dice `plans_completed: 4, active_plan: 5`
+- 7 tests skipped + 1 warning quedaron pendientes de decision del usuario
+- Phase 19-05 (el ultimo plan) nunca fue formalmente iniciado ni completado
+- Phase 20 esta BLOQUEADA hasta que Phase 19 se cierre
+
+### F1: Resolver 7 Tests Skipped + 1 Warning
+
+**Que:** Resolver la situacion de los tests skipped del frontend e implementar decision sobre el warning.
+
+**Contexto (del .continue-here.md):**
+- 3 export tests: frontend-only, documentados correctamente → **Dejar como-esta**
+- 1 sync injection test: stub para feature futura (momento-2.md) → **Dejar como-esta**
+- 3 websocket tests: requieren servidor WS en localhost:8080 → **Documentar como integration tests**
+- 1 warning: `UserWarning: Cold start` en `template_extractor.py:60` → **Silenciar con `warnings.filterwarnings()`**
+
+**Acceptance:**
+- [x] Suite backend: 0 warnings inesperados (cold start + huggingface_hub silenciados via filterwarnings)
+- [x] filterwarnings en pyproject.toml: `ignore::UserWarning:mastermind_cli.experience.template_extractor`
+- [x] Los 9 tests skipped estan documentados con razon de skip clara (pytest marks con `reason=`)
+- [x] Los 3 WebSocket tests tienen `@pytest.mark.integration`
+- [x] `uv run pytest apps/api/tests/test_websocket_events.py` → 3 skipped con marker integration
+
+### F2: Crear 19-05-PLAN.md y 19-05-SUMMARY.md
+
+**Que:** Crear los archivos formales de cierre del Plan 05 de Phase 19.
+
+**Objetivo:** Formalizar que Plan 19-05 fue completado (el closure plan). Sin esto, la fase queda sin documento de cierre.
+
+**Acceptance:**
+- [ ] `.planning/phases/19-mm-flow-completion/19-05-PLAN.md` existe con must_haves verificados
+- [ ] `.planning/phases/19-mm-flow-completion/19-05-SUMMARY.md` existe documentando lo completado
+- [ ] Must_haves incluyen: 0 unexpected warnings, 7 skipped tests documented, runtime-state updated
+
+### F3: Actualizar runtime-state.json y Cerrar Phase 19
+
+**Que:** Actualizar el estado formal de MM-Flow para desbloquear Phase 20.
+
+**Acceptance:**
+- [ ] `.planning/.mm-flow/runtime-state.json` actualizado: `plans_completed: 5`, `active_plan: null`, `overall_status: "PHASE_COMPLETE"`
+- [ ] `.planning/SESSION-CHECKPOINT.md` actualizado con `saved: true` (sesion guardada)
+- [ ] `.continue-here.md` en fase 19 marcado como resuelto o eliminado
+- [ ] Phase 19 formalmente CLOSED en todos los documentos
+
+### F4: Ship v3.0
+
+**Que:** Ejecutar `/mm:ship --minor` para crear tag v3.0 oficial y archivar tasks/.
+
+**Acceptance:**
+- [ ] `python3 ship-handler.py --verify` retorna `PRECONDITIONS: pass`
+- [ ] Tag `v3.0` creado en git (o el siguiente disponible desde el ultimo tag)
+- [ ] `tasks/` archivado en `.planning/archive/v3.0/`
+- [ ] Commit de cierre con mensaje convencional
+
+---
+
 *Plan basado en SPEC.md — single source of truth para implementacion.*
-*Last updated: 2026-04-20*
+*Last updated: 2026-04-26 (Phase F agregada para Phase 19 closure + v3.0 ship)*

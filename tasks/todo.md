@@ -220,6 +220,36 @@
 
 ---
 
+---
+
+## PHASE F — Phase 19 Closure + v3.0 Ship
+
+### F1: Resolver 7 Tests Skipped + 1 Warning ✅
+- [x] Agregar `@pytest.mark.integration` a los 3 WebSocket tests (`test_websocket_events.py`)
+- [x] Silenciar `UserWarning: Cold start` via `filterwarnings` en `pyproject.toml`
+- [x] Silenciar `UserWarning: huggingface_hub` via `filterwarnings` en `pyproject.toml`
+- [x] Verificar 3 export tests tienen skip `reason` claro (frontend-only) — ya tenian `@pytest.mark.skip(reason=...)`
+- [x] Verificar 1 sync injection test tiene skip `reason` claro (requires momento-2.md) — ya tenia razon clara
+- [x] Ejecutar `uv run pytest apps/api/tests/test_websocket_events.py apps/api/tests/kd/test_templates.py` → 12 passed, 3 skipped (WS integration)
+
+### F2: Crear 19-05-PLAN.md y 19-05-SUMMARY.md ✅
+- [x] Crear `.planning/phases/19-mm-flow-completion/19-05-PLAN.md` con must_haves verificados
+- [x] Crear `.planning/phases/19-mm-flow-completion/19-05-SUMMARY.md` documentando lo completado en F1-F3
+
+### F3: Actualizar runtime-state.json y Cerrar Phase 19 ✅
+- [x] Editar `.planning/.mm-flow/runtime-state.json`: `plans_completed: 5`, `active_plan: null`, `overall_status: "PHASE_COMPLETE"`
+- [x] Actualizar `.planning/SESSION-CHECKPOINT.md` con `saved: true`, `status: CLOSED`
+- [x] Marcar `.planning/phases/19-mm-flow-completion/.continue-here.md` como `status: RESOLVED`
+
+### F4: Ship v3.0
+- [ ] Ejecutar `python3 .claude/commands/mm/ship-handler.py --verify` → `PRECONDITIONS: pass`
+- [ ] Confirmar ultimo tag git actual
+- [ ] Ejecutar ship con tag apropiado (v3.0 o siguiente disponible)
+- [ ] Verificar `tasks/` archivado en `.planning/archive/v3.0/`
+- [ ] Commit convencional de cierre
+
+---
+
 ## Summary
 
 | Phase | Tasks | Items | Status |
@@ -229,8 +259,9 @@
 | C — Review | 5 | 26 | ✅ Complete (C1-C5) |
 | D — Ship | 5 | 24 | ✅ Complete (D1-D5) |
 | E — E2E | 2 | 13 | ✅ Complete (E1-E2) |
-| **Total** | **18** | **101** | **101/101 (100%)** ✅ |
+| F — Phase 19 Closure + Ship | 4 | 14 | ⏳ Pending |
+| **Total** | **22** | **115** | **101/115** ⏳ |
 
-**Archivos nuevos:** ~14
+**Archivos nuevos:** ~16
 **Archivos eliminados:** ~10
-**Estimacion:** 3-4 horas de trabajo
+**Estimacion:** 3-4 horas de trabajo (Phases A-E) + 1 hora (Phase F)
