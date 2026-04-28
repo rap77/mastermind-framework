@@ -17,7 +17,7 @@ Current project: ! `pwd`
 Project type: <project-type> (default: in-progress)
 Git status: ! `git status --short 2>/dev/null || echo "Not a git repo"'
 Tech stack detection: ! `fd -tf -d 2 "(package\.json|requirements\.txt|go\.mod|Cargo\.toml|composer\.json)" . 2>/dev/null | head -5 || echo "No package files found"'
-Config: @ .mastermind/config.yaml 2>/dev/null || @ ~/proy/mastermind/.mastermind/config.yaml
+Config: @ .mastermind/config.yaml 2>/dev/null || echo "No .mastermind/config.yaml found"
 </context>
 
 <process>

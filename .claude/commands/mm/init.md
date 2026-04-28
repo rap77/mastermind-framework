@@ -262,7 +262,7 @@ This enables:
 
 **Solution:**
 ```bash
-cd /home/rpadron/proy/mastermind
+cd <mastermind-project-root>
 docker compose up -d mastermind-postgres-1
 ```
 

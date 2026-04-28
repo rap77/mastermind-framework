@@ -55,13 +55,68 @@ Start with first pending subtask and proceed sequentially.
 
 For each subtask in the list:
 
-### Phase 1: Build
+### Pre-check: Does the implementation already exist?
+
+Before running Phase 1, check if the code described by the subtask already exists:
+
+```bash
+# Look for key files mentioned in the subtask description
+git log --oneline -20 | grep -i "<subtask_id>"
+# Also check if relevant files exist on disk
+```
+
+**If code already exists** (files exist OR previous commits reference this subtask):
+→ **Skip Phase 1 (Build)** — do NOT reimplement
+→ **Run Phases 2–6** (test → diff → code-reviewer → commit if needed → checkpoint)
+→ Log: `[subtask] {id}: code exists — running verification cycle only`
+
+This is CRITICAL: existing code must STILL pass the code-reviewer. "Already exists" is NOT a free pass.
+
+**If code does NOT exist:**
+→ Run full cycle Phases 1–6
+
+---
+
+### Phase 1: Build (skip if code already exists)
 
 ```javascript
 Skill("build", args="<subtask description>")
 ```
 
 Use TDD methodology: write test first, implement, verify.
+
+#### ⛔ STUB PROHIBITION — Non-negotiable
+
+**NEVER create stub implementations.** A stub is any code that:
+- Returns a hardcoded value like `"pending"`, `"not_implemented"`, `{}`, `[]`, `None`, `pass`
+- Has all real logic commented out
+- Contains `TODO(phase-N)` or `# Phase X: Implementation needed` deferral comments
+- Raises `NotImplementedError` as the entire body
+- Has no actual calls to external dependencies the feature requires
+
+**If you can't implement because of missing dependencies**, solve it properly:
+- Missing DI wiring → add the wiring (container, provider, injector)
+- Missing external credentials → use env vars, document in `.env.example`
+- Missing upstream service → mock ONLY in tests, implement the real path in production code
+
+**The test must validate real behavior, not test the stub:**
+```python
+# ❌ STUB TEST — tests nothing
+def test_polling_task():
+    result = poll_facebook_leads_task()
+    assert result["status"] == "pending"  # always passes, always useless
+
+# ✅ REAL TEST — tests actual behavior with mocked dependency
+async def test_polling_task_creates_lead(mock_graph_client, mock_lead_repo):
+    mock_graph_client.get_leads.return_value = [{"leadgen_id": "123", ...}]
+    result = await poll_facebook_leads_task(graph_client=mock_graph_client, ...)
+    assert result["leads_created"] == 1
+    mock_lead_repo.create.assert_called_once()
+```
+
+**If the only reason you'd create a stub is because "Phase N will implement this":**
+→ That's a planning problem, not a code problem. The task is IN scope NOW.
+→ Either implement it, or escalate to the user — do NOT silently defer.
 
 ### Phase 2: Test
 
@@ -297,6 +352,16 @@ If you estimate context usage > 75%:
 4. **Exit** — next agent can resume from task-progress.json
 
 To estimate: if your responses are getting shorter or you see "compaction" messages, you're near the limit.
+
+**CRITICAL — NO BATCH COMMITS:**
+Never commit multiple subtasks in a single commit to "save context". Each subtask MUST have:
+- Its own individual commit (`feat(phase-X): X.N: description`)
+- Its own checkpoint saved to task-progress.json
+- Its own `[ ]` → `[x]` update in todo.md
+
+If you batch-commit (e.g. "A1.13-A1.27 completed"), the checkpoint mechanism breaks — todo.md and task-progress.json won't reflect individual subtask completion, and `--continue` won't know where to resume from.
+
+When context is tight: commit and checkpoint the subtasks you DID complete, then exit. Do NOT rush-commit remaining work in a batch to avoid exiting.
 
 ---
 

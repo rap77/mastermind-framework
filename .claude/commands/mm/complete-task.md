@@ -26,7 +26,7 @@ When user executes `/mm:complete-task <task-id> [options]`:
 python3 .claude/commands/mm/complete-task-handler.py <task-id> [options]
 ```
 
-Run from `/home/rpadron/proy/mastermind`
+Run from the **project root** (auto-detected via `git rev-parse --show-toplevel`)
 
 ### Step 2: Parse Handler Output
 
@@ -47,8 +47,8 @@ Agent(
 ## Task Payload
 {parsed_payload_json}
 
-Working directory: /home/rpadron/proy/mastermind
-Stack: Next.js 16, React 19, Zustand, Tailwind 4
+Working directory: {payload.working_directory}
+Stack: {payload.stack}
 
 Execute the pending subtasks sequentially following the task-executor protocol.
 """,

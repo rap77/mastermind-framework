@@ -79,7 +79,7 @@ def get_todos_for_task(task_id: str) -> list[tuple[int, str, bool]]:
 
     # todo.md uses ### for task headers (triple hash, not double)
     # Boundary: next ### task header OR next ## phase header OR end of file
-    task_pattern = rf"(### {task_id}[^\n]*\n)(.*?)(?=\n### [A-Z]\d|\n## |\Z)"
+    task_pattern = rf"(### {re.escape(task_id)}[^\n]*\n)(.*?)(?=\n### |\n## |\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
     if not task_match:
@@ -421,7 +421,7 @@ def read_task_criteria(task_id: str) -> tuple[str, list[tuple[int, str, bool]]]:
     content = PLAN_MD.read_text()
 
     # plan.md uses ### for task headers
-    task_pattern = rf"(### {task_id}:.*?\n)(.*?)(?=### [A-Z]\d:|\Z)"
+    task_pattern = rf"(### {re.escape(task_id)}:.*?\n)(.*?)(?=### |\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
     if not task_match:
@@ -430,11 +430,13 @@ def read_task_criteria(task_id: str) -> tuple[str, list[tuple[int, str, bool]]]:
     title_line = task_match.group(1)
     task_content = task_match.group(2)
 
-    title_match = re.search(r"### [A-Z]\d+: (.*)", title_line)
+    title_match = re.search(r"### [\w][\w-]*: (.*)", title_line)
     title = title_match.group(1).strip() if title_match else "Unknown"
 
     # Find Acceptance section — criteria may have blank lines between them
-    acceptance_pattern = r"\*\*Acceptance:\*\*\n((?:\s*- \[[ x]\][^\n]*\n)*)"
+    acceptance_pattern = (
+        r"\*\*Acceptance(?: Criteria)?\*\*:?\n((?:\s*- \[[ x]\][^\n]*\n)*)"
+    )
     acceptance_match = re.search(acceptance_pattern, task_content)
 
     if not acceptance_match:
@@ -470,7 +472,7 @@ def mark_criteria(
 
     content = PLAN_MD.read_text()
 
-    task_pattern = rf"(### {task_id}:.*?\n)(.*?)(?=### [A-Z]\d:|\Z)"
+    task_pattern = rf"(### {re.escape(task_id)}:.*?\n)(.*?)(?=### |\Z)"
     task_match = re.search(task_pattern, content, re.DOTALL)
 
     if not task_match:
@@ -479,7 +481,9 @@ def mark_criteria(
     header = task_match.group(1)
     task_content = task_match.group(2)
 
-    acceptance_pattern = r"(\*\*Acceptance:\*\*\n)((?:\s*- \[[ x]\][^\n]*\n)*)"
+    acceptance_pattern = (
+        r"(\*\*Acceptance(?: Criteria)?\*\*:?\n)((?:\s*- \[[ x]\][^\n]*\n)*)"
+    )
     acceptance_match = re.search(acceptance_pattern, task_content)
 
     if not acceptance_match:

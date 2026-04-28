@@ -34,7 +34,7 @@ You ALWAYS receive the diff explicitly in the prompt. Do NOT run `git diff` to d
   "lines_deleted": 45,
   "task_id": "D2",
   "subtask_id": "D2.1",
-  "working_directory": "/home/rpadron/proy/mastermind"
+  "working_directory": "/path/to/project"
 }
 ```
 
@@ -44,6 +44,56 @@ git diff HEAD --stat
 git diff HEAD
 ```
 and use that. But this should not happen when called from task-executor.
+
+---
+
+## Pre-Review: Stub Detection (runs BEFORE 5-axis review)
+
+**This check is MANDATORY and BLOCKING. Run it on the diff before anything else.**
+
+Scan the diff for these patterns:
+
+```python
+STUB_PATTERNS = [
+    # Hardcoded non-functional return values
+    r'return\s+["\']pending["\']',
+    r'return\s+["\']not_implemented["\']',
+    r'return\s+\{\s*\}',          # return {}
+    r'raise\s+NotImplementedError',
+
+    # Deferred implementation comments
+    r'TODO\s*\(phase-\d+\)',
+    r'TODO\s*\(Phase\s+\d+\)',
+    r'Phase\s+\d+\s*[:\-]\s*Implementation\s+[Nn]eeded',
+    r'Full\s+implementation\s+deferred',
+    r'Deferred\s+to\s+Phase',
+
+    # All logic commented out (>3 consecutive commented lines inside a function)
+    # Check manually if function body is mostly comments
+]
+```
+
+**If ANY pattern is found:**
+1. Flag as **CRITICAL — STUB IMPLEMENTATION** under Axis 1 (Correctness)
+2. Report the exact line(s) where stub patterns appear
+3. Set Overall Assessment to **FAIL** immediately
+4. Do NOT proceed to other axes — the stub must be fixed first
+
+**Format:**
+```
+🔴 CRITICAL (Axis 1 — Correctness): STUB IMPLEMENTATION DETECTED
+   Line 47: return {"status": "pending", ...}
+   Line 12: # TODO(phase-3): Wire DI container
+   Line 67: # Phase 3: Actual implementation here
+
+   This subtask delivered a non-functional placeholder instead of the required feature.
+   The task-executor must implement the real functionality before this review can proceed.
+
+   Overall Assessment: FAIL — resubmit after stub is removed
+```
+
+**Why this is CRITICAL and not WARNING:**
+A stub that passes tests is worse than no implementation — it creates false confidence, corrupts the acceptance criteria state, and defers debt invisibly. Tests that test a stub are not tests.
 
 ---
 
@@ -643,12 +693,14 @@ DEAD CODE IDENTIFIED:
 
 Review should flag these:
 
+- 🔴 **STUB IMPLEMENTATIONS** — functions that return `"pending"`, raise `NotImplementedError`, or have real logic commented out with `TODO(phase-N)` deferral. These are the highest priority flag — see Pre-Review section above.
 - 🔴 Security-sensitive changes without security review
 - 🔴 No regression tests with bug fixes
 - 🔴 Large PRs "too big to review properly" (suggest splitting)
 - 🔴 Code that "works" but is unreadable
 - 🔴 Missing error handling on critical paths
 - 🔴 Hardcoded secrets or API keys
+- 🔴 Tests that only verify stub behavior (assert result == "pending") — these are not real tests
 
 ---
 

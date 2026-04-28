@@ -119,7 +119,7 @@ When user executes `/mm:discover [options]`:
 python3 .claude/commands/mm/discover-handler.py [options]
 ```
 
-Run from `/home/rpadron/proy/mastermind`
+Run from the **project root** (auto-detected via `git rev-parse --show-toplevel`)
 
 ### Step 2: Parse Handler Output
 
@@ -138,7 +138,7 @@ Agent(
 ## Discovery Payload
 {parsed_payload_json}
 
-Working directory: /home/rpadron/proy/mastermind
+Working directory: {payload.working_directory}
 
 Execute the discovery process following the agent protocol.
 """,

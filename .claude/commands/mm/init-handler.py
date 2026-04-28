@@ -139,17 +139,44 @@ def check_provider_available(db: Optional[MasterMindDB]) -> bool:
 
 
 COMMANDS_WHITELIST = {
+    # Core workflow
     "init.md",
     "discover.md",
+    "discovery.md",
     "complete-task.md",
     "execute-milestone.md",
+    "execute-prp.md",
+    "verify-criteria.md",
+    # Brain consultation
+    "ask-all.md",
+    "ask-product.md",
+    "ask-ux.md",
+    "ask-design.md",
+    "ask-frontend.md",
+    "ask-backend.md",
+    "ask-qa.md",
+    "ask-growth.md",
+    "ask-ui-docs.md",
+    # Planning & ideation
+    "propose.md",
+    "improve-prompt.md",
+    "explore-first.md",
+    "lite-prd-generator.md",
+    "prd-clarifier.md",
+    "generate-prp.md",
+    "ux-spec-to-prompt.md",
+    # Quality & shipping
     "review.md",
+    "audit.md",
+    "project-health-check.md",
+    "safe-commit.md",
     "ship.md",
 }
 SKILLS_WHITELIST = {
     "brain-context",
     "brain-persistence",
     "discover",
+    "mastermind-consultant",
     "safe-commit",
     "review",
     "ship",
@@ -167,6 +194,7 @@ AGENTS_WHITELIST = {
     "task-executor",
     "milestone-executor",
     "code-reviewer",
+    "ship-executor",
 }
 
 
@@ -260,6 +288,7 @@ def copy_commands(src_root: Path, dest: Path) -> None:
         if item.is_file() and (
             item.name in COMMANDS_WHITELIST
             or item.name.endswith("-handler.py")
+            or item.name.endswith("_handler.py")
             or item.name in ("db_client.py", "db_write.py")
         ):
             shutil.copy2(item, dest_commands / item.name)
@@ -313,7 +342,9 @@ def copy_agents(src_root: Path, dest: Path) -> None:
     """
     src_agents = src_root / ".claude" / "agents" / "mm"
     dest_agents = dest / ".claude" / "agents" / "mm"
+    dest_agents.mkdir(parents=True, exist_ok=True)
 
+    # Copy agent directories
     for agent_name in AGENTS_WHITELIST:
         src_agent = src_agents / agent_name
         if src_agent.exists():
@@ -322,6 +353,11 @@ def copy_agents(src_root: Path, dest: Path) -> None:
                 _replace_directory_atomic(src_agent, dest_agent)
             else:
                 shutil.copytree(src_agent, dest_agent)
+
+    # Copy loose .md files at the agents/mm/ root (e.g. global-protocol.md)
+    for item in src_agents.iterdir():
+        if item.is_file() and item.suffix == ".md":
+            shutil.copy2(item, dest_agents / item.name)
 
 
 def _sanitize_yaml_string(value: str) -> str:

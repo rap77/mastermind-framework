@@ -165,6 +165,71 @@ def mm_error(msg: str) -> None:
     print(f"ERROR: {msg}", flush=True, file=sys.stderr)
 
 
+def get_previous_task_id(task_id: str) -> str | None:
+    """Return the task ID that precedes task_id in plan.md, or None if first."""
+    if not PLAN_MD.exists():
+        return None
+    content = PLAN_MD.read_text()
+    task_ids = re.findall(r"^### ([\w][\w-]*):", content, re.MULTILINE)
+    # Remove checkpoint/summary headers (keep only real task IDs)
+    task_ids = [t for t in task_ids if not t.lower().startswith("checkpoint")]
+    try:
+        idx = task_ids.index(task_id)
+        return task_ids[idx - 1] if idx > 0 else None
+    except ValueError:
+        return None
+
+
+def check_previous_criteria_complete(task_id: str) -> bool:
+    """Block task start if the previous task has unverified acceptance criteria.
+
+    Returns True if OK to proceed, False if blocked.
+    """
+    prev_id = get_previous_task_id(task_id)
+    if not prev_id:
+        return True  # First task — no previous to check
+
+    content = PLAN_MD.read_text()
+    pattern = rf"### {re.escape(prev_id)}.*?\*\*Acceptance(?: Criteria)?\*\*:?\n(.*?)(?=\n###|\n---|\Z)"
+    m = re.search(pattern, content, re.DOTALL)
+    if not m:
+        return True  # No criteria section found — don't block
+
+    criteria_block = m.group(1)
+    pending = criteria_block.count("- [ ]")
+    total = pending + criteria_block.count("- [x]")
+
+    if pending > 0:
+        mm_error(
+            f"❌ BLOCKED: Task {prev_id} has {pending}/{total} unverified acceptance criteria"
+        )
+        mm_error(f"   Complete them first: /mm:verify-criteria {prev_id} --all")
+        mm_error(f"   Or auto-check: /mm:verify-criteria {prev_id} --verify")
+        return False
+
+    return True
+
+
+def run_criteria_verification(task_id: str) -> None:
+    """Run verify-criteria-handler.py after task completion."""
+    handler = PROJECT_ROOT / ".claude/commands/mm/verify-criteria-handler.py"
+    if not handler.exists():
+        mm_info("NOTE: Use /mm:verify-criteria to mark acceptance criteria in plan.md")
+        return
+
+    mm_info("=" * 60)
+    mm_info("Running acceptance criteria verification...")
+    mm_info("=" * 60)
+    result = subprocess.run(
+        ["python3", str(handler), task_id, "--verify"],
+        cwd=PROJECT_ROOT,
+        capture_output=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        mm_info("Criteria verification completed with warnings — check output above")
+
+
 # ============================================================================
 # Git Detection - Improved with git log --grep
 # ============================================================================
@@ -207,16 +272,16 @@ def get_git_commits_for_task(task_id: str) -> set[str]:
 
 
 def read_task_from_plan(task_id: str) -> dict[str, str]:
-    """Read task details from plan.md.
+    """Read task details from plan.md, with fallback to todo.md.
 
     Args:
-        task_id: Task identifier (e.g., "D1").
+        task_id: Task identifier (e.g., "D1", "13-01").
 
     Returns:
         Dictionary with "id" and "title" keys.
 
     Raises:
-        ValueError: If task_id not found in plan.md.
+        ValueError: If task_id not found in plan.md or todo.md.
         FileNotFoundError: If plan.md doesn't exist.
         OSError: If file cannot be read.
     """
@@ -227,14 +292,22 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
     except OSError as e:
         raise OSError(f"Failed to read plan.md: {e}")
 
-    pattern = rf"### {task_id}:([^\n]+)\n(.*?)(?=\n### |\Z)"
+    pattern = rf"### {re.escape(task_id)}:([^\n]+)\n(.*?)(?=\n### |\Z)"
     match = re.search(pattern, content, re.DOTALL)
 
-    if not match:
-        raise ValueError(f"Task {task_id} not found in plan.md")
+    if match:
+        return {"id": task_id, "title": match.group(1).strip()}
 
-    title = match.group(1).strip()
-    return {"id": task_id, "title": title}
+    # Fallback: read title from todo.md (supports phase-style IDs like "13-01")
+    try:
+        todo_content = TODO_MD.read_text()
+        todo_match = re.search(rf"### {re.escape(task_id)}:([^\n]+)", todo_content)
+        if todo_match:
+            return {"id": task_id, "title": todo_match.group(1).strip()}
+    except OSError:
+        pass
+
+    raise ValueError(f"Task {task_id} not found in plan.md or todo.md")
 
 
 def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
@@ -492,6 +565,10 @@ def start_task(task_id: str) -> None:
     """
     mm_info(f"Starting task {task_id}")
 
+    # Gate: previous task must have all acceptance criteria verified
+    if not check_previous_criteria_complete(task_id):
+        return
+
     # Read task and subtasks
     task = read_task_from_plan(task_id)
     subtasks = read_subtasks_from_todo(task_id)
@@ -513,6 +590,7 @@ def start_task(task_id: str) -> None:
     if git_completed == expected_ids:
         mm_status("TASK COMPLETE - all subtasks have git commits")
         mark_all_complete(task_id, subtasks)
+        run_criteria_verification(task_id)
         return
 
     # Filter pending subtasks
@@ -523,6 +601,7 @@ def start_task(task_id: str) -> None:
     if not pending_subtasks:
         mm_status("TASK COMPLETE - marking done")
         mark_all_complete(task_id, subtasks)
+        run_criteria_verification(task_id)
         return
 
     mm_pending(len(pending_subtasks))
@@ -563,6 +642,10 @@ def resume_task(task_id: str) -> None:
     """
     mm_info(f"Resuming task {task_id}")
 
+    # Gate: previous task must have all acceptance criteria verified
+    if not check_previous_criteria_complete(task_id):
+        return
+
     if not RUNTIME_STATE_PATH.exists():
         mm_error("No runtime state found. Run without --continue first.")
         mm_info(f"Starting fresh task {task_id}")
@@ -593,6 +676,7 @@ def resume_task(task_id: str) -> None:
     # Check if task is actually complete
     if not pending:
         mm_status("TASK COMPLETE - all subtasks completed in runtime state")
+        run_criteria_verification(task_id)
         return
 
     mm_pending(len(pending))

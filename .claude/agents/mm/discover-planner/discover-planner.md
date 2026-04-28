@@ -919,7 +919,7 @@ When complete, report:
 
 ## Notes
 
-- **Working Directory:** `/home/rpadron/proy/mastermind` (or project root)
+- **Working Directory:** project root (auto-detected via `git rev-parse --show-toplevel`)
 - **Brain Integration:** Uses NotebookLM MCP server
 - **Memory Integration:** Uses Engram MCP server
 - **Background Mode:** Agent runs in background to not block main session

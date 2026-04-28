@@ -31,7 +31,7 @@ When user executes `/mm:execute-milestone <description> [options]`:
 python3 .claude/commands/mm/execute-milestone-handler.py <description> [options]
 ```
 
-Run from `/home/rpadron/proy/mastermind`
+Run from the **project root** (auto-detected via `git rev-parse --show-toplevel`)
 
 ### Step 2: Parse Handler Output
 

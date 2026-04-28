@@ -279,14 +279,14 @@ GIT HISTORY (skip already-implemented tasks):
 ${payload.project_context.git_log}
 
 Generate tasks/plan.md with:
-- Vertical slicing principle: each task delivers ONE complete user-facing feature
+- Vertical slicing principle: each task delivers ONE complete user-facing feature end-to-end
 - Dependency graph between tasks
 - For each task:
   - ID (A1, A2, B1, etc. — letter = phase, number = task)
-  - Title (verb + noun, e.g., "Implement user authentication endpoint")
+  - Title (verb + noun, e.g., "Implement lead capture flow")
   - Description (what to build, not how)
-  - Subtasks (2-5 concrete implementation steps)
-  - Acceptance criteria (testable, specific)
+  - Subtasks (2-5 concrete implementation steps spanning all layers needed)
+  - Acceptance criteria (testable, specific, end-to-end)
   - Dependencies (which tasks must complete first)
 
 Generate tasks/todo.md with:
@@ -295,7 +295,24 @@ Generate tasks/todo.md with:
 - Match structure of plan.md exactly (same task IDs)
 
 CRITICAL: Mark tasks already completed in git history as [x] in todo.md.
-CRITICAL: Vertical slices — no horizontal layers (no "set up database" task alone).
+
+CRITICAL — VERTICAL SLICING ENFORCEMENT:
+Each task MUST deliver a complete user-facing feature. This means backend + frontend + tests IN THE SAME TASK when they belong to the same feature.
+
+❌ NEVER generate tasks split by technical layer:
+  - A1: Lead domain model
+  - A2: Lead repository
+  - A3: Lead API endpoints
+  - A4: Lead frontend list
+  - A5: Lead frontend form
+
+✅ ALWAYS generate tasks split by user-facing feature:
+  - A1: Lead Capture (Facebook webhook + domain + repo + API + frontend form + E2E)
+  - A2: Lead Pipeline Management (status machine + assignment API + frontend list + filters + E2E)
+  - A3: Appointment Scheduling (domain + repo + API + SendGrid + frontend form + E2E)
+
+The test: can a user test this feature end-to-end after this task alone? If NO → wrong slice.
+Exception: if backend for a feature was already built in a previous phase, frontend-only tasks are valid.
 `)
 ```
 
@@ -324,6 +341,7 @@ Update tasks/todo.md to add new unchecked items for the new tasks.
 CRITICAL: Do NOT re-add tasks that already have git commits.
 CRITICAL: Do NOT modify existing task IDs or content — only append.
 CRITICAL: Use the next available task ID letter (e.g., if A-D exist, start at E).
+CRITICAL: Apply vertical slicing to ALL new tasks — each new task must be a complete user-facing feature (backend + frontend + tests together). Never split by technical layer.
 `)
 ```
 
