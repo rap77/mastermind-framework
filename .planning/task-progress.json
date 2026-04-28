@@ -1,0 +1,56 @@
+{
+  "task_id": "A2",
+  "session_id": "sess-20260428-191048",
+  "started_at": "2026-04-28T19:10:48.224697",
+  "subtasks": {
+    "A2.1": {
+      "description": "Frontend: verificar que `pnpm test` (vitest) está configurado en `apps/web/package.json`",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:11:00.000000",
+      "commit_sha": "d8f30658"
+    },
+    "A2.2": {
+      "description": "Frontend: ejecutar `pnpm test --reporter=verbose` desde `apps/web/`",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:12:00.000000",
+      "commit_sha": "d8f30658",
+      "notes": "849 passed, 0 failed, 88 test files"
+    },
+    "A2.3": {
+      "description": "Frontend: registrar resultado en `tasks/tech-debt.md` (N passed, M failed)",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:14:00.000000",
+      "commit_sha": "d8f30658"
+    },
+    "A2.4": {
+      "description": "Frontend: por cada test fallando, categorizar: pre-existing / regresión / arreglable",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:14:00.000000",
+      "commit_sha": "d8f30658",
+      "notes": "No failing tests — all 849 pass"
+    },
+    "A2.5": {
+      "description": "Frontend: arreglar tests arreglables (< 2h cada uno)",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:14:00.000000",
+      "commit_sha": "d8f30658",
+      "notes": "N/A — no failing tests"
+    },
+    "A2.6": {
+      "description": "Frontend: marcar tests no arreglables con `it.skip(\"reason: ...\")` y documentar en tech-debt.md",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:14:00.000000",
+      "commit_sha": "d8f30658",
+      "notes": "N/A — no tests to skip"
+    },
+    "A2.7": {
+      "description": "Verify: `pnpm test` corre sin error fatal (aunque haya failures documentadas)",
+      "status": "completed",
+      "completed_at": "2026-04-28T19:15:00.000000",
+      "commit_sha": "d8f30658",
+      "notes": "pnpm test exits 0 — 88 files, 849 tests, 0 fatal errors"
+    }
+  },
+  "last_checkpoint": "A2.7",
+  "context_budget_exit": null
+}

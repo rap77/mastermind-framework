@@ -20,13 +20,13 @@
 - [ ] Verify: `GET /api/brains` retorna data real desde PostgreSQL
 
 ### A2: Frontend Test Verification
-- [ ] Frontend: verificar que `pnpm test` (vitest) está configurado en `apps/web/package.json`
-- [ ] Frontend: ejecutar `pnpm test --reporter=verbose` desde `apps/web/`
-- [ ] Frontend: registrar resultado en `tasks/tech-debt.md` (N passed, M failed)
-- [ ] Frontend: por cada test fallando, categorizar: pre-existing / regresión / arreglable
-- [ ] Frontend: arreglar tests arreglables (< 2h cada uno)
-- [ ] Frontend: marcar tests no arreglables con `it.skip("reason: ...")` y documentar en tech-debt.md
-- [ ] Verify: `pnpm test` corre sin error fatal (aunque haya failures documentadas)
+- [x] Frontend: verificar que `pnpm test` (vitest) está configurado en `apps/web/package.json`
+- [x] Frontend: ejecutar `pnpm test --reporter=verbose` desde `apps/web/`
+- [x] Frontend: registrar resultado en `tasks/tech-debt.md` (N passed, M failed)
+- [x] Frontend: por cada test fallando, categorizar: pre-existing / regresión / arreglable
+- [x] Frontend: arreglar tests arreglables (< 2h cada uno)
+- [x] Frontend: marcar tests no arreglables con `it.skip("reason: ...")` y documentar en tech-debt.md
+- [x] Verify: `pnpm test` corre sin error fatal (aunque haya failures documentadas)
 
 ---
 
@@ -88,31 +88,67 @@
 - [ ] Tests: unit test — `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)
 - [ ] Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql
 
-### C2: Dynamic Dispatch + Model Profiles
-- [ ] Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget por rol)
-- [ ] Python: `DynamicDispatchEngine` lee model profile del contexto y lo asigna al brain
-- [ ] Python: dispatch result incluye `model` field
-- [ ] Python: WS event `BrainStateEvent` incluye `model` field
+### C2: Dynamic Dispatch + Model Profiles (Provider-Agnostic)
+
+**Model profiles**
+- [ ] Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget) con formato `provider:model_id` — ej: `anthropic:claude-opus-4-6`, `openrouter:anthropic/claude-opus-4`, `z_ai:claude-3-7-sonnet`
+- [ ] Python: agregar sección `providers` a `config.yml` con env vars de cada proveedor (ANTHROPIC_API_KEY, OPENROUTER_API_KEY, ZAI_API_KEY, base_url por proveedor)
+- [ ] Python: `DynamicDispatchEngine` lee model profile del contexto y lo asigna al brain usando el proveedor configurado — NO hardcoded a Anthropic
+- [ ] Python: dispatch result incluye `model` field con formato `provider:model_id`
+- [ ] Python: WS event `BrainStateEvent` incluye `model` y `provider` fields
 - [ ] Frontend: implementar dropdown de model profile en Command Center (quality/balanced/budget)
 - [ ] Frontend: perfil elegido se envía en request body al despachar
-- [ ] Frontend: `BrainStatusFeed` muestra el modelo de cada brain ejecutándose
-- [ ] Tests: unit test — `dispatch(context, profile="quality")` → brain usa `model_quality` del registry
+- [ ] Frontend: `BrainStatusFeed` muestra el modelo + proveedor de cada brain ejecutándose
+- [ ] Tests: unit test — `dispatch(context, profile="quality")` → brain usa `model_quality` del registry con su `provider`
 - [ ] Tests: frontend test — cambiar dropdown → Zustand store actualiza → request incluye profile
-- [ ] Verify: cambiar a "budget" en UI → ejecutar brain → WS event muestra `"model": "claude-haiku-*"`
+- [ ] Verify: cambiar a "budget" en UI → ejecutar brain → WS event muestra `"model": "z_ai:claude-3-7-sonnet"` (no hardcoded Anthropic)
 
-### C3: Brain #7 Post-Session Hook
+**Auto-switch de backend por agotamiento de tokens**
+- [ ] JS: `mm-flow-context-monitor.js` — mover `BACKEND_LIMITS` a `.planning/.mm-flow/config.yml` (leer en runtime, no hardcoded)
+- [ ] JS: al llegar al umbral crítico (95%) → escribir `.planning/BACKEND-SWITCH-REQUIRED.json` con `{current_backend, next_backend, reason: "token_depletion", timestamp}`
+- [ ] Python: `complete-task-handler.py` al inicio lee `.planning/BACKEND-SWITCH-REQUIRED.json` — si existe: actualiza `ACTIVE_BACKEND` al próximo de la prioridad (`z_ai → openrouter → claude`), borra el archivo signal
+- [ ] Python: `complete-task-handler.py` escribe `.planning/ACTIVE-BACKEND.json` con el backend activo — fuente de verdad para el hook JS y el handler
+- [ ] JS: `mm-flow-context-monitor.js` lee `ACTIVE-BACKEND.json` para saber cuál backend trackear (no hardcoded)
+- [ ] JS: `mm-flow-statusline.js` muestra el proveedor activo en la statusline cuando hay switch activo — ej: `│ v3.1 Task A1 [3/9] │ ⚡ openrouter`
+- [ ] Tests: simular 95% de tokens en mock → verify `BACKEND-SWITCH-REQUIRED.json` creado con next_backend correcto
+- [ ] Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
+- [ ] Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
+
+### C3: Learning + Audit Pipeline
+*Antes: "Brain #7 Post-Session Hook" — expandido para cubrir el flujo completo de aprendizaje*
+
+**Brain #7 quality scoring (brain sessions)**
 - [ ] Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
 - [ ] Python: implementar hook que llama Brain #7 con output del brain ejecutado
 - [ ] Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)
-- [ ] Python: llamar `ExperienceLogger.log_execution()` con output + quality_score
+- [ ] Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qué modelo ejecutó)
 - [ ] Python: flag `high_value` en custom_metadata si duración > 5min o score significativo
 - [ ] Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score
 - [ ] Frontend: escuchar WS event `session_evaluated`
 - [ ] Frontend: badge en Command Center: "Última sesión: score 0.87"
 - [ ] Tests: unit test — mock Brain #7 → verify `ExperienceLogger.log_execution()` llamado con quality_score
-- [ ] Tests: integration test — complete session → `SELECT quality_score FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL
+- [ ] Tests: integration test — complete session → `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL
 - [ ] Tests: frontend test — WS event `session_evaluated` → badge actualiza
 - [ ] Verify: ejecutar cualquier brain → `uv run python -c "from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))"` retorna record con quality_score
+
+**Task Execution Audit (flujo /mm:complete-task)**
+- [ ] Python: `complete-task-handler.py` al inicio de tarea → INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)
+- [ ] Python: `complete-task-handler.py` al fin de tarea → UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at
+- [ ] Python: `task-executor` — por cada error de subtask → INSERT en `decisions` (decision_type="error_resolution", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)
+- [ ] Python: `task-executor` — al inicio de cada subtask → `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto
+- [ ] Python: `task-executor` — al completar subtask con éxito → `brain_memory.py log` guardando qué funcionó (input=problema, output=solución, status=success)
+- [ ] Tests: integration test — ejecutar task A1 → `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated
+- [ ] Tests: unit test — simular error en subtask → verify INSERT en `decisions` con decision_type="error_resolution"
+- [ ] Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 después de primer `/mm:complete-task`
+
+**Métricas de ejecución**
+- [ ] Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duración real vs estimada)
+- [ ] Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) — cuántas veces task-executor salió al 75% y necesitó `--continue`
+- [ ] Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) — desglose `{"anthropic:claude-sonnet-4-6": N, "openrouter:claude-opus": N}` acumulado de `BACKEND-USAGE.json` — agnóstico al proveedor
+- [ ] Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) — si el commit pasó GGA en el primer intento
+- [ ] Python: `decisions` con `decision_type="error_pattern"` cuando el mismo root_cause aparece ≥ 2 veces — flag automático de deuda técnica recurrente
+- [ ] Tests: unit test — dos errores con mismo root_cause → verify segundo INSERT tiene decision_type="error_pattern"
+- [ ] Verify: después de 3 tasks ejecutadas → `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend
 
 ---
 
@@ -151,5 +187,5 @@
 |------|--------|---------------|------------|
 | A — Foundation | Pendiente | 0/2 | 0/12 |
 | B — Observability | Pendiente (bloquea A) | 0/3 | 0/10 |
-| C — Orchestration | Pendiente (bloquea A+B) | 0/3 | 0/15 |
+| C — Orchestration | Pendiente (bloquea A+B) | 0/3 | 0/40 |
 | D — UI Evolution | Pendiente (bloquea B+C) | 0/2 | 0/9 |
