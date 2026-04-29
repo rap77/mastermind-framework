@@ -37,6 +37,8 @@ hex = "0.4"
 
 [dev-dependencies]
 sqlx-cli = "0.8"
+tower = { version = "0.4", features = ["util"] }
+axum-test = "15"
 
 [build-dependencies]
 tonic-build = "0.11"

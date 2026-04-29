@@ -13,8 +13,10 @@ import os
 from typing import Any, Optional
 
 import grpc
+import grpc.aio
 import structlog
 
+from mastermind_cli.observability.trace_context import TraceIdInterceptor
 from mastermind.worker.worker_pb2 import (
     ProcessWebhookRequest,
     ProcessWebhookResponse,
@@ -177,8 +179,8 @@ async def start_grpc_server(
     host = host or os.getenv("GRPC_SERVER_HOST", "127.0.0.1")
     port = port or int(os.getenv("GRPC_SERVER_PORT", "50051"))
 
-    # Create gRPC server (grpc.aio)
-    server = grpc.aio.server()
+    # Create gRPC server (grpc.aio) with trace interceptor (B1.7)
+    server = grpc.aio.server(interceptors=[TraceIdInterceptor()])
     add_WorkerServicer_to_server(WorkerService(), server)
 
     # Add port and start listening

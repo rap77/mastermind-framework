@@ -3,11 +3,18 @@
 import structlog
 from typing import Any
 
+from mastermind_cli.observability.trace_context import add_trace_id
+
 
 def configure_logging() -> None:
-    """Configure structlog with JSON output for production logging."""
+    """Configure structlog with JSON output for production logging.
+
+    Registers the ``add_trace_id`` processor so every log call automatically
+    includes the ``trace_id`` from the current async context (ContextVar).
+    """
     structlog.configure(
         processors=[
+            add_trace_id,  # B1.8: auto-inject trace_id from ContextVar
             structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,
             structlog.processors.TimeStamper(fmt="iso"),

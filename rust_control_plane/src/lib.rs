@@ -4,6 +4,7 @@ pub mod auth;
 pub mod state;
 pub mod sqlite_reader;
 pub mod event_sourcing;
+pub mod tracing;
 pub mod websocket;
 pub mod metrics;
 pub mod queue;
