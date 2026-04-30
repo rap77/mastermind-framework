@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use chrono::Utc;
 use crate::websocket::ghost_mode::{GhostModeBuffer, StoredEvent, BrainEventType};
+use crate::websocket::brain_state_event::BrainStateEvent;
 
 const MAX_CONNECTIONS: usize = 2000; // Brain #7 Condition #3
 const CHANNEL_BUFFER: usize = 256;    // Brain #7 Condition #2
@@ -62,6 +63,9 @@ pub struct SystemEvent {
 pub struct WebSocketHub {
     connections: Arc<DashMap<UserId, mpsc::Sender<ClientMessage>>>,
     global_events: broadcast::Sender<SystemEvent>,
+    /// Dedicated broadcast channel for `BrainStateEvent` fan-out.
+    /// Capacity 256 per B2.2 spec — lagged receivers are warned, not dropped.
+    brain_events: broadcast::Sender<BrainStateEvent>,
     active_count: Arc<Mutex<usize>>,
     ghost_buffer: Arc<GhostModeBuffer>,
 }
@@ -69,11 +73,33 @@ pub struct WebSocketHub {
 impl WebSocketHub {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(1000);
+        let (brain_tx, _) = broadcast::channel(CHANNEL_BUFFER);
         Self {
             connections: Arc::new(DashMap::new()),
             global_events: tx,
+            brain_events: brain_tx,
             active_count: Arc::new(Mutex::new(0)),
             ghost_buffer: Arc::new(GhostModeBuffer::new()),
+        }
+    }
+
+    /// Subscribe to `BrainStateEvent` broadcasts.
+    ///
+    /// Returns a `broadcast::Receiver` — each caller gets every event.
+    /// If the receiver lags by more than 256 messages it receives
+    /// `RecvError::Lagged` (not a disconnect).
+    pub fn subscribe_brain_events(&self) -> broadcast::Receiver<BrainStateEvent> {
+        self.brain_events.subscribe()
+    }
+
+    /// Publish a `BrainStateEvent` to all subscribers.
+    ///
+    /// Returns the number of active receivers that received the event.
+    /// Returns 0 when no one is subscribed — this is not an error.
+    pub fn publish_brain_event(&self, event: BrainStateEvent) -> usize {
+        match self.brain_events.send(event) {
+            Ok(n) => n,
+            Err(_) => 0, // No receivers — not an error condition
         }
     }
 

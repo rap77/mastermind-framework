@@ -10,6 +10,7 @@ from __future__ import annotations
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from pydantic import ValidationError
 
@@ -20,6 +21,28 @@ from mastermind_cli.mm_flow.dispatch_engine import (
     DispatchResult,
     DynamicDispatchEngine,
 )
+
+
+# ---------------------------------------------------------------------------
+# Shared mock for httpx so unit tests never hit the network
+# ---------------------------------------------------------------------------
+
+
+def _mock_httpx_response(status_code: int = 204) -> MagicMock:
+    """Return a fake httpx Response."""
+    resp = MagicMock(spec=httpx.Response)
+    resp.status_code = status_code
+    return resp
+
+
+def _mock_httpx_client(status_code: int = 204) -> MagicMock:
+    """Return a mock httpx.AsyncClient context manager."""
+    client = AsyncMock()
+    client.post = AsyncMock(return_value=_mock_httpx_response(status_code))
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=client)
+    cm.__aexit__ = AsyncMock(return_value=None)
+    return cm
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +174,10 @@ class TestDynamicDispatchEngineDiscussion:
         barrier_rows = [_make_brain_row(7, "growth-evaluator", "quality", True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "DISCUSSION")
 
@@ -167,7 +193,10 @@ class TestDynamicDispatchEngineDiscussion:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "DISCUSSION")
 
@@ -180,7 +209,10 @@ class TestDynamicDispatchEngineDiscussion:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "DISCUSSION")
 
@@ -193,7 +225,10 @@ class TestDynamicDispatchEngineDiscussion:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "DISCUSSION")
 
@@ -205,7 +240,10 @@ class TestDynamicDispatchEngineDiscussion:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "DISCUSSION")
 
@@ -223,7 +261,10 @@ class TestDynamicDispatchEnginePlanning:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "PLANNING")
 
@@ -236,7 +277,10 @@ class TestDynamicDispatchEnginePlanning:
         barrier_rows = [_make_brain_row(7, is_barrier=True)]
         conn = _make_conn(parallel_rows, barrier_rows)
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "PLANNING")
 
@@ -252,7 +296,10 @@ class TestDynamicDispatchEngineExecutionWave:
         brain7_rows = [_make_brain_row(7, is_barrier=False)]
         conn = _make_conn(brain7_rows, [])  # no barrier rows
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "EXECUTION_WAVE")
 
@@ -269,7 +316,10 @@ class TestDynamicDispatchEngineVerification:
         brain7_rows = [_make_brain_row(7)]
         conn = _make_conn(brain7_rows, [])
 
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
             engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
             result = await engine.dispatch(19, "VERIFICATION")
 
@@ -323,3 +373,127 @@ class TestBudgetExceededError:
         """BudgetExceededError can be raised and caught normally."""
         with pytest.raises(BudgetExceededError, match="budget"):
             raise BudgetExceededError("budget exceeded")
+
+
+# ---------------------------------------------------------------------------
+# B2.5 / B2.6: Brain event notification (POST to Rust hub)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestBrainEventNotification:
+    """B2.5/B2.6: dispatch() posts brain lifecycle events to the Rust hub."""
+
+    async def test_dispatch_posts_dispatched_events(self) -> None:
+        """dispatch() sends a 'dispatched' POST for each brain selected (B2.5)."""
+        parallel_rows = [_make_brain_row(1), _make_brain_row(2), _make_brain_row(3)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=_mock_httpx_response(204))
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_client)
+        cm.__aexit__ = AsyncMock(return_value=None)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=cm),
+        ):
+            engine = DynamicDispatchEngine(
+                postgres_url="postgresql://fake/db",
+                rust_hub_url="http://rust-test:8002",
+            )
+            trace = "trace-b25-test"
+            await engine.dispatch(19, "DISCUSSION", trace_id=trace)
+
+        # 4 brains total (1,2,3 parallel + 7 barrier) × 2 calls (dispatched + completed)
+        assert mock_client.post.call_count == 8
+
+        # Verify dispatched events were sent first (first 4 calls)
+        dispatched_calls = mock_client.post.call_args_list[:4]
+        for call in dispatched_calls:
+            payload = (
+                call.kwargs.get("json") or call.args[1]
+                if len(call.args) > 1
+                else call.kwargs["json"]
+            )
+            assert payload["trace_id"] == trace
+            assert payload["status"] == "dispatched"
+
+    async def test_dispatch_posts_completed_events(self) -> None:
+        """dispatch() sends a 'completed' POST for each brain after dispatch (B2.6)."""
+        parallel_rows = [_make_brain_row(4), _make_brain_row(5)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=_mock_httpx_response(204))
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_client)
+        cm.__aexit__ = AsyncMock(return_value=None)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=cm),
+        ):
+            engine = DynamicDispatchEngine(
+                postgres_url="postgresql://fake/db",
+                rust_hub_url="http://rust-test:8002",
+            )
+            await engine.dispatch(19, "PLANNING", trace_id="trace-b26")
+
+        # 3 brains × 2 calls = 6 total
+        assert mock_client.post.call_count == 6
+
+        # Last 3 calls should be 'completed'
+        completed_calls = mock_client.post.call_args_list[3:]
+        for call in completed_calls:
+            payload = call.kwargs.get("json") or call.kwargs["json"]
+            assert payload["status"] == "completed"
+
+    async def test_hub_failure_does_not_break_dispatch(self) -> None:
+        """B2.5/B2.6: hub POST errors are fire-and-forget — dispatch still returns."""
+        parallel_rows = [_make_brain_row(1)]
+        barrier_rows = []
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("refused"))
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_client)
+        cm.__aexit__ = AsyncMock(return_value=None)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=cm),
+        ):
+            engine = DynamicDispatchEngine(
+                postgres_url="postgresql://fake/db",
+                rust_hub_url="http://unreachable:9999",
+            )
+            # Must not raise even though the hub is unreachable
+            result = await engine.dispatch(19, "DISCUSSION", trace_id="trace-fail")
+
+        # dispatch still returns a valid result
+        assert isinstance(result, DispatchResult)
+        assert [b.brain_id for b in result.parallel] == [1]
+
+    async def test_post_brain_event_uses_rust_hub_url(self) -> None:
+        """_post_brain_event targets the rust_hub_url constructor parameter."""
+        engine = DynamicDispatchEngine(
+            postgres_url="postgresql://fake/db",
+            rust_hub_url="http://custom-host:9999",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=_mock_httpx_response(204))
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_client)
+        cm.__aexit__ = AsyncMock(return_value=None)
+
+        with patch("httpx.AsyncClient", return_value=cm):
+            await engine._post_brain_event("trace-url-test", 3, "dispatched")
+
+        url_called = mock_client.post.call_args.args[0]
+        assert url_called == "http://custom-host:9999/internal/brain-event"

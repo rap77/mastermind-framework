@@ -107,35 +107,46 @@ async fn main() -> Result<()> {
         queue::start_worker(db, receiver, sender, latency_tracker, ai_worker_client);
     }
 
-    // Build our application with routes
-    let app = Router::new()
-        // Metrics endpoint (public)
+    // Public routes — no auth required
+    let public_router = Router::new()
+        // Metrics endpoint
         .route("/metrics", get(metrics::metrics_endpoint))
-        // Ghost Mode replay endpoint (public)
+        // Ghost Mode replay endpoint
         .route("/api/ghost/replay", get(ghost_replay_handler))
-        // WebSocket endpoint (public)
+        // WebSocket endpoints (browser clients)
         .route("/ws", get(websocket::websocket_handler))
-        // Kubernetes-style health probes (public)
+        // B2.1: Brain state event stream — frontend subscribes here
+        .route("/ws/events", get(websocket::ws_events_handler))
+        // B2.4: Internal brain lifecycle events from Python dispatch engine (no JWT)
+        .route("/internal/brain-event", post(handlers::brain_event_handler))
+        // Kubernetes-style health probes
         .route("/health/live", get(health::live::liveness_probe))
         .route("/health/ready", get(health::ready::readiness_check))
-        // Webhook endpoint (public)
+        // Webhook endpoint
         .route("/webhooks/:channel", post(handlers::webhook::webhook_receiver))
-        // Auth routes (public)
+        // Auth routes (login/refresh are public by definition)
         .route("/api/auth/login", post(handlers::auth::login))
         .route("/api/auth/refresh", post(handlers::auth::refresh))
-        // Protected auth routes (require authentication)
+        .with_state(state.clone());
+
+    // Protected routes — auth middleware applied
+    let protected_router = Router::new()
         .route("/api/auth/logout", post(handlers::auth::logout))
-        // Audit log routes (protected, admin-only)
+        // Audit log routes (admin-only)
         .route("/api/audit/activity", get(handlers::audit::get_activity_log))
         .route("/api/audit/brain/:brain_id", get(handlers::audit::get_brain_timeline))
-        // DLQ routes (protected, admin-only)
+        // DLQ routes (admin-only)
         .route("/api/dlq", get(handlers::dlq::list_failed_webhooks))
         .route("/api/dlq/:id/retry", post(handlers::dlq::retry_webhook))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ))
-        .layer(middleware::from_fn(inject_trace_middleware)) // Add trace injection middleware
+        .with_state(state.clone());
+
+    let app = public_router
+        .merge(protected_router)
+        .layer(middleware::from_fn(inject_trace_middleware))
         .with_state(state);
 
     // Create TCP listener
