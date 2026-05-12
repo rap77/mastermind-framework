@@ -5,12 +5,13 @@
   "phase": 19,
   "subtasks": {
     "B3.1": {
-      "description": "Rust: implementar `GET /health` \u2192 `{\"status\": \"ok\", \"service\": \"rust-control-plane\"}`",
-      "status": "pending",
+      "description": "Rust: implementar `GET /health` → `{\"status\": \"ok\", \"service\": \"rust-control-plane\"}`",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-12T16:43:38.243721",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-12T17:05:00.000000",
+      "commit_sha": "322287a5",
+      "duration_seconds": 1282
     },
     "B3.2": {
       "description": "Python: verificar si `GET /health` existe. Si no, implementar con `{\"status\": \"ok\", \"db\": \"postgresql\"}`",
@@ -45,7 +46,7 @@
       "duration_seconds": 0
     },
     "B3.6": {
-      "description": "Verify: `curl localhost:8002/health` y `curl localhost:8001/health` \u2192 200",
+      "description": "Verify: `curl localhost:8002/health` y `curl localhost:8001/health` → 200",
       "status": "pending",
       "retries": 0,
       "started_at": "2026-05-12T16:43:38.243721",
@@ -53,6 +54,6 @@
       "duration_seconds": 0
     }
   },
-  "last_checkpoint": null,
+  "last_checkpoint": "B3.1",
   "context_budget_exit": null
 }

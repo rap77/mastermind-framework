@@ -185,11 +185,20 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
         return response
 
-    # Health check endpoint
+    # Health check endpoints
     @app.get("/")
-    async def health_check() -> dict[str, str]:
-        """Health check endpoint."""
+    async def root_health_check() -> dict[str, str]:
+        """Root health check endpoint."""
         return {"status": "healthy", "version": "1.1.0"}
+
+    @app.get("/health")
+    async def health_check() -> dict[str, str]:
+        """B3.2: Health check endpoint — returns status and db backend.
+
+        Returns:
+            JSON with status=ok and db=postgresql.
+        """
+        return {"status": "ok", "db": "postgresql"}
 
     # Wire db_path into all routes via dependency override
     app.dependency_overrides[get_db_path] = lambda: db_path
