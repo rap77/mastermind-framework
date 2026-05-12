@@ -109,6 +109,8 @@ async fn main() -> Result<()> {
 
     // Public routes — no auth required
     let public_router = Router::new()
+        // B3.1: Basic health check — {"status": "ok", "service": "rust-control-plane"}
+        .route("/health", get(handlers::health_check))
         // Metrics endpoint
         .route("/metrics", get(metrics::metrics_endpoint))
         // Ghost Mode replay endpoint

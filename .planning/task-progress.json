@@ -1,56 +1,58 @@
 {
-  "task_id": "A2",
-  "session_id": "sess-20260428-191048",
-  "started_at": "2026-04-28T19:10:48.224697",
+  "task_id": "B3",
+  "session_id": "sess-20260512-164338",
+  "started_at": "2026-05-12T16:43:38.243721",
+  "phase": 19,
   "subtasks": {
-    "A2.1": {
-      "description": "Frontend: verificar que `pnpm test` (vitest) está configurado en `apps/web/package.json`",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:11:00.000000",
-      "commit_sha": "d8f30658"
+    "B3.1": {
+      "description": "Rust: implementar `GET /health` \u2192 `{\"status\": \"ok\", \"service\": \"rust-control-plane\"}`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "A2.2": {
-      "description": "Frontend: ejecutar `pnpm test --reporter=verbose` desde `apps/web/`",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:12:00.000000",
-      "commit_sha": "d8f30658",
-      "notes": "849 passed, 0 failed, 88 test files"
+    "B3.2": {
+      "description": "Python: verificar si `GET /health` existe. Si no, implementar con `{\"status\": \"ok\", \"db\": \"postgresql\"}`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "A2.3": {
-      "description": "Frontend: registrar resultado en `tasks/tech-debt.md` (N passed, M failed)",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:14:00.000000",
-      "commit_sha": "d8f30658"
+    "B3.3": {
+      "description": "Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "A2.4": {
-      "description": "Frontend: por cada test fallando, categorizar: pre-existing / regresión / arreglable",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:14:00.000000",
-      "commit_sha": "d8f30658",
-      "notes": "No failing tests — all 849 pass"
+    "B3.4": {
+      "description": "Tests: test que `/health` retorna 200 en Rust",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "A2.5": {
-      "description": "Frontend: arreglar tests arreglables (< 2h cada uno)",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:14:00.000000",
-      "commit_sha": "d8f30658",
-      "notes": "N/A — no failing tests"
+    "B3.5": {
+      "description": "Tests: test que `/health` retorna 200 en Python con `db` field",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "A2.6": {
-      "description": "Frontend: marcar tests no arreglables con `it.skip(\"reason: ...\")` y documentar en tech-debt.md",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:14:00.000000",
-      "commit_sha": "d8f30658",
-      "notes": "N/A — no tests to skip"
-    },
-    "A2.7": {
-      "description": "Verify: `pnpm test` corre sin error fatal (aunque haya failures documentadas)",
-      "status": "completed",
-      "completed_at": "2026-04-28T19:15:00.000000",
-      "commit_sha": "d8f30658",
-      "notes": "pnpm test exits 0 — 88 files, 849 tests, 0 fatal errors"
+    "B3.6": {
+      "description": "Verify: `curl localhost:8002/health` y `curl localhost:8001/health` \u2192 200",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-12T16:43:38.243721",
+      "completed_at": null,
+      "duration_seconds": 0
     }
   },
-  "last_checkpoint": "A2.7",
+  "last_checkpoint": null,
   "context_budget_exit": null
 }

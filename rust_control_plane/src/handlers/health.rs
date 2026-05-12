@@ -5,11 +5,12 @@ use crate::db::health_check as db_health_check;
 use crate::state::AppState;
 
 /// Basic health check endpoint (does not query database)
+///
+/// B3.1: Returns {"status": "ok", "service": "rust-control-plane"}
 pub async fn health_check() -> impl IntoResponse {
     Json(json!({
-        "status": "healthy",
-        "service": "rust-control-plane",
-        "database": "postgresql"
+        "status": "ok",
+        "service": "rust-control-plane"
     }))
 }
 
