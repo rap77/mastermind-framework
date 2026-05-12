@@ -31,7 +31,7 @@
   - [x] B1.06: Python: configurar `structlog` con JSON processor
   - [x] B1.07: Python: implementar interceptor gRPC que extrae `trace_id` de metadata → contextvars
   - [x] B1.08: Python: bind `trace_id` automáticamente en todos los log calls
-  - [ ] B1.09: Frontend: implementar utility `getTraceId()` en `apps/web/src/lib/`
+  - [x] B1.09: Frontend: implementar utility `getTraceId()` en `apps/web/src/lib/`
   - [ ] B1.10: Frontend: agregar header `X-Trace-ID` en todos los `fetch()` calls
   - [x] B1.11: Tests: Rust unit test — request con `X-Trace-ID: test-abc` → span tiene `trace_id=test-abc`
   - [x] B1.12: Tests: Python unit test — gRPC metadata con `trace_id` → structlog emite `{"trace_id": "test-abc"}`
