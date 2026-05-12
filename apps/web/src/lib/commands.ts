@@ -1,4 +1,5 @@
 import { Command } from '@/stores/commandStore';
+import { apiFetch } from './api-client';
 
 // Router navigation helper (initialized when command palette mounts)
 let navigate: (path: string) => void = (path: string) => {
@@ -51,7 +52,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Product Strategy',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/product-vision/trigger', {
+      const res = await apiFetch('/api/brains/product-vision/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -65,7 +66,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Product Strategy',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/market-fit/trigger', {
+      const res = await apiFetch('/api/brains/market-fit/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -79,7 +80,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Product Strategy',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/roadmap/trigger', {
+      const res = await apiFetch('/api/brains/roadmap/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -93,7 +94,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Product Strategy',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/prioritization/trigger', {
+      const res = await apiFetch('/api/brains/prioritization/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -109,7 +110,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UX Research',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/user-research/trigger', {
+      const res = await apiFetch('/api/brains/user-research/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -123,7 +124,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UX Research',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/personas/trigger', {
+      const res = await apiFetch('/api/brains/personas/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -137,7 +138,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UX Research',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/journey-map/trigger', {
+      const res = await apiFetch('/api/brains/journey-map/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -151,7 +152,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UX Research',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/usability/trigger', {
+      const res = await apiFetch('/api/brains/usability/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -167,7 +168,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UI Design',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/design-system/trigger', {
+      const res = await apiFetch('/api/brains/design-system/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -181,7 +182,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UI Design',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/visual-design/trigger', {
+      const res = await apiFetch('/api/brains/visual-design/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -195,7 +196,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UI Design',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/prototyping/trigger', {
+      const res = await apiFetch('/api/brains/prototyping/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -209,7 +210,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'UI Design',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/accessibility/trigger', {
+      const res = await apiFetch('/api/brains/accessibility/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -225,7 +226,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Frontend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/frontend-architecture/trigger', {
+      const res = await apiFetch('/api/brains/frontend-architecture/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -239,7 +240,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Frontend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/state-management/trigger', {
+      const res = await apiFetch('/api/brains/state-management/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -253,7 +254,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Frontend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/performance/trigger', {
+      const res = await apiFetch('/api/brains/performance/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -267,7 +268,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Frontend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/frontend-testing/trigger', {
+      const res = await apiFetch('/api/brains/frontend-testing/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -283,7 +284,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Backend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/api-design/trigger', {
+      const res = await apiFetch('/api/brains/api-design/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -297,7 +298,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Backend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/database/trigger', {
+      const res = await apiFetch('/api/brains/database/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -311,7 +312,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Backend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/auth/trigger', {
+      const res = await apiFetch('/api/brains/auth/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -325,7 +326,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'Backend',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/scalability/trigger', {
+      const res = await apiFetch('/api/brains/scalability/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -341,7 +342,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'QA/DevOps',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/qa-strategy/trigger', {
+      const res = await apiFetch('/api/brains/qa-strategy/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -355,7 +356,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'QA/DevOps',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/ci-cd/trigger', {
+      const res = await apiFetch('/api/brains/ci-cd/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -369,7 +370,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'QA/DevOps',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/monitoring/trigger', {
+      const res = await apiFetch('/api/brains/monitoring/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
@@ -383,7 +384,7 @@ export const COMMANDS: Command[] = [
     subcategory: 'QA/DevOps',
     icon: 'Brains',
     action: async () => {
-      const res = await fetch('/api/brains/incidents/trigger', {
+      const res = await apiFetch('/api/brains/incidents/trigger', {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Failed to trigger brain');
