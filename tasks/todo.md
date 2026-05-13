@@ -57,10 +57,10 @@
 
 - [~] B3: Health Endpoints
   - [x] B3.01: Rust: implementar `GET /health` → `{"status": "ok", "service": "rust-control-plane"}`
-  - [ ] B3.02: Python: verificar si `GET /health` existe. Si no, implementar con `{"status": "ok", "db": "postgresql"}`
-  - [ ] B3.03: Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios
-  - [ ] B3.04: Tests: test que `/health` retorna 200 en Rust
-  - [ ] B3.05: Tests: test que `/health` retorna 200 en Python con `db` field
+  - [x] B3.02: Python: verificar si `GET /health` existe. Si no, implementar con `{"status": "ok", "db": "postgresql"}`
+  - [x] B3.03: Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios
+  - [x] B3.04: Tests: test que `/health` retorna 200 en Rust
+  - [x] B3.05: Tests: test que `/health` retorna 200 en Python con `db` field
   - [ ] B3.06: Verify: `curl localhost:8002/health` y `curl localhost:8001/health` → 200
 
 ## TASK C: Intelligent Orchestration
