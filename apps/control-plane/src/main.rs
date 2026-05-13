@@ -5,7 +5,8 @@ mod handlers;
 mod postgres;
 mod proto;
 
-use axum::{routing::{get, post}, Router};
+use axum::{routing::{get, post}, Router, Json};
+use serde_json::json;
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -57,6 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn health_check() -> &'static str {
-    "OK"
+async fn health_check() -> Json<serde_json::Value> {
+    Json(json!({"status": "ok", "service": "rust-control-plane"}))
 }
