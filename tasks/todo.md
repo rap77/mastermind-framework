@@ -22,7 +22,7 @@
 
 ## TASK B: Observability Core
 
-- [ ] B1: Structured Logging + Distributed Trace Pipeline
+- [x] B1: Structured Logging + Distributed Trace Pipeline
   - [x] B1.01: Rust: agregar `tracing` + `tracing-subscriber` a `rust_control_plane/Cargo.toml`
   - [x] B1.02: Rust: implementar middleware Axum que extrae `X-Trace-ID` del header y crea span
   - [x] B1.03: Rust: si no hay header, generar UUID v4 y propagarlo
@@ -35,8 +35,8 @@
   - [x] B1.10: Frontend: agregar header `X-Trace-ID` en todos los `fetch()` calls
   - [x] B1.11: Tests: Rust unit test — request con `X-Trace-ID: test-abc` → span tiene `trace_id=test-abc`
   - [x] B1.12: Tests: Python unit test — gRPC metadata con `trace_id` → structlog emite `{"trace_id": "test-abc"}`
-  - [ ] B1.13: Tests: integration — `POST /api/tasks/auto` con header → Python log contiene el ID
-  - [ ] B1.14: Verify: `curl -H "X-Trace-ID: smoke-123" http://localhost:8001/api/tasks/auto -X POST` → log Python muestra smoke-123
+  - [x] B1.13: Tests: integration — `POST /api/tasks/auto` con header → Python log contiene el ID
+  - [x] B1.14: Verify: `curl -H "X-Trace-ID: smoke-123" http://localhost:8001/api/tasks/auto -X POST` → log Python muestra smoke-123
 
 - [ ] B2: WebSocket Hub
   - [ ] B2.01: Rust: implementar handler `GET /ws/events` con upgrade a WebSocket
