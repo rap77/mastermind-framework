@@ -38,18 +38,18 @@
   - [x] B1.13: Tests: integration — `POST /api/tasks/auto` con header → Python log contiene el ID
   - [x] B1.14: Verify: `curl -H "X-Trace-ID: smoke-123" http://localhost:8001/api/tasks/auto -X POST` → log Python muestra smoke-123
 
-- [ ] B2: WebSocket Hub
-  - [ ] B2.01: Rust: implementar handler `GET /ws/events` con upgrade a WebSocket
-  - [ ] B2.02: Rust: crear `tokio::sync::broadcast` channel (capacity 256) para fan-out
-  - [ ] B2.03: Rust: definir `BrainStateEvent` struct con serde (trace_id, brain_id, status, timestamp)
-  - [ ] B2.04: Rust: implementar endpoint `POST /internal/brain-event` para recibir eventos de Python
-  - [ ] B2.05: Python: al despachar brain en `DynamicDispatchEngine`, POST a `http://rust:8002/internal/brain-event`
-  - [ ] B2.06: Python: al completar brain, POST a mismo endpoint con status `completed`
-  - [ ] B2.07: Frontend: implementar hook `useWebSocket(url)` con reconnect logic (max 3 intentos)
-  - [ ] B2.08: Frontend: implementar Zustand store `wsEventsStore` con `Map<trace_id, BrainStateEvent[]>`
-  - [ ] B2.09: Frontend: implementar componente `BrainStatusFeed`
-  - [ ] B2.10: Tests: Rust unit test — broadcast channel (envío → recepción)
-  - [ ] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
+- [x] B2: WebSocket Hub
+  - [x] B2.01: Rust: implementar handler `GET /ws/events` con upgrade a WebSocket
+  - [x] B2.02: Rust: crear `tokio::sync::broadcast` channel (capacity 256) para fan-out
+  - [x] B2.03: Rust: definir `BrainStateEvent` struct con serde (trace_id, brain_id, status, timestamp)
+  - [x] B2.04: Rust: implementar endpoint `POST /internal/brain-event` para recibir eventos de Python
+  - [x] B2.05: Python: al despachar brain en `DynamicDispatchEngine`, POST a `http://rust:8002/internal/brain-event`
+  - [x] B2.06: Python: al completar brain, POST a mismo endpoint con status `completed`
+  - [x] B2.07: Frontend: implementar hook `useWebSocket(url)` con reconnect logic (max 3 intentos)
+  - [x] B2.08: Frontend: implementar Zustand store `wsEventsStore` con `Map<trace_id, BrainStateEvent[]>`
+  - [x] B2.09: Frontend: implementar componente `BrainStatusFeed`
+  - [x] B2.10: Tests: Rust unit test — broadcast channel (envío → recepción)
+  - [x] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
   - [ ] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
 
 - [ ] B3: Health Endpoints
