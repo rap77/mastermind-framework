@@ -38,7 +38,10 @@
   - [x] B1.13: Tests: integration — `POST /api/tasks/auto` con header → Python log contiene el ID
   - [x] B1.14: Verify: `curl -H "X-Trace-ID: smoke-123" http://localhost:8001/api/tasks/auto -X POST` → log Python muestra smoke-123
 
-- [x] B2: WebSocket Hub
+- [x] B2: WebSocket Hub⏱️ **Estimate**: N/A | **Actual**: 3.7m | **Deviation**: N/A | **Progress**: 12/12 (100%)
+📊 **Avg/subtask**: 18s | **ETA**: 3.7m
+
+
   - [x] B2.01: Rust: implementar handler `GET /ws/events` con upgrade a WebSocket
   - [x] B2.02: Rust: crear `tokio::sync::broadcast` channel (capacity 256) para fan-out
   - [x] B2.03: Rust: definir `BrainStateEvent` struct con serde (trace_id, brain_id, status, timestamp)
@@ -50,7 +53,7 @@
   - [x] B2.09: Frontend: implementar componente `BrainStatusFeed`
   - [x] B2.10: Tests: Rust unit test — broadcast channel (envío → recepción)
   - [x] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
-  - [ ] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
+  - [x] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
 
 - [ ] B3: Health Endpoints
   - [x] B3.01: Rust: implementar `GET /health` → `{"status": "ok", "service": "rust-control-plane"}`

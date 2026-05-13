@@ -1481,7 +1481,25 @@ def mark_done(subtask_id: str) -> None:
     current_status = state["subtasks"][subtask_id].get("status", "unknown")
 
     if current_status == "completed":
-        mm_info(f"{subtask_id} is already complete — no changes needed")
+        mm_info(f"{subtask_id} is already complete — ensuring todo.md is synced")
+        # Ensure the checkbox is marked in todo.md (idempotent)
+        if TODO_MD.exists():
+            try:
+                todo_content = TODO_MD.read_text()
+                subtask_escaped = re.escape(subtask_id)
+                pattern = rf"(^\s*-\s?\[)([ ~])(\]\s+{subtask_escaped}:)"
+                new_content, count = re.subn(
+                    pattern,
+                    lambda m: f"{m.group(1)}x{m.group(3)}",
+                    todo_content,
+                    count=1,
+                    flags=re.MULTILINE,
+                )
+                if count > 0:
+                    TODO_MD.write_text(new_content)
+                    mm_info(f"Synced {subtask_id} checkbox to [x] in todo.md")
+            except OSError as e:
+                mm_error(f"Failed to update todo.md checkbox: {e}")
         # Still propagate in case parent wasn't updated (idempotent)
         if "." in subtask_id:
             parent_id = subtask_id.rsplit(".", 1)[0]
@@ -1497,6 +1515,26 @@ def mark_done(subtask_id: str) -> None:
     except Exception as e:
         mm_error(f"Failed to mark {subtask_id} as complete: {e}")
         sys.exit(1)
+
+    # Also mark the checkbox in todo.md directly (update_subtask_status only
+    # updates task-progress.json; propagate_parent_completion handles the parent
+    # but never writes the subtask's own checkbox)
+    if TODO_MD.exists():
+        try:
+            todo_content = TODO_MD.read_text()
+            subtask_escaped = re.escape(subtask_id)
+            pattern = rf"(^-\s?\[)([ ~])(\]\s+{subtask_escaped}:)"
+            new_content, count = re.subn(
+                pattern,
+                lambda m: f"{m.group(1)}x{m.group(3)}",
+                todo_content,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if count > 0:
+                TODO_MD.write_text(new_content)
+        except OSError as e:
+            mm_error(f"Failed to update todo.md checkbox for {subtask_id}: {e}")
 
     mm_info(f"Marked {subtask_id} as complete")
 
