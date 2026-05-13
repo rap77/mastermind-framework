@@ -97,19 +97,50 @@ export function adaptExecutionToFlow(execution: Execution): FlowDefinition {
   const snapshotId = typeof snapshot.id === 'string' ? snapshot.id : execution.id
   const snapshotName = typeof snapshot.name === 'string' ? snapshot.name : execution.brief
 
+  // Narrow description: must be string or undefined
+  const description = typeof snapshot.description === 'string' ? snapshot.description : undefined
+
+  // Narrow viewport: must be {x, y, zoom} object
+  const rawViewport = snapshot.viewport
+  const viewport =
+    rawViewport !== null &&
+    typeof rawViewport === 'object' &&
+    'x' in rawViewport &&
+    'y' in rawViewport &&
+    'zoom' in rawViewport &&
+    typeof (rawViewport as Record<string, unknown>).x === 'number' &&
+    typeof (rawViewport as Record<string, unknown>).y === 'number' &&
+    typeof (rawViewport as Record<string, unknown>).zoom === 'number'
+      ? (rawViewport as { x: number; y: number; zoom: number })
+      : undefined
+
+  // Narrow metadata: must have createdAt, updatedAt, version strings
+  const rawMeta = snapshot.metadata
+  const metadata =
+    rawMeta !== null &&
+    typeof rawMeta === 'object' &&
+    'createdAt' in rawMeta &&
+    'updatedAt' in rawMeta &&
+    'version' in rawMeta &&
+    typeof (rawMeta as Record<string, unknown>).createdAt === 'string' &&
+    typeof (rawMeta as Record<string, unknown>).updatedAt === 'string' &&
+    typeof (rawMeta as Record<string, unknown>).version === 'string'
+      ? (rawMeta as { createdAt: string; updatedAt: string; version: string; tags?: string[] })
+      : {
+          createdAt: execution.created_at,
+          updatedAt: execution.created_at,
+          version: '1.0.0',
+        }
+
   // Build FlowDefinition
   return {
     id: snapshotId,
     name: snapshotName || `Execution ${execution.id}`,
-    description: snapshot.description,
+    description,
     nodes,
     edges,
-    viewport: snapshot.viewport,
-    metadata: snapshot.metadata || {
-      createdAt: execution.created_at,
-      updatedAt: execution.created_at,
-      version: '1.0.0',
-    },
+    viewport,
+    metadata,
   }
 }
 

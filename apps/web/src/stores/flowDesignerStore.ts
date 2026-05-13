@@ -20,7 +20,7 @@ interface ViewportState {
   zoom: number
 }
 
-interface FlowDesignerState {
+export interface FlowDesignerState {
   // Flow structure
   nodes: FlowNode[]
   edges: FlowEdge[]

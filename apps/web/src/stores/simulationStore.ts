@@ -7,6 +7,7 @@
 
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { useShallow } from 'zustand/shallow'
 import { enableMapSet } from 'immer'
 import type { FlowDefinition } from '@/components/flow-designer/types'
 
@@ -73,7 +74,7 @@ export interface ErrorSummary {
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
-interface SimulationState {
+export interface SimulationState {
   // Execution data
   currentExecution: Execution | null
 
@@ -582,7 +583,7 @@ export const useSimulationStore = create<SimulationState>()(
       }
 
       // Cast graph_snapshot to FlowDefinition (already validated by API)
-      return state.currentExecution.graph_snapshot as FlowDefinition
+      return state.currentExecution.graph_snapshot as unknown as FlowDefinition
     },
   })),
 )
@@ -632,11 +633,7 @@ export const useSlowNodes = () => useSimulationStore((state) => state.slowNodes)
  */
 export const useErrorSummary = () =>
   useSimulationStore(
-    (state) => state.getErrorSummary(),
-    (a, b) =>
-      a.totalErrors === b.totalErrors &&
-      a.slowNodes === b.slowNodes &&
-      a.totalTime === b.totalTime,
+    useShallow((state) => state.getErrorSummary()),
   )
 
 /**
@@ -651,7 +648,4 @@ export const useFilteredEvents = () =>
  * Uses reference comparison to prevent infinite loops
  */
 export const useCurrentGraphSnapshot = () =>
-  useSimulationStore(
-    (state) => state.getCurrentGraphSnapshot(),
-    (a, b) => a === b, // Reference comparison is fine for null/object
-  )
+  useSimulationStore((state) => state.getCurrentGraphSnapshot())

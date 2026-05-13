@@ -156,7 +156,7 @@ export function importFlow(json: string): FlowDefinition {
     }
 
     // Validate edge references
-    const nodeIds = new Set(data.nodes.map((n) => n.id))
+    const nodeIds = new Set(data.nodes.map((n: { id: string }) => n.id))
     for (const edge of data.edges) {
       if (!nodeIds.has(edge.source)) {
         throw new SerializerError(
@@ -429,6 +429,7 @@ export function cloneFlow(flow: FlowDefinition): FlowDefinition {
       ...flow.metadata,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      version: flow.metadata?.version ?? '1.0.0',
     },
   }
 

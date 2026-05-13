@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,6 @@ const Toggle = React.forwardRef<
     {...props}
   />
 ))
-Toggle.displayName = TogglePrimitive.displayName
+Toggle.displayName = "Toggle"
 
 export { Toggle, toggleVariants }

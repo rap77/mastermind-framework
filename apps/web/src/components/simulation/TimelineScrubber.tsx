@@ -232,7 +232,6 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
             )}
             style={{
               left: `${milestonePositions.positions[idx]}%`,
-              transform: 'translate(-50%, -50%)',
               top: '50%',
               backgroundColor:
                 milestone.index === currentMilestoneIndex
@@ -262,7 +261,6 @@ export default function TimelineScrubber({ className }: TimelineScrubberProps) {
           )}
           style={{
             left: `${thumbPercent}%`,
-            transform: 'translate(-50%, -50%)',
             top: '50%',
             backgroundColor: 'var(--color-primary)',
             cursor: dragging ? 'grabbing' : 'grab',
