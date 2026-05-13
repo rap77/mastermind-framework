@@ -4,6 +4,7 @@
 # Stage 1: Dependencies
 FROM node:22-alpine AS deps
 WORKDIR /app
+ENV CI=true
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 RUN \
   if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile --ignore-scripts; \
@@ -18,7 +19,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 RUN \
-  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --ignore-scripts && pnpm build; \
   else npm run build; \
   fi
 
