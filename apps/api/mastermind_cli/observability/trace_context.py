@@ -25,8 +25,13 @@ from collections.abc import Callable, MutableMapping
 from contextvars import ContextVar
 from typing import Any
 
-import grpc
-import grpc.aio
+try:
+    import grpc
+    import grpc.aio
+
+    _GRPC_AVAILABLE = True
+except ModuleNotFoundError:
+    _GRPC_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
 # ContextVar — single source of truth for the current trace_id
@@ -67,34 +72,35 @@ def add_trace_id(
 
 
 # ---------------------------------------------------------------------------
-# gRPC server interceptor — grpc.aio compatible
+# gRPC server interceptor — grpc.aio compatible (only when grpcio is installed)
 # ---------------------------------------------------------------------------
 
+if _GRPC_AVAILABLE:
 
-class TraceIdInterceptor(grpc.aio.ServerInterceptor):
-    """gRPC server interceptor that propagates distributed trace_id.
+    class TraceIdInterceptor(grpc.aio.ServerInterceptor):
+        """gRPC server interceptor that propagates distributed trace_id.
 
-    Extracts the ``trace-id`` metadata key from incoming gRPC requests and
-    stores it in the ``_trace_id_var`` ContextVar so that all log calls made
-    within the RPC handler automatically include ``trace_id``.
+        Extracts the ``trace-id`` metadata key from incoming gRPC requests and
+        stores it in the ``_trace_id_var`` ContextVar so all log calls made
+        within the RPC handler automatically include ``trace_id``.
 
-    If the metadata key is absent or empty, a fresh UUID v4 is generated so
-    every RPC always has a traceable identifier.
+        If the metadata key is absent or empty, a fresh UUID v4 is generated so
+        every RPC always has a traceable identifier.
 
-    Priority (matches Rust Axum middleware behavior):
-    1. ``trace-id`` gRPC metadata value, if present and non-empty
-    2. Fresh UUID v4
-    """
+        Priority (matches Rust Axum middleware behavior):
+        1. ``trace-id`` gRPC metadata value, if present and non-empty
+        2. Fresh UUID v4
+        """
 
-    async def intercept_service(
-        self,
-        continuation: Callable[..., Any],
-        handler_call_details: grpc.HandlerCallDetails,
-    ) -> Any:
-        """Extract trace_id from metadata and set ContextVar before handler."""
-        metadata = dict(handler_call_details.invocation_metadata or [])
-        val = metadata.get("trace-id", "")
-        raw = (val.decode() if isinstance(val, bytes) else val).strip()
-        trace_id = raw if raw else str(uuid.uuid4())
-        set_trace_id(trace_id)
-        return await continuation(handler_call_details)
+        async def intercept_service(
+            self,
+            continuation: Callable[..., Any],
+            handler_call_details: Any,
+        ) -> Any:
+            """Extract trace_id from metadata and set ContextVar before handler."""
+            metadata = dict(handler_call_details.invocation_metadata or [])
+            val = metadata.get("trace-id", "")
+            raw = (val.decode() if isinstance(val, bytes) else val).strip()
+            trace_id = raw if raw else str(uuid.uuid4())
+            set_trace_id(trace_id)
+            return await continuation(handler_call_details)
