@@ -68,13 +68,13 @@ TASK-D (UI Evolution)
 - Smoke test: `GET /api/brains` retorna data real desde PostgreSQL
 - Documentar: `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public'` retorna N tablas implementadas
 
-**Acceptance:**
-- [ ] `DATABASE_URL` apunta a PostgreSQL — verificado con `python -c "from database import engine; print(engine.url)"`
-- [ ] Sin referencias a `sqlite://` o dual-write en el código activo (`rg sqlite:// apps/` retorna 0 resultados)
-- [ ] `uv run pytest` de `apps/api/` pasa sin regresiones nuevas (puede haber failures pre-existentes documentadas)
-- [ ] H2 (test_cors_configuration) tiene root cause en `tasks/tech-debt.md`
-- [ ] H3 (test_get_brain) tiene root cause en `tasks/tech-debt.md`
-- [ ] `GET /api/brains` retorna data desde PostgreSQL (verificado con log/debug)
+**Acceptance**:
+- [x] `DATABASE_URL` apunta a PostgreSQL — verificado con `python -c "from database import engine; print(engine.url)"`
+- [x] Sin referencias a `sqlite://` o dual-write en el código activo (`rg sqlite:// apps/` retorna 0 resultados)
+- [x] `uv run pytest` de `apps/api/` pasa sin regresiones nuevas (puede haber failures pre-existentes documentadas)
+- [x] H2 (test_cors_configuration) tiene root cause en `tasks/tech-debt.md`
+- [x] H3 (test_get_brain) tiene root cause en `tasks/tech-debt.md`
+- [x] `GET /api/brains` retorna data desde PostgreSQL (verificado con log/debug)
 
 ---
 
@@ -96,11 +96,11 @@ TASK-D (UI Evolution)
 - `pnpm test --reporter=verbose` — output completo registrado
 - Si vitest no está configurado: verificar `package.json` scripts y configurar si falta
 
-**Acceptance:**
-- [ ] `pnpm test` ejecutado — no "no ejecutado"
-- [ ] Resultado documentado en `tasks/tech-debt.md`: N passed, M failed, lista de failures con categoría
-- [ ] Tests arreglables (< 2h) resueltos
-- [ ] Tests no arreglables documentados como issues o marcados `it.skip` con reason
+**Acceptance**:
+- [x] `pnpm test` ejecutado — no "no ejecutado"
+- [x] Resultado documentado en `tasks/tech-debt.md`: N passed, M failed, lista de failures con categoría
+- [x] Tests arreglables (< 2h) resueltos
+- [x] Tests no arreglables documentados como issues o marcados `it.skip` con reason
 
 ---
 
@@ -137,11 +137,11 @@ TASK-D (UI Evolution)
 - Python: test que `structlog` emite `{"trace_id": "test-abc"}` cuando gRPC metadata lo incluye
 - Integration: `POST /api/tasks/auto` con header `X-Trace-ID: e2e-test-123` → verificar que Python log contiene ese ID
 
-**Acceptance:**
-- [ ] `curl -H "X-Trace-ID: smoke-123" POST /api/tasks/auto` → Python structlog emite `trace_id=smoke-123`
-- [ ] Rust logs en formato JSON con `trace_id` field
-- [ ] Python logs en formato JSON con `trace_id` field
-- [ ] Tests de propagación pasan (Rust unit + Python unit + integration)
+**Acceptance**:
+- [x] `curl -H "X-Trace-ID: smoke-123" POST /api/tasks/auto` → Python structlog emite `trace_id=smoke-123`
+- [x] Rust logs en formato JSON con `trace_id` field
+- [x] Python logs en formato JSON con `trace_id` field
+- [x] Tests de propagación pasan (Rust unit + Python unit + integration)
 
 ---
 
@@ -170,7 +170,7 @@ TASK-D (UI Evolution)
 - Frontend: `useWebSocket` con mock WS server — verify que state se actualiza en < 500ms
 - Integration: Python despacha brain → Rust recibe evento → frontend lo muestra
 
-**Acceptance:**
+**Acceptance**:
 - [ ] `wscat -c ws://localhost:8002/ws/events` — conecta y recibe eventos JSON
 - [ ] Frontend `BrainStatusFeed` se actualiza en tiempo real al ejecutar brain
 - [ ] Reconecta automáticamente si el WS se cae (max 3 intentos con backoff)
@@ -188,7 +188,7 @@ TASK-D (UI Evolution)
 
 **Tests:** Test que `/health` retorna 200 en cada servicio.
 
-**Acceptance:**
+**Acceptance**:
 - [ ] `curl localhost:8002/health` → 200 JSON
 - [ ] `curl localhost:8001/health` → 200 JSON con `"db": "postgresql"`
 - [ ] `curl localhost:3000/api/health` → 200 JSON con estado agregado
@@ -221,7 +221,7 @@ TASK-D (UI Evolution)
 - Unit: `DynamicDispatchEngine.dispatch(context)` usa registry, no dict — mock registry, verify query
 - Integration: POST session → dispatch usa `brain_registry` → brain ejecutado es el correcto
 
-**Acceptance:**
+**Acceptance**:
 - [ ] `SELECT COUNT(*) FROM brain_registry` = 7
 - [ ] `DynamicDispatchEngine` no tiene ningún dict hardcodeado de brains en su código fuente
 - [ ] `GET /api/brains` retorna data de `brain_registry` PostgreSQL
@@ -247,7 +247,7 @@ TASK-D (UI Evolution)
 - Unit: `dispatch(context, profile="quality")` → brain usa `model_quality` del registry
 - Frontend: cambiar profile en dropdown → verify que Zustand store actualiza y el request siguiente lo incluye
 
-**Acceptance:**
+**Acceptance**:
 - [ ] `config.yml` tiene sección `model_profiles` con 3 perfiles definidos
 - [ ] Cambiar el profile en la UI → la siguiente invocación de brain usa el modelo correcto
 - [ ] WS event incluye `model` field: `{"brain_id": "brain-01", "model": "claude-opus-4", ...}`
@@ -273,7 +273,7 @@ TASK-D (UI Evolution)
 - Integration: complete session → verify `SELECT * FROM experience_records WHERE brain_id=X ORDER BY created_at DESC LIMIT 1` tiene quality_score
 - Frontend: WS event `session_evaluated` → verify badge actualiza
 
-**Acceptance:**
+**Acceptance**:
 - [ ] Después de cualquier sesión de brain: `ExperienceLogger.get_recent_by_brain(brain_id)` retorna >= 1 record
 - [ ] Record tiene `quality_score IS NOT NULL`
 - [ ] Badge en Command Center muestra score de última sesión
@@ -308,7 +308,7 @@ TASK-D (UI Evolution)
 - Component: `OutputPanel` renderiza output estructurado correctamente
 - E2E (Playwright si disponible): navegar a `/orchestrate` → verificar tres columnas visibles
 
-**Acceptance:**
+**Acceptance**:
 - [ ] `/orchestrate` renderiza con tres columnas en 1440px
 - [ ] `BrainList` muestra los 7 brains con estado (idle/running/completed)
 - [ ] `OrchestrationCanvas` extiende NexusCanvas existente (no reescritura)
@@ -336,7 +336,7 @@ TASK-D (UI Evolution)
 - Hook: `useOrchestrationStream()` — mock WS store → verify que el hook retorna estado correcto
 - Interaction: completar un brain → verify que timeline agrega el evento en < 500ms
 
-**Acceptance:**
+**Acceptance**:
 - [ ] Durante ejecución de brain: `StatusTimeline` muestra progreso sin reload
 - [ ] Eventos en orden cronológico con timestamp
 - [ ] Auto-scroll al evento más reciente
