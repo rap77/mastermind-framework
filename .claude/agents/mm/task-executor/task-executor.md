@@ -55,6 +55,28 @@ Start with first pending subtask and proceed sequentially.
 
 For each subtask in the list:
 
+### Step 0: Mark subtask as in_progress
+
+**FIRST action before anything else** — mark the subtask as started:
+
+```bash
+python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress {subtask_id}
+```
+
+This immediately:
+1. Updates `task-progress.json` with `status = "in_progress"`
+2. Marks the parent task as `[~]` in `todo.md` (visible to the user in real-time)
+3. Cascades `[~]` up the hierarchy if needed
+
+**Example:**
+```bash
+python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress B1.01
+# INFO: Marked B1.01 as in_progress
+# INFO: Parent B1 marked as [~] (in progress)
+```
+
+---
+
 ### Pre-check: Does the implementation already exist?
 
 Before running Phase 1, check if the code described by the subtask already exists:

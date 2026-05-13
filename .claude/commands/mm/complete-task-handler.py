@@ -1599,6 +1599,71 @@ def mark_done(subtask_id: str) -> None:
             pass  # Best-effort reporting — don't fail the command
 
 
+def mark_in_progress(subtask_id: str) -> None:
+    """Mark a single subtask as in-progress and propagate [~] to parent.
+
+    Called by task-executor at the START of each subtask so the parent
+    immediately shows [~] in todo.md, giving real-time visibility.
+
+    Args:
+        subtask_id: Subtask ID to mark in-progress (e.g., "B1.01").
+    """
+    subtask_id = subtask_id.upper()
+
+    if not RUNTIME_STATE_PATH.exists():
+        mm_error(f"No runtime state found at {RUNTIME_STATE_PATH}")
+        mm_error("Run /mm:complete-task <TASK_ID> first to initialize state")
+        sys.exit(1)
+
+    try:
+        state = json.loads(RUNTIME_STATE_PATH.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        mm_error(f"Failed to read task-progress.json: {e}")
+        sys.exit(1)
+
+    if subtask_id not in state.get("subtasks", {}):
+        mm_error(f"Subtask {subtask_id} not found in task-progress.json")
+        mm_error(f"Known subtasks: {sorted(state.get('subtasks', {}).keys())}")
+        sys.exit(1)
+
+    current_status = state["subtasks"][subtask_id].get("status", "unknown")
+    if current_status in ("completed",):
+        mm_info(f"{subtask_id} is already complete — skipping in_progress mark")
+        return
+
+    try:
+        update_subtask_status(subtask_id, "in_progress")
+    except Exception as e:
+        mm_error(f"Failed to mark {subtask_id} as in_progress: {e}")
+        sys.exit(1)
+
+    # Also mark the parent checkbox as [~] in todo.md directly
+    if "." in subtask_id and TODO_MD.exists():
+        try:
+            parent_id = subtask_id.rsplit(".", 1)[0]
+            todo_content = TODO_MD.read_text()
+            parent_escaped = re.escape(parent_id)
+            pattern = rf"(^\s*-\s?\[)([ ])(\]\s+{parent_escaped}:)"
+
+            def _replace_with_tilde(m: re.Match[str]) -> str:
+                return f"{m.group(1)}~{m.group(3)}"
+
+            new_content, count = re.subn(
+                pattern,
+                _replace_with_tilde,
+                todo_content,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if count > 0:
+                TODO_MD.write_text(new_content)
+                mm_info(f"Parent {parent_id} marked as [~] (in progress)")
+        except OSError as e:
+            mm_error(f"Failed to update parent [~] in todo.md: {e}")
+
+    mm_info(f"Marked {subtask_id} as in_progress")
+
+
 def main() -> None:
     """Main entry point."""
     if len(sys.argv) < 2:
@@ -1608,7 +1673,11 @@ def main() -> None:
         )
         print("       mm-complete-task --status  # Show all tasks", flush=True)
         print(
-            "       mm-complete-task --mark-done <SUBTASK_ID>  # Mark subtask complete",
+            "       mm-complete-task --mark-done <SUBTASK_ID>       # Mark subtask complete",
+            flush=True,
+        )
+        print(
+            "       mm-complete-task --mark-in-progress <SUBTASK_ID>  # Mark subtask started",
             flush=True,
         )
         sys.exit(1)
@@ -1616,6 +1685,15 @@ def main() -> None:
     # Status mode
     if sys.argv[1] == "--status":
         show_status()
+        return
+
+    # Mark-in-progress mode: --mark-in-progress <subtask_id>
+    if sys.argv[1] == "--mark-in-progress":
+        if len(sys.argv) < 3:
+            mm_error("Usage: mm-complete-task --mark-in-progress <SUBTASK_ID>")
+            mm_error("Example: mm-complete-task --mark-in-progress B1.01")
+            sys.exit(1)
+        mark_in_progress(sys.argv[2])
         return
 
     # Mark-done mode: --mark-done <subtask_id>
