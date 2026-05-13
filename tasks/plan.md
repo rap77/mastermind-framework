@@ -189,9 +189,9 @@ TASK-D (UI Evolution)
 **Tests:** Test que `/health` retorna 200 en cada servicio.
 
 **Acceptance**:
-- [ ] `curl localhost:8002/health` → 200 JSON
-- [ ] `curl localhost:8001/health` → 200 JSON con `"db": "postgresql"`
-- [ ] `curl localhost:3000/api/health` → 200 JSON con estado agregado
+- [x] `curl localhost:8002/health` → 200 JSON
+- [x] `curl localhost:8001/health` → 200 JSON con `"db": "postgresql"`
+- [x] `curl localhost:3000/api/health` → 200 JSON con estado agregado
 
 ---
 
