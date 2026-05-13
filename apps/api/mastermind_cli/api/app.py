@@ -22,6 +22,7 @@ from slowapi.errors import RateLimitExceeded
 
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes import analytics, auth, tasks, brains
+from mastermind_cli.observability.trace_context import set_trace_id
 from mastermind_cli.api.routes.executions import router as executions_router
 from mastermind_cli.api.routes.experiences import router as experiences_router
 from mastermind_cli.api.routes.keys import (
@@ -144,6 +145,28 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # B1.13 / B1.14: Trace propagation middleware
+    # Reads X-Trace-ID from HTTP request header and binds it to the async
+    # ContextVar so all structlog calls within the request carry trace_id.
+    # If the header is absent or empty, a fresh UUID v4 is generated.
+    @app.middleware("http")
+    async def trace_id_middleware(request: Request, call_next: Any) -> Any:
+        """Extract X-Trace-ID header and set it in the trace ContextVar.
+
+        Priority:
+          1. X-Trace-ID request header, if present and non-empty
+          2. Fresh UUID v4
+
+        After this middleware runs every structlog call in the request handler
+        emits {"trace_id": "<value>"} automatically via the add_trace_id processor.
+        """
+        raw = request.headers.get("X-Trace-ID", "").strip()
+        trace_id = raw if raw else str(uuid.uuid4())
+        set_trace_id(trace_id)
+        response = await call_next(request)
+        response.headers["X-Trace-ID"] = trace_id
+        return response
 
     # Register audit middleware (UI-07 requirement)
     @app.middleware("http")
