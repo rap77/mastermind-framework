@@ -239,32 +239,29 @@ Save state to ALL THREE:
 ```
 
 **2. tasks/todo.md (CRITICAL — user-visible checklist):**
-After each successful subtask, UPDATE `tasks/todo.md` to mark the corresponding checkbox as `[x]`.
+After each successful subtask, call the handler to mark it done:
 
-This is the file the USER sees. If you don't update it, the user won't know progress was made.
-
-**Positional mapping rule (CRITICAL):**
-Subtask IDs map to checkbox POSITION within the task section — not to text content.
-`D1.1` → 1st checkbox under `### D1:` section
-`D1.2` → 2nd checkbox under `### D1:` section
-`D1.N` → N-th checkbox under `### D1:` section
-
-**How to update:**
-1. Read `tasks/todo.md`
-2. Find the `### {task_id}:` section header (e.g., `### D1:`)
-3. Count ALL `- [ ]` and `- [x]` lines in order — the N-th is subtask `{task_id}.N`
-4. Change `[ ]` to `[x]` on the N-th line only
-5. Write back to `tasks/todo.md`
-
-**Example — completing D1.2 (second subtask):**
-```markdown
-### D1: Crear ship-handler.py
-- [x] Crear `.claude/commands/mm/ship-handler.py`  ← D1.1, already done
-- [x] Flag `--verify`: solo verificar              ← D1.2, just completed → mark [x]
-- [ ] Implementar flag `--check`                   ← D1.3, still pending
+```bash
+python3 .claude/commands/mm/complete-task-handler.py --mark-done {subtask_id}
 ```
 
-**Never match by text content — always match by position.**
+**NEVER edit `tasks/todo.md` directly.** The handler:
+1. Marks the subtask `[x]` in `task-progress.json`
+2. Calls `propagate_parent_completion()` automatically — if all siblings are done, the parent task also gets marked `[x]` in `todo.md`
+3. Updates incremental time tracking
+
+**Example — completing D1.2:**
+```bash
+python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
+# INFO: Marked D1.2 as complete
+# INFO: Parent D1 not yet complete (2/3 siblings done)
+```
+
+**If subtask is already marked complete** (idempotent):
+```bash
+python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
+# INFO: D1.2 is already complete — no changes needed
+```
 
 **3. Engram via mem_save:**
 ```javascript
@@ -357,9 +354,9 @@ To estimate: if your responses are getting shorter or you see "compaction" messa
 Never commit multiple subtasks in a single commit to "save context". Each subtask MUST have:
 - Its own individual commit (`feat(phase-X): X.N: description`)
 - Its own checkpoint saved to task-progress.json
-- Its own `[ ]` → `[x]` update in todo.md
+- Its own `--mark-done` call (which updates todo.md + propagates parent state)
 
-If you batch-commit (e.g. "A1.13-A1.27 completed"), the checkpoint mechanism breaks — todo.md and task-progress.json won't reflect individual subtask completion, and `--continue` won't know where to resume from.
+If you batch-commit (e.g. "A1.13-A1.27 completed"), the checkpoint mechanism breaks — `task-progress.json` won't reflect individual subtask completion, `--mark-done` won't have been called for each one, and `--continue` won't know where to resume from.
 
 When context is tight: commit and checkpoint the subtasks you DID complete, then exit. Do NOT rush-commit remaining work in a batch to avoid exiting.
 
@@ -475,6 +472,25 @@ When all subtasks complete (or you exit due to context limit):
 
 ---
 
+## FINAL STEP: Update time tracking and play notification
+
+**After ALL subtasks complete** (or when exiting due to context limit), always run:
+
+```bash
+# Updates todo.md with Estimate/Actual/Deviation metrics AND plays notification sound
+python3 .claude/commands/mm/update-todo-times.py {task_id}
+```
+
+This updates `tasks/todo.md` with:
+- ⏱️ Estimate vs Actual time per subtask
+- 📉 Deviation from estimate
+- 📊 Average time per subtask
+- 📈 Progress percentage
+
+AND plays the notification sound so you know the agent finished.
+
+---
+
 ## Important Rules
 
 1. **Process subtasks SEQUENTIALLY** (in order, don't skip)
@@ -484,8 +500,9 @@ When all subtasks complete (or you exit due to context limit):
 5. **Continue on failure** (mark failed, move to next)
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
-8. **Mark todo.md by POSITION, not text** — subtask N = N-th checkbox in section
+8. **Use `--mark-done` to update todo.md** — NEVER edit todo.md directly; handler propagates parent state automatically
 9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
+10. **ALWAYS update time tracking after checkpoint** — `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 
 ## Files
 
