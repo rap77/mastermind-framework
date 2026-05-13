@@ -171,10 +171,10 @@ TASK-D (UI Evolution)
 - Integration: Python despacha brain → Rust recibe evento → frontend lo muestra
 
 **Acceptance**:
-- [ ] `wscat -c ws://localhost:8002/ws/events` — conecta y recibe eventos JSON
-- [ ] Frontend `BrainStatusFeed` se actualiza en tiempo real al ejecutar brain
-- [ ] Reconecta automáticamente si el WS se cae (max 3 intentos con backoff)
-- [ ] Tests de WS pasan (Rust unit + frontend unit + integration)
+- [x] `wscat -c ws://localhost:8002/ws/events` — conecta y recibe eventos JSON
+- [x] Frontend `BrainStatusFeed` se actualiza en tiempo real al ejecutar brain
+- [x] Reconecta automáticamente si el WS se cae (max 3 intentos con backoff)
+- [x] Tests de WS pasan (Rust unit + frontend unit + integration)
 
 ---
 
