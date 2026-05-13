@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
 RUN \
   if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
   else npm run build; \
