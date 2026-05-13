@@ -980,6 +980,29 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
             if st["id"] not in git_completed and not st["completed"]
         ]
 
+        # Mark parent as [~] in todo.md if some subtasks are done but not all
+        has_completed = any(
+            st["completed"] or st["id"] in git_completed for st in subtasks
+        )
+        has_pending = len(pending_subtasks) > 0
+        if has_completed and has_pending and TODO_MD.exists():
+            try:
+                todo_content = TODO_MD.read_text()
+                task_escaped = re.escape(task_id)
+                pattern = rf"(^\s*-\s?\[)([ ])(\]\s+{task_escaped}:)"
+                new_content, count = re.subn(
+                    pattern,
+                    lambda m: f"{m.group(1)}~{m.group(3)}",
+                    todo_content,
+                    count=1,
+                    flags=re.MULTILINE,
+                )
+                if count > 0:
+                    TODO_MD.write_text(new_content)
+                    mm_info(f"Marked parent {task_id} as [~] (in progress)")
+            except OSError:
+                pass  # Non-fatal — payload still returned
+
         project_id = _read_project_id_from_config(PROJECT_ROOT)
         return {
             "task_id": task_id,

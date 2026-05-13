@@ -55,7 +55,7 @@
   - [x] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
   - [x] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
 
-- [ ] B3: Health Endpoints
+- [~] B3: Health Endpoints
   - [x] B3.01: Rust: implementar `GET /health` → `{"status": "ok", "service": "rust-control-plane"}`
   - [ ] B3.02: Python: verificar si `GET /health` existe. Si no, implementar con `{"status": "ok", "db": "postgresql"}`
   - [ ] B3.03: Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios
