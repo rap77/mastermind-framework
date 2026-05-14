@@ -7,6 +7,9 @@ if file is missing, raises ConfigError if file is malformed.
 IMPORTANT: _DEFAULTS model IDs must be updated when Anthropic deprecates
 a model version. Check https://docs.anthropic.com/en/docs/about-claude/models
 and update the model strings here before models stop responding.
+
+Model format: "provider:model_id" — e.g. "anthropic:claude-opus-4-6".
+Supported providers: anthropic, openrouter, z_ai.
 """
 
 import logging
@@ -20,19 +23,20 @@ from pydantic import BaseModel, ConfigDict
 logger = logging.getLogger(__name__)
 
 VALID_MODEL_KEYS = frozenset({"quality", "balanced", "budget"})
+VALID_PROVIDERS = frozenset({"anthropic", "openrouter", "z_ai"})
 
 _DEFAULTS: dict[str, Any] = {
     "model_profiles": {
         "quality": {
-            "model": "claude-opus-4-6",
+            "model": "anthropic:claude-opus-4-6",
             "use_when": "critical decisions, Brain #7 barrier",
         },
         "balanced": {
-            "model": "claude-sonnet-4-6",
+            "model": "anthropic:claude-sonnet-4-6",
             "use_when": "standard domain brains",
         },
         "budget": {
-            "model": "claude-haiku-4-5",
+            "model": "z_ai:claude-3-7-sonnet",
             "use_when": "context recovery, status checks",
         },
     },
@@ -61,8 +65,28 @@ class ConfigError(Exception):
 
 @dataclass
 class ModelProfile:
+    """Model profile with provider-qualified model identifier.
+
+    Attributes:
+        model: Provider-qualified model string in format "provider:model_id".
+               Example: "anthropic:claude-opus-4-6", "z_ai:claude-3-7-sonnet".
+        use_when: Human-readable description of when to use this profile.
+        provider: Parsed provider name (e.g. "anthropic", "openrouter", "z_ai").
+        model_id: Parsed model identifier without provider prefix.
+    """
+
     model: str
     use_when: str
+
+    @property
+    def provider(self) -> str:
+        """Return the provider portion of the model string."""
+        return self.model.split(":")[0] if ":" in self.model else "anthropic"
+
+    @property
+    def model_id(self) -> str:
+        """Return the model_id portion without provider prefix."""
+        return self.model.split(":", 1)[1] if ":" in self.model else self.model
 
 
 @dataclass
@@ -120,10 +144,16 @@ def load_config(path: str = ".planning/.mm-flow/config.yml") -> MMFlowConfig:
                 f"Válidas: {sorted(VALID_MODEL_KEYS)}"
             )
 
-    model_profiles = {
-        k: ModelProfile(model=v["model"], use_when=v.get("use_when", ""))
-        for k, v in profiles_raw.items()
-    }
+    model_profiles: dict[str, ModelProfile] = {}
+    for k, v in profiles_raw.items():
+        model_str: str = v["model"]
+        profile = ModelProfile(model=model_str, use_when=v.get("use_when", ""))
+        if ":" in model_str and profile.provider not in VALID_PROVIDERS:
+            raise ConfigError(
+                f"model_profiles['{k}'].model tiene proveedor desconocido: '{profile.provider}'. "
+                f"Válidos: {sorted(VALID_PROVIDERS)}"
+            )
+        model_profiles[k] = profile
 
     routing_raw: dict[str, Any] = data["brain_routing"]
     brain_routing = {

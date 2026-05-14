@@ -1,15 +1,18 @@
 # MM-Flow Configuration
 # Model IDs: update when Anthropic deprecates a version
 # See: https://docs.anthropic.com/en/docs/about-claude/models
+#
+# Model format: "provider:model_id"
+# Supported providers: anthropic, openrouter, z_ai
 model_profiles:
   quality:
-    model: claude-opus-4-6
+    model: "anthropic:claude-opus-4-6"
     use_when: "critical decisions, Brain #7 barrier"
   balanced:
-    model: claude-sonnet-4-6
+    model: "anthropic:claude-sonnet-4-6"
     use_when: "standard domain brains"
   budget:
-    model: claude-haiku-4-5
+    model: "z_ai:claude-3-7-sonnet"
     use_when: "context recovery, status checks"
 
 brain_routing:
