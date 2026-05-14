@@ -71,17 +71,16 @@
 - [x] C1: Central Agent Registry⏱️ **Estimate**: N/A | **Actual**: 1.2h | **Deviation**: N/A | **Progress**: 10/10 (100%)
 📊 **Avg/subtask**: 7.1m | **ETA**: 1.2h
 
-
-  - [ ] C1.01: Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)
-  - [ ] C1.02: Python: aplicar migration con `alembic upgrade head`
-  - [ ] C1.03: Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)
-  - [ ] C1.04: Python: ejecutar seed script y verificar con `SELECT COUNT(*) FROM brain_registry` = 7
-  - [ ] C1.05: Python: implementar `BrainRegistryRepository` con `get_all()`, `get_by_id()`, `get_matching(context)`
-  - [ ] C1.06: Python: reemplazar config dict en `DynamicDispatchEngine` con query a `BrainRegistryRepository`
-  - [ ] C1.07: Frontend: verificar que `GET /api/brains` retorna data de `brain_registry` (no hardcoded)
-  - [ ] C1.08: Tests: unit test — `BrainRegistryRepository.get_all()` retorna 7 rows con fixture de test DB
-  - [ ] C1.09: Tests: unit test — `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)
-  - [ ] C1.10: Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql
+  - [x] C1.01: Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)
+  - [x] C1.02: Python: aplicar migration con `alembic upgrade head`
+  - [x] C1.03: Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)
+  - [x] C1.04: Python: ejecutar seed script y verificar con `SELECT COUNT(*) FROM brain_registry` = 7
+  - [x] C1.05: Python: implementar `BrainRegistryRepository` con `get_all()`, `get_by_id()`, `get_matching(context)`
+  - [x] C1.06: Python: reemplazar config dict en `DynamicDispatchEngine` con query a `BrainRegistryRepository`
+  - [x] C1.07: Frontend: verificar que `GET /api/brains` retorna data de `brain_registry` (no hardcoded)
+  - [x] C1.08: Tests: unit test — `BrainRegistryRepository.get_all()` retorna 7 rows con fixture de test DB
+  - [x] C1.09: Tests: unit test — `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)
+  - [x] C1.10: Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql
 
 - [ ] C2: Dynamic Dispatch + Model Profiles (Provider-Agnostic)
   - [ ] C2.01: Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget) con formato `provider:model_id` — ej: `anthropic:claude-opus-4-6`, `openrouter:anthropic/claude-opus-4`, `z_ai:claude-3-7-sonnet`
