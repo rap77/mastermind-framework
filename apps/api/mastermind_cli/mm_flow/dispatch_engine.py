@@ -168,6 +168,8 @@ class DynamicDispatchEngine:
         trace_id: str,
         brain_id: int,
         status: Literal["dispatched", "running", "completed", "failed"],
+        model: str | None = None,
+        provider: str | None = None,
     ) -> None:
         """POST a brain lifecycle event to the Rust hub.
 
@@ -179,13 +181,21 @@ class DynamicDispatchEngine:
             trace_id: Distributed trace identifier for this dispatch.
             brain_id: Integer brain identifier (1-7).
             status: Lifecycle status of the brain.
+            model: Provider-qualified model string (e.g. "anthropic:claude-opus-4-6").
+                   Omitted from payload if None.
+            provider: Provider name (e.g. "anthropic", "openrouter", "z_ai").
+                      Omitted from payload if None.
         """
-        payload = {
+        payload: dict[str, str] = {
             "trace_id": trace_id,
             "brain_id": str(brain_id),
             "status": status,
             "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
         }
+        if model is not None:
+            payload["model"] = model
+        if provider is not None:
+            payload["provider"] = provider
         url = f"{self.rust_hub_url}/internal/brain-event"
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
@@ -249,10 +259,17 @@ class DynamicDispatchEngine:
         self._check_budget(parallel_brains + barrier_brains)
 
         # B2.5 — notify Rust hub that each brain is being dispatched
+        # Include model and provider (C2.05) so WS events carry the full model info.
         all_brains = parallel_brains + barrier_brains
         await asyncio.gather(
             *[
-                self._post_brain_event(trace_id, b.brain_id, "dispatched")
+                self._post_brain_event(
+                    trace_id,
+                    b.brain_id,
+                    "dispatched",
+                    model=b.model,
+                    provider=b.provider,
+                )
                 for b in all_brains
             ],
             return_exceptions=True,  # never fail dispatch because of hub errors
@@ -269,7 +286,13 @@ class DynamicDispatchEngine:
         # B2.6 — notify Rust hub that each brain has completed
         await asyncio.gather(
             *[
-                self._post_brain_event(trace_id, b.brain_id, "completed")
+                self._post_brain_event(
+                    trace_id,
+                    b.brain_id,
+                    "completed",
+                    model=b.model,
+                    provider=b.provider,
+                )
                 for b in all_brains
             ],
             return_exceptions=True,

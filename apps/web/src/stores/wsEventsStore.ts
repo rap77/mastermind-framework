@@ -32,6 +32,17 @@ export interface BrainStateEvent {
   status: BrainEventStatus
   /** ISO-8601 timestamp from Rust (UTC). */
   timestamp: string
+  /**
+   * Provider-qualified model string used for this brain dispatch.
+   * Format: "provider:model_id" (e.g. "anthropic:claude-opus-4-6").
+   * Absent for events sent by older dispatch engine versions.
+   */
+  model?: string
+  /**
+   * Provider name (e.g. "anthropic", "openrouter", "z_ai").
+   * Absent for events sent by older dispatch engine versions.
+   */
+  provider?: string
 }
 
 // ------------------------------------------------------------------ store
