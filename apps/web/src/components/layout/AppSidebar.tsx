@@ -10,6 +10,7 @@ import {
   Network,
   Vault,
   Wrench,
+  BrainCircuit,
 } from 'lucide-react'
 
 interface NavItem {
@@ -21,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Command Center', href: '/command-center', icon: LayoutDashboard },
   { label: 'The Nexus', href: '/nexus', icon: Network },
+  { label: 'Orchestrate', href: '/orchestrate', icon: BrainCircuit },
   { label: 'Strategy Vault', href: '/strategy-vault', icon: Vault },
   { label: 'Engine Room', href: '/engine-room', icon: Wrench },
 ]
