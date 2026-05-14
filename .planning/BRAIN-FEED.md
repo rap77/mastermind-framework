@@ -134,3 +134,48 @@ Key discoveries:
 | **Bare pytest raises with Exception** | Too broad, catches wrong exceptions | `pytest.raises(ValidationError)` or specific exception types |
 | **Placeholder UUIDs in production code** | GGA hook fails — indicates incomplete implementation | Use proper UUID generation or `None` with TODO comment |
 | **Redundant fetchone() calls** | Second call always returns `None` — causes TypeError | Store result in variable, reuse it |
+| **`import grpc` at module level** | Crashes if grpcio not installed (e.g. in Docker with only grpclib) | Wrap in `try/except ModuleNotFoundError`, define class only when available |
+| **`--no-verify` on commits** | Bypasses GGA — defeats the security/quality gate entirely | Fix the root cause; GGA runs in < 30s and protects against 15+ issue categories |
+| **Bulk commits for multi-subtask work** | Handler regex can't detect individual completion; `todo.md` stays stale | One commit per subtask with `feat(X.NN):` format in subject line |
+| **`ignoreBuildErrors: true` in next.config.ts** | Hides real TypeScript errors; CI can pass while runtime breaks | Fix the actual type errors; v12 @xyflow/react requires `NodeData extends Record<string,unknown>` |
+
+---
+
+## Milestone v3.1 Learnings (2026-05-14)
+
+### New Patterns
+
+- **Direct Edit on `todo.md` per subtask** — Agent must use Edit tool directly on `tasks/todo.md` (not subprocess handler) for instant visual feedback. Handler call updates `task-progress.json` state; direct Edit drives the UI update the user sees.
+- **`--mark-in-progress` + `--mark-done` per subtask** — Handler now marks both the subtask AND the parent `[~]` in a single read-modify-write. Parent `[~]` → `[x]` propagation is automatic when all siblings complete.
+- **`update-todo-times.py` must run after EACH subtask** — Not just at the end. This is what makes the ⏱️ progress header update in real-time (Avg/subtask, ETA, %).
+- **`brain_registry` migration needs explicit `DATABASE_URL`** — Inside Docker, env var is `POSTGRES_URL` not `DATABASE_URL`. Seed/migrate scripts use `DATABASE_URL` fallback to `localhost:5434`; must be passed explicitly: `DATABASE_URL=postgresql://postgres:devpassword@postgres:5432/mastermind_bd`.
+
+### Invariants Locked
+
+- **`httpx` must be in runtime dependencies** — Used in `dispatch_engine.py` for brain-event POSTs. Was only in `dev-dependencies`; Docker builds fail without it. Always verify runtime imports match `pyproject.toml` non-optional dependencies.
+- **`apps/control-plane/` ≠ `rust_control_plane/`** — Two separate Rust projects. Docker uses `apps/control-plane/` (port 3001, control plane). `rust_control_plane/` is the WS Hub (port 8080, local binary). Never assume they're the same.
+- **WebSocket Hub is NOT in Docker Compose** — `rust_control_plane` binary runs standalone. WS live tests (`wscat`) require the binary to be started separately with DB env vars.
+- **Port layout (dev):** api:8001, rust-control-plane:3001, web:3002, postgres:5434. Port 3000 is prosell.
+
+### Libraries Added (v3.1)
+
+| Library | Version | Used for |
+|---------|---------|----------|
+| structlog | latest | JSON structured logging in Python with trace_id processor |
+| httpx | latest | Fire-and-forget POSTs to Rust `/internal/brain-event` |
+| asyncpg | latest | `brain_registry` table, direct PostgreSQL from Python |
+| @xyflow/react | v12 | OrchestrationCanvas — NodeData must extend `Record<string,unknown>` |
+| lucide-react | latest | Status icons in StatusTimeline (CheckCircle, Loader2, XCircle, Circle) |
+
+### Architecture Decisions
+
+- **`FlowNodeData extends Record<string, unknown>`** — Required by @xyflow/react v12 `NodeTypes` map. Without this, TypeScript fails the production build. `FlowNode` becomes a type alias (`type FlowNode = Node<FlowNodeData> & { type: NodeType }`) not an interface.
+- **Multi-provider dispatch** — `provider:model_id` format (e.g. `anthropic:claude-opus-4-6`) in `brain_registry.model_quality/balanced/budget`. `DynamicDispatchEngine` resolves via `config.yml` model_profiles + providers sections. Never hardcode Anthropic.
+- **Backend-switch signal via file** — `BACKEND-SWITCH-REQUIRED.json` written by JS monitor at 95% tokens; read+deleted by handler at startup. `ACTIVE-BACKEND.json` is single source of truth. Zero database dependency for the switch mechanism.
+- **`OrchestrationCanvas` extends NexusCanvas patterns** — Module-level `NODE_TYPES`, dagre layout once, same invariants. Never rewrite NexusCanvas. Add canvas-specific node types alongside.
+
+### Anti-Patterns Caught
+
+- **task-executor making bulk commits** — Root cause: a "FINAL STEP" section in task-executor.md contradicted the per-subtask checkpoint instruction. Removing FINAL STEP fixed the documentation conflict. Real enforcement requires direct Edit tool calls on todo.md, not subprocess handler calls.
+- **FINAL STEP section in task-executor.md** — Created confusion: agents chose "run update-todo-times once at the END" instead of "after EACH subtask". Removed. Now Phase 6 is the single source of truth.
+- **`pnpm install --frozen-lockfile` without `CI=true` in Docker** — pnpm 11 asks for TTY confirmation to purge modules directory. Docker has no TTY. Fix: `ENV CI=true` in Dockerfile builder stage + `--ignore-scripts` flag.
