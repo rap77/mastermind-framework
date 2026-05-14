@@ -1,100 +1,226 @@
 {
-  "task_id": "C1",
-  "session_id": "sess-20260513-205055",
-  "started_at": "2026-05-13T20:50:55.256924",
+  "task_id": "C3",
+  "session_id": "sess-20260513-230236",
+  "started_at": "2026-05-13T23:02:36.016975",
   "phase": 19,
   "subtasks": {
-    "C1.01": {
-      "description": "Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)",
-      "status": "completed",
+    "C3.01": {
+      "description": "Python: identificar el m\u00e9todo correcto para el hook (StatelessCoordinator.complete_session o task_runner)",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:53:33.682245",
-      "duration_seconds": 158.43,
-      "updated_at": "2026-05-13T20:53:33.682245"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.02": {
-      "description": "Python: aplicar migration con `alembic upgrade head`",
-      "status": "completed",
+    "C3.02": {
+      "description": "Python: implementar hook que llama Brain #7 con output del brain ejecutado",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:55:11.029305",
-      "duration_seconds": 255.77,
-      "updated_at": "2026-05-13T20:55:11.029305"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.03": {
-      "description": "Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)",
-      "status": "completed",
+    "C3.03": {
+      "description": "Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:56:07.257472",
-      "duration_seconds": 312.0,
-      "updated_at": "2026-05-13T20:56:07.257472"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.04": {
-      "description": "Python: ejecutar seed script y verificar con `SELECT COUNT(*) FROM brain_registry` = 7",
-      "status": "completed",
+    "C3.04": {
+      "description": "Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qu\u00e9 modelo ejecut\u00f3)",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:56:22.095114",
-      "duration_seconds": 326.84,
-      "updated_at": "2026-05-13T20:56:22.095114"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.05": {
-      "description": "Python: implementar `BrainRegistryRepository` con `get_all()`, `get_by_id()`, `get_matching(context)`",
-      "status": "completed",
+    "C3.05": {
+      "description": "Python: flag `high_value` en custom_metadata si duraci\u00f3n > 5min o score significativo",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:56:59.827819",
-      "duration_seconds": 364.57,
-      "updated_at": "2026-05-13T20:56:59.827819"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.06": {
-      "description": "Python: reemplazar config dict en `DynamicDispatchEngine` con query a `BrainRegistryRepository`",
-      "status": "completed",
+    "C3.06": {
+      "description": "Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:57:39.135493",
-      "duration_seconds": 403.88,
-      "updated_at": "2026-05-13T20:57:39.135493"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.07": {
-      "description": "Frontend: verificar que `GET /api/brains` retorna data de `brain_registry` (no hardcoded)",
-      "status": "completed",
+    "C3.07": {
+      "description": "Frontend: escuchar WS event `session_evaluated`",
+      "status": "pending",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T20:58:46.322422",
-      "duration_seconds": 471.07,
-      "updated_at": "2026-05-13T20:58:46.322422"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.08": {
-      "description": "Tests: unit test \u2014 `BrainRegistryRepository.get_all()` retorna 7 rows con fixture de test DB",
-      "status": "completed",
+    "C3.08": {
+      "description": "Frontend: badge en Command Center: \"\u00daltima sesi\u00f3n: score 0.87\"",
+      "status": "pending",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T21:01:43.549329",
-      "duration_seconds": 648.29,
-      "updated_at": "2026-05-13T21:01:43.549329"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.09": {
-      "description": "Tests: unit test \u2014 `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)",
-      "status": "completed",
+    "C3.09": {
+      "description": "Tests: unit test \u2014 mock Brain #7 \u2192 verify `ExperienceLogger.log_execution()` llamado con quality_score",
+      "status": "pending",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T21:01:43.623066",
-      "duration_seconds": 648.37,
-      "updated_at": "2026-05-13T21:01:43.623066"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "C1.10": {
-      "description": "Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql",
-      "status": "completed",
+    "C3.10": {
+      "description": "Tests: integration test \u2014 complete session \u2192 `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL",
+      "status": "pending",
       "retries": 0,
-      "started_at": "2026-05-13T20:50:55.256924",
-      "completed_at": "2026-05-13T21:02:18.161121",
-      "duration_seconds": 682.9,
-      "updated_at": "2026-05-13T21:02:18.161121"
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.11": {
+      "description": "Tests: frontend test \u2014 WS event `session_evaluated` \u2192 badge actualiza",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.12": {
+      "description": "Verify: ejecutar cualquier brain \u2192 `uv run python -c \"from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))\"` retorna record con quality_score",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.13": {
+      "description": "Python: `complete-task-handler.py` al inicio de tarea \u2192 INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.14": {
+      "description": "Python: `complete-task-handler.py` al fin de tarea \u2192 UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.15": {
+      "description": "Python: `task-executor` \u2014 por cada error de subtask \u2192 INSERT en `decisions` (decision_type=\"error_resolution\", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.16": {
+      "description": "Python: `task-executor` \u2014 al inicio de cada subtask \u2192 `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.17": {
+      "description": "Python: `task-executor` \u2014 al completar subtask con \u00e9xito \u2192 `brain_memory.py log` guardando qu\u00e9 funcion\u00f3 (input=problema, output=soluci\u00f3n, status=success)",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.18": {
+      "description": "Tests: integration test \u2014 ejecutar task A1 \u2192 `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.19": {
+      "description": "Tests: unit test \u2014 simular error en subtask \u2192 verify INSERT en `decisions` con decision_type=\"error_resolution\"",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.20": {
+      "description": "Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 despu\u00e9s de primer `/mm:complete-task`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.21": {
+      "description": "Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duraci\u00f3n real vs estimada)",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.22": {
+      "description": "Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) \u2014 cu\u00e1ntas veces task-executor sali\u00f3 al 75% y necesit\u00f3 `--continue`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.23": {
+      "description": "Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) \u2014 desglose `{\"anthropic:claude-sonnet-4-6\": N, \"openrouter:claude-opus\": N}` acumulado de `BACKEND-USAGE.json` \u2014 agn\u00f3stico al proveedor",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.24": {
+      "description": "Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) \u2014 si el commit pas\u00f3 GGA en el primer intento",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.25": {
+      "description": "Python: `decisions` con `decision_type=\"error_pattern\"` cuando el mismo root_cause aparece \u2265 2 veces \u2014 flag autom\u00e1tico de deuda t\u00e9cnica recurrente",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.26": {
+      "description": "Tests: unit test \u2014 dos errores con mismo root_cause \u2192 verify segundo INSERT tiene decision_type=\"error_pattern\"",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "C3.27": {
+      "description": "Verify: despu\u00e9s de 3 tasks ejecutadas \u2192 `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-13T23:02:36.016975",
+      "completed_at": null,
+      "duration_seconds": 0
     }
   },
-  "last_checkpoint": "C1.10",
+  "last_checkpoint": null,
   "context_budget_exit": null
 }

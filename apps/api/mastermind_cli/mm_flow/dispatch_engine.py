@@ -431,3 +431,7 @@ class DynamicDispatchEngine:
         # Real budget tracking would query tokens_consumed_total from agent_registry
         # and compare to token_budget_per_phase. Left as placeholder per plan spec.
         return 100_000
+
+
+def foo() -> None:
+    pass

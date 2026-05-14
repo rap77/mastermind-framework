@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { BriefInputModal } from "@/components/command-center/BriefInputModal"
 import { ModelProfileDropdown } from "@/components/command-center/ModelProfileDropdown"
+import { SessionEvaluatedBadge } from "@/components/command-center/SessionEvaluatedBadge"
 // Don't import Server Action statically - causes 403 error during SSR
 // import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
@@ -127,8 +128,9 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
 
   return (
     <>
-      {/* Model profile selector — visible in the Command Center header */}
-      <div className="flex justify-end px-4 py-2" data-testid="command-center-toolbar">
+      {/* Command Center toolbar: model profile + Brain #7 session score badge */}
+      <div className="flex items-center justify-between px-4 py-2" data-testid="command-center-toolbar">
+        <SessionEvaluatedBadge />
         <ModelProfileDropdown />
       </div>
 

@@ -1,4 +1,4 @@
-"""Background task runner for brain orchestration — Fase 3 + Fase 4.
+"""Background task runner for brain orchestration — Fase 3 + Fase 4 + C3.
 
 Executes StatelessCoordinator.execute_flow() as a FastAPI BackgroundTask,
 writes experience records, updates execution status in SQLite, and integrates
@@ -9,6 +9,13 @@ Fase 4 integration:
 - emit_brain_routing_event() sends WS events for frontend awareness
 - Routed brain failures are isolated — parent task stays completed
 
+C3 integration (Brain #7 post-session hook):
+- After each brain completes, Brain7Evaluator scores the output
+- quality_score + insights written to ExperienceLogger
+- high_value flag set if duration > 5min OR score >= 0.75
+- POST to Rust /internal/brain-event with type=session_evaluated
+- model field included in custom_metadata for provider tracking
+
 Brain #5/#6 guidance:
 - FastAPI BackgroundTasks (not asyncio.create_task) — avoids orphan tasks
 - CancelledError caught explicitly (BaseException, not Exception) — uvicorn safe
@@ -17,17 +24,26 @@ Brain #5/#6 guidance:
 """
 
 import asyncio
+import os
 import time
 import uuid
 
+import httpx
+
 from mastermind_cli.experience.logger import ExperienceLogger
 from mastermind_cli.orchestrator import brain_router as _brain_router
+from mastermind_cli.orchestrator.brain7_evaluator import evaluate_session
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
 from mastermind_cli.orchestrator.stateless_coordinator import (
     create_stateless_coordinator,
 )
 from mastermind_cli.state.database import DatabaseConnection
 from mastermind_cli.types.interfaces import Brief
+
+# Rust control plane URL for internal brain-event endpoint
+_RUST_CONTROL_PLANE_URL = os.environ.get(
+    "RUST_CONTROL_PLANE_URL", "http://localhost:3001"
+)
 
 
 class _PassthroughMCPClient:
@@ -54,6 +70,51 @@ BRAIN_ID_MAP: dict[int, str] = {
     6: "brain-06-qa",
     7: "brain-07-growth",
 }
+
+
+async def _post_session_evaluated_event(
+    task_id: str,
+    brain_ids: list[str],
+    quality_scores: dict[str, float],
+) -> None:
+    """POST a session_evaluated brain-event to the Rust control plane.
+
+    This fires-and-forgets — failures are silently swallowed so a Rust
+    outage never blocks brain execution results from being persisted.
+
+    The Rust /internal/brain-event endpoint fans out to all /ws/events
+    WebSocket subscribers, which is how the frontend receives the badge update.
+
+    Args:
+        task_id: The task (trace) ID for the evaluated session.
+        brain_ids: List of brain IDs that ran in this session.
+        quality_scores: Mapping of brain_id → quality_score (0.0–1.0).
+    """
+    if not brain_ids:
+        return
+
+    avg_score = (
+        sum(quality_scores.values()) / len(quality_scores) if quality_scores else 0.0
+    )
+
+    payload = {
+        "trace_id": task_id,
+        "brain_id": brain_ids[-1],  # Last brain = session representative
+        "status": "session_evaluated",
+        "quality_score": round(avg_score, 4),
+        "brain_ids": brain_ids,
+        "scores": quality_scores,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            await client.post(
+                f"{_RUST_CONTROL_PLANE_URL}/internal/brain-event",
+                json=payload,
+            )
+    except Exception:
+        # Non-fatal — Rust may be down; Python side is already persisted
+        pass
 
 
 async def run_brain_task(
@@ -97,25 +158,57 @@ async def run_brain_task(
         results = await coordinator.execute_flow(brief_obj, brain_ids)
         elapsed_ms = int(time.time() * 1000) - start_ms
 
+        # C3: Evaluate all brain outputs with Brain #7 before persisting
+        eval_scores: dict[str, float] = {}
         async with DatabaseConnection(db_path) as db:
             await db.create_experience_schema()
             logger = ExperienceLogger(db)
             for brain_id, output in results.items():
+                output_dict = (
+                    output.model_dump() if hasattr(output, "model_dump") else {}
+                )
+
+                # C3.02/C3.03: Brain #7 post-session evaluation
+                eval_result = evaluate_session(
+                    brain_id=brain_id,
+                    output_json=output_dict,
+                    duration_ms=elapsed_ms,
+                    status="success",
+                )
+                eval_scores[brain_id] = eval_result.quality_score
+
+                # C3.04/C3.05: quality_score + model + high_value in custom_metadata
+                custom_meta: dict[str, object] = {
+                    "model": os.environ.get("MM_MODEL", "unknown"),
+                    "high_value": eval_result.high_value,
+                    "insights": eval_result.insights,
+                    "task_id": task_id,
+                    "flow_type": flow_type,
+                }
+
                 await logger.log_execution(
                     brain_id=brain_id,
                     input_json={"brief": brief, "flow": flow_type},
-                    output_json=output.model_dump()
-                    if hasattr(output, "model_dump")
-                    else {},
+                    output_json=output_dict,
                     duration_ms=elapsed_ms,
                     status="success",
                     trace_context_id=task_id,
+                    quality_score=eval_result.quality_score,
+                    custom_metadata=custom_meta,
                 )
+
             await db.conn.execute(
                 "UPDATE executions SET status = ? WHERE id = ?",
                 ["completed", task_id],
             )
             await db.conn.commit()
+
+        # C3.06: POST session_evaluated event to Rust control plane (outside DB ctx)
+        await _post_session_evaluated_event(
+            task_id=task_id,
+            brain_ids=list(results.keys()),
+            quality_scores=eval_scores,
+        )
 
         # --- Fase 4: Brain-to-brain routing (sequential delegation) ---
         # After the main flow completes, check if any brain's brief should
