@@ -76,8 +76,9 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
 
       try {
         // Step 1: Create task via Server Action (dynamic import)
+        // C2.07: pass model_profile so dispatch engine uses the correct provider/model
         const { createTask } = await import("@/app/actions/tasks")
-        const result = await createTask(brief)
+        const result = await createTask(brief, modelProfile)
 
         if (!result.success) {
           setError(result.error || "Failed to create task")

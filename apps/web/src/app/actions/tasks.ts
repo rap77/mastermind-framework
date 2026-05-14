@@ -36,9 +36,17 @@ export interface CreateTaskResult {
 /**
  * Create task Server Action
  *
- * Validates brief, sanitizes with DOMPurify, calls FastAPI POST /api/tasks
+ * Validates brief, sanitizes with DOMPurify, calls FastAPI POST /api/tasks.
+ * The model_profile field is forwarded to the Rust control plane so the
+ * dispatch engine uses the correct provider/model (C2.07).
+ *
+ * @param brief - Task brief text (min 10 chars)
+ * @param model_profile - Model quality tier: "quality" | "balanced" | "budget" (default: "balanced")
  */
-export async function createTask(brief: string): Promise<CreateTaskResult> {
+export async function createTask(
+  brief: string,
+  model_profile: 'quality' | 'balanced' | 'budget' = 'balanced'
+): Promise<CreateTaskResult> {
   // Validation: brief is required
   if (!brief || brief.trim().length === 0) {
     return { success: false, error: "Brief is required" }
@@ -66,13 +74,14 @@ export async function createTask(brief: string): Promise<CreateTaskResult> {
   try {
     // Phase 13: Call Rust Control Plane POST /api/tasks/auto
     // Routes: Axum → gRPC client → Python Agent Runtime → PostgreSQL
+    // model_profile is forwarded so the dispatch engine selects the correct AI provider/model.
     const response = await fetch(`${CONTROL_PLANE_URL}/api/tasks/auto`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ brief: sanitizedBrief }),
+      body: JSON.stringify({ brief: sanitizedBrief, model_profile }),
     })
 
     if (!response.ok) {
