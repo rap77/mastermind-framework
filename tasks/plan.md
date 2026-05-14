@@ -274,10 +274,10 @@ TASK-D (UI Evolution)
 - Frontend: WS event `session_evaluated` → verify badge actualiza
 
 **Acceptance**:
-- [ ] Después de cualquier sesión de brain: `ExperienceLogger.get_recent_by_brain(brain_id)` retorna >= 1 record
-- [ ] Record tiene `quality_score IS NOT NULL`
-- [ ] Badge en Command Center muestra score de última sesión
-- [ ] Tests del hook pasan (unit + integration)
+- [x] Después de cualquier sesión de brain: `ExperienceLogger.get_recent_by_brain(brain_id)` retorna >= 1 record
+- [x] Record tiene `quality_score IS NOT NULL`
+- [x] Badge en Command Center muestra score de última sesión
+- [x] Tests del hook pasan (unit + integration)
 
 ---
 
