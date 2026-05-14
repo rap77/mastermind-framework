@@ -82,27 +82,29 @@
   - [x] C1.09: Tests: unit test — `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)
   - [x] C1.10: Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql
 
-- [ ] C2: Dynamic Dispatch + Model Profiles (Provider-Agnostic)
-  - [ ] C2.01: Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget) con formato `provider:model_id` — ej: `anthropic:claude-opus-4-6`, `openrouter:anthropic/claude-opus-4`, `z_ai:claude-3-7-sonnet`
-  - [ ] C2.02: Python: agregar sección `providers` a `config.yml` con env vars de cada proveedor (ANTHROPIC_API_KEY, OPENROUTER_API_KEY, ZAI_API_KEY, base_url por proveedor)
-  - [ ] C2.03: Python: `DynamicDispatchEngine` lee model profile del contexto y lo asigna al brain usando el proveedor configurado — NO hardcoded a Anthropic
-  - [ ] C2.04: Python: dispatch result incluye `model` field con formato `provider:model_id`
-  - [ ] C2.05: Python: WS event `BrainStateEvent` incluye `model` y `provider` fields
-  - [ ] C2.06: Frontend: implementar dropdown de model profile en Command Center (quality/balanced/budget)
-  - [ ] C2.07: Frontend: perfil elegido se envía en request body al despachar
-  - [ ] C2.08: Frontend: `BrainStatusFeed` muestra el modelo + proveedor de cada brain ejecutándose
-  - [ ] C2.09: Tests: unit test — `dispatch(context, profile="quality")` → brain usa `model_quality` del registry con su `provider`
-  - [ ] C2.10: Tests: frontend test — cambiar dropdown → Zustand store actualiza → request incluye profile
-  - [ ] C2.11: Verify: cambiar a "budget" en UI → ejecutar brain → WS event muestra `"model": "z_ai:claude-3-7-sonnet"` (no hardcoded Anthropic)
-  - [ ] C2.12: JS: `mm-flow-context-monitor.js` — mover `BACKEND_LIMITS` a `.planning/.mm-flow/config.yml` (leer en runtime, no hardcoded)
-  - [ ] C2.13: JS: al llegar al umbral crítico (95%) → escribir `.planning/BACKEND-SWITCH-REQUIRED.json` con `{current_backend, next_backend, reason: "token_depletion", timestamp}`
-  - [ ] C2.14: Python: `complete-task-handler.py` al inicio lee `.planning/BACKEND-SWITCH-REQUIRED.json` — si existe: actualiza `ACTIVE_BACKEND` al próximo de la prioridad (`z_ai → openrouter → claude`), borra el archivo signal
-  - [ ] C2.15: Python: `complete-task-handler.py` escribe `.planning/ACTIVE-BACKEND.json` con el backend activo — fuente de verdad para el hook JS y el handler
-  - [ ] C2.16: JS: `mm-flow-context-monitor.js` lee `ACTIVE-BACKEND.json` para saber cuál backend trackear (no hardcoded)
-  - [ ] C2.17: JS: `mm-flow-statusline.js` muestra el proveedor activo en la statusline cuando hay switch activo — ej: `│ v3.1 Task A1 [3/9] │ ⚡ openrouter`
-  - [ ] C2.18: Tests: simular 95% de tokens en mock → verify `BACKEND-SWITCH-REQUIRED.json` creado con next_backend correcto
-  - [ ] C2.19: Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
-  - [ ] C2.20: Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
+- [x] C2: Dynamic Dispatch + Model Profiles (Provider-Agnostic)⏱️ **Estimate**: N/A | **Actual**: 5.5h | **Deviation**: N/A | **Progress**: 20/20 (100%)
+📊 **Avg/subtask**: 16.6m | **ETA**: 5.5h
+
+  - [x] C2.01: Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget) con formato `provider:model_id` — ej: `anthropic:claude-opus-4-6`, `openrouter:anthropic/claude-opus-4`, `z_ai:claude-3-7-sonnet`
+  - [x] C2.02: Python: agregar sección `providers` a `config.yml` con env vars de cada proveedor (ANTHROPIC_API_KEY, OPENROUTER_API_KEY, ZAI_API_KEY, base_url por proveedor)
+  - [x] C2.03: Python: `DynamicDispatchEngine` lee model profile del contexto y lo asigna al brain usando el proveedor configurado — NO hardcoded a Anthropic
+  - [x] C2.04: Python: dispatch result incluye `model` field con formato `provider:model_id`
+  - [x] C2.05: Python: WS event `BrainStateEvent` incluye `model` y `provider` fields
+  - [x] C2.06: Frontend: implementar dropdown de model profile en Command Center (quality/balanced/budget)
+  - [x] C2.07: Frontend: perfil elegido se envía en request body al despachar
+  - [x] C2.08: Frontend: `BrainStatusFeed` muestra el modelo + proveedor de cada brain ejecutándose
+  - [x] C2.09: Tests: unit test — `dispatch(context, profile="quality")` → brain usa `model_quality` del registry con su `provider`
+  - [x] C2.10: Tests: frontend test — cambiar dropdown → Zustand store actualiza → request incluye profile
+  - [x] C2.11: Verify: cambiar a "budget" en UI → ejecutar brain → WS event muestra `"model": "z_ai:claude-3-7-sonnet"` (no hardcoded Anthropic)
+  - [x] C2.12: JS: `mm-flow-context-monitor.js` — mover `BACKEND_LIMITS` a `.planning/.mm-flow/config.yml` (leer en runtime, no hardcoded)
+  - [x] C2.13: JS: al llegar al umbral crítico (95%) → escribir `.planning/BACKEND-SWITCH-REQUIRED.json` con `{current_backend, next_backend, reason: "token_depletion", timestamp}`
+  - [x] C2.14: Python: `complete-task-handler.py` al inicio lee `.planning/BACKEND-SWITCH-REQUIRED.json` — si existe: actualiza `ACTIVE_BACKEND` al próximo de la prioridad (`z_ai → openrouter → claude`), borra el archivo signal
+  - [x] C2.15: Python: `complete-task-handler.py` escribe `.planning/ACTIVE-BACKEND.json` con el backend activo — fuente de verdad para el hook JS y el handler
+  - [x] C2.16: JS: `mm-flow-context-monitor.js` lee `ACTIVE-BACKEND.json` para saber cuál backend trackear (no hardcoded)
+  - [x] C2.17: JS: `mm-flow-statusline.js` muestra el proveedor activo en la statusline cuando hay switch activo — ej: `│ v3.1 Task A1 [3/9] │ ⚡ openrouter`
+  - [x] C2.18: Tests: simular 95% de tokens en mock → verify `BACKEND-SWITCH-REQUIRED.json` creado con next_backend correcto
+  - [x] C2.19: Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
+  - [x] C2.20: Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
 
 - [ ] C3: Learning + Audit Pipeline
   - [ ] C3.01: Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
