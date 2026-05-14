@@ -1,171 +1,134 @@
-## TASK A: Foundation Integrity
+## PHASE 20: pgvector Schema + LangSmith
 
-- [x] A1: PostgreSQL Cleanup + Verification
-  - [x] A1.01: Backend: auditar `database.py`, `config.py` buscando referencias a dual-write o `sqlite://`
-  - [x] A1.02: Backend: remover código dual-write residual — PostgreSQL ya está activo con todas las tablas
-  - [x] A1.03: Backend: ejecutar `uv run pytest` desde `apps/api/` y registrar resultado
-  - [x] A1.04: Backend: si hay failures nuevas por el cleanup, arreglarlas
-  - [x] A1.05: Backend: documentar H2 (test_cors_configuration) root cause en `tasks/tech-debt.md`
-  - [x] A1.06: Backend: documentar H3 (test_get_brain) root cause en `tasks/tech-debt.md`
-  - [x] A1.07: Verify: `rg "sqlite://" apps/` retorna 0 resultados — sin referencias residuales
-  - [x] A1.08: Verify: `python -c "from database import engine; print(engine.url)"` muestra PostgreSQL URL
-  - [x] A1.09: Verify: `GET /api/brains` retorna data real desde PostgreSQL
+- [ ] Phase 20: pgvector Schema + LangSmith
+  - [ ] 20.01: Backend: crear migration Alembic para tabla `brain_embeddings` con columnas: id UUID PK, brain_id TEXT, collection_type TEXT CHECK(IN 'domain_knowledge','project_memory'), source_ref TEXT, chunk_text TEXT, chunk_hash TEXT UNIQUE, embedding vector(768), created_at TIMESTAMPTZ
+  - [ ] 20.02: Backend: crear HNSW index en columna `embedding` con `m=16, ef_construction=64` usando `vector_cosine_ops`
+  - [ ] 20.03: Backend: ejecutar `alembic upgrade head` y verificar schema con `\d brain_embeddings`
+  - [ ] 20.04: Tests: unit test — `SELECT to_regclass('public.brain_embeddings') IS NOT NULL` pasa
+  - [ ] 20.05: Tests: unit test — HNSW index existe en `pg_indexes` para `brain_embeddings`
+  - [ ] 20.06: Tests: unit test — INSERT de embedding dummy 768-dim → SELECT retorna sin error
+  - [ ] 20.07: Verify: `SELECT column_name FROM information_schema.columns WHERE table_name='brain_embeddings'` retorna todas las columnas esperadas
+  - [ ] 20.08: Backend: `uv add sentence-transformers` — mover de dev-deps a deps en `pyproject.toml`
+  - [ ] 20.09: Backend: crear `apps/api/mastermind_cli/rag/__init__.py` con exports
+  - [ ] 20.10: Backend: crear `apps/api/mastermind_cli/rag/embed.py` con `load_model()`, `encode(texts)`, `compute_hash(text)`
+  - [ ] 20.11: Backend: crear `apps/api/mastermind_cli/rag/search.py` con `similarity_search(conn, brain_id, collection, query_text, limit=5)`
+  - [ ] 20.12: Tests: unit test — `encode(["hello world"])` retorna lista de 768 floats
+  - [ ] 20.13: Tests: unit test — `compute_hash("text")` retorna string hex de 64 chars
+  - [ ] 20.14: Tests: integration — `similarity_search()` con fixture en DB de test retorna lista con chunk_text y score en [0.0, 1.0]
+  - [ ] 20.15: Tests: edge case — `similarity_search()` con colección vacía retorna lista vacía sin crash
+  - [ ] 20.16: Verify: `from mastermind_cli.rag import similarity_search` no levanta ImportError
+  - [ ] 20.17: Backend: `uv add langsmith` — agregar a runtime deps en `pyproject.toml`
+  - [ ] 20.18: Backend: agregar `LANGSMITH_API_KEY` y `LANGSMITH_PROJECT` a `.env.example`
+  - [ ] 20.19: Backend: instrumentar `DynamicDispatchEngine.dispatch()` con `@traceable(name="brain_dispatch")` y metadata: brain_id, provider, model, profile
+  - [ ] 20.20: Backend: crear `apps/api/mastermind_cli/rag/baseline.py` — lee últimos N records de ExperienceLogger para brain-01 sin rag_enabled, calcula quality_score mean y guarda en `tasks/rag-baseline.json`
+  - [ ] 20.21: Tests: unit test — `@traceable` decorator no rompe dispatch con mock LangSmith client
+  - [ ] 20.22: Tests: unit test — `baseline.py` calcula mean correctamente con fixture de 5 records
+  - [ ] 20.23: Verify: `sentence-transformers` en `[project.dependencies]` de `pyproject.toml` (no en dev-dependencies)
+  - [ ] 20.24: Verify: `langsmith` en `[project.dependencies]` de `pyproject.toml`
+  - [ ] 20.25: Verify: `tasks/rag-baseline.json` existe con estructura correcta (sessions_evaluated, quality_score_mean, oec_target)
 
-- [x] A2: Frontend Test Verification
-  - [x] A2.01: Frontend: verificar que `pnpm test` (vitest) está configurado en `apps/web/package.json`
-  - [x] A2.02: Frontend: ejecutar `pnpm test --reporter=verbose` desde `apps/web/`
-  - [x] A2.03: Frontend: registrar resultado en `tasks/tech-debt.md` (N passed, M failed)
-  - [x] A2.04: Frontend: por cada test fallando, categorizar: pre-existing / regresión / arreglable
-  - [x] A2.05: Frontend: arreglar tests arreglables (< 2h cada uno)
-  - [x] A2.06: Frontend: marcar tests no arreglables con `it.skip("reason: ...")` y documentar en tech-debt.md
-  - [x] A2.07: Verify: `pnpm test` corre sin error fatal (aunque haya failures documentadas)
+## PHASE 21: RAG Pilot — Brain #1 Only
 
-## TASK B: Observability Core
+- [ ] Phase 21: RAG Pilot — Brain #1 Only
+  - [ ] 21.01: Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`
+  - [ ] 21.02: Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`
+  - [ ] 21.03: Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` — top-5 domain_knowledge + top-3 project_memory
+  - [ ] 21.04: Backend: formato del bloque — sección `[RETRIEVED CONTEXT]` con subsecciones `--- domain_knowledge (top-5) ---` y `--- project_memory (top-3) ---` con scores y source_ref
+  - [ ] 21.05: Backend: si colección vacía → omitir esa subsección (no crash, no placeholder)
+  - [ ] 21.06: Backend: si ambas colecciones vacías → retornar string vacío `""`
+  - [ ] 21.07: Tests: unit test — `build()` con mock `similarity_search` retorna string con `[RETRIEVED CONTEXT]` y `[END RETRIEVED CONTEXT]`
+  - [ ] 21.08: Tests: unit test — `build()` con ambas colecciones vacías retorna `""` (no bloque vacío)
+  - [ ] 21.09: Tests: unit test — `build()` con solo domain_knowledge omite sección project_memory
+  - [ ] 21.10: Tests: timing test — `build()` con fixture real tarda < 200ms (medido con `time.perf_counter`)
+  - [ ] 21.11: Verify: `from mastermind_cli.rag.context_builder import RAGContextBuilder` no levanta ImportError
+  - [ ] 21.12: Backend: identificar punto de construcción del system prompt para Brain #1 (DynamicDispatchEngine o brain agent runner)
+  - [ ] 21.13: Backend: integrar `RAGContextBuilder.build()` antes de la llamada LLM de Brain #1 — append del bloque al system prompt si no vacío
+  - [ ] 21.14: Backend: no agregar bloque vacío al system prompt si `rag_context == ""`
+  - [ ] 21.15: Tests: unit test — mock `build()` retorna bloque → system prompt incluye `[RETRIEVED CONTEXT]`
+  - [ ] 21.16: Tests: unit test — mock `build()` retorna `""` → system prompt NO incluye `[RETRIEVED CONTEXT]`
+  - [ ] 21.17: Tests: integration — Brain #1 con colecciones vacías responde sin error, `rag_enabled=false` en custom_metadata
+  - [ ] 21.18: Backend: pasar `rag_enabled: bool` como campo en `custom_metadata` al llamar `ExperienceLogger.log_execution()`
+  - [ ] 21.19: Backend: `rag_enabled = rag_context != ""` — True solo si se recuperó contexto real
+  - [ ] 21.20: Backend: LangSmith span de la sesión incluye `rag_enabled` en metadata
+  - [ ] 21.21: Tests: unit test — `log_execution(custom_metadata={"rag_enabled": True})` → `SELECT custom_metadata->>'rag_enabled'` retorna `"true"`
+  - [ ] 21.22: Tests: integration — ejecutar Brain #1 → `SELECT custom_metadata FROM experience_records ORDER BY created_at DESC LIMIT 1` tiene key `rag_enabled`
+  - [ ] 21.23: Verify: Brain #1 llama `RAGContextBuilder.build()` antes de cada invocación LLM
+  - [ ] 21.24: Verify: `experience_records.custom_metadata` tiene `rag_enabled` key después de sesión de Brain #1
 
-- [x] B1: Structured Logging + Distributed Trace Pipeline
-  - [x] B1.01: Rust: agregar `tracing` + `tracing-subscriber` a `rust_control_plane/Cargo.toml`
-  - [x] B1.02: Rust: implementar middleware Axum que extrae `X-Trace-ID` del header y crea span
-  - [x] B1.03: Rust: si no hay header, generar UUID v4 y propagarlo
-  - [x] B1.04: Rust: propagar `trace_id` en metadata gRPC outgoing a Python
-  - [x] B1.05: Python: `uv add structlog` en `apps/api/`
-  - [x] B1.06: Python: configurar `structlog` con JSON processor
-  - [x] B1.07: Python: implementar interceptor gRPC que extrae `trace_id` de metadata → contextvars
-  - [x] B1.08: Python: bind `trace_id` automáticamente en todos los log calls
-  - [x] B1.09: Frontend: implementar utility `getTraceId()` en `apps/web/src/lib/`
-  - [x] B1.10: Frontend: agregar header `X-Trace-ID` en todos los `fetch()` calls
-  - [x] B1.11: Tests: Rust unit test — request con `X-Trace-ID: test-abc` → span tiene `trace_id=test-abc`
-  - [x] B1.12: Tests: Python unit test — gRPC metadata con `trace_id` → structlog emite `{"trace_id": "test-abc"}`
-  - [x] B1.13: Tests: integration — `POST /api/tasks/auto` con header → Python log contiene el ID
-  - [x] B1.14: Verify: `curl -H "X-Trace-ID: smoke-123" http://localhost:8001/api/tasks/auto -X POST` → log Python muestra smoke-123
+## PHASE 21.5: RAG Evaluation Gate
 
-- [x] B2: WebSocket Hub⏱️ **Estimate**: N/A | **Actual**: 3.7m | **Deviation**: N/A | **Progress**: 12/12 (100%)
-📊 **Avg/subtask**: 18s | **ETA**: 3.7m
+- [ ] Phase 21.5: RAG Evaluation Gate (HARD GATE — no continuar sin pasar)
+  - [ ] 21.5.01: Backend: crear `apps/api/mastermind_cli/rag/evaluate.py` con función `run_ab_test(brief, pairs=5) -> ABTestResult`
+  - [ ] 21.5.02: Backend: `ABTestResult` dataclass — rag_scores: list[float], cold_scores: list[float], delta_mean: float, delta_std: float, passes_oec: bool
+  - [ ] 21.5.03: Backend: `passes_oec = delta_mean >= 0.08` (8pp en escala 0–1 = 8 puntos en escala 0–100)
+  - [ ] 21.5.04: Backend: `run_ab_test()` ejecuta mismo brief con RAG-enabled y cold para cada par, evalúa con Brain #7 automático
+  - [ ] 21.5.05: Backend: guardar resultado en `tasks/rag-evaluation-results.json` con estructura: {rag_scores, cold_scores, delta_mean, delta_std, passes_oec, pairs_evaluated, measured_at}
+  - [ ] 21.5.06: Tests: unit test — `delta_mean = 0.09` → `passes_oec = True`
+  - [ ] 21.5.07: Tests: unit test — `delta_mean = 0.07` → `passes_oec = False`
+  - [ ] 21.5.08: Tests: unit test — `run_ab_test()` con mock brain + mock Brain #7 → `ABTestResult` con campos correctos
+  - [ ] 21.5.09: Tests: edge case — N=1 par → `ABTestResult` válido sin crash
+  - [ ] 21.5.10: Backend: crear `tasks/rag-eval-pairs.json` con 10 pares etiquetados para Brain #1 domain_knowledge — estructura: [{query, relevant_chunk_refs: [str]}]
+  - [ ] 21.5.11: Backend: crear `apps/api/mastermind_cli/rag/recall_eval.py` con función `evaluate_recall(brain_id, collection, eval_pairs_path, limit=5) -> RecallResult`
+  - [ ] 21.5.12: Backend: `RecallResult` — recall_at_5: float, passes_sli: bool, hits: int, total: int
+  - [ ] 21.5.13: Backend: `passes_sli = recall_at_5 >= 0.70`
+  - [ ] 21.5.14: Backend: guardar en `tasks/rag-recall-results.json`
+  - [ ] 21.5.15: Tests: unit test — 7 de 10 pares con hit → `recall_at_5 = 0.70`, `passes_sli = True`
+  - [ ] 21.5.16: Tests: unit test — 6 de 10 pares con hit → `recall_at_5 = 0.60`, `passes_sli = False`
+  - [ ] 21.5.17: Tests: unit test — corpus vacío → `recall_at_5 = 0.0`, `passes_sli = False` sin crash
+  - [ ] 21.5.18: Verify: ejecutar `run_ab_test()` con 5 pares reales — `tasks/rag-evaluation-results.json` creado
+  - [ ] 21.5.19: Verify: ejecutar `evaluate_recall()` — `tasks/rag-recall-results.json` creado
+  - [ ] 21.5.20: Verify: LangSmith traces muestran retrieval P99 < 200ms para Brain #1 (o timing logs si LangSmith no disponible)
+  - [ ] 21.5.21: Verify: sample manual de chunks recuperados — no incluyen respuestas previas del mismo brain (self-similarity < 0.85)
+  - [ ] 21.5.22: Crear `tasks/gate-21.5-result.md` con Status PASS o FAIL y evidencia de cada criterio (OEC, SLI-1, latency, contamination)
+  - [ ] 21.5.23: GATE CHECK: `passes_oec: true` en `rag-evaluation-results.json`
+  - [ ] 21.5.24: GATE CHECK: `passes_sli: true` en `rag-recall-results.json`
+  - [ ] 21.5.25: GATE CHECK: `Status: PASS` en `tasks/gate-21.5-result.md` — SI FAIL: STOP, diagnosticar antes de continuar
 
+## PHASE 22: Knowledge Ingestion (Manual One-Shot)
 
-  - [x] B2.01: Rust: implementar handler `GET /ws/events` con upgrade a WebSocket
-  - [x] B2.02: Rust: crear `tokio::sync::broadcast` channel (capacity 256) para fan-out
-  - [x] B2.03: Rust: definir `BrainStateEvent` struct con serde (trace_id, brain_id, status, timestamp)
-  - [x] B2.04: Rust: implementar endpoint `POST /internal/brain-event` para recibir eventos de Python
-  - [x] B2.05: Python: al despachar brain en `DynamicDispatchEngine`, POST a `http://rust:8002/internal/brain-event`
-  - [x] B2.06: Python: al completar brain, POST a mismo endpoint con status `completed`
-  - [x] B2.07: Frontend: implementar hook `useWebSocket(url)` con reconnect logic (max 3 intentos)
-  - [x] B2.08: Frontend: implementar Zustand store `wsEventsStore` con `Map<trace_id, BrainStateEvent[]>`
-  - [x] B2.09: Frontend: implementar componente `BrainStatusFeed`
-  - [x] B2.10: Tests: Rust unit test — broadcast channel (envío → recepción)
-  - [x] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
-  - [x] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
+- [ ] Phase 22: Knowledge Ingestion (Manual One-Shot)
+  - [ ] 22.01: Backend: crear `apps/api/mastermind_cli/rag/ingest.py` CLI con argumentos `--brain-id`, `--collection`, `--source-dir`
+  - [ ] 22.02: Backend: implementar chunking strategy para `domain_knowledge` — split por sección H2 (regex `^## `), overlap 128 tokens, máximo 512 tokens por chunk
+  - [ ] 22.03: Backend: implementar chunking strategy para `project_memory` — split por bullet point (`^- ` o `^  - `), sin overlap
+  - [ ] 22.04: Backend: `chunk_hash = SHA256(brain_id + collection + chunk_text)` — `INSERT ... ON CONFLICT (chunk_hash) DO NOTHING` para idempotencia
+  - [ ] 22.05: Backend: embed en batch (no uno por uno) usando `EmbeddingService.encode()`
+  - [ ] 22.06: Backend: reporte al finalizar: `brain-01 / domain_knowledge: N chunks ingested (M skipped — duplicates)`
+  - [ ] 22.07: Tests: unit test — `chunk_by_h2(text)` con 3 secciones H2 → retorna 3 chunks
+  - [ ] 22.08: Tests: unit test — `chunk_by_bullets(text)` con 5 bullets → retorna 5 chunks
+  - [ ] 22.09: Tests: unit test — re-run ingest con mismo contenido → `COUNT(*)` no cambia (idempotencia verificada)
+  - [ ] 22.10: Tests: unit test — directorio vacío → retorna `{chunks_ingested: 0, skipped: 0}` sin error
+  - [ ] 22.11: Verify: `ingest.py` corre sin error con `--help` y con directorio de test
+  - [ ] 22.12: Ejecutar: `uv run python -m mastermind_cli.rag.ingest --brain-id brain-01 --collection domain_knowledge --source-dir docs/software-development/sources/`
+  - [ ] 22.13: Ejecutar: `uv run python -m mastermind_cli.rag.ingest --brain-id brain-01 --collection project_memory --source-dir .planning/` (BRAIN-FEED-01 o fallback a BRAIN-FEED.md)
+  - [ ] 22.14: Ejecutar: ingest domain_knowledge para brains 02–07 (1 comando por brain, fuente filtrada por skills_covered si aplica)
+  - [ ] 22.15: Ejecutar: ingest project_memory para brains 02–07 (BRAIN-FEED-NN-domain.md respectivo o fallback a BRAIN-FEED.md)
+  - [ ] 22.16: Verify: `SELECT brain_id, collection_type, COUNT(*) FROM brain_embeddings GROUP BY 1, 2 ORDER BY 1, 2` retorna 14 filas con chunks > 0
+  - [ ] 22.17: Verify: `SELECT COUNT(*) FROM brain_embeddings` > 0
+  - [ ] 22.18: Crear `tasks/ingestion-report.md` con: chunks por brain+collection, fecha, notas de fallbacks (si algún BRAIN-FEED-NN no existía)
 
-- [x] B3: Health Endpoints⏱️ **Estimate**: N/A | **Actual**: in progress | **Deviation**: — | **Progress**: 6/6 (100%)
-📊 **Avg/subtask**: — | **ETA**: in progress
+## PHASE 23: RAG Scale-Out — Brains 2–7
 
-
-  - [x] B3.01: Rust: implementar `GET /health` → `{"status": "ok", "service": "rust-control-plane"}`
-  - [x] B3.02: Python: verificar si `GET /health` existe. Si no, implementar con `{"status": "ok", "db": "postgresql"}`
-  - [x] B3.03: Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios
-  - [x] B3.04: Tests: test que `/health` retorna 200 en Rust
-  - [x] B3.05: Tests: test que `/health` retorna 200 en Python con `db` field
-  - [x] B3.06: Verify: `curl localhost:8002/health` y `curl localhost:8001/health` → 200
-
-## TASK C: Intelligent Orchestration
-
-- [x] C1: Central Agent Registry⏱️ **Estimate**: N/A | **Actual**: 1.2h | **Deviation**: N/A | **Progress**: 10/10 (100%)
-📊 **Avg/subtask**: 7.1m | **ETA**: 1.2h
-
-  - [x] C1.01: Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)
-  - [x] C1.02: Python: aplicar migration con `alembic upgrade head`
-  - [x] C1.03: Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)
-  - [x] C1.04: Python: ejecutar seed script y verificar con `SELECT COUNT(*) FROM brain_registry` = 7
-  - [x] C1.05: Python: implementar `BrainRegistryRepository` con `get_all()`, `get_by_id()`, `get_matching(context)`
-  - [x] C1.06: Python: reemplazar config dict en `DynamicDispatchEngine` con query a `BrainRegistryRepository`
-  - [x] C1.07: Frontend: verificar que `GET /api/brains` retorna data de `brain_registry` (no hardcoded)
-  - [x] C1.08: Tests: unit test — `BrainRegistryRepository.get_all()` retorna 7 rows con fixture de test DB
-  - [x] C1.09: Tests: unit test — `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)
-  - [x] C1.10: Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql
-
-- [x] C2: Dynamic Dispatch + Model Profiles (Provider-Agnostic)⏱️ **Estimate**: N/A | **Actual**: 5.5h | **Deviation**: N/A | **Progress**: 20/20 (100%)
-📊 **Avg/subtask**: 16.6m | **ETA**: 5.5h
-
-  - [x] C2.01: Python: agregar sección `model_profiles` a `config.yml` (quality/balanced/budget) con formato `provider:model_id` — ej: `anthropic:claude-opus-4-6`, `openrouter:anthropic/claude-opus-4`, `z_ai:claude-3-7-sonnet`
-  - [x] C2.02: Python: agregar sección `providers` a `config.yml` con env vars de cada proveedor (ANTHROPIC_API_KEY, OPENROUTER_API_KEY, ZAI_API_KEY, base_url por proveedor)
-  - [x] C2.03: Python: `DynamicDispatchEngine` lee model profile del contexto y lo asigna al brain usando el proveedor configurado — NO hardcoded a Anthropic
-  - [x] C2.04: Python: dispatch result incluye `model` field con formato `provider:model_id`
-  - [x] C2.05: Python: WS event `BrainStateEvent` incluye `model` y `provider` fields
-  - [x] C2.06: Frontend: implementar dropdown de model profile en Command Center (quality/balanced/budget)
-  - [x] C2.07: Frontend: perfil elegido se envía en request body al despachar
-  - [x] C2.08: Frontend: `BrainStatusFeed` muestra el modelo + proveedor de cada brain ejecutándose
-  - [x] C2.09: Tests: unit test — `dispatch(context, profile="quality")` → brain usa `model_quality` del registry con su `provider`
-  - [x] C2.10: Tests: frontend test — cambiar dropdown → Zustand store actualiza → request incluye profile
-  - [x] C2.11: Verify: cambiar a "budget" en UI → ejecutar brain → WS event muestra `"model": "z_ai:claude-3-7-sonnet"` (no hardcoded Anthropic)
-  - [x] C2.12: JS: `mm-flow-context-monitor.js` — mover `BACKEND_LIMITS` a `.planning/.mm-flow/config.yml` (leer en runtime, no hardcoded)
-  - [x] C2.13: JS: al llegar al umbral crítico (95%) → escribir `.planning/BACKEND-SWITCH-REQUIRED.json` con `{current_backend, next_backend, reason: "token_depletion", timestamp}`
-  - [x] C2.14: Python: `complete-task-handler.py` al inicio lee `.planning/BACKEND-SWITCH-REQUIRED.json` — si existe: actualiza `ACTIVE_BACKEND` al próximo de la prioridad (`z_ai → openrouter → claude`), borra el archivo signal
-  - [x] C2.15: Python: `complete-task-handler.py` escribe `.planning/ACTIVE-BACKEND.json` con el backend activo — fuente de verdad para el hook JS y el handler
-  - [x] C2.16: JS: `mm-flow-context-monitor.js` lee `ACTIVE-BACKEND.json` para saber cuál backend trackear (no hardcoded)
-  - [x] C2.17: JS: `mm-flow-statusline.js` muestra el proveedor activo en la statusline cuando hay switch activo — ej: `│ v3.1 Task A1 [3/9] │ ⚡ openrouter`
-  - [x] C2.18: Tests: simular 95% de tokens en mock → verify `BACKEND-SWITCH-REQUIRED.json` creado con next_backend correcto
-  - [x] C2.19: Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
-  - [x] C2.20: Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
-
-- [x] C3: Learning + Audit Pipeline⏱️ **Estimate**: N/A | **Actual**: 12.3h | **Deviation**: N/A | **Progress**: 27/27 (100%)
-📊 **Avg/subtask**: 27.4m | **ETA**: 12.3h
-
-
-  - [x] C3.01: Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
-  - [x] C3.02: Python: implementar hook que llama Brain #7 con output del brain ejecutado
-  - [x] C3.03: Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)
-  - [x] C3.04: Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qué modelo ejecutó)
-  - [x] C3.05: Python: flag `high_value` en custom_metadata si duración > 5min o score significativo
-  - [x] C3.06: Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score
-  - [x] C3.07: Frontend: escuchar WS event `session_evaluated`
-  - [x] C3.08: Frontend: badge en Command Center: "Última sesión: score 0.87"
-  - [x] C3.09: Tests: unit test — mock Brain #7 → verify `ExperienceLogger.log_execution()` llamado con quality_score
-  - [x] C3.10: Tests: integration test — complete session → `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL
-  - [x] C3.11: Tests: frontend test — WS event `session_evaluated` → badge actualiza
-  - [x] C3.12: Verify: ejecutar cualquier brain → `uv run python -c "from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))"` retorna record con quality_score
-  - [x] C3.13: Python: `complete-task-handler.py` al inicio de tarea → INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)
-  - [x] C3.14: Python: `complete-task-handler.py` al fin de tarea → UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at
-  - [x] C3.15: Python: `task-executor` — por cada error de subtask → INSERT en `decisions` (decision_type="error_resolution", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)
-  - [x] C3.16: Python: `task-executor` — al inicio de cada subtask → `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto
-  - [x] C3.17: Python: `task-executor` — al completar subtask con éxito → `brain_memory.py log` guardando qué funcionó (input=problema, output=solución, status=success)
-  - [x] C3.18: Tests: integration test — ejecutar task A1 → `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated
-  - [x] C3.19: Tests: unit test — simular error en subtask → verify INSERT en `decisions` con decision_type="error_resolution"
-  - [x] C3.20: Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 después de primer `/mm:complete-task`
-  - [x] C3.21: Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duración real vs estimada)
-  - [x] C3.22: Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) — cuántas veces task-executor salió al 75% y necesitó `--continue`
-  - [x] C3.23: Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) — desglose `{"anthropic:claude-sonnet-4-6": N, "openrouter:claude-opus": N}` acumulado de `BACKEND-USAGE.json` — agnóstico al proveedor
-  - [x] C3.24: Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) — si el commit pasó GGA en el primer intento
-  - [x] C3.25: Python: `decisions` con `decision_type="error_pattern"` cuando el mismo root_cause aparece ≥ 2 veces — flag automático de deuda técnica recurrente
-  - [x] C3.26: Tests: unit test — dos errores con mismo root_cause → verify segundo INSERT tiene decision_type="error_pattern"
-  - [x] C3.27: Verify: después de 3 tasks ejecutadas → `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend
-
-## TASK D: UI Evolution
-
-- [x] D1: Three-Column Orchestration Canvas⏱️ **Estimate**: N/A | **Actual**: 1.4h | **Deviation**: N/A | **Progress**: 11/11 (100%)
-📊 **Avg/subtask**: 7.6m | **ETA**: 1.4h
-
-  - [x] D1.01: Frontend: crear ruta `/orchestrate` en `apps/web/src/app/orchestrate/`
-  - [x] D1.02: Frontend: implementar layout de tres columnas (`[BrainList | OrchestrationCanvas | OutputPanel]`)
-  - [x] D1.03: Frontend: implementar `BrainList` component (consume `/api/brains` + `wsEventsStore`)
-  - [x] D1.04: Frontend: extender `NexusCanvas` existente para mostrar nodos con estado dinámico (no reescritura)
-  - [x] D1.05: Frontend: implementar `OutputPanel` (output estructurado + Brain #7 score + trace timeline)
-  - [x] D1.06: Frontend: responsive — en < 1280px colapsa a tabs
-  - [x] D1.07: Frontend: agregar link a `/orchestrate` en la nav principal
-  - [x] D1.08: Tests: component test — `OrchestrationCanvas` renderiza con data mockeada de 7 brains
-  - [x] D1.09: Tests: component test — `BrainList` actualiza estado cuando llega WS event
-  - [x] D1.10: Tests: component test — `OutputPanel` renderiza output estructurado
-  - [x] D1.11: Verify: navegar a `localhost:3000/orchestrate` → tres columnas visibles en 1440px
-
-- [x] D2: Real-Time Monitoring Panel + Progressive Streaming⏱️ **Estimate**: N/A | **Actual**: 57.6m | **Deviation**: N/A | **Progress**: 9/9 (100%)
-📊 **Avg/subtask**: 6.4m | **ETA**: 57.6m
-
-  - [x] D2.01: Frontend: implementar hook `useOrchestrationStream()` que consume `wsEventsStore`
-  - [x] D2.02: Frontend: implementar `StatusTimeline` component (eventos en orden cronológico)
-  - [x] D2.03: Frontend: integrar `StatusTimeline` en columna 2, debajo del React Flow DAG
-  - [x] D2.04: Frontend: iconos de estado (completado / ejecutando / error / pendiente)
-  - [x] D2.05: Frontend: auto-scroll al evento más reciente
-  - [x] D2.06: Tests: component test — `StatusTimeline` renderiza lista de eventos mockeados en orden correcto
-  - [x] D2.07: Tests: hook test — `useOrchestrationStream()` con mock store → retorna estado correcto
-  - [x] D2.08: Tests: interaction test — WS event llegado → timeline agrega evento en < 500ms
-  - [x] D2.09: Verify: ejecutar brain mientras se observa `/orchestrate` → StatusTimeline se actualiza en tiempo real
-
-## Tracking
+- [ ] Phase 23: RAG Scale-Out — Brains 2–7
+  - [ ] 23.01: Backend: verificar que `RAGContextBuilder.build(brain_id, query)` ya acepta cualquier brain_id sin cambios de código
+  - [ ] 23.02: Backend: activar `rag_enabled: true` en agent config de Brain #2 (UX Research)
+  - [ ] 23.03: Backend: activar `rag_enabled: true` en agent config de Brain #3 (UI Design)
+  - [ ] 23.04: Backend: activar `rag_enabled: true` en agent config de Brain #4 (Frontend)
+  - [ ] 23.05: Backend: activar `rag_enabled: true` en agent config de Brain #5 (Backend)
+  - [ ] 23.06: Backend: activar `rag_enabled: true` en agent config de Brain #6 (QA/DevOps)
+  - [ ] 23.07: Backend: activar `rag_enabled: true` en agent config de Brain #7 (Growth/Data)
+  - [ ] 23.08: Tests: integration — `build(brain_id="brain-02", query="UX research...")` con colecciones populadas retorna bloque con chunks
+  - [ ] 23.09: Tests: integration — sesión de Brain #2 → `custom_metadata->>'rag_enabled' = 'true'` en experience_records
+  - [ ] 23.10: Tests: integration — sesión de Brain #3 → `custom_metadata->>'rag_enabled' = 'true'` en experience_records
+  - [ ] 23.11: Tests: integration — sesión de Brain #4 → `custom_metadata->>'rag_enabled' = 'true'` en experience_records
+  - [ ] 23.12: Tests: integration — sesión de Brain #5 → `custom_metadata->>'rag_enabled' = 'true'` en experience_records
+  - [ ] 23.13: Tests: integration — sesión de Brain #6 → `custom_metadata->>'rag_enabled' = 'true'` en experience_records
+  - [ ] 23.14: Backend: extender `tasks/rag-eval-pairs.json` con 10 pares para cada brain #2–#7 (total 70 pares)
+  - [ ] 23.15: Backend: extender `recall_eval.py` para evaluar múltiples brains en batch — argumento `--all-brains`
+  - [ ] 23.16: Ejecutar: `recall_eval.py --all-brains` → guardar resultado en `tasks/rag-recall-results-all.json`
+  - [ ] 23.17: Tests: unit test — `evaluate_recall()` con batch de 7 brains → retorna dict brain_id → RecallResult
+  - [ ] 23.18: Verify: `SELECT brain_id, AVG((quality_score)::float) FROM experience_records WHERE custom_metadata->>'rag_enabled'='true' GROUP BY brain_id` retorna 7 filas
+  - [ ] 23.19: Verify: Recall@5 >= 0.70 en `rag-recall-results-all.json` para todos los 7 brains
+  - [ ] 23.20: Verify: OEC cumplido — quality_score delta >= +8pp en promedio de los 7 brains (comparar con `tasks/rag-baseline.json`)
+  - [ ] 23.21: Verify: LangSmith dashboard muestra trazas de todos los providers activos con desglose de costo por brain
+  - [ ] 23.22: Verify: ningún brain supera baseline + 500ms en P99 (LangSmith latency report)
+  - [ ] 23.23: Documentar resultado final en `tasks/v3.2-completion-report.md` con: Recall@5 por brain, OEC delta, latency P99 por brain, LangSmith dashboard URL

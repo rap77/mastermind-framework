@@ -1,282 +1,250 @@
-# MasterMind v3.1 — Specification
+# MasterMind v3.2 — Specification
 
-**Generado:** 2026-04-28
+**Generado:** 2026-05-14
 **Brain consultations:** Brain #1 (Product Strategy) + Brain #7 (Growth/Data)
-**Input:** 37 gaps de V31-GAPS.md, auditados desde fases 07-19
+**Input:** ROADMAP-v3.2.md + BRAIN-FEED.md constraints + v3.1 ExperienceLogger baseline
 
 ---
 
 ## Objetivo
 
-v3.1 resuelve la deuda estructural acumulada en v3.0: tests de frontend nunca ejecutados, producción corriendo en SQLite, observabilidad completamente ausente (Phase 16 = 0%), y un sistema de dispatch que existe en código pero sigue siendo 100% manual en operación.
+v3.2 introduce RAG per agent con pgvector + observabilidad LLM con LangSmith. Cada uno de los 7 brains tendrá su propio vector store particionado con dos colecciones distintas: `domain_knowledge` (libros destilados de `docs/`) y `project_memory` (BRAIN-FEED logs operacionales).
 
-**No es un milestone de features nuevas.** Es el milestone que hace que lo construido en v3.0 funcione de verdad — con PostgreSQL como read-source, tests verdes, trazas cross-service visibles, y el motor de dispatch realmente disparando brains automáticamente.
+**No es un pivot de arquitectura.** Es el milestone que agrega memoria vectorial a los brains existentes, con un gate de evaluación obligatorio antes de escalar de 1 a 7 brains.
 
-El resultado medible: cualquier operación de brain se puede trazar desde Next.js → Rust → gRPC → Python, el sistema sabe qué brains tiene disponibles y los despacha solo, y el frontend está cubierto por tests ejecutados (no solo compilados).
+El resultado medible: Brain #1 con RAG produce un quality_score (evaluado por Brain #7) al menos +8 puntos por encima del cold baseline, con Recall@5 >= 0.70. Todos los brains instrumentados en LangSmith para visibilidad de costo/latencia por provider.
 
 ---
 
 ## Contexto
 
-- **v3.0 cerrado** — fases 13-19 completadas. Stack: Next.js 16 + FastAPI + Rust Axum + PostgreSQL (dual-write, no migrado)
-- **DynamicDispatchEngine EXISTS** — `apps/api/mastermind_cli/mm_flow/dispatch_engine.py` (Phase 19). Dispatch sigue siendo 100% manual.
-- **PostgreSQL dual-write EXISTS** — infraestructura completa. Read-source nunca se switcheó. Producción = SQLite.
-- **628 TypeScript tests** — escritos en Phase 17. Compilación verificada. Ejecución NUNCA verificada.
-- **Phase 16 (Observability) = 0%** — 7 planes definidos, ninguno ejecutado.
-- **ExperienceLogger EXISTS** — 0 records. Brains no lo llaman. Sistema de aprendizaje no aprende.
-- **Brain #7** — evalúa en planning (momentos 2+3). No evalúa post-sesión.
-- **T1 baseline** — 210-270s. Target v3.1: sub-90s con learning activo.
+- **v3.1 cerrado** — Fases A–D completadas. Stack activo: Next.js 16 + FastAPI + Rust Axum + PostgreSQL 16.
+- **pgvector YA ACTIVO** — `CREATE EXTENSION vector` está en migration 001. Phase 20 es schema only, no infraestructura.
+- **ExperienceLogger EXISTS** — Registra quality_score post-sesión. Brain #7 evalúa automáticamente (hook C3). Baseline = 5 sesiones sin RAG necesarias.
+- **DynamicDispatchEngine EXISTS** — `apps/api/mastermind_cli/mm_flow/dispatch_engine.py`. Es el punto de inyección para LangSmith callbacks.
+- **asyncpg como driver** — No ORM, no LangChain, no LangGraph. Queries directas a pgvector.
+- **sentence-transformers** — Librería para embeddings. Actualmente en dev-deps; debe promoverse a runtime.
+- **BRAIN-FEED docs/** — `docs/software-development/sources/` contiene 10 archivos `FUENTE-*.md` (corpus de domain_knowledge para Brain #1 y otros).
 
 ---
 
-## User Stories (priorizadas)
+## Problem Statement
 
-### Must Have (v3.1)
+Los brains responden con conocimiento de entrenamiento del modelo base. No tienen acceso a:
+1. El corpus de libros destilados (`docs/software-development/sources/`) al momento de responder
+2. El historial operacional del propio brain (BRAIN-FEED logs de sesiones pasadas)
 
-**US-01 — Foundation Integrity**
-Como operador, quiero que el sistema corra con PostgreSQL como read-source y que todos los tests del frontend estén verificados en ejecución, para tener confianza real en la infraestructura antes de construir encima.
-- **Acceptance:** `pnpm test` corre los 628 tests y pasan (o los que fallen están documentados como pre-existentes). `uv run pytest` pasa con PostgreSQL como read-source activo.
+Esto crea dos brechas:
+- **Conocimiento perdido**: Los 10 libros destilados en `docs/` existen pero no se inyectan en el contexto.
+- **Aprendizaje perdido**: Cada sesión empieza desde cero; patrones de sesiones anteriores no se recuperan.
 
-**US-02 — Cross-Service Tracing**
-Como operador, cuando ejecuto un brain, quiero ver una traza completa Next.js → Rust → gRPC → Python en un panel de la UI, para poder debuggear sin SSH ni logs manuales.
-- **Acceptance:** Un `trace_id` propagado desde el request original aparece en cada servicio. La UI muestra el span tree completo para cada ejecución de brain.
-
-**US-03 — Real-time Brain Status**
-Como operador, quiero ver en tiempo real el estado de cada brain (iniciando / ejecutando / completado / error) mientras una sesión corre, para no estar ciego durante ejecuciones largas.
-- **Acceptance:** WebSocket Hub emite eventos de estado. El panel de la UI actualiza sin reload. T1 de "¿qué está pasando?" = 0s (visible sin preguntar).
-
-**US-04 — Auto-dispatch de Brains**
-Como operador, cuando inicio una sesión de planning, quiero que el sistema detecte el contexto (fase actual, gaps, momento) y despache los brains correctos automáticamente, sin que tenga que elegir manualmente cuál invocar.
-- **Acceptance:** El Central Agent Registry tiene los 7 brains persistidos en PostgreSQL con capacidades y modelo asignado. El DynamicDispatchEngine los despacha según `config.yml`. Zero intervención manual en el happy path.
-
-**US-05 — Brain #7 Post-Session Evaluation**
-Como operador, después de cada sesión de brain, quiero que Brain #7 evalúe el output automáticamente y genere un score + aprendizaje, para que el sistema mejore sin que yo tenga que invocar Brain #7 manualmente.
-- **Acceptance:** Hook post-sesión llama Brain #7. `ExperienceLogger` recibe el record con `quality_score`. El sistema tiene al menos 1 record por sesión ejecutada. T1 manual para evaluación = 0s.
-
-**US-06 — Health Baseline**
-Como operador, quiero que los 2 tests pre-existentes que fallan (test_cors_configuration, test_get_brain) estén documentados con root cause, para tener una suite limpia o conocer exactamente qué está roto y por qué.
-- **Acceptance:** Ambos tests tienen un issue documentado en tasks/tech-debt.md con root cause. Si se pueden arreglar en < 1h, se arreglan. Si no, se marcan como `@pytest.mark.xfail` con reason.
-
-### Should Have (v3.1)
-
-**US-07 — Structured Logging**
-Como operador, quiero que todos los servicios (Rust + Python) emitan logs estructurados con el mismo `trace_id`, para poder hacer `grep trace_id=XYZ` y ver toda la historia de una operación.
-
-**US-08 — Model Profiles**
-Como operador, quiero que las operaciones de planning usen Opus automáticamente y las de archiving usen Haiku, sin tener que especificarlo en cada invocación.
-
-**US-09 — Nyquist Auditing**
-Como operador, cuando marco una fase como completa, quiero que el sistema verifique activamente que los artefactos existen y funcionan (no solo checkboxes), para no acumular deuda de fases "completadas" que en realidad tienen gaps.
-
-**US-10 — Three-Column Layout**
-Como operador, quiero ver el orchestration canvas con la lista de brains, el canvas de ejecución actual, y los outputs estructurados en tres columnas, para tener toda la información sin cambiar de pantalla.
-
-### Could Have (v3.2)
-
-- **F1/F2/F3** — WhatsApp / Instagram / Email real APIs (requieren concierge MVP primero — Brian #1 veto)
-- **G1** — PROP-001 Onboarding Visual (desbloqueado pero no crítico)
-- **G2** — PROP-002-v2 Multi-Channel Orchestrator UI (aprobación condicional 65%, requiere concierge)
-- **G3** — PROP-003 Event-Driven Heartbeats (Build Trap — 1 semana concierge primero)
-- **E4** — WCAG 2.1 AA (nivel A suficiente para v3.1)
-- **E5** — Storybook (diferido a v3.2)
-- **A5** — "Next X" queries automáticas
-- **A6** — Progressive status streaming (nice to have, detrás de D3)
-- **C3** — Event sourcing `activity_log` (diferido, infraestructura de C1/C2 primero)
-- **D6** — K6 load testing (diferido — WebSocket Hub debe existir primero)
-- **D7** — Ghost Mode buffer (diferido)
+La solución es RAG con pgvector: dos colecciones por brain, embeddings pre-generados, retrieval en < 200ms, contexto inyectado automáticamente en el system prompt.
 
 ---
 
-## Arquitectura v3.1
+## Solution Architecture
 
-### Qué cambia respecto a v3.0
+### Componentes nuevos
 
-| Componente | v3.0 | v3.1 |
+```
+brain_embeddings (PostgreSQL/pgvector)
+  ├── brain_id: text
+  ├── collection_type: domain_knowledge | project_memory
+  ├── chunk_text: text
+  ├── embedding: vector(1536)
+  └── HNSW index on embedding (m=16, ef_construction=64)
+
+EmbeddingService (apps/api/mastermind_cli/rag/)
+  ├── embed.py      — sentence-transformers encode + asyncpg upsert
+  ├── search.py     — similarity_search(brain_id, collection, query, limit=5)
+  └── ingest.py     — idempotent ingest script (one-shot manual)
+
+RAGContextBuilder (apps/api/mastermind_cli/rag/context_builder.py)
+  ├── build(brain_id, user_query) → str
+  ├── domain_knowledge: top-5 chunks
+  └── project_memory: top-3 chunks
+```
+
+### RAG Query Path
+
+```
+User brief → DynamicDispatchEngine
+    ↓
+RAGContextBuilder.build(brain_id, brief)
+    ├── similarity_search(brain_id, "domain_knowledge", brief, limit=5) [asyncpg]
+    └── similarity_search(brain_id, "project_memory", brief, limit=3) [asyncpg]
+    ↓
+[RETRIEVED CONTEXT] block inyectado en system prompt del brain
+    ↓
+Brain responds con contexto aumentado
+    ↓
+ExperienceLogger registra rag_enabled=true en custom_metadata
+    ↓
+Brain #7 evalúa quality_score → comparar con cold baseline
+```
+
+### Colecciones: estrategias distintas
+
+| Collection | Fuente | Chunking | Peso retrieval | Propósito |
+|------------|--------|----------|----------------|-----------|
+| `domain_knowledge` | `docs/software-development/sources/FUENTE-*.md` | Por sección H2 + overlap 128 tokens | Mayor peso (fundamentos) | Contexto de libros destilados |
+| `project_memory` | `.planning/BRAIN-FEED-NN-domain.md` | Por bullet point (learnings) | Menor peso (experiencias) | Patrones y aprendizajes operacionales |
+
+**Invariante Brain #7:** Estas dos colecciones NO deben cruzarse. `project_memory` contiene logs operacionales, no conocimiento experto. Ingestar uno como el otro es Knowledge Contamination Loop.
+
+### LangSmith Integration Points
+
+LangSmith es observabilidad pura — no modifica el dispatch ni el routing. Puntos de instrumentación:
+
+1. `DynamicDispatchEngine.dispatch()` — callback al inicio de cada llamada LLM
+2. Resultado de Brain #7 evaluación — trace separado con quality_score
+3. RAG retrieval — span con latency y chunk count
+
+```python
+# Patrón de instrumentación (DynamicDispatchEngine)
+from langsmith import traceable
+
+@traceable(name="brain_dispatch", metadata={"provider": provider})
+async def dispatch(self, context: BrainContext) -> DispatchResult:
+    ...
+```
+
+---
+
+## Requirements
+
+### Functional
+
+| ID | Descripción | Phase |
+|----|-------------|-------|
+| RAG-01 | Tabla `brain_embeddings` con HNSW index, particionada por brain_id + collection_type | 20 |
+| RAG-01b | `similarity_search(brain_id, collection, query, limit)` asyncpg utility | 20 |
+| LSMITH-01 | LangSmith SDK instalado, `DynamicDispatchEngine` instrumentado | 20 |
+| LSMITH-01b | OEC baseline medido: quality_score promedio de Brain #1 sin RAG (≥ 5 sesiones) | 20 |
+| RAG-02 | Brain #1 recupera top-5 domain_knowledge + top-3 project_memory antes de responder | 21 |
+| RAG-02b | Contexto inyectado en system prompt bajo sección `[RETRIEVED CONTEXT]` explícita | 21 |
+| RAG-02c | `ExperienceLogger` registra `rag_enabled: true` en custom_metadata | 21 |
+| RAG-EVAL-01 | A/B test Brain #1 RAG vs cold — mínimo 5 pares evaluados por Brain #7 | 21.5 |
+| RAG-EVAL-01b | quality_score delta >= +8pp (HARD GATE) | 21.5 |
+| RAG-EVAL-01c | Recall@5 >= 0.70 en 10 pares etiquetados para domain_knowledge de Brain #1 | 21.5 |
+| RAG-03 | Script `ingest.py` idempotent — carga las 2 colecciones de los 7 brains one-shot | 22 |
+| RAG-04 | Los 7 brains con `rag_enabled: true` en sus agent configs | 23 |
+| RAG-04b | Recall@5 >= 0.70 en todos los 7 brains (70 pares etiquetados) | 23 |
+
+### Non-Functional
+
+| ID | Descripción | Medición |
+|----|-------------|----------|
+| NFR-01 | Retrieval latency P99 < 200ms | LangSmith traces |
+| NFR-02 | Latency total (RAG + LLM) < baseline + 500ms en P99 | LangSmith |
+| NFR-03 | Zero knowledge contamination: self-similarity retrieved vs previous responses < 0.85 | Script de validación |
+| NFR-04 | Ingest script idempotent: re-run no duplica chunks (ON CONFLICT DO NOTHING o hash check) | `SELECT COUNT(*) FROM brain_embeddings` antes/después de re-run |
+| NFR-05 | sentence-transformers en runtime deps (no dev-deps) | `pyproject.toml` |
+
+---
+
+## Tech Decisions
+
+### asyncpg directo (no LangChain, no LangGraph)
+
+**Decisión:** Queries pgvector via asyncpg con operador `<=>` (cosine similarity). No LangChain, no LangGraph.
+
+**Razones:**
+- Stack ya usa asyncpg como driver primario (Phase 19 decisión locked)
+- LangChain agrega 15+ deps, compatibility friction con Pydantic v2 strict mode
+- pgvector queries son triviales: `ORDER BY embedding <=> $1 LIMIT $2`
+- BRAIN-FEED anti-patrón: no agregar dependencias sin justificación de complejidad
+
+### sentence-transformers para embeddings
+
+**Modelo elegido:** `all-MiniLM-L6-v2` (384d → proyectado a 1536 via padding o usar `all-mpnet-base-v2` directamente en 768d)
+
+**Nota:** El schema usa `vector(1536)` (dimensión de OpenAI ada-002) para compatibilidad futura. Si sentence-transformers produce 768d, usar `vector(768)` directamente — ajustar schema a la dimensión real del modelo elegido.
+
+**Razones:**
+- sentence-transformers ya está en dev-deps — solo promover
+- No depende de API externa para embeddings (sin costo por token, sin latency de red)
+- Suficiente para corpus de 10 libros destilados (~3000 chunks estimados)
+
+### LangSmith como observabilidad pura
+
+**Decisión:** LangSmith no modifica el dispatch, el routing, ni la lógica de brains. Es decorador puro (`@traceable`).
+
+**Razones:**
+- Brain #7 constraint: LangSmith = observabilidad only
+- `DynamicDispatchEngine` ya tiene su lógica probada — no tocarla más allá del decorator
+- El costo/latencia por provider ya es visible en logs estructurados (v3.1) — LangSmith agrega dashboard UI
+
+---
+
+## Success Criteria (OEC + SLIs)
+
+### OEC (Overall Evaluation Criterion)
+
+**quality_score delta >= +8pp**
+
+- Medición: Brain #1 con RAG vs Brain #1 cold (mismo brief)
+- Evaluador: Brain #7 (automático via post-session hook)
+- Mínimo: 5 pares de comparación en Phase 21.5
+- Escala: 0–100 (heredada de ExperienceLogger.quality_score)
+
+### SLIs
+
+| SLI | Target | Medición | Phase |
+|-----|--------|----------|-------|
+| SLI-1: Recall@5 Brain #1 | >= 0.70 | 10 pares etiquetados manualmente | 21.5 |
+| SLI-2: Recall@5 Brains 2–7 | >= 0.70 cada uno | 10 pares × 6 brains | 23 |
+| SLI-3: Retrieval latency P99 | < 200ms | LangSmith spans | 21 |
+| SLI-4: Total latency P99 | < baseline + 500ms | LangSmith | 21.5 |
+| SLI-5: Zero contamination | self-sim < 0.85 | validation script | 21.5 |
+
+### Hard Gate (Phase 21.5)
+
+Si OEC o SLI-1 no se cumplen: STOP. No avanzar a Phase 22 (ingestion ni scale-out).
+Diagnosticar retrieval antes de continuar: chunk size, overlap, modelo de embeddings, index params.
+
+---
+
+## Scope
+
+### En v3.2
+
+- pgvector schema (brain_embeddings, HNSW index)
+- sentence-transformers embeddings (runtime dep)
+- RAG en Brain #1 únicamente (Phase 21)
+- Evaluation gate A/B (Phase 21.5) — obligatoria
+- Ingestion script one-shot manual para los 7 brains (Phase 22)
+- RAG scale-out a Brains 2–7 (Phase 23) — condicional a gate
+- LangSmith instrumentation en DynamicDispatchEngine
+
+### Fuera de v3.2 (→ v3.3)
+
+- **Phase 24: Cross-brain learning** — propagación de patrones vía BRAIN-FEED entre brains. Solo después de OEC confirmado en 5/7 brains.
+- **Ingestion auto-update pipeline** — file watcher o cron. Solo si re-runs manuales se documentan como bottleneck.
+- **Template Marketplace** — condicional a 3 entrevistas LATAM SME + 1 LOI.
+- **Embeddings via API externa** — OpenAI ada-002 o similar. Solo si sentence-transformers prueba insuficiente (NFR-01 no cumplido).
+
+---
+
+## Arquitectura v3.2 vs v3.1
+
+| Componente | v3.1 | v3.2 |
 |-----------|------|------|
-| DB Read-Source | PostgreSQL (dual-write residual) | PostgreSQL exclusivo (sin dual-write) |
-| Dispatch | Manual (100%) | Automático vía Registry + DynamicDispatchEngine |
-| Observabilidad | Ninguna | Structured logs + distributed traces + WebSocket Hub |
-| Frontend tests | Compilados (no ejecutados) | Ejecutados y verdes |
-| Brain #7 trigger | Sólo planning | Planning + post-sesión automático |
-| Cross-service debugging | SSH + logs manuales | Trace UI en Next.js |
-
-### Nuevos componentes v3.1
-
-- **Central Agent Registry** — Tabla PostgreSQL `brain_registry` con capacidades, modelo y triggers por brain
-- **WebSocket Hub** — Rust Axum + tokio-tungstenite, emite eventos de estado en tiempo real
-- **Distributed Trace Pipeline** — `trace_id` propagado: Next.js header → Rust middleware → gRPC metadata → Python structlog
-- **Post-Session Hook** — Llama Brain #7 automáticamente al cierre de sesión (modify `StatelessCoordinator` o cron job)
-- **Orchestration Canvas v2** — Three-column layout en Next.js con panel de monitoring en tiempo real
+| Contexto brain | Solo system prompt estático | System prompt + [RETRIEVED CONTEXT] inyectado |
+| Memoria brain | ExperienceLogger (structured records) | ExperienceLogger + pgvector similarity search |
+| Observabilidad LLM | Structured logs (structlog) | Structured logs + LangSmith dashboard |
+| Ingestion | N/A | Script one-shot manual (`ingest.py`) |
+| Evaluation | quality_score post-sesión (Brain #7) | A/B quality_score: RAG vs cold baseline |
+| Scale | 0 brains con RAG | 7 brains con RAG (condicional a gate) |
 
 ---
 
-## Vertical Slices (fases propuestas)
+## Out of Scope v3.2
 
-### Slice 1: Foundation Integrity (C1 + E1 + H2/H3)
-
-**Objetivo:** Eliminar el riesgo estructural más alto — verificar que PostgreSQL es el único read-source (sin código dual-write residual) y que los tests de frontend están ejecutados y verdes.
-
-**Backend:**
-- Auditar el código y remover cualquier referencia a dual-write o fallback a SQLite — PostgreSQL ya está corriendo con todas las tablas implementadas
-- Documentar/arreglar H2 (test_cors_configuration) y H3 (test_get_brain)
-
-**Frontend:**
-- Ejecutar los 628 TypeScript tests (`pnpm test`) y registrar resultado
-- Arreglar los que fallen si son < 2h de fix cada uno; los demás → issue documentado
-
-**Tests:**
-- `uv run pytest` con PostgreSQL read-source = 0 failures nuevas
-- `pnpm test` ejecutado y con resultado documentado (pass count + failures conocidas)
-
-**Acceptance:**
-- [ ] `DATABASE_URL` apunta a PostgreSQL en todos los entornos
-- [ ] `uv run pytest` pasa sin regresiones nuevas
-- [ ] `pnpm test` reporta resultado (pass/fail) — NO "no ejecutado"
-- [ ] H2 y H3 tienen root cause documentado en tasks/tech-debt.md
-
-**Por qué primero:** Brain #7 — sin esto, cualquier cosa construida encima tiene base incierta. C1 sin resolver es un riesgo de corrupción de datos cuando la observabilidad empiece a escribir.
-
----
-
-### Slice 2: Observability Core (D1 + D2 + D3 + D4)
-
-**Objetivo:** Cross-service debugging visible desde la UI. Un `trace_id` que viaja de Next.js a Python.
-
-**Backend (Rust):**
-- `tracing` crate + `tracing-subscriber` con JSON formatter
-- Middleware Axum que extrae `X-Trace-ID` del header y lo propaga como `tracing::Span`
-- WebSocket Hub: Axum handler `/ws/events`, tokio broadcast channel, emite `BrainStateEvent`
-- Health endpoints: `/health` en cada servicio
-
-**Backend (Python):**
-- `structlog` con `trace_id` bound desde gRPC metadata
-- Post interceptor que inyecta `trace_id` en cada log line
-
-**Frontend (Next.js):**
-- `X-Trace-ID` header en todos los fetches desde `apps/web/`
-- Panel de monitoring: WebSocket listener + Zustand store de eventos
-- Trace viewer: muestra span tree por `trace_id`
-
-**Tests:**
-- Rust: unit test del middleware (trace propagation)
-- Python: test que verifica que structlog emite `trace_id`
-- Frontend: test del WebSocket store (mock WS, verify state updates)
-- E2E: `POST /api/tasks/auto` → verificar que `trace_id` llega a Python structlog
-
-**Acceptance:**
-- [ ] `curl -H "X-Trace-ID: test-123" POST /api/tasks/auto` → Python log contiene `trace_id=test-123`
-- [ ] WebSocket en `ws://localhost:8002/ws/events` emite eventos al ejecutar brain
-- [ ] UI panel muestra estado en tiempo real sin reload
-- [ ] Todos los servicios tienen `/health` endpoint respondiendo 200
-
----
-
-### Slice 3: Intelligent Orchestration (A1 + A2 + B1 + A3)
-
-**Objetivo:** El sistema sabe qué brains tiene y los despacha automáticamente. Brain #7 evalúa post-sesión sin intervención manual.
-
-**Backend (Python):**
-- Tabla `brain_registry` en PostgreSQL (brain_id, name, model, capabilities[], triggers[])
-- Seed con los 7 brains actuales
-- `DynamicDispatchEngine` ya existe — conectarlo a `brain_registry` como fuente de verdad (hoy usa config dict estático)
-- Model profiles: `config.yml` con triplets `quality/balanced/budget` por rol
-- Post-session hook en `StatelessCoordinator`: al cierre de sesión, llama Brain #7 con output del brain ejecutado
-- `ExperienceLogger.log_execution()` llamado desde el hook (hoy = 0 records)
-
-**Frontend (Next.js):**
-- Panel de brains disponibles: consume `/api/brains` (ya existe) + muestra estado desde WebSocket
-- Model profile selector: dropdown en Command Center (quality/balanced/budget)
-
-**Tests:**
-- Unit: `DynamicDispatchEngine` con `brain_registry` como fuente (no config dict)
-- Integration: POST session → verify Brain #7 hook se ejecuta → verify ExperienceLogger record creado
-- Frontend: test del model profile selector (Zustand store update)
-
-**Acceptance:**
-- [ ] `SELECT * FROM brain_registry` retorna 7 rows con capacidades correctas
-- [ ] `DynamicDispatchEngine.dispatch()` usa `brain_registry`, no config dict hardcodeado
-- [ ] Después de cualquier sesión de brain: `ExperienceLogger.get_recent_by_brain()` retorna >= 1 record
-- [ ] Brain #7 score aparece en el record (`quality_score IS NOT NULL`)
-- [ ] Model profile elegido en UI se usa en la invocación del brain
-
----
-
-### Slice 4: UI Evolution (E2 + E3 + A6 + US-10)
-
-**Objetivo:** Three-column orchestration canvas con monitoring en tiempo real. El operador ve todo sin cambiar de pantalla.
-
-**Frontend (Next.js):**
-- Three-column layout en `/command-center` o nueva ruta `/orchestrate`
-- Columna 1: Brain list (disponibles, estado, model profile)
-- Columna 2: Canvas de ejecución actual (React Flow DAG, extender The Nexus)
-- Columna 3: Output estructurado del brain activo + trace timeline
-- Real-time agent monitoring panel: consume WebSocket Hub del Slice 2
-- Progressive status streaming: `Brain #1 ✅ → Brain #7 validando...` visible en columna 2
-
-**Backend:**
-- No backend nuevo — consume WebSocket Hub (Slice 2) y `brain_registry` (Slice 3)
-
-**Tests:**
-- Component tests: ThreeColumnLayout, BrainStatusPanel, TraceTimeline
-- Integration: WebSocket mock → UI updates en tiempo real (verified)
-
-**Acceptance:**
-- [ ] Three-column layout renderiza en desktop (>1280px) sin overflow
-- [ ] Brain status se actualiza en tiempo real desde WebSocket (< 500ms latency)
-- [ ] Progressive status messages visibles durante ejecución (no spinner opaco)
-- [ ] Output estructurado renderiza correctamente para todos los brain types
-
----
-
-## Testing Strategy
-
-| Slice | Unit | Integration | E2E |
-|-------|------|-------------|-----|
-| 1 — Foundation | `pnpm test` run, pytest baseline | DB connection via PostgreSQL | Smoke test: app arranca con PG |
-| 2 — Observability | Rust middleware, Python structlog | trace_id end-to-end | POST /api/tasks/auto → trace visible |
-| 3 — Orchestration | DynamicDispatchEngine, post-hook | Session → ExperienceLogger record | Full brain dispatch cycle |
-| 4 — UI Evolution | Component tests | WS mock → state update | Three-column layout render |
-
-**TDD obligatorio en todos los slices.** Cada subtask: tests RED primero, implementación GREEN, refactor si necesario.
-
----
-
-## Acceptance Criteria para "v3.1 Complete"
-
-### Infraestructura
-- [ ] PostgreSQL es el único read-source — código dual-write residual removido y tests pasan sin fallback a SQLite
-- [ ] `pnpm test` ejecutado — resultado documentado (pass count + failures conocidas)
-- [ ] `uv run pytest` sin regresiones nuevas post-migración
-- [ ] H2 y H3 tienen root cause documentado o están marcados `xfail`
-
-### Observabilidad
-- [ ] `X-Trace-ID` propagado end-to-end: Next.js → Rust → gRPC → Python
-- [ ] WebSocket Hub activo en `/ws/events`
-- [ ] UI panel de monitoring actualiza en tiempo real (< 500ms)
-- [ ] Health endpoints activos en todos los servicios
-
-### Orquestación
-- [ ] `brain_registry` tiene 7 rows en PostgreSQL
-- [ ] `DynamicDispatchEngine` usa `brain_registry` (no config dict hardcodeado)
-- [ ] Después de cada sesión: `ExperienceLogger` tiene record con `quality_score`
-- [ ] Model profiles configurados y usados en despacho
-
-### UI
-- [ ] Three-column orchestration canvas operativo
-- [ ] Progressive status streaming visible durante ejecución de brains
-
----
-
-## Out of Scope v3.1
-
-Los siguientes items quedan para v3.2 o posteriores:
-
-- **F1/F2/F3** — Channel integrations reales (WhatsApp/Instagram/Email). Requieren concierge MVP de validación primero. Brain #1 veto hasta entonces.
-- **G1/G2/G3** — Proposals PROP-001/002/003. G1 desbloqueada pero no crítica. G2/G3 necesitan concierge.
-- **C3** — Event sourcing `activity_log` (infraestructura de C1 primero, C3 después).
-- **D6/D7** — K6 load testing y Ghost Mode buffer (después de WS Hub estable).
-- **E4/E5** — WCAG AA y Storybook.
-- **A5** — "Next X" queries automáticas.
-- **H1** — 9 tech debt items de v2.1 (scope desconocido, necesitan audit separado).
-- **C2** — JWT + RBAC en Rust (auth en Python funciona, migración puede esperar C1 estable).
-- **Multi-tenant / Marketplace** — sin paying customers validados, Build Trap garantizado.
+- WhatsApp / Instagram / Email real APIs (requieren concierge MVP — Brain #1 veto)
+- PROP-001/002/003 (proposals desbloqueadas pero no críticas para v3.2)
+- WCAG AA, Storybook (deferred)
+- K6 load testing (después de RAG estable)
+- Multi-tenant / Marketplace (sin paying customers validados)
+- Cambios al WebSocket Hub (v3.1 feature — no tocar)
+- Cambios al Three-Column Canvas (v3.1 feature — no tocar)
