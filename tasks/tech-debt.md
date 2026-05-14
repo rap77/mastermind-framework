@@ -363,3 +363,52 @@ wscat -c ws://localhost:8080/ws/events
 - `docker compose up -d` not in permissions.allow
 
 **Residual risk:** Low — all three layers (Python dispatch, Rust WS event, Frontend display) are covered by automated unit tests. The wiring path is logically sound but not E2E tested.
+
+---
+
+## C2.20: Auto-switch Live Verification
+
+**Subtask:** C2.20 — Exhaust primary backend tokens → next `/mm:complete-task` uses secondary provider automatically (no manual intervention)
+**Date:** 2026-05-13
+**Status:** DEFERRED — live smoke test not executable in current environment
+
+### What was verified automatically
+
+- C2.12: `backend_limits` read from config.yml at runtime (not hardcoded) — `test_context_monitor.py`
+- C2.13: At 95% token threshold → `BACKEND-SWITCH-REQUIRED.json` created with `next_backend` — `test_context_monitor.py` (8 tests)
+- C2.14: `backend-switch-handler.py` reads switch signal → updates `ACTIVE-BACKEND.json` → deletes signal file — `test_backend_switch_handler.py` + `test_backend_switch_cli.py` (16 tests)
+- C2.15: `ACTIVE-BACKEND.json` is written as single source of truth — `test_backend_switch_handler.py`
+- C2.16: JS monitor reads `ACTIVE-BACKEND.json` for active backend (not hardcoded) — implemented in `mm-flow-context-monitor.js`
+
+### Live smoke test (for manual execution)
+
+```bash
+# 1. Set primary backend to z_ai with very low limit
+echo '{"active_backend": "z_ai"}' > .planning/ACTIVE-BACKEND.json
+
+# 2. Simulate token depletion
+echo '{
+  "current_backend": "z_ai",
+  "next_backend": "openrouter",
+  "reason": "token_depletion",
+  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+}' > .planning/BACKEND-SWITCH-REQUIRED.json
+
+# 3. Run complete-task-handler.py
+# It should call backend-switch-handler.py at startup, which:
+#   - Reads BACKEND-SWITCH-REQUIRED.json
+#   - Updates ACTIVE-BACKEND.json to openrouter
+#   - Deletes BACKEND-SWITCH-REQUIRED.json
+
+# 4. Verify active backend changed
+cat .planning/ACTIVE-BACKEND.json
+# Expected: {"active_backend": "openrouter", ...}
+```
+
+### Why live verification was not possible
+
+- `docker compose up -d` not in permissions.allow
+- No running services available in task-executor environment
+- ZAI_API_KEY, OPENROUTER_API_KEY not configured
+
+**Residual risk:** Low — full backend switch pipeline tested end-to-end via unit tests. Only the hook trigger at Claude session start (PostToolUse event with token count) is not E2E tested.
