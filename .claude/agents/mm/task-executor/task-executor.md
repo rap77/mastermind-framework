@@ -507,25 +507,6 @@ When all subtasks complete (or you exit due to context limit):
 
 ---
 
-## FINAL STEP: Update time tracking and play notification
-
-**After ALL subtasks complete** (or when exiting due to context limit), always run:
-
-```bash
-# Updates todo.md with Estimate/Actual/Deviation metrics AND plays notification sound
-python3 .claude/commands/mm/update-todo-times.py {task_id}
-```
-
-This updates `tasks/todo.md` with:
-- ⏱️ Estimate vs Actual time per subtask
-- 📉 Deviation from estimate
-- 📊 Average time per subtask
-- 📈 Progress percentage
-
-AND plays the notification sound so you know the agent finished.
-
----
-
 ## Important Rules
 
 1. **Process subtasks SEQUENTIALLY** (in order, don't skip)
