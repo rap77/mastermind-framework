@@ -220,6 +220,7 @@ class DynamicDispatchEngine:
         phase: int,
         moment: Literal["DISCUSSION", "PLANNING", "EXECUTION_WAVE", "VERIFICATION"],
         trace_id: str | None = None,
+        profile: Literal["quality", "balanced", "budget"] | None = None,
     ) -> DispatchResult:
         """Return the set of brains to run for a given phase + moment.
 
@@ -235,6 +236,11 @@ class DynamicDispatchEngine:
             moment: Execution moment driving brain selection.
             trace_id: Distributed trace identifier.  Generated automatically if
                 not provided so every dispatch is traceable.
+            profile: Model quality tier override for ALL brains in this dispatch.
+                     When None (default): parallel brains use "balanced", barrier
+                     brains use "quality" (per routing config defaults).
+                     When provided: ALL brains (parallel and barrier) use this tier,
+                     resolving model/provider from config.yml model_profiles (C2.09).
 
         Returns:
             DispatchResult with parallel and barrier brain lists.
@@ -248,10 +254,10 @@ class DynamicDispatchEngine:
         conn = await asyncio.wait_for(asyncpg.connect(self.postgres_url), timeout=5.0)
         try:
             parallel_brains = await self._get_brains_from_registry(
-                conn, routing.brains, is_barrier=False
+                conn, routing.brains, is_barrier=False, profile_override=profile
             )
             barrier_brains = await self._get_brains_from_registry(
-                conn, routing.barrier, is_barrier=True
+                conn, routing.barrier, is_barrier=True, profile_override=profile
             )
         finally:
             await conn.close()
@@ -341,6 +347,7 @@ class DynamicDispatchEngine:
         conn: asyncpg.Connection,
         brain_ids: list[int],
         is_barrier: bool = False,
+        profile_override: Literal["quality", "balanced", "budget"] | None = None,
     ) -> list[BrainDispatch]:
         """Fetch brain metadata from brain_registry for the given IDs.
 
@@ -352,12 +359,16 @@ class DynamicDispatchEngine:
         Model and provider are resolved from config.yml model_profiles (C2.03/C2.04):
         - Barrier brains run at quality tier → reads model_profiles.quality.model
         - Parallel brains run at balanced tier → reads model_profiles.balanced.model
-        Both are in "provider:model_id" format, no hardcoded Anthropic.
+        When ``profile_override`` is set, ALL brains use that tier (C2.09).
+        All models are in "provider:model_id" format, no hardcoded Anthropic.
 
         Args:
             conn: Open asyncpg connection (caller owns lifecycle).
             brain_ids: List of brain_id integers to look up.
             is_barrier: True when these brain IDs are the barrier group.
+            profile_override: When set, overrides the default profile tier for all
+                              brains in this group.  Used when the caller passes an
+                              explicit profile to dispatch() (C2.09).
 
         Returns:
             List of BrainDispatch instances, one per found row.
@@ -373,14 +384,23 @@ class DynamicDispatchEngine:
                     "brain_id=%s not found in brain_registry — skipping", brain_id
                 )
                 continue
-            # Barrier brains run at quality tier; parallel brains run at balanced.
-            profile: Literal["quality", "balanced", "budget"] = (
-                "quality" if is_barrier else "balanced"
-            )
+            # Profile resolution (C2.09):
+            # 1. Use profile_override if caller passed an explicit profile to dispatch()
+            # 2. Otherwise: barrier brains → quality, parallel brains → balanced
+            if profile_override is not None:
+                profile: Literal["quality", "balanced", "budget"] = profile_override
+            else:
+                profile = "quality" if is_barrier else "balanced"
+
             # Resolve model and provider from config.yml (C2.03/C2.04) — NOT hardcoded.
-            brain_model_for_profile = (
-                record.model_quality if profile == "quality" else record.model_balanced
-            )
+            # Use per-brain registry model as fallback if config doesn't have the profile.
+            if profile == "quality":
+                brain_model_for_profile = record.model_quality
+            elif profile == "budget":
+                brain_model_for_profile = record.model_budget
+            else:
+                brain_model_for_profile = record.model_balanced
+
             model_str, provider = self._resolve_model_for_profile(
                 profile, brain_model_for_profile
             )

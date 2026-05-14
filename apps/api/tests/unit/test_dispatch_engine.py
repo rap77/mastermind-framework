@@ -435,6 +435,78 @@ class TestDispatchModelField:
 
 
 # ---------------------------------------------------------------------------
+# C2.09 — dispatch(context, profile="quality") uses quality model from registry
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestDispatchProfileOverride:
+    """C2.09: dispatch(profile="quality") forces quality tier for all brains."""
+
+    async def test_dispatch_profile_quality_sets_all_brains_to_quality(self) -> None:
+        """dispatch(profile='quality') → all brains use model_profiles.quality model."""
+        parallel_rows = [_make_brain_row(1), _make_brain_row(2), _make_brain_row(3)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            quality_model = engine.config.model_profiles["quality"].model
+            quality_provider = engine.config.model_profiles["quality"].provider
+            result = await engine.dispatch(19, "DISCUSSION", profile="quality")
+
+        # All parallel brains must use quality tier
+        for brain in result.parallel:
+            assert brain.model_profile == "quality"
+            assert brain.model == quality_model
+            assert brain.provider == quality_provider
+
+        # Barrier brains also use quality tier (explicit override)
+        for brain in result.barrier:
+            assert brain.model_profile == "quality"
+            assert brain.model == quality_model
+
+    async def test_dispatch_profile_budget_sets_all_brains_to_budget(self) -> None:
+        """dispatch(profile='budget') → all brains use model_profiles.budget model."""
+        parallel_rows = [_make_brain_row(1)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            budget_model = engine.config.model_profiles["budget"].model
+            budget_provider = engine.config.model_profiles["budget"].provider
+            result = await engine.dispatch(19, "DISCUSSION", profile="budget")
+
+        for brain in result.parallel + result.barrier:
+            assert brain.model_profile == "budget"
+            assert brain.model == budget_model
+            assert brain.provider == budget_provider
+
+    async def test_dispatch_no_profile_uses_role_based_default(self) -> None:
+        """dispatch() with no profile: parallel→balanced, barrier→quality (defaults)."""
+        parallel_rows = [_make_brain_row(1)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION")  # no profile arg
+
+        assert result.parallel[0].model_profile == "balanced"
+        assert result.barrier[0].model_profile == "quality"
+
+
+# ---------------------------------------------------------------------------
 # BrainDispatch Pydantic model tests
 # ---------------------------------------------------------------------------
 
