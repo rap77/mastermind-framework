@@ -222,10 +222,10 @@ TASK-D (UI Evolution)
 - Integration: POST session → dispatch usa `brain_registry` → brain ejecutado es el correcto
 
 **Acceptance**:
-- [ ] `SELECT COUNT(*) FROM brain_registry` = 7
-- [ ] `DynamicDispatchEngine` no tiene ningún dict hardcodeado de brains en su código fuente
-- [ ] `GET /api/brains` retorna data de `brain_registry` PostgreSQL
-- [ ] Tests de registry pasan
+- [x] `SELECT COUNT(*) FROM brain_registry` = 7
+- [x] `DynamicDispatchEngine` no tiene ningún dict hardcodeado de brains en su código fuente
+- [x] `GET /api/brains` retorna data de `brain_registry` PostgreSQL
+- [x] Tests de registry pasan
 
 ---
 
