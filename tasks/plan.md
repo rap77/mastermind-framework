@@ -309,11 +309,11 @@ TASK-D (UI Evolution)
 - E2E (Playwright si disponible): navegar a `/orchestrate` → verificar tres columnas visibles
 
 **Acceptance**:
-- [ ] `/orchestrate` renderiza con tres columnas en 1440px
-- [ ] `BrainList` muestra los 7 brains con estado (idle/running/completed)
-- [ ] `OrchestrationCanvas` extiende NexusCanvas existente (no reescritura)
-- [ ] `OutputPanel` muestra output del último brain ejecutado
-- [ ] Responsive: < 1280px muestra tabs, no overflow
+- [x] `/orchestrate` renderiza con tres columnas en 1440px
+- [x] `BrainList` muestra los 7 brains con estado (idle/running/completed)
+- [x] `OrchestrationCanvas` extiende NexusCanvas existente (no reescritura)
+- [x] `OutputPanel` muestra output del último brain ejecutado
+- [x] Responsive: < 1280px muestra tabs, no overflow
 
 ---
 
