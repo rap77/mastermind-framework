@@ -337,10 +337,10 @@ TASK-D (UI Evolution)
 - Interaction: completar un brain → verify que timeline agrega el evento en < 500ms
 
 **Acceptance**:
-- [ ] Durante ejecución de brain: `StatusTimeline` muestra progreso sin reload
-- [ ] Eventos en orden cronológico con timestamp
-- [ ] Auto-scroll al evento más reciente
-- [ ] Error states visibles (no spinner eterno)
+- [x] Durante ejecución de brain: `StatusTimeline` muestra progreso sin reload
+- [x] Eventos en orden cronológico con timestamp
+- [x] Auto-scroll al evento más reciente
+- [x] Error states visibles (no spinner eterno)
 
 ---
 
