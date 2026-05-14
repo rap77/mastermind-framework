@@ -5,10 +5,10 @@
  * Uses semantic tokens with purple color scheme.
  */
 
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Handle, Position, NodeProps, type Node } from '@xyflow/react'
 import type { FlowNodeData } from '../types'
 
-export function AdapterNode({ data, selected }: NodeProps<FlowNodeData>) {
+export function AdapterNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`

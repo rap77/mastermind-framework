@@ -30,7 +30,7 @@ export enum NodeType {
  *
  * Extends React Flow's Node['data'] with Flow Designer-specific fields.
  */
-export interface FlowNodeData {
+export interface FlowNodeData extends Record<string, unknown> {
   label: string
   description?: string
   icon?: string
@@ -51,11 +51,8 @@ export interface FlowNodeData {
  * Uses React Flow's Node type with our custom data.
  * Position is { x, y } in pixels from top-left.
  */
-export interface FlowNode extends Node {
-  id: string
+export type FlowNode = Node<FlowNodeData> & {
   type: NodeType
-  position: { x: number; y: number }
-  data: FlowNodeData
 }
 
 /**

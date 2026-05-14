@@ -4,10 +4,10 @@
  * Orange theme using var(--color-warning).
  */
 
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react'
 import type { FlowNodeData } from '../types'
 
-export function RouterNode({ data, selected }: NodeProps<FlowNodeData>) {
+export function RouterNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`

@@ -5,10 +5,10 @@
  * Uses semantic tokens for theming with distinct color per brain type.
  */
 
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Handle, Position, NodeProps, type Node } from '@xyflow/react'
 import type { FlowNodeData } from '../types'
 
-export function BrainNode({ data, selected }: NodeProps<FlowNodeData>) {
+export function BrainNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`

@@ -66,12 +66,13 @@ import { NodeType } from './types'
 
 // IMPORTANT: Module-level node types prevents React Flow remount loops
 // See NexusCanvas.tsx for context
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const NODE_TYPES: NodeTypes = {
-  [NodeType.BRAIN]: BrainNode,
-  [NodeType.GATEWAY]: GatewayNode,
-  [NodeType.ADAPTER]: AdapterNode,
-  [NodeType.ROUTER]: RouterNode,
-  [NodeType.CONDITION]: ConditionNode,
+  [NodeType.BRAIN]: BrainNode as any,
+  [NodeType.GATEWAY]: GatewayNode as any,
+  [NodeType.ADAPTER]: AdapterNode as any,
+  [NodeType.ROUTER]: RouterNode as any,
+  [NodeType.CONDITION]: ConditionNode as any,
 }
 
 const EDGE_TYPES: EdgeTypes = {

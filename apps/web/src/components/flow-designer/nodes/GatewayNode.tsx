@@ -5,10 +5,10 @@
  * Uses semantic tokens with green color scheme.
  */
 
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Handle, Position, NodeProps, type Node } from '@xyflow/react'
 import type { FlowNodeData } from '../types'
 
-export function GatewayNode({ data, selected }: NodeProps<FlowNodeData>) {
+export function GatewayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const isStart = data.label?.toLowerCase().includes('start')
   const isEnd = data.label?.toLowerCase().includes('end')
 

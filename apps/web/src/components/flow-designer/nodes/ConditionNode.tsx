@@ -4,10 +4,10 @@
  * Yellow theme using custom var(--color-yellow).
  */
 
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react'
 import type { FlowNodeData } from '../types'
 
-export function ConditionNode({ data, selected }: NodeProps<FlowNodeData>) {
+export function ConditionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`
