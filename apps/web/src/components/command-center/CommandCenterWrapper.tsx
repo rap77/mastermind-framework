@@ -16,11 +16,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { BriefInputModal } from "@/components/command-center/BriefInputModal"
+import { ModelProfileDropdown } from "@/components/command-center/ModelProfileDropdown"
 // Don't import Server Action statically - causes 403 error during SSR
 // import { createTask } from "@/app/actions/tasks"
 import { registerCommandShortcut } from "@/lib/commands"
 import { useWSStore } from "@/stores/wsStore"
 import { useOrchestratorStore } from "@/stores/orchestratorStore"
+import { useModelProfileStore } from "@/stores/modelProfileStore"
 
 /**
  * Command Center Wrapper Component
@@ -40,6 +42,7 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
   const wsStore = useWSStore()
   const router = useRouter()
   const startTask = useOrchestratorStore((s) => s.startTask)
+  const modelProfile = useModelProfileStore((s) => s.profile)
 
   /**
    * Register Cmd+Enter keyboard shortcut
@@ -123,6 +126,11 @@ export function CommandCenterWrapper({ children }: { children: React.ReactNode }
 
   return (
     <>
+      {/* Model profile selector — visible in the Command Center header */}
+      <div className="flex justify-end px-4 py-2" data-testid="command-center-toolbar">
+        <ModelProfileDropdown />
+      </div>
+
       {children}
 
       <BriefInputModal
