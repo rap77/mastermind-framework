@@ -1,7 +1,52 @@
 # MasterMind v3.1 — Technical Debt
 
 **Created:** 2026-04-28
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-14
+
+---
+
+## D2.09: StatusTimeline — Live End-to-End Verification
+
+**Subtask:** D2.09 — Dispatch brain via `/orchestrate`, observe StatusTimeline updates in real time
+**Date:** 2026-05-14
+**Status:** DEFERRED — docker compose not running in current environment
+
+### What was verified
+
+All implementation correctness confirmed via unit and interaction tests:
+
+- `useOrchestrationStream` hook: 8 tests passing (filtering, sorting, reactivity, dedup)
+- `StatusTimeline` component: 13 tests passing (icons, order, accessibility, empty state)
+- Interaction test (D2.08): WS event → DOM update within 500ms budget — 4 tests passing
+
+### What D2.09 verifies manually
+
+1. `docker compose up -d` → api:8001, web:3000, rust WS hub:8002
+2. Navigate to `http://localhost:3000/orchestrate`
+3. Dispatch a brain execution via the OutputPanel or API:
+   ```bash
+   curl -X POST http://localhost:8001/api/tasks/auto \
+     -H "Content-Type: application/json" \
+     -d '{"task": "test D2.09 live verify", "niche": "software-development"}'
+   ```
+4. Observe: `StatusTimeline` in column 2 (below React Flow DAG) should show:
+   - brain_id events appearing in real time
+   - Icons: Circle (dispatched) → Loader2 (running) → CheckCircle (completed) or XCircle (failed)
+   - Auto-scroll to latest event
+   - Event count in header increments with each update
+
+### Implementation path
+
+The WS message flow is:
+```
+Rust WS hub (8002) → WSBrainBridge → wsEventsStore.appendEvent()
+                                        ↓
+                              useOrchestrationStream()
+                                        ↓
+                               StatusTimeline re-render
+```
+
+All components are wired. Live verify requires running services only.
 
 ---
 
