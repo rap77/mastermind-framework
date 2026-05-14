@@ -155,15 +155,17 @@
   - [x] D1.10: Tests: component test — `OutputPanel` renderiza output estructurado
   - [x] D1.11: Verify: navegar a `localhost:3000/orchestrate` → tres columnas visibles en 1440px
 
-- [ ] D2: Real-Time Monitoring Panel + Progressive Streaming
-  - [ ] D2.01: Frontend: implementar hook `useOrchestrationStream()` que consume `wsEventsStore`
-  - [ ] D2.02: Frontend: implementar `StatusTimeline` component (eventos en orden cronológico)
-  - [ ] D2.03: Frontend: integrar `StatusTimeline` en columna 2, debajo del React Flow DAG
-  - [ ] D2.04: Frontend: iconos de estado (completado / ejecutando / error / pendiente)
-  - [ ] D2.05: Frontend: auto-scroll al evento más reciente
-  - [ ] D2.06: Tests: component test — `StatusTimeline` renderiza lista de eventos mockeados en orden correcto
-  - [ ] D2.07: Tests: hook test — `useOrchestrationStream()` con mock store → retorna estado correcto
-  - [ ] D2.08: Tests: interaction test — WS event llegado → timeline agrega evento en < 500ms
-  - [ ] D2.09: Verify: ejecutar brain mientras se observa `/orchestrate` → StatusTimeline se actualiza en tiempo real
+- [x] D2: Real-Time Monitoring Panel + Progressive Streaming⏱️ **Estimate**: N/A | **Actual**: 57.6m | **Deviation**: N/A | **Progress**: 9/9 (100%)
+📊 **Avg/subtask**: 6.4m | **ETA**: 57.6m
+
+  - [x] D2.01: Frontend: implementar hook `useOrchestrationStream()` que consume `wsEventsStore`
+  - [x] D2.02: Frontend: implementar `StatusTimeline` component (eventos en orden cronológico)
+  - [x] D2.03: Frontend: integrar `StatusTimeline` en columna 2, debajo del React Flow DAG
+  - [x] D2.04: Frontend: iconos de estado (completado / ejecutando / error / pendiente)
+  - [x] D2.05: Frontend: auto-scroll al evento más reciente
+  - [x] D2.06: Tests: component test — `StatusTimeline` renderiza lista de eventos mockeados en orden correcto
+  - [x] D2.07: Tests: hook test — `useOrchestrationStream()` con mock store → retorna estado correcto
+  - [x] D2.08: Tests: interaction test — WS event llegado → timeline agrega evento en < 500ms
+  - [x] D2.09: Verify: ejecutar brain mientras se observa `/orchestrate` → StatusTimeline se actualiza en tiempo real
 
 ## Tracking
