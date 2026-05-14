@@ -55,7 +55,10 @@
   - [x] B2.11: Tests: Frontend unit test — `useWebSocket` con mock WS server, verify state update < 500ms
   - [x] B2.12: Verify: `wscat -c ws://localhost:8002/ws/events` y ejecutar brain → recibir eventos JSON
 
-- [x] B3: Health Endpoints
+- [x] B3: Health Endpoints⏱️ **Estimate**: N/A | **Actual**: in progress | **Deviation**: — | **Progress**: 6/6 (100%)
+📊 **Avg/subtask**: — | **ETA**: in progress
+
+
   - [x] B3.01: Rust: implementar `GET /health` → `{"status": "ok", "service": "rust-control-plane"}`
   - [x] B3.02: Python: verificar si `GET /health` existe. Si no, implementar con `{"status": "ok", "db": "postgresql"}`
   - [x] B3.03: Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios
@@ -65,7 +68,10 @@
 
 ## TASK C: Intelligent Orchestration
 
-- [ ] C1: Central Agent Registry
+- [x] C1: Central Agent Registry⏱️ **Estimate**: N/A | **Actual**: 1.2h | **Deviation**: N/A | **Progress**: 10/10 (100%)
+📊 **Avg/subtask**: 7.1m | **ETA**: 1.2h
+
+
   - [ ] C1.01: Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)
   - [ ] C1.02: Python: aplicar migration con `alembic upgrade head`
   - [ ] C1.03: Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)

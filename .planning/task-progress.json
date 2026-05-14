@@ -1,64 +1,100 @@
 {
-  "task_id": "B3",
-  "session_id": "sess-20260512-221945",
-  "started_at": "2026-05-12T22:19:45.978330",
+  "task_id": "C1",
+  "session_id": "sess-20260513-205055",
+  "started_at": "2026-05-13T20:50:55.256924",
   "phase": 19,
   "subtasks": {
-    "B3.01": {
-      "description": "Rust: implementar `GET /health` → `{\"status\": \"ok\", \"service\": \"rust-control-plane\"}`",
+    "C1.01": {
+      "description": "Python: crear migration Alembic para tabla `brain_registry` (brain_id, name, model_quality, model_balanced, model_budget, capabilities[], trigger_conditions[], enabled, created_at)",
       "status": "completed",
       "retries": 0,
-      "started_at": null,
-      "completed_at": null,
-      "duration_seconds": 0
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:53:33.682245",
+      "duration_seconds": 158.43,
+      "updated_at": "2026-05-13T20:53:33.682245"
     },
-    "B3.02": {
-      "description": "Python: verificar si `GET /health` existe. Si no, implementar con `{\"status\": \"ok\", \"db\": \"postgresql\"}`",
+    "C1.02": {
+      "description": "Python: aplicar migration con `alembic upgrade head`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-12T22:19:45.978330",
-      "completed_at": "2026-05-12T22:35:00.000000",
-      "duration_seconds": 0,
-      "commit_sha": "952623673d9e2fb9b3969ff2c84858ff2afe321e"
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:55:11.029305",
+      "duration_seconds": 255.77,
+      "updated_at": "2026-05-13T20:55:11.029305"
     },
-    "B3.03": {
-      "description": "Frontend: implementar `GET /api/health` route que hace proxy a ambos servicios",
+    "C1.03": {
+      "description": "Python: escribir seed script que inserta los 7 brains (leer capacidades de `.claude/agents/mm/`)",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-12T22:19:45.978330",
-      "completed_at": "2026-05-12T22:37:00.000000",
-      "duration_seconds": 0,
-      "commit_sha": "a1865f9fd72a757b56147168f01208366b419ced"
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:56:07.257472",
+      "duration_seconds": 312.0,
+      "updated_at": "2026-05-13T20:56:07.257472"
     },
-    "B3.04": {
-      "description": "Tests: test que `/health` retorna 200 en Rust",
+    "C1.04": {
+      "description": "Python: ejecutar seed script y verificar con `SELECT COUNT(*) FROM brain_registry` = 7",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-12T22:19:45.978330",
-      "completed_at": "2026-05-12T22:39:00.000000",
-      "duration_seconds": 0,
-      "commit_sha": "76ca5d3560453deec630973b052c090613122711"
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:56:22.095114",
+      "duration_seconds": 326.84,
+      "updated_at": "2026-05-13T20:56:22.095114"
     },
-    "B3.05": {
-      "description": "Tests: test que `/health` retorna 200 en Python con `db` field",
+    "C1.05": {
+      "description": "Python: implementar `BrainRegistryRepository` con `get_all()`, `get_by_id()`, `get_matching(context)`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-12T22:19:45.978330",
-      "completed_at": "2026-05-12T22:40:00.000000",
-      "duration_seconds": 0,
-      "commit_sha": "f2647c08"
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:56:59.827819",
+      "duration_seconds": 364.57,
+      "updated_at": "2026-05-13T20:56:59.827819"
     },
-    "B3.06": {
-      "description": "Verify: `curl localhost:8002/health` y `curl localhost:8001/health` → 200",
+    "C1.06": {
+      "description": "Python: reemplazar config dict en `DynamicDispatchEngine` con query a `BrainRegistryRepository`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-12T22:19:45.978330",
-      "completed_at": "2026-05-12T22:42:00.000000",
-      "duration_seconds": 0,
-      "commit_sha": "3822c76f662117807c4be66ab3ebafdcf8162418",
-      "note": "Services unavailable at runtime. Documented in tech-debt.md. Verified via automated tests."
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:57:39.135493",
+      "duration_seconds": 403.88,
+      "updated_at": "2026-05-13T20:57:39.135493"
+    },
+    "C1.07": {
+      "description": "Frontend: verificar que `GET /api/brains` retorna data de `brain_registry` (no hardcoded)",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T20:58:46.322422",
+      "duration_seconds": 471.07,
+      "updated_at": "2026-05-13T20:58:46.322422"
+    },
+    "C1.08": {
+      "description": "Tests: unit test \u2014 `BrainRegistryRepository.get_all()` retorna 7 rows con fixture de test DB",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T21:01:43.549329",
+      "duration_seconds": 648.29,
+      "updated_at": "2026-05-13T21:01:43.549329"
+    },
+    "C1.09": {
+      "description": "Tests: unit test \u2014 `DynamicDispatchEngine.dispatch(context)` llama `BrainRegistryRepository` (no dict)",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T21:01:43.623066",
+      "duration_seconds": 648.37,
+      "updated_at": "2026-05-13T21:01:43.623066"
+    },
+    "C1.10": {
+      "description": "Verify: `SELECT COUNT(*) FROM brain_registry` = 7 en psql",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-13T20:50:55.256924",
+      "completed_at": "2026-05-13T21:02:18.161121",
+      "duration_seconds": 682.9,
+      "updated_at": "2026-05-13T21:02:18.161121"
     }
   },
-  "last_checkpoint": "B3.06",
+  "last_checkpoint": "C1.10",
   "context_budget_exit": null
 }

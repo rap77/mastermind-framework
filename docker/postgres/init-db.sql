@@ -24,6 +24,39 @@ CREATE INDEX IF NOT EXISTS idx_executions_created_at ON executions(created_at DE
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
+-- Phase C1: Central Agent Registry — brain_registry table
+CREATE TABLE IF NOT EXISTS brain_registry (
+    brain_id        INTEGER     PRIMARY KEY,
+    name            TEXT        NOT NULL,
+    model_quality   TEXT        NOT NULL,
+    model_balanced  TEXT        NOT NULL,
+    model_budget    TEXT        NOT NULL,
+    capabilities    TEXT[]      NOT NULL DEFAULT '{}',
+    trigger_conditions TEXT[]   NOT NULL DEFAULT '{}',
+    enabled         BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_brain_registry_enabled
+ON brain_registry(enabled) WHERE enabled = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_brain_registry_capabilities
+ON brain_registry USING GIN(capabilities);
+
+CREATE INDEX IF NOT EXISTS idx_brain_registry_trigger_conditions
+ON brain_registry USING GIN(trigger_conditions);
+
+-- Phase C1: schema_migrations tracking table
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    migration_name TEXT PRIMARY KEY,
+    applied_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Mark the brain_registry migration as already applied (created here)
+INSERT INTO schema_migrations (migration_name)
+VALUES ('001_create_brain_registry.sql')
+ON CONFLICT DO NOTHING;
+
 -- Log initialization
 DO $$
 BEGIN

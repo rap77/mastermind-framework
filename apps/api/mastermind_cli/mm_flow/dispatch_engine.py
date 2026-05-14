@@ -23,6 +23,8 @@ import asyncpg
 import httpx
 from pydantic import BaseModel, ConfigDict
 
+from mastermind_cli.brain_registry_module.repository import BrainRegistryRepository
+
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -228,8 +230,12 @@ class DynamicDispatchEngine:
 
         conn = await asyncio.wait_for(asyncpg.connect(self.postgres_url), timeout=5.0)
         try:
-            parallel_brains = await self._get_brains_from_registry(conn, routing.brains)
-            barrier_brains = await self._get_brains_from_registry(conn, routing.barrier)
+            parallel_brains = await self._get_brains_from_registry(
+                conn, routing.brains, is_barrier=False
+            )
+            barrier_brains = await self._get_brains_from_registry(
+                conn, routing.barrier, is_barrier=True
+            )
         finally:
             await conn.close()
 
@@ -268,33 +274,47 @@ class DynamicDispatchEngine:
         self,
         conn: asyncpg.Connection,
         brain_ids: list[int],
+        is_barrier: bool = False,
     ) -> list[BrainDispatch]:
-        """Fetch brain metadata from agent_registry for the given IDs.
+        """Fetch brain metadata from brain_registry for the given IDs.
+
+        Uses BrainRegistryRepository (brain_registry table) instead of the
+        legacy agent_registry table.  The ``is_barrier`` flag is passed in
+        from the routing config (Brain #7 is always the barrier) because the
+        brain_registry table does not have a per-row is_barrier column.
 
         Args:
             conn: Open asyncpg connection (caller owns lifecycle).
             brain_ids: List of brain_id integers to look up.
+            is_barrier: True when these brain IDs are the barrier group.
 
         Returns:
             List of BrainDispatch instances, one per found row.
         """
         if not brain_ids:
             return []
-        rows = await conn.fetch(
-            "SELECT brain_id, role, model_quality, is_barrier, "
-            "token_budget_per_phase, tokens_consumed_total "
-            "FROM agent_registry WHERE brain_id = ANY($1::int[])",
-            brain_ids,
-        )
-        return [
-            BrainDispatch(
-                brain_id=row["brain_id"],
-                role=row["role"],
-                model_profile=row["model_quality"],
-                is_barrier=row["is_barrier"],
+        repo = BrainRegistryRepository(conn)
+        results: list[BrainDispatch] = []
+        for brain_id in brain_ids:
+            record = await repo.get_by_id(brain_id)
+            if record is None:
+                log.warning(
+                    "brain_id=%s not found in brain_registry — skipping", brain_id
+                )
+                continue
+            # Barrier brains run at quality tier; parallel brains run at balanced.
+            profile: Literal["quality", "balanced", "budget"] = (
+                "quality" if is_barrier else "balanced"
             )
-            for row in rows
-        ]
+            results.append(
+                BrainDispatch(
+                    brain_id=record.brain_id,
+                    role=record.name,
+                    model_profile=profile,
+                    is_barrier=is_barrier,
+                )
+            )
+        return results
 
     def _check_budget(self, brains: list[BrainDispatch]) -> int:
         """Validate that no brain has exceeded 80% of its token budget.

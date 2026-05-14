@@ -56,26 +56,28 @@ def _make_brain_row(
     model_quality: str = "balanced",
     is_barrier: bool = False,
 ) -> MagicMock:
-    """Build a fake asyncpg Record-like object for agent_registry rows.
+    """Build a fake asyncpg Record-like object for brain_registry rows.
 
     Args:
         brain_id: Integer brain identifier (1-7).
-        role: Brain role string.
-        model_quality: Model profile key (quality | balanced | budget).
-        is_barrier: Whether this brain acts as a barrier brain.
+        role: Brain name string (maps to brain_registry.name).
+        model_quality: Ignored — kept for backward-compat with test signatures.
+        is_barrier: Ignored — is_barrier is now derived from routing config.
 
     Returns:
-        MagicMock with dict-style key access for all agent_registry columns.
+        MagicMock with dict-style key access for all brain_registry columns.
     """
     row: MagicMock = MagicMock()
     row.__getitem__ = MagicMock(
         side_effect=lambda k: {
             "brain_id": brain_id,
-            "role": role,
-            "model_quality": model_quality,
-            "is_barrier": is_barrier,
-            "token_budget_per_phase": 100_000,
-            "tokens_consumed_total": 0,
+            "name": role,
+            "model_quality": "claude-opus-4-6",
+            "model_balanced": "claude-sonnet-4-6",
+            "model_budget": "claude-haiku-4-5",
+            "capabilities": ["test"],
+            "trigger_conditions": ["test"],
+            "enabled": True,
         }[k]
     )
     return row
@@ -84,19 +86,36 @@ def _make_brain_row(
 def _make_conn(
     parallel_rows: list[MagicMock], barrier_rows: list[MagicMock]
 ) -> AsyncMock:
-    """Build a mock asyncpg connection that returns rows on fetch().
+    """Build a mock asyncpg connection that returns rows on fetchrow().
 
-    The first fetch() call returns parallel_rows and the second returns barrier_rows.
+    DynamicDispatchEngine now calls BrainRegistryRepository.get_by_id() which
+    issues conn.fetchrow(query, brain_id) per brain. This helper maps each
+    brain_id to its row so fetchrow() returns the right row per call.
 
     Args:
-        parallel_rows: Rows for parallel brain query (brains list).
-        barrier_rows: Rows for barrier brain query.
+        parallel_rows: Rows for parallel brain group.
+        barrier_rows: Rows for barrier brain group.
 
     Returns:
-        AsyncMock connection with a fetch() that cycles through both result sets.
+        AsyncMock connection with a fetchrow() that routes by brain_id.
     """
+    # Build a map brain_id → row for quick lookup
+    row_map: dict[int, MagicMock] = {}
+    for row in parallel_rows + barrier_rows:
+        # Extract brain_id from the mock row using __getitem__
+        try:
+            bid = row["brain_id"]
+            row_map[bid] = row
+        except Exception:
+            pass
+
+    async def _fetchrow(query: str, *args: object) -> MagicMock | None:
+        brain_id = int(args[0]) if args else -1  # type: ignore[arg-type]
+        return row_map.get(brain_id)
+
     conn = AsyncMock()
-    conn.fetch = AsyncMock(side_effect=[parallel_rows, barrier_rows])
+    conn.fetchrow = _fetchrow
+    conn.fetch = AsyncMock(return_value=[])  # kept for compatibility
     conn.close = AsyncMock()
     return conn
 
