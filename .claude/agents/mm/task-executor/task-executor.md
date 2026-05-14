@@ -261,28 +261,41 @@ Save state to ALL THREE:
 ```
 
 **2. tasks/todo.md (CRITICAL — user-visible checklist):**
-After each successful subtask, call the handler to mark it done:
+After each successful subtask, run BOTH commands in sequence:
 
 ```bash
+# Step 1: Mark subtask done + propagate parent state
 python3 .claude/commands/mm/complete-task-handler.py --mark-done {subtask_id}
+
+# Step 2: Update time tracking in todo.md (real-time progress visible to user)
+python3 .claude/commands/mm/update-todo-times.py {task_id}
 ```
 
-**NEVER edit `tasks/todo.md` directly.** The handler:
-1. Marks the subtask `[x]` in `task-progress.json`
+**NEVER edit `tasks/todo.md` directly.** Step 1 (handler):
+1. Marks the subtask `[x]` in `task-progress.json` AND in `todo.md`
 2. Calls `propagate_parent_completion()` automatically — if all siblings are done, the parent task also gets marked `[x]` in `todo.md`
 3. Updates incremental time tracking
+
+Step 2 (`update-todo-times.py`) updates `todo.md` header with real-time metrics:
+```
+- [~] D1: Flow Designer⏱️ Estimate: 2h | Actual: 45m | Deviation: -75% | Progress: 3/8 (37%)
+📊 Avg/subtask: 15m | ETA: 1.25h remaining
+```
 
 **Example — completing D1.2:**
 ```bash
 python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
 # INFO: Marked D1.2 as complete
 # INFO: Parent D1 not yet complete (2/3 siblings done)
+
+python3 .claude/commands/mm/update-todo-times.py D1
+# Updates todo.md header with ⏱️ Estimate | Actual | Deviation | Progress
 ```
 
 **If subtask is already marked complete** (idempotent):
 ```bash
 python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
-# INFO: D1.2 is already complete — no changes needed
+# INFO: D1.2 is already complete — ensuring todo.md is synced
 ```
 
 **3. Engram via mem_save:**
@@ -524,7 +537,7 @@ AND plays the notification sound so you know the agent finished.
 7. **Use /mm:safe-commit** before every commit
 8. **Use `--mark-done` to update todo.md** — NEVER edit todo.md directly; handler propagates parent state automatically
 9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
-10. **ALWAYS update time tracking after checkpoint** — `python3 .claude/commands/mm/update-todo-times.py {task_id}`
+10. **ALWAYS call `update-todo-times.py` after EACH subtask** (not just at the end) — this is what makes progress visible in real-time: `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 
 ## Files
 
