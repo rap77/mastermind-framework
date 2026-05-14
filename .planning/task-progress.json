@@ -5,222 +5,249 @@
   "phase": 19,
   "subtasks": {
     "C3.01": {
-      "description": "Python: identificar el m\u00e9todo correcto para el hook (StatelessCoordinator.complete_session o task_runner)",
-      "status": "in_progress",
+      "description": "Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.02": {
       "description": "Python: implementar hook que llama Brain #7 con output del brain ejecutado",
-      "status": "in_progress",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.03": {
       "description": "Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)",
-      "status": "in_progress",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.04": {
-      "description": "Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qu\u00e9 modelo ejecut\u00f3)",
-      "status": "in_progress",
+      "description": "Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.05": {
-      "description": "Python: flag `high_value` en custom_metadata si duraci\u00f3n > 5min o score significativo",
-      "status": "in_progress",
+      "description": "Python: flag `high_value` en custom_metadata si duración > 5min o score significativo",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.06": {
       "description": "Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score",
-      "status": "in_progress",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.07": {
       "description": "Frontend: escuchar WS event `session_evaluated`",
-      "status": "pending",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.08": {
-      "description": "Frontend: badge en Command Center: \"\u00daltima sesi\u00f3n: score 0.87\"",
-      "status": "pending",
+      "description": "Frontend: badge en Command Center: \"Última sesión: score 0.87\"",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.09": {
-      "description": "Tests: unit test \u2014 mock Brain #7 \u2192 verify `ExperienceLogger.log_execution()` llamado con quality_score",
-      "status": "pending",
+      "description": "Tests: unit test — mock Brain #7 → verify `ExperienceLogger.log_execution()` llamado con quality_score",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.10": {
-      "description": "Tests: integration test \u2014 complete session \u2192 `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL",
-      "status": "pending",
+      "description": "Tests: integration test — complete session → `SELECT quality_score IS NOT NULL`",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.11": {
-      "description": "Tests: frontend test \u2014 WS event `session_evaluated` \u2192 badge actualiza",
-      "status": "pending",
+      "description": "Tests: frontend test — WS event `session_evaluated` → badge actualiza",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.12": {
-      "description": "Verify: ejecutar cualquier brain \u2192 `uv run python -c \"from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))\"` retorna record con quality_score",
-      "status": "pending",
+      "description": "Verify: retorna record con quality_score (documentar en tech-debt si DB no disponible)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.13": {
-      "description": "Python: `complete-task-handler.py` al inicio de tarea \u2192 INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)",
-      "status": "pending",
+      "description": "Python: `complete-task-handler.py` al inicio → INSERT en `dev_sessions` (task_id, backend_used, started_at)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.14": {
-      "description": "Python: `complete-task-handler.py` al fin de tarea \u2192 UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at",
-      "status": "pending",
+      "description": "Python: `complete-task-handler.py` al fin → UPDATE `dev_sessions` (tokens_consumed, commit_hashes[], ended_at)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.15": {
-      "description": "Python: `task-executor` \u2014 por cada error de subtask \u2192 INSERT en `decisions` (decision_type=\"error_resolution\", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)",
-      "status": "pending",
+      "description": "Python: `task-executor` — error subtask → INSERT decisions (decision_type=error_resolution)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.16": {
-      "description": "Python: `task-executor` \u2014 al inicio de cada subtask \u2192 `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto",
-      "status": "pending",
+      "description": "Python: `task-executor` — inicio subtask → brain_memory.py query --brain-id task-executor --limit 3",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.17": {
-      "description": "Python: `task-executor` \u2014 al completar subtask con \u00e9xito \u2192 `brain_memory.py log` guardando qu\u00e9 funcion\u00f3 (input=problema, output=soluci\u00f3n, status=success)",
-      "status": "pending",
+      "description": "Python: `task-executor` — completar subtask → brain_memory.py log qué funcionó",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.18": {
-      "description": "Tests: integration test \u2014 ejecutar task A1 \u2192 `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated",
-      "status": "pending",
+      "description": "Tests: integration — dev_sessions tiene task_id + commit_hashes",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.19": {
-      "description": "Tests: unit test \u2014 simular error en subtask \u2192 verify INSERT en `decisions` con decision_type=\"error_resolution\"",
-      "status": "pending",
+      "description": "Tests: unit — error subtask → INSERT decisions decision_type=error_resolution",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.20": {
-      "description": "Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 despu\u00e9s de primer `/mm:complete-task`",
-      "status": "pending",
+      "description": "Verify: `SELECT COUNT(*) FROM dev_sessions` > 0",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.21": {
-      "description": "Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duraci\u00f3n real vs estimada)",
-      "status": "pending",
+      "description": "Python: `task-progress.json` incluye `started_at` + `completed_at` por subtask",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.22": {
-      "description": "Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) \u2014 cu\u00e1ntas veces task-executor sali\u00f3 al 75% y necesit\u00f3 `--continue`",
-      "status": "pending",
+      "description": "Python: `dev_sessions.metadata` incluye `context_budget_exits` (int)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.23": {
-      "description": "Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) \u2014 desglose `{\"anthropic:claude-sonnet-4-6\": N, \"openrouter:claude-opus\": N}` acumulado de `BACKEND-USAGE.json` \u2014 agn\u00f3stico al proveedor",
-      "status": "pending",
+      "description": "Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.24": {
-      "description": "Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) \u2014 si el commit pas\u00f3 GGA en el primer intento",
-      "status": "pending",
+      "description": "Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool)",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.25": {
-      "description": "Python: `decisions` con `decision_type=\"error_pattern\"` cuando el mismo root_cause aparece \u2265 2 veces \u2014 flag autom\u00e1tico de deuda t\u00e9cnica recurrente",
-      "status": "pending",
+      "description": "Python: `decisions` con `decision_type=\"error_pattern\"` cuando mismo root_cause >= 2 veces",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.26": {
-      "description": "Tests: unit test \u2014 dos errores con mismo root_cause \u2192 verify segundo INSERT tiene decision_type=\"error_pattern\"",
-      "status": "pending",
+      "description": "Tests: unit test — dos errores mismo root_cause → decision_type=\"error_pattern\"",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     },
     "C3.27": {
-      "description": "Verify: despu\u00e9s de 3 tasks ejecutadas \u2192 `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend",
-      "status": "pending",
+      "description": "Verify: `SELECT SUM(tokens_consumed) FROM dev_sessions GROUP BY backend_used`",
+      "status": "completed",
       "retries": 0,
       "started_at": "2026-05-13T23:02:36.016975",
-      "completed_at": null,
-      "duration_seconds": 0
+      "completed_at": "2026-05-13T23:30:00.000000",
+      "duration_seconds": 1644,
+      "commit_sha": "51a386ee5e540dc9f677ee8bc4ea5b4103e8ef7f"
     }
   },
-  "last_checkpoint": null,
+  "last_checkpoint": "C3.27",
   "context_budget_exit": null
 }

@@ -106,34 +106,34 @@
   - [x] C2.19: Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
   - [x] C2.20: Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
 
-- [ ] C3: Learning + Audit Pipeline
-  - [ ] C3.01: Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
-  - [ ] C3.02: Python: implementar hook que llama Brain #7 con output del brain ejecutado
-  - [ ] C3.03: Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)
-  - [ ] C3.04: Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qué modelo ejecutó)
-  - [ ] C3.05: Python: flag `high_value` en custom_metadata si duración > 5min o score significativo
-  - [ ] C3.06: Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score
-  - [ ] C3.07: Frontend: escuchar WS event `session_evaluated`
-  - [ ] C3.08: Frontend: badge en Command Center: "Última sesión: score 0.87"
-  - [ ] C3.09: Tests: unit test — mock Brain #7 → verify `ExperienceLogger.log_execution()` llamado con quality_score
-  - [ ] C3.10: Tests: integration test — complete session → `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL
-  - [ ] C3.11: Tests: frontend test — WS event `session_evaluated` → badge actualiza
-  - [ ] C3.12: Verify: ejecutar cualquier brain → `uv run python -c "from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))"` retorna record con quality_score
-  - [ ] C3.13: Python: `complete-task-handler.py` al inicio de tarea → INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)
-  - [ ] C3.14: Python: `complete-task-handler.py` al fin de tarea → UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at
-  - [ ] C3.15: Python: `task-executor` — por cada error de subtask → INSERT en `decisions` (decision_type="error_resolution", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)
-  - [ ] C3.16: Python: `task-executor` — al inicio de cada subtask → `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto
-  - [ ] C3.17: Python: `task-executor` — al completar subtask con éxito → `brain_memory.py log` guardando qué funcionó (input=problema, output=solución, status=success)
-  - [ ] C3.18: Tests: integration test — ejecutar task A1 → `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated
-  - [ ] C3.19: Tests: unit test — simular error en subtask → verify INSERT en `decisions` con decision_type="error_resolution"
-  - [ ] C3.20: Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 después de primer `/mm:complete-task`
-  - [ ] C3.21: Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duración real vs estimada)
-  - [ ] C3.22: Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) — cuántas veces task-executor salió al 75% y necesitó `--continue`
-  - [ ] C3.23: Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) — desglose `{"anthropic:claude-sonnet-4-6": N, "openrouter:claude-opus": N}` acumulado de `BACKEND-USAGE.json` — agnóstico al proveedor
-  - [ ] C3.24: Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) — si el commit pasó GGA en el primer intento
-  - [ ] C3.25: Python: `decisions` con `decision_type="error_pattern"` cuando el mismo root_cause aparece ≥ 2 veces — flag automático de deuda técnica recurrente
-  - [ ] C3.26: Tests: unit test — dos errores con mismo root_cause → verify segundo INSERT tiene decision_type="error_pattern"
-  - [ ] C3.27: Verify: después de 3 tasks ejecutadas → `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend
+- [x] C3: Learning + Audit Pipeline
+  - [x] C3.01: Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
+  - [x] C3.02: Python: implementar hook que llama Brain #7 con output del brain ejecutado
+  - [x] C3.03: Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)
+  - [x] C3.04: Python: llamar `ExperienceLogger.log_execution()` con output + quality_score + `model` field (qué modelo ejecutó)
+  - [x] C3.05: Python: flag `high_value` en custom_metadata si duración > 5min o score significativo
+  - [x] C3.06: Python: POST a Rust `/internal/brain-event` con tipo `session_evaluated` y score
+  - [x] C3.07: Frontend: escuchar WS event `session_evaluated`
+  - [x] C3.08: Frontend: badge en Command Center: "Última sesión: score 0.87"
+  - [x] C3.09: Tests: unit test — mock Brain #7 → verify `ExperienceLogger.log_execution()` llamado con quality_score
+  - [x] C3.10: Tests: integration test — complete session → `SELECT quality_score, model FROM experience_records ORDER BY created_at DESC LIMIT 1` IS NOT NULL
+  - [x] C3.11: Tests: frontend test — WS event `session_evaluated` → badge actualiza
+  - [x] C3.12: Verify: ejecutar cualquier brain → `uv run python -c "from experience.logger import ExperienceLogger; import asyncio; asyncio.run(ExperienceLogger().get_recent_by_brain('brain-01'))"` retorna record con quality_score
+  - [x] C3.13: Python: `complete-task-handler.py` al inicio de tarea → INSERT en `dev_sessions` (task_id, backend_used, tokens_estimated, tasks_total, started_at)
+  - [x] C3.14: Python: `complete-task-handler.py` al fin de tarea → UPDATE `dev_sessions` con tokens_consumed, tasks_completed, commit_hashes[], discoveries (texto de subtasks completados), ended_at
+  - [x] C3.15: Python: `task-executor` — por cada error de subtask → INSERT en `decisions` (decision_type="error_resolution", title=error summary, rationale=root_cause, chosen_option=solution_applied, confidence=0.7 default)
+  - [x] C3.16: Python: `task-executor` — al inicio de cada subtask → `brain_memory.py query --brain-id task-executor --limit 3` para recuperar patrones previos similares e incluirlos en el contexto
+  - [x] C3.17: Python: `task-executor` — al completar subtask con éxito → `brain_memory.py log` guardando qué funcionó (input=problema, output=solución, status=success)
+  - [x] C3.18: Tests: integration test — ejecutar task A1 → `SELECT * FROM dev_sessions ORDER BY started_at DESC LIMIT 1` tiene task_id + commit_hashes populated
+  - [x] C3.19: Tests: unit test — simular error en subtask → verify INSERT en `decisions` con decision_type="error_resolution"
+  - [x] C3.20: Verify: `SELECT COUNT(*) FROM dev_sessions` > 0 después de primer `/mm:complete-task`
+  - [x] C3.21: Python: `task-progress.json` incluye `started_at` + `completed_at` por cada subtask (para calcular duración real vs estimada)
+  - [x] C3.22: Python: `dev_sessions.metadata` incluye `context_budget_exits` (int) — cuántas veces task-executor salió al 75% y necesitó `--continue`
+  - [x] C3.23: Python: `dev_sessions.metadata` incluye `tokens_by_provider_model` (dict) — desglose `{"anthropic:claude-sonnet-4-6": N, "openrouter:claude-opus": N}` acumulado de `BACKEND-USAGE.json` — agnóstico al proveedor
+  - [x] C3.24: Python: `brain_consultations.metadata` incluye `gga_pass_first_attempt` (bool) — si el commit pasó GGA en el primer intento
+  - [x] C3.25: Python: `decisions` con `decision_type="error_pattern"` cuando el mismo root_cause aparece ≥ 2 veces — flag automático de deuda técnica recurrente
+  - [x] C3.26: Tests: unit test — dos errores con mismo root_cause → verify segundo INSERT tiene decision_type="error_pattern"
+  - [x] C3.27: Verify: después de 3 tasks ejecutadas → `SELECT SUM(tokens_consumed), backend_used FROM dev_sessions GROUP BY backend_used` muestra desglose real por backend
 
 ## TASK D: UI Evolution
 
