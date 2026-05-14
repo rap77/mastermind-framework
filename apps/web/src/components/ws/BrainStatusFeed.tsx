@@ -143,6 +143,24 @@ export function BrainStatusFeed({
               </span>
               <span className="text-gray-300">brain-{evt.brain_id}</span>
               <span className={STATUS_COLORS[evt.status]}>{evt.status}</span>
+              {/* C2.08: show model and provider when available */}
+              {evt.model && (
+                <span
+                  className="text-purple-400 truncate max-w-[160px]"
+                  title={evt.model}
+                  data-testid="brain-event-model"
+                >
+                  {evt.model}
+                </span>
+              )}
+              {evt.provider && !evt.model && (
+                <span
+                  className="text-purple-400"
+                  data-testid="brain-event-provider"
+                >
+                  {evt.provider}
+                </span>
+              )}
               <span className="text-gray-600 truncate max-w-[120px]" title={evt._traceId}>
                 {evt._traceId.slice(0, 8)}…
               </span>
