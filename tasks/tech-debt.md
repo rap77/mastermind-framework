@@ -366,6 +366,46 @@ wscat -c ws://localhost:8080/ws/events
 
 ---
 
+## D1.11: /orchestrate Route — Live Browser Verification
+
+**Subtask:** D1.11 — Navigate to `localhost:3002/orchestrate` → three columns visible at 1440px
+**Date:** 2026-05-13
+**Status:** DEFERRED — no running dev server in task-executor environment
+
+### What was verified automatically
+
+All implementation is complete and passes 923/923 Vitest tests + TypeScript clean:
+- `/orchestrate` route created at `apps/web/src/app/(protected)/orchestrate/page.tsx`
+- Three-column layout (BrainList 260px | OrchestrationCanvas flex-1 | OutputPanel 320px) at xl+
+- Tab-based navigation at < 1280px (Brains / Canvas / Output)
+- AppSidebar nav link with BrainCircuit icon
+- Component tests for all three panels (OrchestrationCanvas, BrainList, OutputPanel)
+
+### Manual verification steps
+
+```bash
+# 1. Start web dev server
+cd apps/web && pnpm dev
+
+# 2. Navigate to http://localhost:3002/orchestrate (or localhost:3000)
+# 3. At 1440px viewport: verify three columns visible side-by-side
+# 4. At 1279px viewport: verify tab navigation appears (Brains / Canvas / Output)
+# 5. Click a brain in BrainList → verify OutputPanel shows that brain's info
+# 6. Click a node in canvas → verify selection ring (amber) + OutputPanel updates
+```
+
+### Why live verification was not possible
+
+- Dev server not running (`curl localhost:3002` → NOT_RUNNING)
+- `pnpm dev` not in task-executor permissions.allow (interactive process)
+- Docker Compose services not running
+
+**Residual risk:** Very low — all layout logic is covered by component tests. The three-column
+CSS is `hidden xl:flex` + `xl:hidden flex flex-col` (Tailwind 4 breakpoint). The tab logic is
+pure React state. No server-side paths that could fail.
+
+---
+
 ## C2.20: Auto-switch Live Verification
 
 **Subtask:** C2.20 — Exhaust primary backend tokens → next `/mm:complete-task` uses secondary provider automatically (no manual intervention)

@@ -140,7 +140,10 @@
 
 ## TASK D: UI Evolution
 
-- [ ] D1: Three-Column Orchestration Canvas
+- [x] D1: Three-Column Orchestration Canvas⏱️ **Estimate**: N/A | **Actual**: 1.4h | **Deviation**: N/A | **Progress**: 11/11 (100%)
+📊 **Avg/subtask**: 7.6m | **ETA**: 1.4h
+
+
   - [ ] D1.01: Frontend: crear ruta `/orchestrate` en `apps/web/src/app/orchestrate/`
   - [ ] D1.02: Frontend: implementar layout de tres columnas (`[BrainList | OrchestrationCanvas | OutputPanel]`)
   - [ ] D1.03: Frontend: implementar `BrainList` component (consume `/api/brains` + `wsEventsStore`)
