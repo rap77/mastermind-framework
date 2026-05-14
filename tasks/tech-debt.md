@@ -323,3 +323,43 @@ Implementation is complete and verified via:
 **Residual risk:** Zero — both endpoints are covered by automated tests with correct response shapes.
 
 **Residual risk:** Zero — the middleware path is covered by 3 passing integration tests.
+
+---
+
+## C2.11: Model Provider Live Verification
+
+**Subtask:** C2.11 — Change to "budget" in UI → execute brain → WS event shows `"model": "z_ai:claude-3-7-sonnet"` (not hardcoded Anthropic)
+**Date:** 2026-05-13
+**Status:** DEFERRED — live smoke test not executable in current environment
+
+### What was verified automatically
+
+- Python: `dispatch(profile="budget")` → `BrainDispatch.model = "z_ai:claude-3-7-sonnet"`, `provider = "z_ai"` (test_dispatch_engine.py, TestDispatchProfileOverride)
+- Rust: `BrainStateEvent` JSON includes `"model"` and `"provider"` fields when set (brain_state_event.rs tests)
+- Frontend: BrainStatusFeed displays `model` field from WS event (BrainStatusFeed.test.tsx)
+- Frontend: dropdown change → Zustand store update → request body includes `model_profile` (ModelProfileFlow.test.tsx)
+
+### Live smoke test (for manual execution)
+
+```bash
+# 1. Start services
+docker compose up -d && sleep 20
+
+# 2. Subscribe to WebSocket in one terminal
+wscat -c ws://localhost:8080/ws/events
+
+# 3. Select "Budget" in the Command Center UI
+
+# 4. Submit a brief — the dispatch engine should POST to /internal/brain-event with:
+#    {"model": "z_ai:claude-3-7-sonnet", "provider": "z_ai", ...}
+
+# 5. Expected: WS event includes "model": "z_ai:claude-3-7-sonnet"
+```
+
+### Why live verification was not possible
+
+- No running services (docker compose shows 0 containers)
+- Missing env vars: `ZAI_API_KEY`, `ANTHROPIC_API_KEY`, `DATABASE_URL`, `JWT_SECRET`
+- `docker compose up -d` not in permissions.allow
+
+**Residual risk:** Low — all three layers (Python dispatch, Rust WS event, Frontend display) are covered by automated unit tests. The wiring path is logically sound but not E2E tested.
