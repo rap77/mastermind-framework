@@ -62,6 +62,11 @@ class BrainDispatch(BaseModel):
         brain_id: Integer brain identifier (1-7).
         role: Human-readable role string from agent_registry.
         model_profile: Model quality tier (quality | balanced | budget).
+        model: Provider-qualified model string in format "provider:model_id"
+               (e.g. "anthropic:claude-opus-4-6").  Resolved at dispatch time
+               from the model_profiles section in config.yml.
+        provider: Provider name extracted from the model string
+                  (e.g. "anthropic", "openrouter", "z_ai").
         is_barrier: True if this brain acts as a barrier (post-parallel gate).
     """
 
@@ -69,6 +74,8 @@ class BrainDispatch(BaseModel):
     brain_id: int
     role: str
     model_profile: Literal["quality", "balanced", "budget"]
+    model: str
+    provider: str
     is_barrier: bool
 
 
@@ -270,6 +277,42 @@ class DynamicDispatchEngine:
 
         return result
 
+    def _resolve_model_for_profile(
+        self,
+        profile: Literal["quality", "balanced", "budget"],
+        brain_record_model: str | None = None,
+    ) -> tuple[str, str]:
+        """Resolve the provider-qualified model string for a given profile.
+
+        Reads from self.config.model_profiles first; falls back to brain_registry
+        per-brain model field if no config entry is found.
+
+        Args:
+            profile: Model quality tier to resolve ("quality", "balanced", "budget").
+            brain_record_model: Optional per-brain model override from brain_registry
+                                (e.g. record.model_quality).  Used as fallback only.
+
+        Returns:
+            Tuple of (model_string, provider_name) where model_string is in
+            "provider:model_id" format and provider_name is the prefix portion.
+        """
+        # Prefer config.yml model_profiles over brain_registry per-brain model
+        config_profile = self.config.model_profiles.get(profile)
+        if config_profile is not None:
+            model_str = config_profile.model
+            provider = config_profile.provider
+        elif brain_record_model:
+            # Fallback: use brain_registry model field (may not have provider prefix)
+            model_str = brain_record_model
+            provider = model_str.split(":")[0] if ":" in model_str else "anthropic"
+        else:
+            # Last resort: use quality profile default
+            fallback = self.config.model_profiles.get("quality")
+            model_str = fallback.model if fallback else "anthropic:claude-opus-4-6"
+            provider = model_str.split(":")[0] if ":" in model_str else "anthropic"
+
+        return model_str, provider
+
     async def _get_brains_from_registry(
         self,
         conn: asyncpg.Connection,
@@ -282,6 +325,11 @@ class DynamicDispatchEngine:
         legacy agent_registry table.  The ``is_barrier`` flag is passed in
         from the routing config (Brain #7 is always the barrier) because the
         brain_registry table does not have a per-row is_barrier column.
+
+        Model and provider are resolved from config.yml model_profiles (C2.03/C2.04):
+        - Barrier brains run at quality tier → reads model_profiles.quality.model
+        - Parallel brains run at balanced tier → reads model_profiles.balanced.model
+        Both are in "provider:model_id" format, no hardcoded Anthropic.
 
         Args:
             conn: Open asyncpg connection (caller owns lifecycle).
@@ -306,11 +354,20 @@ class DynamicDispatchEngine:
             profile: Literal["quality", "balanced", "budget"] = (
                 "quality" if is_barrier else "balanced"
             )
+            # Resolve model and provider from config.yml (C2.03/C2.04) — NOT hardcoded.
+            brain_model_for_profile = (
+                record.model_quality if profile == "quality" else record.model_balanced
+            )
+            model_str, provider = self._resolve_model_for_profile(
+                profile, brain_model_for_profile
+            )
             results.append(
                 BrainDispatch(
                     brain_id=record.brain_id,
                     role=record.name,
                     model_profile=profile,
+                    model=model_str,
+                    provider=provider,
                     is_barrier=is_barrier,
                 )
             )

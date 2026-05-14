@@ -347,6 +347,94 @@ class TestDynamicDispatchEngineVerification:
 
 
 # ---------------------------------------------------------------------------
+# C2.03/C2.04 — model field with provider:model_id format
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestDispatchModelField:
+    """C2.03/C2.04: BrainDispatch.model contains provider:model_id from config."""
+
+    async def test_parallel_brain_model_is_provider_qualified(self) -> None:
+        """C2.03: parallel brains get balanced profile model from config (not hardcoded)."""
+        parallel_rows = [_make_brain_row(1)]
+        conn = _make_conn(parallel_rows, [])
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION")
+
+        # Parallel brain gets balanced profile → anthropic:claude-sonnet-4-6 from defaults
+        parallel_brain = result.parallel[0]
+        assert ":" in parallel_brain.model, "model must be in provider:model_id format"
+        assert parallel_brain.provider in {"anthropic", "openrouter", "z_ai"}
+        assert parallel_brain.model_profile == "balanced"
+
+    async def test_barrier_brain_model_is_quality_profile(self) -> None:
+        """C2.03: barrier brain gets quality profile model from config."""
+        parallel_rows = [_make_brain_row(1), _make_brain_row(2), _make_brain_row(3)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION")
+
+        barrier_brain = result.barrier[0]
+        assert barrier_brain.model_profile == "quality"
+        assert (
+            ":" in barrier_brain.model
+        ), "barrier model must be in provider:model_id format"
+        assert barrier_brain.provider in {"anthropic", "openrouter", "z_ai"}
+
+    async def test_dispatch_model_matches_config_profile(self) -> None:
+        """C2.04: dispatch result model field matches config model_profiles.balanced."""
+        # DISCUSSION moment uses brains 1,2,3 in parallel and brain 7 as barrier
+        parallel_rows = [_make_brain_row(1), _make_brain_row(2), _make_brain_row(3)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION")
+
+        brain = result.parallel[0]
+        # Model must come from config.yml model_profiles (balanced for parallel)
+        expected_model = engine.config.model_profiles["balanced"].model
+        assert brain.model == expected_model
+        assert brain.provider == engine.config.model_profiles["balanced"].provider
+
+    async def test_dispatch_provider_not_hardcoded_anthropic(self) -> None:
+        """C2.03: provider field is read from config, not hardcoded to 'anthropic'."""
+        # DISCUSSION moment — brain 1 is parallel (balanced profile)
+        parallel_rows = [_make_brain_row(1), _make_brain_row(2), _make_brain_row(3)]
+        barrier_rows = [_make_brain_row(7, is_barrier=True)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            # Verify balanced model comes from config (not hardcoded)
+            balanced_profile = engine.config.model_profiles["balanced"]
+            result = await engine.dispatch(19, "DISCUSSION")
+
+        brain = result.parallel[0]
+        assert brain.model == balanced_profile.model
+        assert brain.provider == balanced_profile.provider
+
+
+# ---------------------------------------------------------------------------
 # BrainDispatch Pydantic model tests
 # ---------------------------------------------------------------------------
 
@@ -355,15 +443,19 @@ class TestBrainDispatchModel:
     """BrainDispatch strict Pydantic model validation."""
 
     def test_valid_brain_dispatch(self) -> None:
-        """BrainDispatch accepts valid field types."""
+        """BrainDispatch accepts valid field types including model and provider."""
         bd = BrainDispatch(
             brain_id=1,
             role="product-strategy",
             model_profile="quality",
+            model="anthropic:claude-opus-4-6",
+            provider="anthropic",
             is_barrier=False,
         )
         assert bd.brain_id == 1
         assert bd.model_profile == "quality"
+        assert bd.model == "anthropic:claude-opus-4-6"
+        assert bd.provider == "anthropic"
 
     def test_invalid_model_profile_raises(self) -> None:
         """BrainDispatch rejects unknown model_profile values."""
@@ -372,8 +464,23 @@ class TestBrainDispatchModel:
                 brain_id=1,
                 role="x",
                 model_profile="invalid",
+                model="anthropic:claude-opus-4-6",
+                provider="anthropic",
                 is_barrier=False,  # type: ignore[arg-type]
             )
+
+    def test_brain_dispatch_with_z_ai_provider(self) -> None:
+        """C2.03: BrainDispatch supports z_ai provider in model field."""
+        bd = BrainDispatch(
+            brain_id=2,
+            role="budget-brain",
+            model_profile="budget",
+            model="z_ai:claude-3-7-sonnet",
+            provider="z_ai",
+            is_barrier=False,
+        )
+        assert bd.provider == "z_ai"
+        assert bd.model == "z_ai:claude-3-7-sonnet"
 
 
 # ---------------------------------------------------------------------------
