@@ -9,6 +9,10 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 }
 
+// jsdom does not implement scrollIntoView — stub it globally so components
+// that call el.scrollIntoView() (e.g. StatusTimeline auto-scroll) don't throw.
+Element.prototype.scrollIntoView = vi.fn()
+
 afterEach(() => {
   cleanup()
 })

@@ -12,6 +12,8 @@
  * - No CooldownFAB, no NodeDetailPanel (OutputPanel replaces detail panel)
  * - No Cooldown Mode — pure read/select path
  *
+ * D2.03 addition: StatusTimeline rendered below the React Flow DAG.
+ *
  * CRITICAL: NODE_TYPES + EDGE_TYPES at module level — never inline in JSX.
  * (Same invariant as NexusCanvas — prevents React Flow remount on render.)
  */
@@ -23,6 +25,8 @@ import dagre from '@dagrejs/dagre'
 import type { Brain } from '@/lib/api'
 import { HybridFlowEdge } from '@/components/nexus/HybridFlowEdge'
 import { OrchestrationBrainNode } from './OrchestrationBrainNode'
+import { StatusTimeline } from './StatusTimeline'
+import { useOrchestrationStream } from '@/hooks/useOrchestrationStream'
 
 // ─── CRITICAL: NODE_TYPES + EDGE_TYPES at MODULE LEVEL ────────────────────────
 // See NexusCanvas.tsx for the invariant explanation.
@@ -133,6 +137,11 @@ export function OrchestrationCanvas({
 
   const [edges] = useState<Edge[]>(() => buildEdges(blueprintBrains))
 
+  // D2.03 — StatusTimeline stream (filter by selected brain when one is chosen)
+  const { events } = useOrchestrationStream({
+    brainId: selectedBrainId ?? undefined,
+  })
+
   // Inject selectedBrainId into nodes so OrchestrationBrainNode can highlight
   const nodesWithSelection = nodes.map((node) => ({
     ...node,
@@ -143,23 +152,35 @@ export function OrchestrationCanvas({
   }))
 
   return (
-    <div className="h-full w-full" data-testid="orchestration-canvas">
-      <ReactFlow
-        nodes={nodesWithSelection}
-        edges={edges}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
-        fitView
-        panOnScroll
-        zoomOnScroll
-        nodesDraggable={false}
-        nodesFocusable
-        edgesFocusable
-        className="nexus-canvas-bg"
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+    <div className="h-full w-full flex flex-col" data-testid="orchestration-canvas">
+      {/* React Flow DAG — takes available vertical space */}
+      <div className="flex-1 min-h-0">
+        <ReactFlow
+          nodes={nodesWithSelection}
+          edges={edges}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
+          fitView
+          panOnScroll
+          zoomOnScroll
+          nodesDraggable={false}
+          nodesFocusable
+          edgesFocusable
+          className="nexus-canvas-bg"
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </div>
+
+      {/* D2.03 — StatusTimeline below DAG, fixed height with internal scroll */}
+      <div className="flex-shrink-0 h-48 border-t border-border">
+        <StatusTimeline
+          events={events}
+          label={selectedBrainId ? `${selectedBrainId} activity` : 'All activity'}
+          className="h-full"
+        />
+      </div>
     </div>
   )
 }
