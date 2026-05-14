@@ -1,4 +1,4 @@
-"""Tests for mm_flow/config_loader.py — FASE 1 Task 1.5 + C2.01 provider format."""
+"""Tests for mm_flow/config_loader.py — FASE 1 Task 1.5 + C2.01/C2.02 provider config."""
 
 import textwrap
 
@@ -8,6 +8,7 @@ from mastermind_cli.mm_flow.config_loader import (
     ConfigError,
     MMFlowConfig,
     ModelProfile,
+    ProviderConfig,
     load_config,
 )
 
@@ -127,3 +128,67 @@ def test_openrouter_provider_accepted(tmp_path):
     config = load_config(str(cfg_file))
     assert config.model_profiles["quality"].provider == "openrouter"
     assert config.model_profiles["quality"].model_id == "anthropic/claude-opus-4"
+
+
+# ---------------------------------------------------------------------------
+# C2.02 — providers section tests
+# ---------------------------------------------------------------------------
+
+
+def test_defaults_include_providers_section(tmp_path):
+    """C2.02: default config includes three providers with env_key and base_url."""
+    config = load_config(str(tmp_path / "nonexistent.yml"))
+    assert "anthropic" in config.providers
+    assert "openrouter" in config.providers
+    assert "z_ai" in config.providers
+
+
+def test_anthropic_provider_config(tmp_path):
+    """C2.02: anthropic provider has ANTHROPIC_API_KEY env_key and no base_url."""
+    config = load_config(str(tmp_path / "nonexistent.yml"))
+    p = config.providers["anthropic"]
+    assert p.env_key == "ANTHROPIC_API_KEY"
+    assert p.base_url is None
+
+
+def test_openrouter_provider_config(tmp_path):
+    """C2.02: openrouter provider has OPENROUTER_API_KEY and correct base_url."""
+    config = load_config(str(tmp_path / "nonexistent.yml"))
+    p = config.providers["openrouter"]
+    assert p.env_key == "OPENROUTER_API_KEY"
+    assert p.base_url == "https://openrouter.ai/api/v1"
+
+
+def test_z_ai_provider_config(tmp_path):
+    """C2.02: z_ai provider has ZAI_API_KEY and correct base_url."""
+    config = load_config(str(tmp_path / "nonexistent.yml"))
+    p = config.providers["z_ai"]
+    assert p.env_key == "ZAI_API_KEY"
+    assert p.base_url == "https://api.z.ai/v1"
+
+
+def test_provider_config_dataclass():
+    """C2.02: ProviderConfig is a plain dataclass with env_key and base_url."""
+    p = ProviderConfig(env_key="MY_KEY", base_url="https://example.com")
+    assert p.env_key == "MY_KEY"
+    assert p.base_url == "https://example.com"
+
+    p_none = ProviderConfig(env_key="MY_KEY", base_url=None)
+    assert p_none.base_url is None
+
+
+def test_providers_section_from_file(tmp_path):
+    """C2.02: providers section is parsed from config file."""
+    cfg_file = tmp_path / "custom_providers.yml"
+    cfg_file.write_text(
+        textwrap.dedent("""
+        providers:
+          custom_prov:
+            env_key: CUSTOM_API_KEY
+            base_url: "https://custom.example.com/v2"
+    """)
+    )
+    config = load_config(str(cfg_file))
+    assert "custom_prov" in config.providers
+    assert config.providers["custom_prov"].env_key == "CUSTOM_API_KEY"
+    assert config.providers["custom_prov"].base_url == "https://custom.example.com/v2"

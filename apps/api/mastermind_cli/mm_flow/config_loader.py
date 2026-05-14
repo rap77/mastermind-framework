@@ -56,6 +56,20 @@ _DEFAULTS: dict[str, Any] = {
         "max_gate_retries": 1,
         "escalate_on_failure": True,
     },
+    "providers": {
+        "anthropic": {
+            "env_key": "ANTHROPIC_API_KEY",
+            "base_url": None,
+        },
+        "openrouter": {
+            "env_key": "OPENROUTER_API_KEY",
+            "base_url": "https://openrouter.ai/api/v1",
+        },
+        "z_ai": {
+            "env_key": "ZAI_API_KEY",
+            "base_url": "https://api.z.ai/v1",
+        },
+    },
 }
 
 
@@ -99,10 +113,25 @@ class BrainRoutingRule:
 
 
 @dataclass
+class ProviderConfig:
+    """Configuration for a single AI provider.
+
+    Attributes:
+        env_key: Environment variable name holding the API key for this provider.
+                 Example: "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "ZAI_API_KEY".
+        base_url: Base URL for the provider API; None means use the SDK default.
+    """
+
+    env_key: str
+    base_url: str | None
+
+
+@dataclass
 class MMFlowConfig:
     model_profiles: dict[str, ModelProfile]
     brain_routing: dict[str, BrainRoutingRule]
     verification_gates: dict[str, Any]
+    providers: dict[str, ProviderConfig] = field(default_factory=dict)
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -167,10 +196,21 @@ def load_config(path: str = ".planning/.mm-flow/config.yml") -> MMFlowConfig:
         for moment, v in routing_raw.items()
     }
 
+    # Parse providers section
+    providers_raw: dict[str, Any] = data.get("providers", {})
+    providers: dict[str, ProviderConfig] = {
+        name: ProviderConfig(
+            env_key=v["env_key"],
+            base_url=v.get("base_url"),
+        )
+        for name, v in providers_raw.items()
+    }
+
     return MMFlowConfig(
         model_profiles=model_profiles,
         brain_routing=brain_routing,
         verification_gates=data["verification_gates"],
+        providers=providers,
     )
 
 

@@ -37,3 +37,17 @@ verification_gates:
   spec_coverage_threshold: 0.95
   max_gate_retries: 1
   escalate_on_failure: true
+
+# Provider configuration
+# env_key: environment variable name that holds the API key for this provider
+# base_url: base HTTP/S URL for the provider's API (null = use SDK default)
+providers:
+  anthropic:
+    env_key: ANTHROPIC_API_KEY
+    base_url: null
+  openrouter:
+    env_key: OPENROUTER_API_KEY
+    base_url: "https://openrouter.ai/api/v1"
+  z_ai:
+    env_key: ZAI_API_KEY
+    base_url: "https://api.z.ai/v1"
