@@ -106,7 +106,10 @@
   - [x] C2.19: Tests: `complete-task-handler.py` con `BACKEND-SWITCH-REQUIRED.json` presente → verify ACTIVE_BACKEND cambia + archivo borrado
   - [x] C2.20: Verify: agotar tokens del backend primario → próximo `/mm:complete-task` usa automáticamente el siguiente proveedor sin intervención manual
 
-- [x] C3: Learning + Audit Pipeline
+- [x] C3: Learning + Audit Pipeline⏱️ **Estimate**: N/A | **Actual**: 12.3h | **Deviation**: N/A | **Progress**: 27/27 (100%)
+📊 **Avg/subtask**: 27.4m | **ETA**: 12.3h
+
+
   - [x] C3.01: Python: identificar el método correcto para el hook (StatelessCoordinator.complete_session o task_runner)
   - [x] C3.02: Python: implementar hook que llama Brain #7 con output del brain ejecutado
   - [x] C3.03: Python: Brain #7 response estructura: `quality_score` (float) + `insights[]` (strings)
