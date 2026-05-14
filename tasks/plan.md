@@ -248,9 +248,9 @@ TASK-D (UI Evolution)
 - Frontend: cambiar profile en dropdown → verify que Zustand store actualiza y el request siguiente lo incluye
 
 **Acceptance**:
-- [ ] `config.yml` tiene sección `model_profiles` con 3 perfiles definidos
-- [ ] Cambiar el profile en la UI → la siguiente invocación de brain usa el modelo correcto
-- [ ] WS event incluye `model` field: `{"brain_id": "brain-01", "model": "claude-opus-4", ...}`
+- [x] `config.yml` tiene sección `model_profiles` con 3 perfiles definidos
+- [x] Cambiar el profile en la UI → la siguiente invocación de brain usa el modelo correcto
+- [x] WS event incluye `model` field: `{"brain_id": "brain-01", "model": "claude-opus-4", ...}`
 
 ---
 
