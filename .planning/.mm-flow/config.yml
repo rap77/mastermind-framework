@@ -51,3 +51,21 @@ providers:
   z_ai:
     env_key: ZAI_API_KEY
     base_url: "https://api.z.ai/v1"
+
+# Backend token limits for context monitoring
+# token_limit: maximum context window for this backend
+# critical_threshold: fraction (0-1) at which to trigger backend switch
+# priority: order for backend failover (lower = higher priority)
+backend_limits:
+  claude:
+    token_limit: 200000
+    critical_threshold: 0.95
+    priority: 1
+  openrouter:
+    token_limit: 200000
+    critical_threshold: 0.95
+    priority: 2
+  z_ai:
+    token_limit: 200000
+    critical_threshold: 0.95
+    priority: 3
