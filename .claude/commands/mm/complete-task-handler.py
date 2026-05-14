@@ -1637,29 +1637,43 @@ def mark_in_progress(subtask_id: str) -> None:
         mm_error(f"Failed to mark {subtask_id} as in_progress: {e}")
         sys.exit(1)
 
-    # Also mark the parent checkbox as [~] in todo.md directly
-    if "." in subtask_id and TODO_MD.exists():
+    # Mark subtask AND parent as [~] in todo.md in a single read-modify-write
+    if TODO_MD.exists():
         try:
-            parent_id = subtask_id.rsplit(".", 1)[0]
             todo_content = TODO_MD.read_text()
-            parent_escaped = re.escape(parent_id)
-            pattern = rf"(^\s*-\s?\[)([ ])(\]\s+{parent_escaped}:)"
 
-            def _replace_with_tilde(m: re.Match[str]) -> str:
+            def _to_tilde(m: re.Match[str]) -> str:
                 return f"{m.group(1)}~{m.group(3)}"
 
-            new_content, count = re.subn(
-                pattern,
-                _replace_with_tilde,
+            # Mark subtask's own checkbox: [ ] → [~]
+            subtask_escaped = re.escape(subtask_id)
+            todo_content, subtask_count = re.subn(
+                rf"(^\s*-\s?\[)([ ])(\]\s+{subtask_escaped}:)",
+                _to_tilde,
                 todo_content,
                 count=1,
                 flags=re.MULTILINE,
             )
-            if count > 0:
-                TODO_MD.write_text(new_content)
-                mm_info(f"Parent {parent_id} marked as [~] (in progress)")
+            if subtask_count > 0:
+                mm_info(f"Marked {subtask_id} as [~] in todo.md")
+
+            # Mark parent's checkbox: [ ] → [~] (only if not already [~] or [x])
+            if "." in subtask_id:
+                parent_id = subtask_id.rsplit(".", 1)[0]
+                parent_escaped = re.escape(parent_id)
+                todo_content, parent_count = re.subn(
+                    rf"(^\s*-\s?\[)([ ])(\]\s+{parent_escaped}:)",
+                    _to_tilde,
+                    todo_content,
+                    count=1,
+                    flags=re.MULTILINE,
+                )
+                if parent_count > 0:
+                    mm_info(f"Parent {parent_id} marked as [~] (in progress)")
+
+            TODO_MD.write_text(todo_content)
         except OSError as e:
-            mm_error(f"Failed to update parent [~] in todo.md: {e}")
+            mm_error(f"Failed to update [~] in todo.md: {e}")
 
     mm_info(f"Marked {subtask_id} as in_progress")
 
