@@ -143,18 +143,17 @@
 - [x] D1: Three-Column Orchestration Canvas⏱️ **Estimate**: N/A | **Actual**: 1.4h | **Deviation**: N/A | **Progress**: 11/11 (100%)
 📊 **Avg/subtask**: 7.6m | **ETA**: 1.4h
 
-
-  - [ ] D1.01: Frontend: crear ruta `/orchestrate` en `apps/web/src/app/orchestrate/`
-  - [ ] D1.02: Frontend: implementar layout de tres columnas (`[BrainList | OrchestrationCanvas | OutputPanel]`)
-  - [ ] D1.03: Frontend: implementar `BrainList` component (consume `/api/brains` + `wsEventsStore`)
-  - [ ] D1.04: Frontend: extender `NexusCanvas` existente para mostrar nodos con estado dinámico (no reescritura)
-  - [ ] D1.05: Frontend: implementar `OutputPanel` (output estructurado + Brain #7 score + trace timeline)
-  - [ ] D1.06: Frontend: responsive — en < 1280px colapsa a tabs
-  - [ ] D1.07: Frontend: agregar link a `/orchestrate` en la nav principal
-  - [ ] D1.08: Tests: component test — `OrchestrationCanvas` renderiza con data mockeada de 7 brains
-  - [ ] D1.09: Tests: component test — `BrainList` actualiza estado cuando llega WS event
-  - [ ] D1.10: Tests: component test — `OutputPanel` renderiza output estructurado
-  - [ ] D1.11: Verify: navegar a `localhost:3000/orchestrate` → tres columnas visibles en 1440px
+  - [x] D1.01: Frontend: crear ruta `/orchestrate` en `apps/web/src/app/orchestrate/`
+  - [x] D1.02: Frontend: implementar layout de tres columnas (`[BrainList | OrchestrationCanvas | OutputPanel]`)
+  - [x] D1.03: Frontend: implementar `BrainList` component (consume `/api/brains` + `wsEventsStore`)
+  - [x] D1.04: Frontend: extender `NexusCanvas` existente para mostrar nodos con estado dinámico (no reescritura)
+  - [x] D1.05: Frontend: implementar `OutputPanel` (output estructurado + Brain #7 score + trace timeline)
+  - [x] D1.06: Frontend: responsive — en < 1280px colapsa a tabs
+  - [x] D1.07: Frontend: agregar link a `/orchestrate` en la nav principal
+  - [x] D1.08: Tests: component test — `OrchestrationCanvas` renderiza con data mockeada de 7 brains
+  - [x] D1.09: Tests: component test — `BrainList` actualiza estado cuando llega WS event
+  - [x] D1.10: Tests: component test — `OutputPanel` renderiza output estructurado
+  - [x] D1.11: Verify: navegar a `localhost:3000/orchestrate` → tres columnas visibles en 1440px
 
 - [ ] D2: Real-Time Monitoring Panel + Progressive Streaming
   - [ ] D2.01: Frontend: implementar hook `useOrchestrationStream()` que consume `wsEventsStore`
