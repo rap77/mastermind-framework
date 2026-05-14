@@ -57,22 +57,28 @@ For each subtask in the list:
 
 ### Step 0: Mark subtask as in_progress
 
-**FIRST action before anything else** — mark the subtask as started:
+**FIRST action before anything else — do BOTH steps:**
 
+**Step 0a — Update task-progress.json:**
 ```bash
 python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress {subtask_id}
 ```
 
-This immediately:
-1. Updates `task-progress.json` with `status = "in_progress"`
-2. Marks the parent task as `[~]` in `todo.md` (visible to the user in real-time)
-3. Cascades `[~]` up the hierarchy if needed
+**Step 0b — Edit todo.md directly with the Edit tool** (this is what makes it visible in real-time):
+1. Read `tasks/todo.md`
+2. Find the subtask line: `- [ ] {subtask_id}:`
+3. Change `[ ]` to `[~]` on that exact line using the Edit tool
+4. Also change the parent task line `- [ ] {task_id}:` to `- [~] {task_id}:` if not already `[~]`
 
-**Example:**
-```bash
-python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress B1.01
-# INFO: Marked B1.01 as in_progress
-# INFO: Parent B1 marked as [~] (in progress)
+**Why direct Edit?** The Edit tool writes immediately to disk — the user sees the update in their editor the moment it happens. The handler subprocess updates state, but direct Edit gives instant visual feedback.
+
+**Example — starting D1.02:**
+```
+Before: - [ ] D1.02: Frontend: implementar layout...
+After:  - [~] D1.02: Frontend: implementar layout...
+
+Before: - [ ] D1: Three-Column Orchestration Canvas...
+After:  - [~] D1: Three-Column Orchestration Canvas...
 ```
 
 ---
@@ -261,42 +267,39 @@ Save state to ALL THREE:
 ```
 
 **2. tasks/todo.md (CRITICAL — user-visible checklist):**
-After each successful subtask, run BOTH commands in sequence:
+After each successful subtask, do ALL THREE steps in order:
 
+**Step A — Edit todo.md directly with the Edit tool** (immediate visual feedback):
+1. Read `tasks/todo.md`
+2. Find `- [~] {subtask_id}:` (marked in-progress at Step 0)
+3. Change `[~]` to `[x]` using the Edit tool
+4. If ALL siblings are now `[x]`, also change parent `- [~] {task_id}:` to `- [x] {task_id}:`
+
+```
+Before: - [~] D1.02: Frontend: implementar layout...
+After:  - [x] D1.02: Frontend: implementar layout...
+```
+
+**Step B — Update task-progress.json via handler:**
 ```bash
-# Step 1: Mark subtask done + propagate parent state
 python3 .claude/commands/mm/complete-task-handler.py --mark-done {subtask_id}
+```
 
-# Step 2: Update time tracking in todo.md (real-time progress visible to user)
+**Step C — Update time tracking header:**
+```bash
 python3 .claude/commands/mm/update-todo-times.py {task_id}
 ```
 
-**NEVER edit `tasks/todo.md` directly.** Step 1 (handler):
-1. Marks the subtask `[x]` in `task-progress.json` AND in `todo.md`
-2. Calls `propagate_parent_completion()` automatically — if all siblings are done, the parent task also gets marked `[x]` in `todo.md`
-3. Updates incremental time tracking
-
-Step 2 (`update-todo-times.py`) updates `todo.md` header with real-time metrics:
+This updates the `todo.md` header with real-time metrics:
 ```
 - [~] D1: Flow Designer⏱️ Estimate: 2h | Actual: 45m | Deviation: -75% | Progress: 3/8 (37%)
 📊 Avg/subtask: 15m | ETA: 1.25h remaining
 ```
 
-**Example — completing D1.2:**
-```bash
-python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
-# INFO: Marked D1.2 as complete
-# INFO: Parent D1 not yet complete (2/3 siblings done)
-
-python3 .claude/commands/mm/update-todo-times.py D1
-# Updates todo.md header with ⏱️ Estimate | Actual | Deviation | Progress
-```
-
-**If subtask is already marked complete** (idempotent):
-```bash
-python3 .claude/commands/mm/complete-task-handler.py --mark-done D1.2
-# INFO: D1.2 is already complete — ensuring todo.md is synced
-```
+**Why three steps?**
+- Step A: Direct Edit = instant visual feedback for the user watching the file
+- Step B: Handler = correct state in task-progress.json + propagation logic
+- Step C: Time script = progress metrics in the todo.md header
 
 **3. Engram via mem_save:**
 ```javascript
@@ -516,7 +519,7 @@ When all subtasks complete (or you exit due to context limit):
 5. **Continue on failure** (mark failed, move to next)
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
-8. **Use `--mark-done` to update todo.md** — NEVER edit todo.md directly; handler propagates parent state automatically
+8. **Update todo.md with DIRECT EDIT + handler** — Edit tool for instant visual feedback ([~]→[x]), then `--mark-done` for state propagation. Both are required.
 9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
 10. **ALWAYS call `update-todo-times.py` after EACH subtask** (not just at the end) — this is what makes progress visible in real-time: `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 
