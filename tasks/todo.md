@@ -1,46 +1,46 @@
 ## PHASE 20: pgvector Schema + LangSmith
 
-- [ ] 20: pgvector Schema + LangSmith
-  - [ ] 20.01: Backend: crear migration Alembic para tabla `brain_embeddings` con columnas: id UUID PK, brain_id TEXT, collection_type TEXT CHECK(IN 'domain_knowledge','project_memory'), source_ref TEXT, chunk_text TEXT, chunk_hash TEXT UNIQUE, embedding vector(768), created_at TIMESTAMPTZ
-  - [ ] 20.02: Backend: crear HNSW index en columna `embedding` con `m=16, ef_construction=64` usando `vector_cosine_ops`
-  - [ ] 20.03: Backend: ejecutar `alembic upgrade head` y verificar schema con `\d brain_embeddings`
-  - [ ] 20.04: Tests: unit test — `SELECT to_regclass('public.brain_embeddings') IS NOT NULL` pasa
-  - [ ] 20.05: Tests: unit test — HNSW index existe en `pg_indexes` para `brain_embeddings`
-  - [ ] 20.06: Tests: unit test — INSERT de embedding dummy 768-dim → SELECT retorna sin error
-  - [ ] 20.07: Verify: `SELECT column_name FROM information_schema.columns WHERE table_name='brain_embeddings'` retorna todas las columnas esperadas
-  - [ ] 20.08: Backend: `uv add sentence-transformers` — mover de dev-deps a deps en `pyproject.toml`
-  - [ ] 20.09: Backend: crear `apps/api/mastermind_cli/rag/__init__.py` con exports
-  - [ ] 20.10: Backend: crear `apps/api/mastermind_cli/rag/embed.py` con `load_model()`, `encode(texts)`, `compute_hash(text)`
-  - [ ] 20.11: Backend: crear `apps/api/mastermind_cli/rag/search.py` con `similarity_search(conn, brain_id, collection, query_text, limit=5)`
-  - [ ] 20.12: Tests: unit test — `encode(["hello world"])` retorna lista de 768 floats
-  - [ ] 20.13: Tests: unit test — `compute_hash("text")` retorna string hex de 64 chars
-  - [ ] 20.14: Tests: integration — `similarity_search()` con fixture en DB de test retorna lista con chunk_text y score en [0.0, 1.0]
-  - [ ] 20.15: Tests: edge case — `similarity_search()` con colección vacía retorna lista vacía sin crash
-  - [ ] 20.16: Verify: `from mastermind_cli.rag import similarity_search` no levanta ImportError
-  - [ ] 20.17: Backend: `uv add langsmith` — agregar a runtime deps en `pyproject.toml`
-  - [ ] 20.18: Backend: agregar `LANGSMITH_API_KEY` y `LANGSMITH_PROJECT` a `.env.example`
-  - [ ] 20.19: Backend: instrumentar `DynamicDispatchEngine.dispatch()` con `@traceable(name="brain_dispatch")` y metadata: brain_id, provider, model, profile
-  - [ ] 20.20: Backend: crear `apps/api/mastermind_cli/rag/baseline.py` — lee últimos N records de ExperienceLogger para brain-01 sin rag_enabled, calcula quality_score mean y guarda en `tasks/rag-baseline.json`
-  - [ ] 20.21: Tests: unit test — `@traceable` decorator no rompe dispatch con mock LangSmith client
-  - [ ] 20.22: Tests: unit test — `baseline.py` calcula mean correctamente con fixture de 5 records
-  - [ ] 20.23: Verify: `sentence-transformers` en `[project.dependencies]` de `pyproject.toml` (no en dev-dependencies)
-  - [ ] 20.24: Verify: `langsmith` en `[project.dependencies]` de `pyproject.toml`
-  - [ ] 20.25: Verify: `tasks/rag-baseline.json` existe con estructura correcta (sessions_evaluated, quality_score_mean, oec_target)
+- [x] 20: pgvector Schema + LangSmith
+  - [x] 20.01: Backend: crear migration Alembic para tabla `brain_embeddings` con columnas: id UUID PK, brain_id TEXT, collection_type TEXT CHECK(IN 'domain_knowledge','project_memory'), source_ref TEXT, chunk_text TEXT, chunk_hash TEXT UNIQUE, embedding vector(768), created_at TIMESTAMPTZ
+  - [x] 20.02: Backend: crear HNSW index en columna `embedding` con `m=16, ef_construction=64` usando `vector_cosine_ops`
+  - [x] 20.03: Backend: ejecutar `alembic upgrade head` y verificar schema con `\d brain_embeddings`
+  - [x] 20.04: Tests: unit test — `SELECT to_regclass('public.brain_embeddings') IS NOT NULL` pasa
+  - [x] 20.05: Tests: unit test — HNSW index existe en `pg_indexes` para `brain_embeddings`
+  - [x] 20.06: Tests: unit test — INSERT de embedding dummy 768-dim → SELECT retorna sin error
+  - [x] 20.07: Verify: `SELECT column_name FROM information_schema.columns WHERE table_name='brain_embeddings'` retorna todas las columnas esperadas
+  - [x] 20.08: Backend: `uv add sentence-transformers` — mover de dev-deps a deps en `pyproject.toml`
+  - [x] 20.09: Backend: crear `apps/api/mastermind_cli/rag/__init__.py` con exports
+  - [x] 20.10: Backend: crear `apps/api/mastermind_cli/rag/embed.py` con `load_model()`, `encode(texts)`, `compute_hash(text)`
+  - [x] 20.11: Backend: crear `apps/api/mastermind_cli/rag/search.py` con `similarity_search(conn, brain_id, collection, query_text, limit=5)`
+  - [x] 20.12: Tests: unit test — `encode(["hello world"])` retorna lista de 768 floats
+  - [x] 20.13: Tests: unit test — `compute_hash("text")` retorna string hex de 64 chars
+  - [x] 20.14: Tests: integration — `similarity_search()` con fixture en DB de test retorna lista con chunk_text y score en [0.0, 1.0]
+  - [x] 20.15: Tests: edge case — `similarity_search()` con colección vacía retorna lista vacía sin crash
+  - [x] 20.16: Verify: `from mastermind_cli.rag import similarity_search` no levanta ImportError
+  - [x] 20.17: Backend: `uv add langsmith` — agregar a runtime deps en `pyproject.toml`
+  - [x] 20.18: Backend: agregar `LANGSMITH_API_KEY` y `LANGSMITH_PROJECT` a `.env.example`
+  - [x] 20.19: Backend: instrumentar `DynamicDispatchEngine.dispatch()` con `@traceable(name="brain_dispatch")` y metadata: brain_id, provider, model, profile
+  - [x] 20.20: Backend: crear `apps/api/mastermind_cli/rag/baseline.py` — lee últimos N records de ExperienceLogger para brain-01 sin rag_enabled, calcula quality_score mean y guarda en `tasks/rag-baseline.json`
+  - [x] 20.21: Tests: unit test — `@traceable` decorator no rompe dispatch con mock LangSmith client
+  - [x] 20.22: Tests: unit test — `baseline.py` calcula mean correctamente con fixture de 5 records
+  - [x] 20.23: Verify: `sentence-transformers` en `[project.dependencies]` de `pyproject.toml` (no en dev-dependencies)
+  - [x] 20.24: Verify: `langsmith` en `[project.dependencies]` de `pyproject.toml`
+  - [x] 20.25: Verify: `tasks/rag-baseline.json` existe con estructura correcta (sessions_evaluated, quality_score_mean, oec_target)
 
 ## PHASE 21: RAG Pilot — Brain #1 Only
 
-- [ ] 21: RAG Pilot — Brain #1 Only
-  - [ ] 21.01: Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`
-  - [ ] 21.02: Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`
-  - [ ] 21.03: Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` — top-5 domain_knowledge + top-3 project_memory
-  - [ ] 21.04: Backend: formato del bloque — sección `[RETRIEVED CONTEXT]` con subsecciones `--- domain_knowledge (top-5) ---` y `--- project_memory (top-3) ---` con scores y source_ref
-  - [ ] 21.05: Backend: si colección vacía → omitir esa subsección (no crash, no placeholder)
-  - [ ] 21.06: Backend: si ambas colecciones vacías → retornar string vacío `""`
-  - [ ] 21.07: Tests: unit test — `build()` con mock `similarity_search` retorna string con `[RETRIEVED CONTEXT]` y `[END RETRIEVED CONTEXT]`
-  - [ ] 21.08: Tests: unit test — `build()` con ambas colecciones vacías retorna `""` (no bloque vacío)
-  - [ ] 21.09: Tests: unit test — `build()` con solo domain_knowledge omite sección project_memory
-  - [ ] 21.10: Tests: timing test — `build()` con fixture real tarda < 200ms (medido con `time.perf_counter`)
-  - [ ] 21.11: Verify: `from mastermind_cli.rag.context_builder import RAGContextBuilder` no levanta ImportError
+- [~] 21: RAG Pilot — Brain #1 Only
+  - [x] 21.01: Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`
+  - [x] 21.02: Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`
+  - [x] 21.03: Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` — top-5 domain_knowledge + top-3 project_memory
+  - [x] 21.04: Backend: formato del bloque — sección `[RETRIEVED CONTEXT]` con subsecciones `--- domain_knowledge (top-5) ---` y `--- project_memory (top-3) ---` con scores y source_ref
+  - [x] 21.05: Backend: si colección vacía → omitir esa subsección (no crash, no placeholder)
+  - [x] 21.06: Backend: si ambas colecciones vacías → retornar string vacío `""`
+  - [x] 21.07: Tests: unit test — `build()` con mock `similarity_search` retorna string con `[RETRIEVED CONTEXT]` y `[END RETRIEVED CONTEXT]`
+  - [x] 21.08: Tests: unit test — `build()` con ambas colecciones vacías retorna `""` (no bloque vacío)
+  - [x] 21.09: Tests: unit test — `build()` con solo domain_knowledge omite sección project_memory
+  - [x] 21.10: Tests: timing test — `build()` con fixture real tarda < 200ms (medido con `time.perf_counter`)
+  - [x] 21.11: Verify: `from mastermind_cli.rag.context_builder import RAGContextBuilder` no levanta ImportError
   - [ ] 21.12: Backend: identificar punto de construcción del system prompt para Brain #1 (DynamicDispatchEngine o brain agent runner)
   - [ ] 21.13: Backend: integrar `RAGContextBuilder.build()` antes de la llamada LLM de Brain #1 — append del bloque al system prompt si no vacío
   - [ ] 21.14: Backend: no agregar bloque vacío al system prompt si `rag_context == ""`

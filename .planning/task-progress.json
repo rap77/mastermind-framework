@@ -1,109 +1,213 @@
 {
-  "task_id": "D1",
-  "session_id": "sess-20260513-233105",
-  "started_at": "2026-05-13T23:31:05.023306",
+  "task_id": "21",
+  "session_id": "sess-20260514-215437",
+  "started_at": "2026-05-14T21:54:37.620726",
   "phase": 19,
   "subtasks": {
-    "D1.01": {
-      "description": "Frontend: crear ruta `/orchestrate` en `apps/web/src/app/orchestrate/`",
+    "21.01": {
+      "description": "Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:35.482343",
-      "duration_seconds": 450.46,
-      "updated_at": "2026-05-13T23:38:35.482343"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:00.307471",
+      "duration_seconds": 202.69,
+      "updated_at": "2026-05-14T21:58:00.307471"
     },
-    "D1.02": {
-      "description": "Frontend: implementar layout de tres columnas (`[BrainList | OrchestrationCanvas | OutputPanel]`)",
+    "21.02": {
+      "description": "Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:35.557122",
-      "duration_seconds": 450.53,
-      "updated_at": "2026-05-13T23:38:35.557122"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:05.847073",
+      "duration_seconds": 208.23,
+      "updated_at": "2026-05-14T21:58:05.847073"
     },
-    "D1.03": {
-      "description": "Frontend: implementar `BrainList` component (consume `/api/brains` + `wsEventsStore`)",
+    "21.03": {
+      "description": "Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` \u2014 top-5 domain_knowledge + top-3 project_memory",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:35.629536",
-      "duration_seconds": 450.61,
-      "updated_at": "2026-05-13T23:38:35.629536"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:08.412432",
+      "duration_seconds": 210.79,
+      "updated_at": "2026-05-14T21:58:08.412432"
     },
-    "D1.04": {
-      "description": "Frontend: extender `NexusCanvas` existente para mostrar nodos con estado din\u00e1mico (no reescritura)",
+    "21.04": {
+      "description": "Backend: formato del bloque \u2014 secci\u00f3n `[RETRIEVED CONTEXT]` con subsecciones `--- domain_knowledge (top-5) ---` y `--- project_memory (top-3) ---` con scores y source_ref",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:35.706320",
-      "duration_seconds": 450.68,
-      "updated_at": "2026-05-13T23:38:35.706320"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:14.020290",
+      "duration_seconds": 216.4,
+      "updated_at": "2026-05-14T21:58:14.020290"
     },
-    "D1.05": {
-      "description": "Frontend: implementar `OutputPanel` (output estructurado + Brain #7 score + trace timeline)",
+    "21.05": {
+      "description": "Backend: si colecci\u00f3n vac\u00eda \u2192 omitir esa subsecci\u00f3n (no crash, no placeholder)",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:35.779104",
-      "duration_seconds": 450.76,
-      "updated_at": "2026-05-13T23:38:35.779104"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:16.343636",
+      "duration_seconds": 218.72,
+      "updated_at": "2026-05-14T21:58:16.343636"
     },
-    "D1.06": {
-      "description": "Frontend: responsive \u2014 en < 1280px colapsa a tabs",
+    "21.06": {
+      "description": "Backend: si ambas colecciones vac\u00edas \u2192 retornar string vac\u00edo `\"\"`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:39.212973",
-      "duration_seconds": 454.19,
-      "updated_at": "2026-05-13T23:38:39.212973"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:18.715882",
+      "duration_seconds": 221.1,
+      "updated_at": "2026-05-14T21:58:18.715882"
     },
-    "D1.07": {
-      "description": "Frontend: agregar link a `/orchestrate` en la nav principal",
+    "21.07": {
+      "description": "Tests: unit test \u2014 `build()` con mock `similarity_search` retorna string con `[RETRIEVED CONTEXT]` y `[END RETRIEVED CONTEXT]`",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:39.293213",
-      "duration_seconds": 454.27,
-      "updated_at": "2026-05-13T23:38:39.293213"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:21.459360",
+      "duration_seconds": 223.84,
+      "updated_at": "2026-05-14T21:58:21.459360"
     },
-    "D1.08": {
-      "description": "Tests: component test \u2014 `OrchestrationCanvas` renderiza con data mockeada de 7 brains",
+    "21.08": {
+      "description": "Tests: unit test \u2014 `build()` con ambas colecciones vac\u00edas retorna `\"\"` (no bloque vac\u00edo)",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:39.366751",
-      "duration_seconds": 454.34,
-      "updated_at": "2026-05-13T23:38:39.366751"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:24.092016",
+      "duration_seconds": 226.47,
+      "updated_at": "2026-05-14T21:58:24.092016"
     },
-    "D1.09": {
-      "description": "Tests: component test \u2014 `BrainList` actualiza estado cuando llega WS event",
+    "21.09": {
+      "description": "Tests: unit test \u2014 `build()` con solo domain_knowledge omite secci\u00f3n project_memory",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:39.441493",
-      "duration_seconds": 454.42,
-      "updated_at": "2026-05-13T23:38:39.441493"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:26.368549",
+      "duration_seconds": 228.75,
+      "updated_at": "2026-05-14T21:58:26.368549"
     },
-    "D1.10": {
-      "description": "Tests: component test \u2014 `OutputPanel` renderiza output estructurado",
+    "21.10": {
+      "description": "Tests: timing test \u2014 `build()` con fixture real tarda < 200ms (medido con `time.perf_counter`)",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:38:39.515901",
-      "duration_seconds": 454.49,
-      "updated_at": "2026-05-13T23:38:39.515901"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:28.735102",
+      "duration_seconds": 231.11,
+      "updated_at": "2026-05-14T21:58:28.735102"
     },
-    "D1.11": {
-      "description": "Verify: navegar a `localhost:3000/orchestrate` \u2192 tres columnas visibles en 1440px",
+    "21.11": {
+      "description": "Verify: `from mastermind_cli.rag.context_builder import RAGContextBuilder` no levanta ImportError",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-13T23:31:05.023306",
-      "completed_at": "2026-05-13T23:39:08.755058",
-      "duration_seconds": 483.73,
-      "updated_at": "2026-05-13T23:39:08.755058"
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": "2026-05-14T21:58:30.805290",
+      "duration_seconds": 233.18,
+      "updated_at": "2026-05-14T21:58:30.805290"
+    },
+    "21.12": {
+      "description": "Backend: identificar punto de construcci\u00f3n del system prompt para Brain #1 (DynamicDispatchEngine o brain agent runner)",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.13": {
+      "description": "Backend: integrar `RAGContextBuilder.build()` antes de la llamada LLM de Brain #1 \u2014 append del bloque al system prompt si no vac\u00edo",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.14": {
+      "description": "Backend: no agregar bloque vac\u00edo al system prompt si `rag_context == \"\"`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.15": {
+      "description": "Tests: unit test \u2014 mock `build()` retorna bloque \u2192 system prompt incluye `[RETRIEVED CONTEXT]`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.16": {
+      "description": "Tests: unit test \u2014 mock `build()` retorna `\"\"` \u2192 system prompt NO incluye `[RETRIEVED CONTEXT]`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.17": {
+      "description": "Tests: integration \u2014 Brain #1 con colecciones vac\u00edas responde sin error, `rag_enabled=false` en custom_metadata",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.18": {
+      "description": "Backend: pasar `rag_enabled: bool` como campo en `custom_metadata` al llamar `ExperienceLogger.log_execution()`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.19": {
+      "description": "Backend: `rag_enabled = rag_context != \"\"` \u2014 True solo si se recuper\u00f3 contexto real",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.20": {
+      "description": "Backend: LangSmith span de la sesi\u00f3n incluye `rag_enabled` en metadata",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.21": {
+      "description": "Tests: unit test \u2014 `log_execution(custom_metadata={\"rag_enabled\": True})` \u2192 `SELECT custom_metadata->>'rag_enabled'` retorna `\"true\"`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.22": {
+      "description": "Tests: integration \u2014 ejecutar Brain #1 \u2192 `SELECT custom_metadata FROM experience_records ORDER BY created_at DESC LIMIT 1` tiene key `rag_enabled`",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.23": {
+      "description": "Verify: Brain #1 llama `RAGContextBuilder.build()` antes de cada invocaci\u00f3n LLM",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
+    },
+    "21.24": {
+      "description": "Verify: `experience_records.custom_metadata` tiene `rag_enabled` key despu\u00e9s de sesi\u00f3n de Brain #1",
+      "status": "pending",
+      "retries": 0,
+      "started_at": "2026-05-14T21:54:37.620726",
+      "completed_at": null,
+      "duration_seconds": 0
     }
   },
-  "last_checkpoint": "D1.11",
+  "last_checkpoint": "21.11",
   "context_budget_exit": null
 }
