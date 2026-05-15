@@ -21,6 +21,7 @@ from typing import Literal
 
 import asyncpg
 import httpx
+from langsmith import traceable
 from pydantic import BaseModel, ConfigDict
 
 from mastermind_cli.brain_registry_module.repository import BrainRegistryRepository
@@ -215,6 +216,7 @@ class DynamicDispatchEngine:
                 trace_id,
             )
 
+    @traceable(name="brain_dispatch")
     async def dispatch(
         self,
         phase: int,
@@ -303,6 +305,29 @@ class DynamicDispatchEngine:
             ],
             return_exceptions=True,
         )
+
+        # Attach LangSmith trace metadata (Phase 20C) — non-blocking.
+        # Uses the first parallel brain for brain_id/provider/model context.
+        try:
+            from langsmith import get_current_run_tree
+
+            rt = get_current_run_tree()
+            if rt is not None:
+                candidates = result.parallel or result.barrier
+                first = candidates[0] if candidates else None
+                rt.metadata.update(
+                    {
+                        "brain_id": first.brain_id if first is not None else None,
+                        "provider": first.provider if first is not None else None,
+                        "model": first.model if first is not None else None,
+                        "profile": profile,
+                        "trace_id": trace_id,
+                        "moment": moment,
+                        "phase": phase,
+                    }
+                )
+        except Exception:  # noqa: BLE001
+            pass  # LangSmith is optional — never fail dispatch because of tracing
 
         return result
 
