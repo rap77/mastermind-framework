@@ -29,7 +29,7 @@
 
 ## PHASE 21: RAG Pilot — Brain #1 Only
 
-- [~] 21: RAG Pilot — Brain #1 Only
+- [x] 21: RAG Pilot — Brain #1 Only
   - [x] 21.01: Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`
   - [x] 21.02: Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`
   - [x] 21.03: Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` — top-5 domain_knowledge + top-3 project_memory
@@ -41,19 +41,19 @@
   - [x] 21.09: Tests: unit test — `build()` con solo domain_knowledge omite sección project_memory
   - [x] 21.10: Tests: timing test — `build()` con fixture real tarda < 200ms (medido con `time.perf_counter`)
   - [x] 21.11: Verify: `from mastermind_cli.rag.context_builder import RAGContextBuilder` no levanta ImportError
-  - [ ] 21.12: Backend: identificar punto de construcción del system prompt para Brain #1 (DynamicDispatchEngine o brain agent runner)
-  - [ ] 21.13: Backend: integrar `RAGContextBuilder.build()` antes de la llamada LLM de Brain #1 — append del bloque al system prompt si no vacío
-  - [ ] 21.14: Backend: no agregar bloque vacío al system prompt si `rag_context == ""`
-  - [ ] 21.15: Tests: unit test — mock `build()` retorna bloque → system prompt incluye `[RETRIEVED CONTEXT]`
-  - [ ] 21.16: Tests: unit test — mock `build()` retorna `""` → system prompt NO incluye `[RETRIEVED CONTEXT]`
-  - [ ] 21.17: Tests: integration — Brain #1 con colecciones vacías responde sin error, `rag_enabled=false` en custom_metadata
-  - [ ] 21.18: Backend: pasar `rag_enabled: bool` como campo en `custom_metadata` al llamar `ExperienceLogger.log_execution()`
-  - [ ] 21.19: Backend: `rag_enabled = rag_context != ""` — True solo si se recuperó contexto real
-  - [ ] 21.20: Backend: LangSmith span de la sesión incluye `rag_enabled` en metadata
-  - [ ] 21.21: Tests: unit test — `log_execution(custom_metadata={"rag_enabled": True})` → `SELECT custom_metadata->>'rag_enabled'` retorna `"true"`
-  - [ ] 21.22: Tests: integration — ejecutar Brain #1 → `SELECT custom_metadata FROM experience_records ORDER BY created_at DESC LIMIT 1` tiene key `rag_enabled`
-  - [ ] 21.23: Verify: Brain #1 llama `RAGContextBuilder.build()` antes de cada invocación LLM
-  - [ ] 21.24: Verify: `experience_records.custom_metadata` tiene `rag_enabled` key después de sesión de Brain #1
+  - [x] 21.12: Backend: identificar punto de construcción del system prompt para Brain #1 (DynamicDispatchEngine o brain agent runner)
+  - [x] 21.13: Backend: integrar `RAGContextBuilder.build()` antes de la llamada LLM de Brain #1 — append del bloque al system prompt si no vacío
+  - [x] 21.14: Backend: no agregar bloque vacío al system prompt si `rag_context == ""`
+  - [x] 21.15: Tests: unit test — mock `build()` retorna bloque → system prompt incluye `[RETRIEVED CONTEXT]`
+  - [x] 21.16: Tests: unit test — mock `build()` retorna `""` → system prompt NO incluye `[RETRIEVED CONTEXT]`
+  - [x] 21.17: Tests: integration — Brain #1 con colecciones vacías responde sin error, `rag_enabled=false` en custom_metadata
+  - [x] 21.18: Backend: pasar `rag_enabled: bool` como campo en `custom_metadata` al llamar `ExperienceLogger.log_execution()`
+  - [x] 21.19: Backend: `rag_enabled = rag_context != ""` — True solo si se recuperó contexto real
+  - [x] 21.20: Backend: LangSmith span de la sesión incluye `rag_enabled` en metadata
+  - [x] 21.21: Tests: unit test — `log_execution(custom_metadata={"rag_enabled": True})` → `SELECT custom_metadata->>'rag_enabled'` retorna `"true"`
+  - [x] 21.22: Tests: integration — ejecutar Brain #1 → `SELECT custom_metadata FROM experience_records ORDER BY created_at DESC LIMIT 1` tiene key `rag_enabled`
+  - [x] 21.23: Verify: Brain #1 llama `RAGContextBuilder.build()` antes de cada invocación LLM
+  - [x] 21.24: Verify: `experience_records.custom_metadata` tiene `rag_enabled` key después de sesión de Brain #1
 
 ## PHASE 21.5: RAG Evaluation Gate
 
