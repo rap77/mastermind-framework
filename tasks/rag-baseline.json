@@ -1,5 +1,9 @@
 {
+  "brain_id": "brain-01",
+  "rag_enabled": false,
   "sessions_evaluated": 0,
   "quality_score_mean": 0.0,
-  "oec_target": 0.75
+  "quality_score_std": 0.0,
+  "measured_at": "2026-05-15T00:57:21Z",
+  "oec_target": "mean + 0.08"
 }

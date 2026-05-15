@@ -2,11 +2,8 @@
 OEC Baseline Calculator — Phase 20C.
 
 Reads the last N experience_records for brain-01 from PostgreSQL (records
-without RAG enabled — i.e. pre-RAG baseline), computes the mean quality_score,
-and writes the result to tasks/rag-baseline.json.
-
-The OEC target is the minimum acceptable quality improvement after RAG is
-enabled.  Default: 0.75 (75% mean quality score).
+without RAG enabled — i.e. pre-RAG baseline), computes mean and std of
+quality_score, and writes the result to tasks/rag-baseline.json.
 
 Usage:
     uv run python -m mastermind_cli.rag.baseline
@@ -18,7 +15,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import asyncpg
@@ -32,33 +31,29 @@ _DEFAULT_DATABASE_URL = os.getenv(
 _BASELINE_PATH = Path(__file__).parents[4] / "tasks" / "rag-baseline.json"
 _BRAIN_ID = "brain-01"
 _N_RECORDS = 100
-_OEC_TARGET = 0.75
+_OEC_IMPROVEMENT = 0.08  # target improvement over baseline mean
 
 
 async def compute_baseline(
     database_url: str = _DEFAULT_DATABASE_URL,
     brain_id: str = _BRAIN_ID,
     limit: int = _N_RECORDS,
-    oec_target: float = _OEC_TARGET,
     output_path: Path = _BASELINE_PATH,
 ) -> dict[str, object]:
     """Compute the pre-RAG quality baseline for a brain.
 
     Reads the last *limit* experience_records for *brain_id* from PostgreSQL,
     filters to rows where ``quality_score IS NOT NULL`` (records without RAG
-    context), then computes the mean quality_score.
+    context), then computes mean and standard deviation of quality_score.
 
     Args:
         database_url: PostgreSQL DSN to connect to.
         brain_id: Brain identifier to evaluate (default: ``"brain-01"``).
         limit: Maximum number of records to evaluate (default: 100).
-        oec_target: Minimum quality score the brain must reach after RAG
-            is enabled.  Written to the output file as ``oec_target``.
         output_path: Path where ``rag-baseline.json`` will be written.
 
     Returns:
-        Dict with ``sessions_evaluated``, ``quality_score_mean``, and
-        ``oec_target`` keys.
+        Dict matching the structure specified in plan.md 20C.
     """
     conn: asyncpg.Connection = await asyncpg.connect(database_url)
     try:
@@ -79,13 +74,27 @@ async def compute_baseline(
 
     scores = [float(row["quality_score"]) for row in rows]
     sessions_evaluated = len(scores)
-    quality_score_mean = (
-        sum(scores) / sessions_evaluated if sessions_evaluated > 0 else 0.0
-    )
+
+    if sessions_evaluated > 0:
+        quality_score_mean = sum(scores) / sessions_evaluated
+        # Population std dev (ddof=0) for small samples
+        variance = (
+            sum((s - quality_score_mean) ** 2 for s in scores) / sessions_evaluated
+        )
+        quality_score_std = math.sqrt(variance)
+    else:
+        quality_score_mean = 0.0
+        quality_score_std = 0.0
+
+    oec_target = f"mean + {_OEC_IMPROVEMENT}"
 
     baseline: dict[str, object] = {
+        "brain_id": brain_id,
+        "rag_enabled": False,
         "sessions_evaluated": sessions_evaluated,
         "quality_score_mean": round(quality_score_mean, 4),
+        "quality_score_std": round(quality_score_std, 4),
+        "measured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "oec_target": oec_target,
     }
 

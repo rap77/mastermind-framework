@@ -119,20 +119,22 @@ async def test_baseline_computes_mean_correctly(tmp_path: Path) -> None:
             database_url="postgresql://mock",
             brain_id="brain-01",
             limit=5,
-            oec_target=0.75,
             output_path=output_file,
         )
 
     assert result["sessions_evaluated"] == 5
     assert result["quality_score_mean"] == expected_mean
-    assert result["oec_target"] == 0.75
+    assert result["brain_id"] == "brain-01"
+    assert result["rag_enabled"] is False
+    assert "oec_target" in result
+    assert "measured_at" in result
 
     # Verify the file was written correctly
     assert output_file.exists()
     written = json.loads(output_file.read_text())
     assert written["sessions_evaluated"] == 5
     assert written["quality_score_mean"] == expected_mean
-    assert written["oec_target"] == 0.75
+    assert written["rag_enabled"] is False
 
 
 @pytest.mark.asyncio
