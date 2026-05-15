@@ -1,6 +1,6 @@
 ## PHASE 20: pgvector Schema + LangSmith
 
-- [ ] Phase 20: pgvector Schema + LangSmith
+- [ ] 20: pgvector Schema + LangSmith
   - [ ] 20.01: Backend: crear migration Alembic para tabla `brain_embeddings` con columnas: id UUID PK, brain_id TEXT, collection_type TEXT CHECK(IN 'domain_knowledge','project_memory'), source_ref TEXT, chunk_text TEXT, chunk_hash TEXT UNIQUE, embedding vector(768), created_at TIMESTAMPTZ
   - [ ] 20.02: Backend: crear HNSW index en columna `embedding` con `m=16, ef_construction=64` usando `vector_cosine_ops`
   - [ ] 20.03: Backend: ejecutar `alembic upgrade head` y verificar schema con `\d brain_embeddings`
@@ -29,7 +29,7 @@
 
 ## PHASE 21: RAG Pilot — Brain #1 Only
 
-- [ ] Phase 21: RAG Pilot — Brain #1 Only
+- [ ] 21: RAG Pilot — Brain #1 Only
   - [ ] 21.01: Backend: crear `apps/api/mastermind_cli/rag/context_builder.py` con clase `RAGContextBuilder`
   - [ ] 21.02: Backend: implementar `RAGContextBuilder.__init__(conn: asyncpg.Connection)`
   - [ ] 21.03: Backend: implementar `async RAGContextBuilder.build(brain_id: str, query: str) -> str` — top-5 domain_knowledge + top-3 project_memory
@@ -57,7 +57,7 @@
 
 ## PHASE 21.5: RAG Evaluation Gate
 
-- [ ] Phase 21.5: RAG Evaluation Gate (HARD GATE — no continuar sin pasar)
+- [ ] 21.5: RAG Evaluation Gate (HARD GATE — no continuar sin pasar)
   - [ ] 21.5.01: Backend: crear `apps/api/mastermind_cli/rag/evaluate.py` con función `run_ab_test(brief, pairs=5) -> ABTestResult`
   - [ ] 21.5.02: Backend: `ABTestResult` dataclass — rag_scores: list[float], cold_scores: list[float], delta_mean: float, delta_std: float, passes_oec: bool
   - [ ] 21.5.03: Backend: `passes_oec = delta_mean >= 0.08` (8pp en escala 0–1 = 8 puntos en escala 0–100)
@@ -86,7 +86,7 @@
 
 ## PHASE 22: Knowledge Ingestion (Manual One-Shot)
 
-- [ ] Phase 22: Knowledge Ingestion (Manual One-Shot)
+- [ ] 22: Knowledge Ingestion (Manual One-Shot)
   - [ ] 22.01: Backend: crear `apps/api/mastermind_cli/rag/ingest.py` CLI con argumentos `--brain-id`, `--collection`, `--source-dir`
   - [ ] 22.02: Backend: implementar chunking strategy para `domain_knowledge` — split por sección H2 (regex `^## `), overlap 128 tokens, máximo 512 tokens por chunk
   - [ ] 22.03: Backend: implementar chunking strategy para `project_memory` — split por bullet point (`^- ` o `^  - `), sin overlap
@@ -108,7 +108,7 @@
 
 ## PHASE 23: RAG Scale-Out — Brains 2–7
 
-- [ ] Phase 23: RAG Scale-Out — Brains 2–7
+- [ ] 23: RAG Scale-Out — Brains 2–7
   - [ ] 23.01: Backend: verificar que `RAGContextBuilder.build(brain_id, query)` ya acepta cualquier brain_id sin cambios de código
   - [ ] 23.02: Backend: activar `rag_enabled: true` en agent config de Brain #2 (UX Research)
   - [ ] 23.03: Backend: activar `rag_enabled: true` en agent config de Brain #3 (UI Design)
