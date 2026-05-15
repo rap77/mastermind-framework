@@ -16,6 +16,13 @@ C3 integration (Brain #7 post-session hook):
 - POST to Rust /internal/brain-event with type=session_evaluated
 - model field included in custom_metadata for provider tracking
 
+Phase 21 RAG integration:
+- run_brain_task() opens an asyncpg connection before execute_flow()
+- The connection is passed as conn= so Brain #1 calls RAGContextBuilder.build()
+- rag_enabled = (rag_context != "") is tracked per-brain in custom_metadata
+- LangSmith span metadata includes rag_enabled for observability (21.20)
+- asyncpg failure → conn=None → RAG skipped gracefully, rag_enabled=False
+
 Brain #5/#6 guidance:
 - FastAPI BackgroundTasks (not asyncio.create_task) — avoids orphan tasks
 - CancelledError caught explicitly (BaseException, not Exception) — uvicorn safe
@@ -24,10 +31,12 @@ Brain #5/#6 guidance:
 """
 
 import asyncio
+import logging
 import os
 import time
 import uuid
 
+import asyncpg
 import httpx
 
 from mastermind_cli.experience.logger import ExperienceLogger
@@ -39,6 +48,13 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
 )
 from mastermind_cli.state.database import DatabaseConnection
 from mastermind_cli.types.interfaces import Brief
+
+log = logging.getLogger(__name__)
+
+_DEFAULT_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:devpassword@localhost:5434/mastermind_bd",
+)
 
 # Rust control plane URL for internal brain-event endpoint
 _RUST_CONTROL_PLANE_URL = os.environ.get(
@@ -153,10 +169,36 @@ async def run_brain_task(
     coordinator = create_stateless_coordinator(_PassthroughMCPClient())
     start_ms = int(time.time() * 1000)
 
+    # Phase 21: open asyncpg connection for RAG retrieval.
+    # If PostgreSQL is unavailable, conn stays None and RAG is skipped gracefully.
+    pg_conn: asyncpg.Connection | None = None
+    try:
+        pg_conn = await asyncpg.connect(_DEFAULT_DATABASE_URL)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("RAG skipped — asyncpg connect failed: %s", exc)
+
     try:
         brief_obj = Brief(problem_statement=brief, context="", target_audience=None)
-        results = await coordinator.execute_flow(brief_obj, brain_ids)
+        results = await coordinator.execute_flow(brief_obj, brain_ids, conn=pg_conn)
         elapsed_ms = int(time.time() * 1000) - start_ms
+
+        # 21.19: rag_enabled = True only if Brain #1 retrieved real context.
+        # We detect this by asking RAGContextBuilder.build() again with the same
+        # connection — build() is idempotent (read-only) so calling twice is safe.
+        # Alternatively, build() could return a flag, but that would change its
+        # public API.  The re-call pattern keeps the API stable.
+        rag_context_per_brain: dict[str, bool] = {}
+        if pg_conn is not None:
+            from mastermind_cli.rag.context_builder import RAGContextBuilder
+
+            for bid in results:
+                if bid == "brain-01-product-strategy":
+                    ctx = await RAGContextBuilder(pg_conn).build(bid, brief)
+                    rag_context_per_brain[bid] = ctx != ""
+                else:
+                    rag_context_per_brain[bid] = False
+        else:
+            rag_context_per_brain = {bid: False for bid in results}
 
         # C3: Evaluate all brain outputs with Brain #7 before persisting
         eval_scores: dict[str, float] = {}
@@ -177,14 +219,29 @@ async def run_brain_task(
                 )
                 eval_scores[brain_id] = eval_result.quality_score
 
+                # 21.19: rag_enabled = True only when RAG returned real context.
+                rag_enabled: bool = rag_context_per_brain.get(brain_id, False)
+
                 # C3.04/C3.05: quality_score + model + high_value in custom_metadata
+                # 21.18: rag_enabled added to custom_metadata
                 custom_meta: dict[str, object] = {
                     "model": os.environ.get("MM_MODEL", "unknown"),
                     "high_value": eval_result.high_value,
                     "insights": eval_result.insights,
                     "task_id": task_id,
                     "flow_type": flow_type,
+                    "rag_enabled": rag_enabled,
                 }
+
+                # 21.20: include rag_enabled in LangSmith span metadata (non-blocking)
+                try:
+                    from langsmith import get_current_run_tree
+
+                    rt = get_current_run_tree()
+                    if rt is not None:
+                        rt.metadata.update({"rag_enabled": rag_enabled})
+                except Exception:  # noqa: BLE001
+                    pass  # LangSmith optional — never fail brain execution
 
                 await logger.log_execution(
                     brain_id=brain_id,
@@ -269,3 +326,10 @@ async def run_brain_task(
                 await db.conn.commit()
         except Exception:
             pass  # DB write on shutdown — best-effort only
+    finally:
+        # Phase 21: always close the asyncpg RAG connection (if opened)
+        if pg_conn is not None:
+            try:
+                await pg_conn.close()
+            except Exception:  # noqa: BLE001
+                pass

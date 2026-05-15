@@ -100,7 +100,10 @@ class StatelessCoordinator:
         self.flow_config: FlowConfig | None = None
 
     async def execute_flow(
-        self, brief: Brief, brain_ids: list[str]
+        self,
+        brief: Brief,
+        brain_ids: list[str],
+        conn: object | None = None,
     ) -> dict[str, BaseModel]:
         """
         Execute flow with wave-based parallelism.
@@ -113,6 +116,10 @@ class StatelessCoordinator:
         Args:
             brief: User's brief
             brain_ids: List of brain IDs to execute (e.g., ["brain-01", "brain-02"])
+            conn: Optional asyncpg connection for RAG retrieval.  When provided,
+                  Brain #1 calls RAGContextBuilder.build() before its LLM query
+                  (21.13).  When None, RAG is skipped — safe for tests that do
+                  not have a DB.
 
         Returns:
             Dict mapping brain_id → output_model
@@ -141,7 +148,7 @@ class StatelessCoordinator:
         for wave in waves.levels:
             # Execute all brains in this wave in parallel
             wave_results = await self._execute_wave(
-                wave.brain_ids, brief, results, self.correlation_id
+                wave.brain_ids, brief, results, self.correlation_id, conn=conn
             )
 
             # Merge wave results into main results
@@ -155,6 +162,7 @@ class StatelessCoordinator:
         brief: Brief,
         previous_results: dict[str, BaseModel],
         correlation_id: str,
+        conn: object | None = None,
     ) -> dict[str, BaseModel]:
         """
         Execute a single wave of brains in parallel.
@@ -166,6 +174,7 @@ class StatelessCoordinator:
             brief: User's brief
             previous_results: Outputs from previous waves
             correlation_id: Flow correlation ID
+            conn: Optional asyncpg connection for RAG retrieval (Brain #1 only).
 
         Returns:
             Dict mapping brain_id → output_model for this wave
@@ -178,6 +187,7 @@ class StatelessCoordinator:
                     brief=brief,
                     correlation_id=correlation_id,
                     previous_results=previous_results,
+                    conn=conn,
                 )
             )
             for brain_id in brain_ids
@@ -199,7 +209,11 @@ class StatelessCoordinator:
         return results
 
     async def _execute_brain(
-        self, brain_id: str, brief: Brief, previous_results: dict[str, BaseModel]
+        self,
+        brain_id: str,
+        brief: Brief,
+        previous_results: dict[str, BaseModel],
+        conn: object | None = None,
     ) -> BaseModel:
         """
         Execute single brain - pure function call.
@@ -207,10 +221,20 @@ class StatelessCoordinator:
         This is the CORE of the pure function architecture.
         No state access, only input → output.
 
+        Phase 21 RAG integration:
+        For Brain #1 (brain-01-product-strategy), RAGContextBuilder.build() is
+        called BEFORE the LLM query when an asyncpg connection is provided.
+        The resulting block (or "" when both collections are empty) is passed
+        to the brain function as ``rag_context``.  Empty blocks are never
+        appended to the system prompt (21.14 guard).
+
         Args:
             brain_id: Brain ID (e.g., "brain-01-product-strategy")
             brief: User's brief
             previous_results: Outputs from previous waves
+            conn: Optional asyncpg connection used to run RAG retrieval for
+                  Brain #1.  When None, RAG is skipped and ``rag_context``
+                  defaults to "" (empty — no block appended).
 
         Returns:
             Brain output model (ProductStrategy, UXResearch, etc.)
@@ -226,9 +250,32 @@ class StatelessCoordinator:
         # Prepare input for this brain
         brain_input = self._prepare_input(brain_id, brief, previous_results)
 
+        # 21.13: Retrieve RAG context for Brain #1 before the LLM call.
+        # RAGContextBuilder.build() is async → awaited here inside the async
+        # _execute_brain method.  Other brains are not yet RAG-enabled.
+        rag_context = ""
+        if brain_id == "brain-01-product-strategy" and conn is not None:
+            from mastermind_cli.rag.context_builder import RAGContextBuilder  # noqa: PLC0415
+
+            rag_context = await RAGContextBuilder(conn).build(
+                brain_id, brief.problem_statement
+            )
+
         # Call pure function (synchronous for now, could be async)
         # In production, brains might be async too
-        output: BaseModel = brain_func(brain_input, mcp_client=self.config.mcp_client)
+        #
+        # 21.13: Pass rag_context ONLY if the brain function accepts it.
+        # inspect.signature is used so that test mocks that don't declare
+        # rag_context still work without modification.
+        import inspect  # noqa: PLC0415
+
+        sig = inspect.signature(brain_func)
+        if rag_context and "rag_context" in sig.parameters:
+            output: BaseModel = brain_func(
+                brain_input, mcp_client=self.config.mcp_client, rag_context=rag_context
+            )
+        else:
+            output = brain_func(brain_input, mcp_client=self.config.mcp_client)
 
         if self.config.enable_logging:
             print(f"[StatelessCoordinator] Completed: {brain_id}")
@@ -241,6 +288,7 @@ class StatelessCoordinator:
         brief: Brief,
         correlation_id: str,
         previous_results: dict[str, BaseModel],
+        conn: object | None = None,
     ) -> BaseModel:
         """
         Execute brain with message logging and parent output passing.
@@ -255,6 +303,7 @@ class StatelessCoordinator:
             brief: User's brief
             correlation_id: Flow correlation ID
             previous_results: Outputs from previous waves (parent outputs)
+            conn: Optional asyncpg connection for RAG retrieval (Brain #1 only).
 
         Returns:
             Brain output model (ProductStrategy, UXResearch, etc.)
@@ -263,7 +312,7 @@ class StatelessCoordinator:
         parent_outputs = self._get_parent_outputs(brain_id, previous_results)
 
         # Execute brain
-        output = await self._execute_brain(brain_id, brief, previous_results)
+        output = await self._execute_brain(brain_id, brief, previous_results, conn=conn)
 
         # Store output for dependent brains
         self.brain_outputs[brain_id] = output

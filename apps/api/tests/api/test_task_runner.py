@@ -171,7 +171,7 @@ async def test_run_brain_task_maps_flow_detector_ints_to_brain_strings(
     """FlowDetector returns list[int]; run_brain_task converts via BRAIN_ID_MAP."""
     captured_brain_ids: list[str] = []
 
-    async def capture_brain_ids(brief, brain_ids):
+    async def capture_brain_ids(brief, brain_ids, conn=None):
         captured_brain_ids.extend(brain_ids)
         return {}
 

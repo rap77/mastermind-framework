@@ -115,13 +115,23 @@ def _get_context(brain_input: BrainInput, key: str) -> Any:
 
 
 def brain_01_product_strategy(
-    brain_input: BrainInput, mcp_client: MCPClient
+    brain_input: BrainInput, mcp_client: MCPClient, rag_context: str = ""
 ) -> ProductStrategy:
     """
     Pure function: Product Strategy brain.
 
     NO self.state access. NO global variables.
     Only returns ProductStrategy output model.
+
+    Args:
+        brain_input: BrainInput with brief and execution metadata.
+        mcp_client: MCP client for NotebookLM queries.
+        rag_context: Optional pre-built [RETRIEVED CONTEXT] block from
+                     RAGContextBuilder.build().  When non-empty, this block
+                     is appended to the query so the LLM has access to
+                     domain knowledge and project memory chunks.
+                     An empty string means RAG produced no results and
+                     the system prompt is left unchanged (21.14).
     """
     notebook_id = "f276ccb3-0bce-4069-8b55-eae8693dbe75"
     brief = brain_input.brief
@@ -149,6 +159,10 @@ RISKS:
 - [risk 2]
 
 Use the labeled format exactly. Be specific and actionable."""
+
+    # 21.13: Append RAG context block ONLY when non-empty (21.14: skip if "").
+    if rag_context:
+        query = query + "\n\n" + rag_context
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
     s = _parse_sections(knowledge)
