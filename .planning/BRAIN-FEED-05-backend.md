@@ -1,3 +1,47 @@
+## 2026-05-14 — Phase 20 RAG Infrastructure Architecture Decisions
+
+### Verified Insights
+
+**Migration Pattern: Custom migrate.py (NOT Alembic)**
+Alembic adds zero value without SQLAlchemy models — we use raw asyncpg. The custom migrate.py + sorted .sql files pattern (001-003 already proven) is the correct path. Phase 20 adds `004_brain_embeddings.sql` inside `mastermind_cli/rag/migrations/` with its own `migrate.py`. Each module directory owns its own runner scanning its own directory — this is the established pattern. The `CREATE EXTENSION IF NOT EXISTS vector` is just SQL — no special tooling needed.
+
+**HNSW Index: m=16 ef_construction=64 correct for current scale**
+At ~1400 vectors (768-dim float32): index footprint ~4.6MB total. No `shared_buffers` or `work_mem` tuning needed. PostgreSQL's default `maintenance_work_mem` (64MB) handles index build. These parameters stay adequate up to ~100k vectors. At 100k+, upgrade to `m=32, ef_construction=128`. Critical: the index must use `vector_cosine_ops` to match the `<=>` operator in queries — mismatched operator class = full table scan.
+
+**asyncpg + pgvector: string-cast pattern (no codec registration)**
+asyncpg 0.31.0 has NO built-in vector codec. Pass embedding as `"[0.1,0.2,...]"` string and use `$1::vector` cast in SQL. Do NOT pass Python list directly (asyncpg will send it as `text[]`, PostgreSQL rejects it). Use `<=>` (cosine distance) not `<->` (L2). `normalize_embeddings=True` in sentence-transformers required for `<=>` to produce meaningful results. HNSW index only fires if the WHERE/ORDER BY operator matches `vector_cosine_ops`.
+
+**sentence-transformers: MUST move from dev-deps to runtime deps**
+`sentence-transformers` is currently in `[dependency-groups] dev` only (`pyproject.toml:148`). Docker production builds do NOT install dev deps. If Phase 20 ships without `uv add sentence-transformers`, the Docker build crashes with ImportError at startup. Run `uv add sentence-transformers` before writing any EmbeddingService code.
+
+**SentenceTransformer loading: FastAPI lifespan + app.state**
+Load `SentenceTransformer('all-mpnet-base-v2')` in the existing lifespan (`api/app.py`). Store on `app.state.embedding_model`. Fail fast if model unavailable — server should not start if it cannot embed. Critical: `model.encode()` is SYNCHRONOUS and blocks the event loop. For batch operations, wrap in `loop.run_in_executor(None, partial(model.encode, texts, normalize_embeddings=True))`. Single-sentence embed (~10ms) is acceptable inline. Batch (100+ chunks) = must use executor.
+
+**LangSmith @traceable: langsmith NOT in uv.lock — must be added**
+`langsmith` has zero presence in `uv.lock` or `pyproject.toml`. Run `uv add langsmith` before using `@traceable`. The decorator works transparently with `async def`. Requires `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` env vars — silently no-ops if absent (safe for dev). Do NOT pass `asyncpg.Connection` as a direct argument to a traced function — not JSON-serializable. `DynamicDispatchEngine.dispatch()` signature is already clean (no asyncpg args) — safe to decorate as-is. Pydantic v2 strict models (`BrainDispatch`, `DispatchResult`) are automatically serialized via `.model_dump()`.
+
+**Layer Boundary for Phase 20 RAG module**
+```
+route handler     — Request → EmbeddingService
+EmbeddingService  — embed_texts() + search_similar(); gets model from app.state; owns connection lifecycle
+SearchRepository  — asyncpg queries only; accepts conn as constructor arg (matches BrainRegistryRepository pattern)
+migrate.py (rag/) — owns 004_brain_embeddings.sql execution; replicates brain_registry_module/migrate.py pattern
+DynamicDispatchEngine — @traceable decorator only; zero structural changes to dispatch() signature
+```
+
+### Deferred Items
+
+- [DEFERRED] Phase 20 does NOT need asyncpg connection pooling — per-call `asyncpg.connect()` matches existing pattern. Pool relevant at Phase 21+ when concurrent embedding queries scale up.
+- [DEFERRED] Dedicated embedding microservice — relevant only when batch embedding blocks uvicorn workers under load. `run_in_executor` sufficient for Phase 20 scale.
+
+### Real Gaps (Action Items Before Phase 20 Code)
+
+1. `uv add sentence-transformers` — promotes from dev to runtime deps
+2. `uv add langsmith` — adds to lockfile (currently absent)
+3. Verify Docker Compose uses `pgvector/pgvector:pg16` image (base `postgres:16` lacks vector extension)
+
+---
+
 ## 2026-04-06 — Phase 14 Knowledge Distillation Backend Architecture
 
 ### Verified Insights

@@ -1690,3 +1690,65 @@ All webhook tests run without live network calls:
 3. Create `rust_control_plane/tests/k6-webhook-load.js` based on Phase 16's WebSocket load test template
 4. Add Prometheus metrics for webhook DLQ + processing duration
 5. Implement circuit breaker pattern in Rust webhook handler (graceful degradation)
+
+---
+
+## 2026-05-14 — Phase 20 QA Strategy: Embeddings + pgvector + LangSmith
+
+### Verified Codebase State (grep-confirmed)
+
+- Test suite: **1131 backend tests collected** (cd apps/api && uv run pytest --collect-only -q, verified 2026-05-14)
+- Frontend: 407 (unchanged)
+- `asyncio_mode = "auto"` in pyproject.toml — no `@pytest.mark.asyncio` needed on individual tests
+- `--strict-markers` enforced — `integration`, `slow`, `benchmark` markers registered in pyproject.toml
+- `langsmith` NOT in uv.lock — must `uv add langsmith` before Phase 20 tests can import it
+- `pgvector` NOT in uv.lock — must `uv add pgvector` before asyncpg codec registration works
+- `sentence-transformers>=5.3.0` IS in uv.lock — installed in venv
+- NO existing migration tests for `run_migrations()` (zero grep hits outside brain_registry_module tests)
+- Existing mock pattern: `patch("asyncpg.connect", new=AsyncMock(return_value=conn))` — proven in test_brain_registry_repository.py lines 378, 409, 434, 451
+- Integration marker exists but NO integration tests use TEST_DATABASE_URL yet — Phase 20 is first
+
+### Verified Insights
+
+**Migration Testing Decision (20A):**
+- Unit test for `run_migrations()`: mock `asyncpg.connect`, capture `conn.execute()` call_args_list, assert the SQL file content was passed. NOT over-mocking — it characterizes the runner contract (Feathers: characterization test before adding code to tested function).
+- Integration test for 20A: `@pytest.mark.integration` + real PostgreSQL (docker-compose port 5434). Create isolated schema prefix per test run, call `run_migrations()`, assert via `conn.fetchrow("SELECT EXISTS(...)")` on `information_schema.tables` and `pg_indexes`. Teardown: `DROP TABLE brain_embeddings CASCADE`.
+- HNSW index assertion: `SELECT indexdef FROM pg_indexes WHERE tablename='brain_embeddings' AND indexname='brain_embeddings_embedding_hnsw_idx'` — check `indexdef LIKE '%hnsw%'` and `'vector_cosine_ops'` in result.
+
+**EmbeddingService Mock Pattern (20B):**
+- conftest.py autouse=False fixture (NOT autouse — let test opt in via fixture parameter). Session scope to avoid re-patching per test.
+- Mock returns `list[float]` of correct dimension (384 for all-MiniLM-L6-v2 or 1536 for text-embedding-3-small — pin this in embed.py as a module constant `EMBEDDING_DIM`).
+- search.py unit tests: capture `conn.fetch()` call_args, assert `"<=>"` in the SQL string and that the vector argument is the mock embedding output.
+- NEVER assert on actual similarity scores in unit tests — that's performance testing, not correctness.
+
+**asyncpg + pgvector codec registration (integration tests):**
+- Registration is per-connection in asyncpg (not pool-level). Use `pgvector.asyncpg.register_vector(conn)` immediately after `asyncpg.connect()`.
+- In the test fixture: `conn = await asyncpg.connect(TEST_DATABASE_URL)` → `await register_vector(conn)` → yield conn → close.
+- Unit tests never need this — the mock conn doesn't parse wire types.
+
+**LangSmith @traceable (20C):**
+- Strategy: `patch("langsmith.traceable", side_effect=lambda **kwargs: lambda fn: fn)` — returns a passthrough decorator factory. This is safer than env var because it works even if langsmith changes its behavior when `LANGCHAIN_TRACING_V2=false`.
+- AST gate test: assert `dispatch` method has a decorator whose id is `traceable` or whose attr is `traceable`. Same `ast.walk()` pattern as Phase 19 auth gate. File to inspect: `mastermind_cli/mm_flow/dispatch_engine.py`.
+- OEC baseline script: NOT tested via pytest. It's a one-shot script. Acceptance: file exists at path + is executable + contains `@traceable` reference (grep check, not test).
+
+### Acceptance Criteria Split (Phase 20)
+
+| Criterion | Method | Live DB? |
+|-----------|--------|----------|
+| `brain_embeddings` table in schema | Integration test | YES |
+| HNSW index present with `vector_cosine_ops` | Integration test | YES |
+| `run_migrations()` reads SQL file content | Unit test (mock asyncpg) | NO |
+| `schema_migrations` row inserted after run | Unit test (mock asyncpg) | NO |
+| EmbeddingService.embed() returns list of floats | Unit test (mock SentenceTransformer) | NO |
+| search.py query contains `<=>` operator | Unit test (mock asyncpg) | NO |
+| @traceable present on dispatch() | AST gate test | NO |
+| @traceable doesn't make live HTTP calls | Unit test (patch langsmith.traceable) | NO |
+| pgvector in uv.lock | Grep/file check | NO |
+| langsmith in uv.lock | Grep/file check | NO |
+| OEC baseline script exists at correct path | File existence check | NO |
+
+### Deferred Items
+
+- HNSW recall accuracy testing (requires 1400+ real vectors) → Phase 21 performance testing bucket
+- LangSmith dashboard integration verification → manual step, not automatable without live API key
+- Semantic similarity regression with brain_embeddings → deferred until EmbeddingService is in production use

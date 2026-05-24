@@ -2,7 +2,98 @@
 
 > Written by Brain #7 (Growth/Data). Read-only for other agents.
 > Orchestrator reads this after all domain feeds to write BRAIN-FEED.md (global synthesis).
-> Last updated: 2026-04-08
+> Last updated: 2026-05-14
+
+---
+
+## 2026-05-14 — v3.2 Milestone Planning — Meta-Evaluation of: Milestone Brief (no domain brains — pre-planning evaluation)
+
+### Cross-Domain Synthesis
+
+**Domain Brain Outputs Received:** None — evaluated milestone brief directly (pre-domain-brain stage).
+**Nature of evaluation:** Milestone structure review requested by orchestrator before domain brain dispatch.
+
+**Shared Assumptions (Never Questioned):**
+1. "RAG per agent" is one phase — actually schema + ingestion + query path + retrieval evaluation + regression testing (5 sub-phases) × 7 brains
+2. "Cross-brain learning" is benign — it is a reinforcing feedback loop that can amplify errors, not just knowledge
+3. "BRAIN-FEED files are good RAG source material" — BRAIN-FEED files are operational logs and pattern registries, NOT curated knowledge. They contain implementation decisions, anti-patterns, gotchas. Ingesting them verbatim into a vector store will produce noisy retrieval.
+4. "LangSmith = observability only" — LangSmith callbacks modify the LLM call execution path. Treating it as zero-overhead is wrong.
+5. Quality_score (Brain #7 post-session) = RAG evaluation — they are different measurements. quality_score evaluates output coherence; retrieval quality evaluates whether the right context was fetched.
+
+### Second-Order Concerns
+
+**FEEDBACK LOOP 1 — Knowledge Contamination Loop (Reinforcing, High Risk):**
+Ingestion pipeline ingests BRAIN-FEED-NN files → operational logs enter vector store → brain retrieves its own past decisions as "authoritative knowledge" → brain produces response biased toward past patterns → ExperienceLogger saves new response → new BRAIN-FEED entry added → next ingestion run strengthens the bias. This is a self-reinforcing loop with NO correction mechanism. It amplifies whatever quality level the system starts at — good start = compounding quality; mediocre start = compounding mediocrity. No phase in v3.2 breaks this loop.
+
+**FEEDBACK LOOP 2 — Latency Tolerance Collapse (Balancing):**
+RAG adds retrieval latency → LangSmith callbacks add instrumentation overhead → total P99 latency increases → operators disable RAG on slow brains → RAG adoption fragments across 7 brains → cross-brain learning phase has inconsistent data (some brains with RAG, some without) → cross-brain learning produces misleading pattern signals → Brain #7 quality_score comparisons become invalid (comparing apples to oranges). Phase 5 (cross-brain learning) is structurally dependent on Phase 4 (LangSmith) being uniformly deployed, which is dependent on latency being acceptable across ALL 7 brains simultaneously.
+
+**FEEDBACK LOOP 3 — Scope Creep via Cross-Brain Learning (Reinforcing):**
+"Cross-brain learning" is defined as "pattern propagation via BRAIN-FEED." Pattern propagation means: detect pattern in Brain #N's feed → write to Brain #M's feed → Brain #M's next ingestion picks it up. This sounds like 1 phase. It actually requires: (a) pattern detection algorithm, (b) relevance filter (not all patterns from Brain #5 are relevant to Brain #2), (c) conflict resolution when patterns contradict, (d) ingestion trigger mechanism, (e) validation that propagated patterns improved Brain #M's responses. That is a milestone by itself. As defined it will expand.
+
+**CASCADE FAILURE — Evaluation Phase Missing:**
+If RAG ingestion produces noisy retrievals and there is no retrieval evaluation phase, the system will appear to work (LLM responses will be coherent) but will be silently wrong. Brain agents will retrieve irrelevant context, inject it into prompts, and generate plausible-sounding but context-poisoned responses. The existing quality_score metric will NOT catch this — quality_score evaluates output coherence, not retrieval precision. ExperienceLogger will then save these poisoned responses as good experiences. By the time the problem is detected, the vector store is contaminated.
+
+**WYSIATI RISK — Source Material Confusion:**
+The ingestion pipeline targets BRAIN-FEED-NN-domain.md files. These files contain: implementation patterns, anti-patterns, phase learnings, test discoveries. They do NOT contain: domain knowledge (what makes a good API design, what makes a good UX flow). The NotebookLM notebooks already contain the domain knowledge (Cagan, Fowler, Norman, etc.). Ingesting BRAIN-FEED files into pgvector creates a second, lower-quality knowledge source that competes with the NotebookLM knowledge already working. This is not "enhancing" RAG — it is adding noise alongside a working signal.
+
+**INCONSISTENCY-AVOIDANCE TRAP (Munger):**
+Once the team has invested in pgvector schema + ingestion pipeline + 7-brain RAG partitions (Phases 1-3), admitting the RAG is not improving quality_score becomes psychologically costly. Sunk cost will drive continued investment in a system whose value has not been validated. Phase order matters: RAG evaluation MUST come before cross-brain learning, not after.
+
+### Metric Proposals
+
+**SLI-1 (North Star — RAG Effectiveness):**
+Brain #7 quality_score WITH RAG context vs. WITHOUT RAG context on identical task inputs. Minimum Detectable Effect: +5 quality_score points. If A/B comparison shows no improvement after 20 tasks per brain: HALT ingestion pipeline and investigate source material quality before proceeding to Phase 5.
+
+**SLI-2 (Retrieval Quality — Leading Indicator):**
+Recall@5 for each brain's vector store: fraction of relevant context chunks appearing in top-5 retrieved documents. Must exceed 0.7 before connecting RAG to live brain dispatch. Measured offline against a hand-labeled test set (minimum: 10 representative queries per brain = 70 total labeled pairs).
+
+**SLI-3 (Latency Guardrail):**
+P99 total response latency increase after enabling RAG + LangSmith: must be less than +500ms vs. baseline. If exceeded: RAG disabled for that brain until optimized. Cross-brain learning phase cannot start until ALL 7 brains are within the latency guardrail.
+
+**SLI-4 (Knowledge Contamination Detector):**
+Monthly measurement: semantic similarity between newly ingested BRAIN-FEED chunks and the previous month's RAG retrievals. If self-similarity exceeds 0.85 (brain is mostly retrieving its own recent outputs): trigger human review of source material curation. Prevents the Knowledge Contamination Loop from going undetected.
+
+**OKR (Phase Gate for Cross-Brain Learning):**
+Phase 5 (cross-brain learning) may not start until: SLI-1 (quality_score improvement) is confirmed positive for at least 5 of 7 brains. This is a hard gate, not a recommendation.
+
+### Verdict
+
+**APPROVED_WITH_CONDITIONS** — Delta-Velocity Rating 2.5 (Junior/Peer boundary)
+
+**Confidence:** 80%
+
+**Reasoning:**
+The milestone brief identifies the right destination (RAG + observability) but the phase structure contains two critical structural defects:
+
+1. **Missing RAG Evaluation Phase (CRITICAL):** There is no phase to verify that retrieval is actually improving brain outputs before cross-brain learning starts. Without this gate, Phase 5 will propagate patterns derived from poisoned or noisy retrieval. The existing quality_score is not a substitute — it measures output coherence, not retrieval precision. A dedicated retrieval evaluation phase (offline Recall@K measurement against labeled test set) must be inserted between Phase 3 (ingestion pipeline) and Phase 5 (cross-brain learning).
+
+2. **Source Material Confusion (CRITICAL):** BRAIN-FEED-NN files are operational logs, not domain knowledge. Ingesting them as primary RAG source competes with the NotebookLM knowledge already working. The ingestion pipeline must distinguish: (a) project memory (BRAIN-FEED operational patterns — valid RAG source for project-specific context), (b) domain knowledge (NotebookLM notebooks — the actual expert knowledge). These require separate collections and separate retrieval paths. "domain_knowledge + project_memory" in the brief names this correctly but doesn't address that they need different ingestion strategies and different evaluation criteria.
+
+**Conditions for approval:**
+
+1. [MANDATORY] Insert Phase 3.5: RAG Evaluation — offline Recall@K measurement (10 labeled query-context pairs per brain minimum) before connecting RAG to live dispatch.
+
+2. [MANDATORY] Define source material tiers in Phase 2: project_memory collection = BRAIN-FEED operational logs (low authority, high recency); domain_knowledge collection = curated source documents (high authority, low recency). Retrieval must weight these differently.
+
+3. [MANDATORY] Add phase gate: Phase 5 (cross-brain learning) blocked until SLI-1 (quality_score +5) confirmed for 5 of 7 brains.
+
+4. [MANDATORY] Define OEC before implementation: "What measurable behavior change in brain output quality justifies the RAG infrastructure cost?" Suggested OEC: Brain #7 quality_score improves from current baseline by >= 8 points (average across 7 brains) within 30 days of RAG enablement.
+
+5. [RECOMMENDED] Break "Cross-brain learning" into concrete sub-phases: (a) pattern detection algorithm spec, (b) relevance filter design, (c) conflict resolution policy. Do not enter implementation without these specified.
+
+**Global Rating: 55/100**
+
+**Breakdown:**
+- Milestone Direction: 80/100 (pgvector + LangSmith is the right infrastructure direction)
+- Phase Structure: 35/100 (missing evaluation phase is a structural defect, not a detail)
+- Source Material Strategy: 40/100 (BRAIN-FEED as RAG source is correct but under-specified)
+- Cascade Risk Awareness: 50/100 (Knowledge Contamination Loop not identified in brief)
+- Planning Realism: 55/100 (Planning Fallacy on "RAG per agent" = 1 phase)
+
+**Sources:**
+- Milestone brief provided by orchestrator
+- NotebookLM Brain #7 query: Balfour (Feature Factory anti-pattern, Growth as System), Kohavi (OEC, measuring without hypothesis, Recall@K), Munger (Inversion, Inconsistency-Avoidance, Opportunity Cost, WYSIATI)
 
 ---
 

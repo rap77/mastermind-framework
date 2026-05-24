@@ -323,3 +323,52 @@ If only 3 metrics for v1 dashboard, these are the MOST valuable (ranked by outco
 ### Deferred Items (Related)
 
 📅 **Phase 15 takes priority** — Rust Control Plane is v3.0 critical path. MCP UI is a v3.1+ feature when target user shifts from "builder technical" to "SME non-technical."
+
+📅 **Phase 15 takes priority** — Rust Control Plane is v3.0 critical path. MCP UI is a v3.1+ feature when target user shifts from "builder technical" to "SME non-technical."
+
+---
+
+## 2026-05-14 — v3.2 Planning — RAG Per Agent + LangSmith Phase Sequencing Evaluation
+
+### Context
+**Plan evaluated:** v3.2 milestone — 5 phases: pgvector foundation → RAG per agent → Knowledge ingestion pipeline → LangSmith integration → Cross-brain learning
+**Codebase state verified:**
+- `CREATE EXTENSION IF NOT EXISTS vector;` already present in `rust_control_plane/migrations/001_initial_postgresql.sql` — pgvector IS LIVE
+- `sentence-transformers` exists in dev-dependencies only (`pyproject.toml`) — NOT in runtime
+- `knowledge_templates` table (003_create_knowledge_templates.sql) is the proto-RAG store — partially overlaps Phase 1 scope
+- `experience_records` table has `quality_score REAL`, `insights JSONB`, `patterns JSONB` — existing signal for RAG evaluation
+- `ExperienceLogger.calculate_quality_score()` exists at `experience/scoring.py` — data pipeline already partially wired
+- Zero LangSmith footprint in any file (confirmed by grep across all .py, .ts, .env, .md)
+
+### Verified Insights
+
+**Verdict: APPROVED WITH RESTRUCTURE — phase order has two critical sequencing errors and one missing phase**
+
+**Error 1 — Phase 4 is sequenced too late:**
+Building RAG for 7 brains (Phases 2-3) without observability (Phase 4) is blind engineering. LangSmith is not a reporting layer — it is the instrument that proves whether retrieved context is actually influencing LLM outputs. Per Cagan's risk framework: value risk (does RAG improve response quality?) cannot be assessed without seeing what context was retrieved and how the model used it. Phase 4 must co-launch with Phase 1, not follow Phase 3.
+
+**Error 2 — Phase 3 auto-update pipeline has scope explosion risk:**
+"Auto-update when BRAIN-FEED changes" is the description of an infinite engineering project. It requires: file watcher, incremental diff logic, re-embedding only changed chunks, re-indexing, vector store deduplication, handling corrupted or conflicting vectors, and testing across all 7 domain feeds simultaneously. None of this has been validated as necessary. The correct Lean Startup move: manual ingestion script for v3.2, validate that retrieved knowledge actually improves quality_score, automate in v3.3 only if manual process becomes the bottleneck.
+
+**Missing phase — Phase 2.5: RAG Evaluation Baseline:**
+The plan assumes "more context = better response." This is an unvalidated assumption. Before scaling RAG to all 7 brains, a measurement gate must exist: run Brain #7 quality_score with RAG vs. without on the same brief. If quality_score does not improve, RAG adds latency with zero outcome benefit. Torres's assumption testing: define the measurable outcome BEFORE scaling the solution.
+
+**Corrected phase sequence:**
+
+| Phase | Name | What changes |
+|-------|------|--------------|
+| 1 + 4 (parallel) | pgvector schema + LangSmith instrumentation | pgvector already enabled — Phase 1 is NOW schema-only (embeddings table + vector index). LangSmith must run from the first RAG query. |
+| 2 (scoped) | RAG for Brain #1 ONLY | Pilot on single brain before all 7. Gate: quality_score delta measurable. |
+| 2.5 (NEW — critical) | RAG Evaluation Baseline | Measure: quality_score with RAG vs. cold context, same briefs. If delta < 10%, stop and reconsider approach. |
+| 3 (simplified) | Knowledge ingestion — manual script only | Load BRAIN-FEED-NN-domain.md + source docs via one-shot script. No file watcher, no auto-update. |
+| 5 | Cross-brain learning | DEFERRED to v3.3 — only valid after per-brain RAG is proven. Cross-brain amplifies a system that may not yet deliver value. |
+
+**pgvector finding (critical):** Phase 1 is significantly shorter than assumed. The extension is already live. The actual work is: (1) promote `sentence-transformers` from dev to runtime dependencies, (2) create embeddings table with vector column, (3) write asyncpg utility functions for similarity search. This is a 1-day phase, not a 3-day one.
+
+**sentence-transformers runtime gap:** Currently in `[dependency-groups] dev` only. Embedding generation in Phase 2 requires it at runtime. Must be moved to `[project] dependencies` before any RAG query can execute in production.
+
+### Deferred Items
+
+📅 **v3.3** — Phase 5 (Cross-brain learning via shared project memory). Prerequisite: per-brain RAG quality_score delta confirmed positive in Phase 2.5. Without that gate, cross-brain learning amplifies noise, not signal.
+
+📅 **v3.3** — Phase 3 auto-update pipeline (file watcher + incremental re-embedding). Cost justified only when manual ingestion script becomes the operator's bottleneck — measurable by ingestion frequency and operator time.
