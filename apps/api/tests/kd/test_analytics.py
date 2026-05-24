@@ -357,7 +357,12 @@ class TestAnalyticsEndpoints:
             await db.conn.commit()
 
         app = create_app(db_path)
-        app.dependency_overrides[get_db_path] = lambda: db_path
+
+        async def _override_db_path() -> str:
+            """Provide the test database path to FastAPI dependencies."""
+            return db_path
+
+        app.dependency_overrides[get_db_path] = _override_db_path
         client = TestClient(app)
         response = client.get("/api/analytics/system-health")
 
@@ -414,7 +419,12 @@ class TestAnalyticsEndpoints:
             await db.conn.commit()
 
         app = create_app(db_path)
-        app.dependency_overrides[get_db_path] = lambda: db_path
+
+        async def _override_db_path() -> str:
+            """Provide the test database path to FastAPI dependencies."""
+            return db_path
+
+        app.dependency_overrides[get_db_path] = _override_db_path
         client = TestClient(app)
         response = client.get("/api/analytics/templates")
 
@@ -464,7 +474,12 @@ class TestAnalyticsEndpoints:
             await db.conn.commit()
 
         app = create_app(db_path)
-        app.dependency_overrides[get_db_path] = lambda: db_path
+
+        async def _override_db_path() -> str:
+            """Provide the test database path to FastAPI dependencies."""
+            return db_path
+
+        app.dependency_overrides[get_db_path] = _override_db_path
         client = TestClient(app)
         response = client.get("/api/analytics/patterns")
 
@@ -513,7 +528,12 @@ class TestAnalyticsEndpoints:
             await db.conn.commit()
 
         app = create_app(db_path)
-        app.dependency_overrides[get_db_path] = lambda: db_path
+
+        async def _override_db_path() -> str:
+            """Provide the test database path to FastAPI dependencies."""
+            return db_path
+
+        app.dependency_overrides[get_db_path] = _override_db_path
         client = TestClient(app)
         response = client.get("/api/analytics/outcome-metrics")
 

@@ -27,7 +27,12 @@ async def app_with_mock_auth(tmp_path: Path):
         await db.create_auth_schema()
 
     app = create_app(db_path=db_file)
-    app.dependency_overrides[get_db_path] = lambda: db_file
+
+    async def _override_db_path() -> str:
+        """Provide the test database path to FastAPI dependencies."""
+        return db_file
+
+    app.dependency_overrides[get_db_path] = _override_db_path
     yield app
     app.dependency_overrides.clear()
 
