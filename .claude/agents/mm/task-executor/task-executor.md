@@ -35,7 +35,11 @@ You receive context with:
   "pending_count": 2,
   "context_budget_threshold": 0.75,
   "working_directory": "/path/to/project",
-  "stack": ["nextjs", "python", "claude-code"]
+  "stack": ["nextjs", "python", "claude-code"],
+  "plan_path": "/path/to/plan.md",
+  "todo_path": "/path/to/todo.md",
+  "planning_mode": "legacy|objective",
+  "objective_slug": "project-state-mvp"
 }
 ```
 
@@ -65,12 +69,17 @@ python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress {subtask
 ```
 
 **Step 0b — Edit todo.md directly with the Edit tool** (this is what makes it visible in real-time):
-1. Read `tasks/todo.md`
+1. Read `payload.todo_path`
 2. Find the subtask line: `- [ ] {subtask_id}:`
 3. Change `[ ]` to `[~]` on that exact line using the Edit tool
 4. Also change the parent task line `- [ ] {task_id}:` to `- [~] {task_id}:` if not already `[~]`
 
 **Why direct Edit?** The Edit tool writes immediately to disk — the user sees the update in their editor the moment it happens. The handler subprocess updates state, but direct Edit gives instant visual feedback.
+
+**Critical restriction:** use direct Edit only for the temporary `[~]` in-progress visual.
+Do **not** manually mark a subtask or parent as `[x]`, and do **not** manually advance
+`HANDOFF-CURRENT.md`. Completion and handoff progression must come from the handler
+(`--mark-done`) so runtime truth remains authoritative.
 
 **Example — starting D1.02:**
 ```
@@ -300,6 +309,8 @@ This updates the `todo.md` header with real-time metrics:
 - Step A: Direct Edit = instant visual feedback for the user watching the file
 - Step B: Handler = correct state in task-progress.json + propagation logic
 - Step C: Time script = progress metrics in the todo.md header
+
+Never bypass Step B. If Step A says `[x]` but Step B did not run, the flow is inconsistent.
 
 **3. Engram via mem_save:**
 ```javascript

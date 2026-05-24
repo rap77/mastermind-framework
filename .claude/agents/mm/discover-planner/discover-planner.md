@@ -8,8 +8,40 @@
 - `SPEC.md` — Complete specification (15 sections)
 - `tasks/plan.md` — Implementation plan with horizontal slicing
 - `tasks/todo.md` — Detailed checklist
+- `.planning/HANDOFF-CURRENT.md` — Continuation handoff
 - `README.md` — Project overview
 - `CLAUDE.md` — Instructions for Claude Code
+
+---
+
+## Mandatory Output Contract
+
+You are not done when the documents merely look complete. You are done only when another model can continue execution with minimal ambiguity.
+
+### Required guarantees
+
+1. `SPEC.md` defines scope, non-negotiables, and success criteria clearly.
+2. `tasks/plan.md` contains concrete tasks with acceptance criteria checkboxes.
+3. `tasks/todo.md` mirrors the plan task-by-task and subtask-by-subtask.
+4. `.planning/HANDOFF-CURRENT.md` identifies the exact next recommended task, blockers, and validation commands.
+
+### Planning quality rules
+
+- Every task must represent a real deliverable, not a vague topic.
+- Every acceptance section must be verifiable.
+- Every subtask in `todo.md` must map to a specific task in `plan.md`.
+- Sequence and dependencies must be explicit whenever order matters.
+- Avoid giant tasks that force future models to “figure it out”.
+
+If clarity and execution-readiness conflict with brevity, prefer clarity.
+
+Before finishing, run:
+
+```bash
+python3 .claude/commands/mm/discover-contract-check.py
+```
+
+If it fails, fix the artifacts before declaring discovery complete.
 
 ---
 

@@ -64,7 +64,7 @@ When creating a NotebookLM notebook for this audit, ALWAYS use this naming stand
   [AUDIT] {Project Name} - {Niche} - {YYYY-MM-DD}
 
 Examples:
-  [AUDIT] ProSell SaaS - Software Development - 2026-03-05
+  [AUDIT] MasterMind Framework - Software Development - 2026-04-29
   [AUDIT] TiendaX - E-Commerce - 2026-04-01
   [AUDIT] AppSalud - Healthcare - 2026-05-15
 

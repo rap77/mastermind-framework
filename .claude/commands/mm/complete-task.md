@@ -6,7 +6,7 @@ argument-hint: "<task-id> [--continue]"
 
 # /mm:complete-task
 
-Execute task subtasks using the full agent-skills cycle **in BACKGROUND**.
+Execute objective-package task subtasks using the full agent-skills cycle **in BACKGROUND**.
 
 ## Usage
 
@@ -68,15 +68,15 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 
 **`--status` flag**: Show handler output directly, don't launch agent.
 
-**`STATUS: TASK COMPLETE`**: Mark all checkboxes in todo.md as complete, no agent needed.
+**`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` and automatically runs acceptance-criteria verification. No agent needed.
 
-**IMPORTANT**: After task completion, use `/mm:verify-criteria <task-id>` to manually verify and mark acceptance criteria in plan.md.
+**IMPORTANT**: `/mm:complete-task` already triggers `verify-criteria-handler.py` when all subtasks are done. The user may still run `/mm:verify-criteria <task-id>` manually to inspect or re-run verification, but acceptance checking is part of the normal completion flow.
 
 **Handler ERROR**: Show error to user, suggest next steps.
 
 ## What Happens
 
-1. **Python handler** reads `tasks/plan.md` + `tasks/todo.md`
+1. **Python handler** reads the active objective package under `.planning/changes/<objective>/`
 2. **Checks git** for existing commits (avoids duplicate work)
 3. **Generates** `task-progress.json` with pending subtasks
 4. **Launches** `task-executor` agent in background
@@ -91,7 +91,8 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 4. Agent(code-reviewer) → 5-axis review (MANDATORY)
 5. Skill("mm:safe-commit") → Validate + commit
 6. Checkpoint → task-progress.json + Engram
-7. Context check → if >75%, exit gracefully
+7. Acceptance verification → verify-criteria-handler.py when task completes
+8. Context check → if >75%, exit gracefully
 ```
 
 ## Features
@@ -122,6 +123,19 @@ If agent exits due to context limit:
 
 Resume reads `task-progress.json` and continues from last checkpoint.
 
+## Continuation Contract
+
+`/mm:complete-task` is the execution phase of an already-planned task. It must:
+
+1. read `tasks/plan.md`
+2. read `tasks/todo.md`
+3. respect dependency ordering
+4. execute only the pending subtasks of the requested task
+5. validate before marking progress
+6. leave resumable state for the next model/session
+
+If the plan is ambiguous or contradictory, stop and escalate instead of redesigning the architecture mid-execution.
+
 ## Architecture
 
 ```
@@ -148,8 +162,8 @@ Notification when complete
 
 ## Files
 
-- `tasks/plan.md` — Task definitions
-- `tasks/todo.md` — Checklist
+- `.planning/changes/<objective>/tasks.md` — Objective-scoped task definitions
+- `.planning/changes/<objective>/todo.md` — Objective-scoped execution checklist helper
 - `.claude/commands/mm/complete-task-handler.py` — Python handler
 - `.claude/agents/mm/task-executor/task-executor.md` — Background agent
 - `.planning/task-progress.json` — Runtime state

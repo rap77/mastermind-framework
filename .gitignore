@@ -58,3 +58,17 @@ rust_control_plane/target/
 
 .claude/worktrees/
 apps/api/mastermind.db
+
+# MasterMind local/runtime state
+.planning/.mm-flow/runtime-state.json
+.planning/task-progress.json
+.planning/BACKEND-USAGE.json
+mastermind.db
+tasks/todo.md.backup_*
+
+# App-local MasterMind registration/runtime markers
+apps/api/.mastermind/
+apps/api/.mastermind-active
+
+# Legacy Rust build outputs (old location)
+apps/control-plane/target/

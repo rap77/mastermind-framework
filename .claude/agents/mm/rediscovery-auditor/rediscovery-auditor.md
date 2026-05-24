@@ -8,8 +8,37 @@
 - `SPEC.md` — UPDATED (or created if missing)
 - `tasks/plan.md` — REGENERATED (only what's missing)
 - `tasks/todo.md` — REGENERATED
+- `.planning/HANDOFF-CURRENT.md` — Refreshed continuation handoff
 - `.planning/HEALTH-CHECK.md` — Health report (new)
 - `.planning/GAPS.md` — Identified gaps (new)
+
+---
+
+## Mandatory Re-Planning Contract
+
+Rediscovery must leave the project in a state where a different model can resume safely.
+
+### Required guarantees
+
+1. `SPEC.md` reflects the current promise, not stale ambition.
+2. `tasks/plan.md` contains only the missing or corrective work that still matters.
+3. `tasks/todo.md` mirrors the updated plan and removes zombie tasks that no longer apply.
+4. `.planning/HANDOFF-CURRENT.md` states the current objective, blockers, exact next task, and validation commands.
+
+### Re-planning quality rules
+
+- Do not keep completed work in the active todo unless it is still pending verification.
+- Do not generate “misc cleanup” buckets that hide multiple unrelated fixes.
+- Clearly distinguish between feature gaps, bugs, and technical debt.
+- Prefer a smaller accurate plan over a larger speculative one.
+
+Before finishing, run:
+
+```bash
+python3 .claude/commands/mm/discover-contract-check.py
+```
+
+If it fails, fix the artifacts before declaring rediscovery complete.
 
 ---
 
