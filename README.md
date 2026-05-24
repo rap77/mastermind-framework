@@ -428,6 +428,17 @@ cp -r /path/to/mastermind/.claude/commands/mm /path/to/your-project/.claude/comm
 
 **Ver documentación completa:** `.claude/README.md`
 
+### Documentación Canónica
+
+La narrativa y arquitectura canónica actual del proyecto vive en `docs/canonical/`.
+
+**Orden recomendado de lectura:**
+
+1. `docs/canonical/01-VISION-CANONICA-v3.md`
+2. `docs/canonical/02-HISTORIA-CANONICA.md`
+3. `docs/canonical/03-ECOSYSTEM-MAP.md`
+4. `docs/canonical/README.md`
+
 ## Sistema de Memoria y Aprendizaje
 
 El framework **recuerda todas las evaluaciones** del cerebro y permite aprender de experiencias pasadas.

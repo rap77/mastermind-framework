@@ -1,7 +1,8 @@
 # MasterMind Framework — Source of Truth
 
-> **Este archivo es la única fuente de la verdad del proyecto.**
-> Reemplaza: `PROJECT.md`, `STATE.md`, `ROADMAP.md`
+> **Este archivo es la fuente operativa de verdad del proyecto.**
+> Para narrativa, visión y arquitectura canónica de largo plazo, ver `docs/canonical/README.md`.
+> Reemplaza operativamente: `PROJECT.md`, `STATE.md`, `ROADMAP.md`
 > Última actualización: 2026-05-12
 
 ---

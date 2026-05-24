@@ -1,0 +1,370 @@
+[
+  {
+    "id": "O1",
+    "slug": "project-state",
+    "name": "Project State",
+    "summary": "Continue the MasterMind `project_state` MVP thin slice across API + web without losing architectural coherence.",
+    "status": "active",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Already has identified next implementation slices.",
+    "evidence_sources": [
+      ".planning/HANDOFF-PROJECT-STATE-2026-05-24.md"
+    ]
+  },
+  {
+    "id": "O2",
+    "slug": "artifact-versioning-and-lineage",
+    "name": "Artifact Versioning and Lineage",
+    "summary": "Preserve causality between specs, tasks, decisions, and implementation state.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md"
+    ]
+  },
+  {
+    "id": "O3",
+    "slug": "backend-service-boundary-for-agents",
+    "name": "Backend Service Boundary For Agents",
+    "summary": "Models interact through semantic services instead of direct database access.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+    ]
+  },
+  {
+    "id": "O4",
+    "slug": "collaboration-rbac",
+    "name": "Collaboration and RBAC",
+    "summary": "Human + agent participation model with explicit roles and permissions.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md"
+    ]
+  },
+  {
+    "id": "O5",
+    "slug": "context-projection",
+    "name": "Context Projection",
+    "summary": "Build model-ready context from structured project state instead of chat history.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "postgres-hybrid-data-model",
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
+    ]
+  },
+  {
+    "id": "O6",
+    "slug": "context-window-management",
+    "name": "Context Window Management",
+    "summary": "Manage context-fit, packing, and compression across model backends.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "window-scheduler"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
+    ]
+  },
+  {
+    "id": "O7",
+    "slug": "dashboard-realtime",
+    "name": "Dashboard Realtime",
+    "summary": "Realtime events and live visibility for project operations.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md"
+    ]
+  },
+  {
+    "id": "O8",
+    "slug": "engineering-doctrine-layer",
+    "name": "Engineering Doctrine Layer",
+    "summary": "Persistent methodology, architecture rules, and phase gates for agents and humans.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md"
+    ]
+  },
+  {
+    "id": "O9",
+    "slug": "knowledge-distillation",
+    "name": "Knowledge Distillation",
+    "summary": "Brains learn from every interaction and accumulate expertise over time.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O10",
+    "slug": "knowledge-ingestion-manual",
+    "name": "Knowledge Ingestion (Manual)",
+    "summary": "Cargar el corpus de conocimiento en cada brain's vector store.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md"
+    ]
+  },
+  {
+    "id": "O11",
+    "slug": "multi-channel-gateway",
+    "name": "Multi-channel Gateway",
+    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O12",
+    "slug": "observability-real-time-hub",
+    "name": "Observability + Real-time Hub",
+    "summary": "Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O13",
+    "slug": "pgvector-schema-langsmith-foundation-paralelo",
+    "name": "pgvector Schema + LangSmith Foundation (paralelo)",
+    "summary": "Embeddings table, vector index, asyncpg utilities, LangSmith instrumentation \u2014 todo en una fase paralela. pgvector ya live.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md"
+    ]
+  },
+  {
+    "id": "O14",
+    "slug": "postgres-hybrid-data-model",
+    "name": "Postgres Hybrid Data Model",
+    "summary": "Relational core + JSONB + vector memory for project state and retrieval.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
+    ]
+  },
+  {
+    "id": "O15",
+    "slug": "rag-evaluation-gate",
+    "name": "RAG Evaluation Gate",
+    "summary": "Validar que el RAG mejora calidad antes de escalar a los 7 brains.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md"
+    ]
+  },
+  {
+    "id": "O16",
+    "slug": "rag-pilot-brain-1-only",
+    "name": "RAG Pilot \u2014 Brain #1 Only",
+    "summary": "Un solo brain con RAG funcional, recuperando contexto de sus dos colecciones antes de responder.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md"
+    ]
+  },
+  {
+    "id": "O17",
+    "slug": "rag-scale-out-brains-2-7",
+    "name": "RAG Scale-Out \u2014 Brains 2\u20137",
+    "summary": "Extender RAG a los 6 brains restantes, usando el mismo patr\u00f3n validado en Brain #1.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md"
+    ]
+  },
+  {
+    "id": "O18",
+    "slug": "rust-control-plane",
+    "name": "Rust Control Plane",
+    "summary": "State management, auth, and event sourcing migrated to Rust with PostgreSQL",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O19",
+    "slug": "rust-control-plane-hardening",
+    "name": "Rust Control Plane Hardening",
+    "summary": "Stabilize and harden the canonical Rust control plane before further expansion.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "backend-service-boundary-for-agents"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
+    ]
+  },
+  {
+    "id": "O20",
+    "slug": "task-time-and-estimation",
+    "name": "Task Time and Estimation",
+    "summary": "Track effort, ETA, and estimation quality over time.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md"
+    ]
+  },
+  {
+    "id": "O21",
+    "slug": "token-cost-quality-telemetry",
+    "name": "Token Cost and Quality Telemetry",
+    "summary": "Track token usage, cost, and output quality trends by project and task.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md"
+    ]
+  },
+  {
+    "id": "O22",
+    "slug": "vertical-slice",
+    "name": "Vertical Slice",
+    "summary": "Validate 3-service architecture works end-to-end before committing to full Rust build",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O23",
+    "slug": "window-scheduler",
+    "name": "Window Scheduler",
+    "summary": "Subscription-window-aware backend switching, checkpointing, and morning reports.",
+    "status": "planned",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md",
+      "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md"
+    ]
+  },
+  {
+    "id": "O24",
+    "slug": "mm-flow-audit-trail",
+    "name": "MM-Flow + Audit Trail",
+    "summary": "MM-Flow infrastructure, CLI Skills Bridge, Context Persistence, and Audit Trail + JWT.",
+    "status": "done",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O25",
+    "slug": "ui-evolution",
+    "name": "UI Evolution",
+    "summary": "Extract Paperclip UX patterns and rebuild in Next.js 16 App Router (NOT a fork \u2014 Paperclip uses Vite)",
+    "status": "done",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/SOURCE-OF-TRUTH.md"
+    ]
+  },
+  {
+    "id": "O26",
+    "slug": "v3.0",
+    "name": "V3.0",
+    "summary": "Planning package present in .planning/archive/v3.0.",
+    "status": "done",
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/v3.0"
+    ]
+  }
+]
