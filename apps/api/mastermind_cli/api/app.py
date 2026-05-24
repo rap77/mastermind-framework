@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from mastermind_cli.api.dependencies import get_db_path
+from mastermind_cli.api.dependencies import get_db_path, get_project_state_db_url
 from mastermind_cli.api.routes import analytics, auth, tasks, brains
 from mastermind_cli.observability.trace_context import set_trace_id
 from mastermind_cli.api.routes.executions import router as executions_router
@@ -31,6 +31,7 @@ from mastermind_cli.api.routes.keys import (
 )
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
+from mastermind_cli.api.routes.project_overview import router as project_overview_router
 from mastermind_cli.state.database import DatabaseConnection
 
 # gRPC server (Phase 18: gap-closure)
@@ -69,6 +70,21 @@ _WEB_DIR = Path(__file__).parent.parent / "web"
 
 # Global gRPC server instance (for graceful shutdown)
 _grpc_server = None
+
+
+def _resolve_project_state_db_url(db_path: str) -> str:
+    """Resolve the project state database URL for the current app instance."""
+    project_state_db_url = os.environ.get("MM_PROJECT_STATE_DB_URL")
+    if project_state_db_url:
+        return project_state_db_url
+
+    postgres_url = os.environ.get("POSTGRES_URL")
+    if postgres_url:
+        return postgres_url
+
+    if db_path == ":memory:":
+        return "sqlite:///:memory:"
+    return f"sqlite:///{db_path}.project_state"
 
 
 @asynccontextmanager
@@ -177,6 +193,17 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         request_hash = None
         if request.method in ["POST", "PUT", "DELETE"]:
             request_body = await request.body()
+            cached_body = request_body
+
+            async def receive() -> dict[str, Any]:
+                """Replay the buffered request body to downstream handlers."""
+                return {
+                    "type": "http.request",
+                    "body": cached_body,
+                    "more_body": False,
+                }
+
+            request = Request(request.scope, receive)
 
         response = await call_next(request)
 
@@ -185,26 +212,34 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
 
         # Write audit log for mutations
         if request.method in ["POST", "PUT", "DELETE"] and user_id:
-            request_hash = (
-                hashlib.sha256(request_body).hexdigest()[:16] if request_body else None
-            )
-
-            async with DatabaseConnection(db_path) as db:
-                await db.conn.execute(
-                    """INSERT INTO audit_log
-                       (id, user_id, endpoint, method, request_hash, response_status, timestamp)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    [
-                        str(uuid.uuid4()),
-                        user_id,
-                        str(request.url.path),
-                        request.method,
-                        request_hash,
-                        response.status_code,
-                        datetime.now(timezone.utc),
-                    ],
+            is_project_state_path = str(request.url.path).startswith("/api/projects")
+            if not is_project_state_path:
+                # project_state write-side has native activity/audit logging through
+                # the project_state domain (checkpoints, decisions, task status updates
+                # are recorded and surfaced via /activity and /events endpoints).
+                # Only write to the legacy SQLite audit_log for non-project_state routes.
+                request_hash = (
+                    hashlib.sha256(request_body).hexdigest()[:16]
+                    if request_body
+                    else None
                 )
-                await db.conn.commit()
+
+                async with DatabaseConnection(db_path) as db:
+                    await db.conn.execute(
+                        """INSERT INTO audit_log
+                           (id, user_id, endpoint, method, request_hash, response_status, timestamp)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        [
+                            str(uuid.uuid4()),
+                            user_id,
+                            str(request.url.path),
+                            request.method,
+                            request_hash,
+                            response.status_code,
+                            datetime.now(timezone.utc),
+                        ],
+                    )
+                    await db.conn.commit()
 
         return response
 
@@ -223,8 +258,17 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         """
         return {"status": "ok", "db": "postgresql"}
 
-    # Wire db_path into all routes via dependency override
-    app.dependency_overrides[get_db_path] = lambda: db_path
+    # Wire db_path into all routes via dependency overrides
+    async def _provide_db_path() -> str:
+        """Provide the application-scoped database path."""
+        return db_path
+
+    async def _provide_project_state_db_url() -> str:
+        """Provide the application-scoped project state database URL."""
+        return _resolve_project_state_db_url(db_path)
+
+    app.dependency_overrides[get_db_path] = _provide_db_path
+    app.dependency_overrides[get_project_state_db_url] = _provide_project_state_db_url
 
     # Register routes
     app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -238,6 +282,11 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     app.include_router(analytics.router)  # Analytics endpoints
     app.include_router(websocket_router, tags=["WebSocket"])
     app.include_router(companies_router)  # Companies with tenant isolation
+    app.include_router(
+        project_overview_router,
+        prefix="/api/projects",
+        tags=["Project State"],
+    )
 
     # Audit trail router (MM-Flow infrastructure — Phase 16+)
     if audit_router:

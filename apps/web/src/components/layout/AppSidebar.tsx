@@ -11,6 +11,7 @@ import {
   Vault,
   Wrench,
   BrainCircuit,
+  ClipboardList,
 } from 'lucide-react'
 
 interface NavItem {
@@ -21,6 +22,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Command Center', href: '/command-center', icon: LayoutDashboard },
+  { label: 'Project State', href: '/project-state', icon: ClipboardList },
   { label: 'The Nexus', href: '/nexus', icon: Network },
   { label: 'Orchestrate', href: '/orchestrate', icon: BrainCircuit },
   { label: 'Strategy Vault', href: '/strategy-vault', icon: Vault },

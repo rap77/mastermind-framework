@@ -87,7 +87,12 @@ def db_path(tmp_path: Path) -> str:
 def app(db_path: str) -> FastAPI:
     """Create a FastAPI application instance with test DB path override."""
     application = create_app(db_path)
-    application.dependency_overrides[get_db_path] = lambda: db_path
+
+    async def _override_db_path() -> str:
+        """Provide the test database path to FastAPI dependencies."""
+        return db_path
+
+    application.dependency_overrides[get_db_path] = _override_db_path
     return application
 
 
