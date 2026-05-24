@@ -43,16 +43,15 @@ services:
 
   control-plane:
     build:
-      context: ./apps/control-plane
-      dockerfile: ../../docker/control-plane/Dockerfile
+      context: ./rust_control_plane
+      dockerfile: ../docker/control-plane/Dockerfile
     ports:
-      - "3001:3001"
+      - "3001:8080"
     environment:
-      CONTROL_PLANE_URL: http://control-plane:3001
-      AGENT_RUNTIME_URL: http://api:8001
-      POSTGRES_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_bd
+      DATABASE_URL: postgresql://postgres:devpassword@postgres:5432/mastermind_bd
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-at-least-32-characters-for-rust}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3

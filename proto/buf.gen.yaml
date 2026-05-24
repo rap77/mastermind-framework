@@ -2,7 +2,7 @@ version: v1
 plugins:
   # Rust code generation (tonic)
   - name: tonic
-    out: ../apps/control-plane/src/proto
+    out: ../rust_control_plane/src/proto
     opt:
       - compile_well_known_types=true
       - rust_type=Server
