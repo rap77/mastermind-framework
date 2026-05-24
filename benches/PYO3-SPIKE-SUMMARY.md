@@ -59,8 +59,8 @@ PyO3 bindings demonstrate **~3000x faster latency** and **~1340x higher throughp
 - **Python Class:**
   - `FlowDetector` with `detect()` and `detect_with_metadata()` methods
 - **Build Artifacts:**
-  - `libmastermind_control_plane.so` (872 KB) — native library
-  - `mastermind_control_plane.so` → symlink for Python import
+  - `librust_control_plane` (872 KB) — native library
+  - `rust_control_plane` → symlink for Python import
 
 #### 3. Benchmark Script (`benches/pyo3_vs_grpc.py`)
 - **Lines:** ~350 LOC
@@ -172,21 +172,21 @@ pyo3 = { version = "0.20", features = ["extension-module", "abi3"], optional = t
 ## Files Created/Modified
 
 ### Created Files
-- `apps/control-plane/src/lib.rs` — Library configuration
-- `apps/control-plane/src/flow.rs` — Flow detection logic (180 LOC)
-- `apps/control-plane/src/bindings/mod.rs` — PyO3 bindings (220 LOC)
+- `rust_control_plane/src/lib.rs` — Library configuration
+- `rust_control_plane/src/flow.rs` — Flow detection logic (180 LOC)
+- `rust_control_plane/src/bindings/mod.rs` — PyO3 bindings (220 LOC)
 - `benches/pyo3_vs_grpc.py` — Benchmark script (350 LOC)
 - `benches/pyo3_import_test.py` — Import verification script
 - `benches/pyo3_vs_grpc_results.json` — Benchmark results
 - `benches/PYO3-SPIKE-SUMMARY.md` — This document
 
 ### Modified Files
-- `apps/control-plane/Cargo.toml` — Added PyO3 dependency
-- `apps/control-plane/src/main.rs` — Added `mod flow;`
+- `rust_control_plane/Cargo.toml` — Added PyO3 dependency
+- `rust_control_plane/src/main.rs` — Added `mod flow;`
 
 ### Build Artifacts
-- `apps/control-plane/target/release/libmastermind_control_plane.so` (872 KB)
-- `apps/control-plane/target/release/mastermind_control_plane.so` (symlink)
+- `rust_control_plane/target/release/librust_control_plane` (872 KB)
+- `rust_control_plane/target/release/rust_control_plane` (symlink)
 
 ---
 
@@ -194,7 +194,7 @@ pyo3 = { version = "0.20", features = ["extension-module", "abi3"], optional = t
 
 ### Unit Tests (Rust)
 ```bash
-cd apps/control-plane
+cd rust_control_plane
 cargo test --release
 ```
 **Result:** All 6 flow detection tests passing ✅

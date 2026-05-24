@@ -3,19 +3,19 @@
 ## Build PyO3 Module
 
 ```bash
-cd apps/control-plane
+cd rust_control_plane
 cargo build --release --features pyo3
 ```
 
 This creates:
-- `target/release/libmastermind_control_plane.so` (872 KB)
-- `target/release/mastermind_control_plane.so` (symlink for Python)
+- `target/release/librust_control_plane` (872 KB)
+- `target/release/rust_control_plane` (symlink for Python)
 
 ## Use in Python
 
 ```python
 import sys
-sys.path.insert(0, 'apps/control-plane/target/release')
+sys.path.insert(0, 'rust_control_plane/target/release')
 
 import mastermind_control_plane
 
@@ -46,7 +46,7 @@ Expected output: ~3000x speedup vs gRPC
 
 ```bash
 # Rust tests
-cd apps/control-plane
+cd rust_control_plane
 cargo test --release
 
 # Python import test

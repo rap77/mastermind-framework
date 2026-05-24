@@ -61,7 +61,7 @@ class PyO3Benchmark:
                     os.path.dirname(__file__),
                     "..",
                     "apps",
-                    "control-plane",
+                    "rust_control_plane",
                     "target",
                     "release",
                 ),
@@ -313,7 +313,7 @@ def main():
     if not pyo3_bench.setup():
         print("\n❌ Cannot run PyO3 benchmark - module not built")
         print(
-            "Build with: cd apps/control-plane && cargo build --release --features pyo3"
+            "Build with: cd rust_control_plane && cargo build --release --features pyo3"
         )
         return 1
 

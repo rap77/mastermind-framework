@@ -8,7 +8,7 @@ import os
 
 # Add the release directory to Python path
 so_dir = os.path.join(
-    os.path.dirname(__file__), "..", "apps", "control-plane", "target", "release"
+    os.path.dirname(__file__), "..", "apps", "rust_control_plane", "target", "release"
 )
 sys.path.insert(0, so_dir)
 
