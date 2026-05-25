@@ -1,25 +1,6 @@
 [
   {
     "rank": 1,
-    "stable_id": "postgres-hybrid-data-model",
-    "slug": "postgres-hybrid-data-model",
-    "name": "Postgres Hybrid Data Model",
-    "summary": "Relational core + JSONB + vector memory for project state and retrieval.",
-    "status": "planned",
-    "ready_now": true,
-    "priority_score": 92,
-    "recommended_next": true,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
-    ]
-  },
-  {
-    "rank": 2,
     "stable_id": "engineering-doctrine-layer",
     "slug": "engineering-doctrine-layer",
     "name": "Engineering Doctrine Layer",
@@ -27,7 +8,7 @@
     "status": "planned",
     "ready_now": true,
     "priority_score": 86,
-    "recommended_next": false,
+    "recommended_next": true,
     "mvp": true,
     "dependencies": [
       "project-state-mvp"
@@ -38,7 +19,7 @@
     ]
   },
   {
-    "rank": 3,
+    "rank": 2,
     "stable_id": "token-cost-quality-telemetry",
     "slug": "token-cost-quality-telemetry",
     "name": "Token Cost and Quality Telemetry",
@@ -57,7 +38,7 @@
     ]
   },
   {
-    "rank": 4,
+    "rank": 3,
     "stable_id": "collaboration-rbac",
     "slug": "collaboration-rbac",
     "name": "Collaboration and RBAC",
@@ -76,7 +57,7 @@
     ]
   },
   {
-    "rank": 5,
+    "rank": 4,
     "stable_id": "dashboard-realtime",
     "slug": "dashboard-realtime",
     "name": "Dashboard Realtime",
@@ -95,7 +76,7 @@
     ]
   },
   {
-    "rank": 6,
+    "rank": 5,
     "stable_id": "window-scheduler",
     "slug": "window-scheduler",
     "name": "Window Scheduler",
@@ -110,6 +91,26 @@
     "evidence_sources": [
       "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md",
       "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md"
+    ]
+  },
+  {
+    "rank": 6,
+    "stable_id": "context-projection",
+    "slug": "context-projection",
+    "name": "Context Projection",
+    "summary": "Build model-ready context from structured project state instead of chat history.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 72,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "postgres-hybrid-data-model",
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
     ]
   },
   {
@@ -341,26 +342,6 @@
   },
   {
     "rank": 20,
-    "stable_id": "context-projection",
-    "slug": "context-projection",
-    "name": "Context Projection",
-    "summary": "Build model-ready context from structured project state instead of chat history.",
-    "status": "planned",
-    "ready_now": false,
-    "priority_score": 72,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "postgres-hybrid-data-model",
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
-    ]
-  },
-  {
-    "rank": 21,
     "stable_id": "backend-service-boundary-for-agents",
     "slug": "backend-service-boundary-for-agents",
     "name": "Backend Service Boundary For Agents",
@@ -377,6 +358,26 @@
     "evidence_sources": [
       ".planning/archive/objectives/backend-service-boundary-for-agents",
       "docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+    ]
+  },
+  {
+    "rank": 21,
+    "stable_id": "postgres-hybrid-data-model",
+    "slug": "postgres-hybrid-data-model",
+    "name": "Postgres Hybrid Data Model",
+    "summary": "Planning package present in .planning/archive/objectives/postgres-hybrid-data-model.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 92,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/postgres-hybrid-data-model",
+      "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
     ]
   },
   {

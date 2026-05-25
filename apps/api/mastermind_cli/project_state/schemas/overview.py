@@ -398,6 +398,41 @@ class DoctrineRuleResponse(BaseModel):
     check: str | None = Field(None, description="Validation or compliance check")
 
 
+class DoctrineRuleRequest(BaseModel):
+    """Single doctrine rule for a write request."""
+
+    rule_id: str
+    summary: str
+    severity: str = "mandatory"
+    check: str | None = None
+
+
+class DoctrineUpdateRequest(BaseModel):
+    """Request body for setting project-level doctrine (partial update)."""
+
+    methodology: str | None = None
+    methodology_reason: str | None = None
+    required_phases: list[str] | None = None
+    mandatory_rules: list[DoctrineRuleRequest] | None = None
+    recommended_rules: list[DoctrineRuleRequest] | None = None
+    architecture_constraints: list[str] | None = None
+    quality_gates: list[str] | None = None
+    exception_policy: dict[str, bool] | None = None
+
+
+class ProjectDoctrineResponse(BaseModel):
+    """Project-level doctrine state returned after a write."""
+
+    project_id: str
+    methodology: str
+    methodology_reason: str
+    required_phases: list[str]
+    mandatory_rules: list[DoctrineRuleResponse]
+    recommended_rules: list[DoctrineRuleResponse]
+    architecture_constraints: list[str]
+    quality_gates: list[str]
+
+
 class DoctrineMethodologyResponse(BaseModel):
     """Active methodology selection for a doctrine projection."""
 

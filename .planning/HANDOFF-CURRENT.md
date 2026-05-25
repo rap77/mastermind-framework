@@ -1,7 +1,7 @@
-# Handoff — postgres-hybrid-data-model
+# Handoff — engineering-doctrine-layer
 
 ## Current objective
-- `postgres-hybrid-data-model`
+- `engineering-doctrine-layer`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single global spec forever.

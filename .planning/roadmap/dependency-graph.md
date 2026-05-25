@@ -3,9 +3,9 @@
 ## Edges
 
 - `project-state-mvp` -> `backend-service-boundary-for-agents`
+- `project-state-mvp` -> `postgres-hybrid-data-model`
 - `project-state-mvp` -> `artifact-versioning-and-lineage`
 - `project-state-mvp` has no declared prerequisites
-- `project-state-mvp` -> `postgres-hybrid-data-model`
 - `project-state-mvp` -> `engineering-doctrine-layer`
 - `project-state-mvp` -> `token-cost-quality-telemetry`
 - `project-state-mvp` -> `collaboration-rbac`
@@ -29,4 +29,4 @@
 
 ## Recommended next active objective
 
-- `postgres-hybrid-data-model`
+- `engineering-doctrine-layer`

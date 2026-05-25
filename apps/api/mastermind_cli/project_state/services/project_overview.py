@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import re
+from typing import Any
 import uuid
 
 from sqlalchemy.orm import Session
@@ -37,6 +38,8 @@ from mastermind_cli.project_state.schemas.overview import (
     DoctrineMethodologyResponse,
     DoctrineProjectionResponse,
     DoctrineRuleResponse,
+    DoctrineUpdateRequest,
+    ProjectDoctrineResponse,
     LatestCheckpointResponse,
     ProjectCostSummaryResponse,
     ProjectDetailResponse,
@@ -325,6 +328,94 @@ class ProjectOverviewService:
             completion_criteria=task.completion_criteria,
             created_at=task.created_at,
             updated_at=task.updated_at,
+        )
+
+    def update_project_doctrine(
+        self, project_id: str, request: DoctrineUpdateRequest
+    ) -> ProjectDoctrineResponse | None:
+        """Merge doctrine fields into project.metadata_json["doctrine"]."""
+        project = self.projects.get_by_id(project_id)
+        if project is None:
+            return None
+
+        metadata: dict[str, Any] = deepcopy(
+            project.metadata_json if isinstance(project.metadata_json, dict) else {}
+        )
+        raw_doctrine = metadata.get("doctrine", {})
+        doctrine: dict[str, Any] = (
+            raw_doctrine if isinstance(raw_doctrine, dict) else {}
+        )
+
+        if request.methodology is not None:
+            doctrine["methodology"] = request.methodology
+        if request.methodology_reason is not None:
+            doctrine["methodology_reason"] = request.methodology_reason
+        if request.required_phases is not None:
+            doctrine["required_phases"] = request.required_phases
+        if request.mandatory_rules is not None:
+            doctrine["mandatory_rules"] = [
+                r.model_dump(exclude_none=True) for r in request.mandatory_rules
+            ]
+        if request.recommended_rules is not None:
+            doctrine["recommended_rules"] = [
+                r.model_dump(exclude_none=True) for r in request.recommended_rules
+            ]
+        if request.architecture_constraints is not None:
+            doctrine["architecture_constraints"] = request.architecture_constraints
+        if request.quality_gates is not None:
+            doctrine["quality_gates"] = request.quality_gates
+        if request.exception_policy is not None:
+            doctrine["exception_policy"] = request.exception_policy
+
+        metadata["doctrine"] = doctrine
+        project.metadata_json = metadata
+        project.updated_at = datetime.now(timezone.utc)
+        self.session.commit()
+
+        def _to_rule(raw: object) -> DoctrineRuleResponse:
+            d = raw if isinstance(raw, dict) else {}
+            return DoctrineRuleResponse(
+                rule_id=str(d.get("rule_id", "")),
+                summary=str(d.get("summary", "")),
+                severity=str(d.get("severity", "mandatory")),
+                check=str(d["check"]) if "check" in d else None,
+            )
+
+        mandatory = [
+            _to_rule(r)
+            for r in (doctrine.get("mandatory_rules") or [])
+            if isinstance(r, dict)
+        ]
+        recommended = [
+            _to_rule(r)
+            for r in (doctrine.get("recommended_rules") or [])
+            if isinstance(r, dict)
+        ]
+        return ProjectDoctrineResponse(
+            project_id=project_id,
+            methodology=str(doctrine.get("methodology", "SDD")),
+            methodology_reason=str(
+                doctrine.get(
+                    "methodology_reason", "cross-cutting project-state implementation"
+                )
+            ),
+            required_phases=[
+                str(p)
+                for p in (doctrine.get("required_phases") or [])
+                if isinstance(p, str)
+            ],
+            mandatory_rules=mandatory,
+            recommended_rules=recommended,
+            architecture_constraints=[
+                str(c)
+                for c in (doctrine.get("architecture_constraints") or [])
+                if isinstance(c, str)
+            ],
+            quality_gates=[
+                str(g)
+                for g in (doctrine.get("quality_gates") or [])
+                if isinstance(g, str)
+            ],
         )
 
     def __init__(self, session: Session) -> None:

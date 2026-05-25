@@ -1,4 +1,4 @@
-"""API tests for the project-state doctrine projection endpoint."""
+"""API tests for the project-state doctrine projection and write endpoints."""
 
 from __future__ import annotations
 
@@ -139,3 +139,92 @@ async def test_task_doctrine_projection_returns_seeded_projection(
     ]
     assert body["quality_gates"] == ["API and service tests must pass"]
     assert body["exception_policy"]["human_approval_required_for_overrides"] is True
+
+
+@pytest.mark.asyncio
+async def test_patch_project_doctrine_write_read_cycle(tmp_path: Path) -> None:
+    """PATCH doctrine then GET projection to verify the write is reflected."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {
+        "Authorization": f"Bearer {create_access_token('test-user-id-002')}"
+    }
+    session_factory = get_session_factory(database_url)
+    created_at = datetime.now(timezone.utc)
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-doctrine-write",
+                name="Project Doctrine Write",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+            )
+        )
+        session.add(
+            Task(
+                task_id="task-doctrine-write",
+                project_id="project-doctrine-write",
+                title="Task for doctrine write test",
+                status="pending",
+                priority="medium",
+                owner_type="agent",
+                owner_id="brain-01",
+                metadata_json={},
+                constraints={},
+                completion_criteria={},
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        session.commit()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        patch_response = await client.patch(
+            "/api/projects/project-doctrine-write/doctrine",
+            json={
+                "methodology": "TDD",
+                "methodology_reason": "reliability-critical path",
+                "required_phases": ["spec", "implementation", "review"],
+                "mandatory_rules": [
+                    {
+                        "rule_id": "write-tests-first",
+                        "summary": "Tests must be written before implementation",
+                        "severity": "mandatory",
+                    }
+                ],
+                "architecture_constraints": ["No direct DB access from routes"],
+                "quality_gates": ["All tests must pass before merge"],
+            },
+            headers=auth_headers,
+        )
+        assert patch_response.status_code == 200, patch_response.text
+        patch_body = patch_response.json()
+        assert patch_body["project_id"] == "project-doctrine-write"
+        assert patch_body["methodology"] == "TDD"
+        assert patch_body["methodology_reason"] == "reliability-critical path"
+        assert patch_body["required_phases"] == ["spec", "implementation", "review"]
+        assert patch_body["mandatory_rules"][0]["rule_id"] == "write-tests-first"
+        assert patch_body["architecture_constraints"] == [
+            "No direct DB access from routes"
+        ]
+        assert patch_body["quality_gates"] == ["All tests must pass before merge"]
+
+        projection_response = await client.get(
+            "/api/projects/project-doctrine-write/tasks/task-doctrine-write/doctrine-projection",
+            headers=auth_headers,
+        )
+        assert projection_response.status_code == 200, projection_response.text
+        proj_body = projection_response.json()
+        assert proj_body["methodology"]["active"] == "TDD"
+        assert proj_body["methodology"]["reason"] == "reliability-critical path"
+        assert proj_body["mandatory_rules"][0]["rule_id"] == "write-tests-first"
+        assert proj_body["architecture_constraints"] == [
+            "No direct DB access from routes"
+        ]

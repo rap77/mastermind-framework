@@ -22,6 +22,8 @@ from mastermind_cli.project_state.schemas.overview import (
     DecisionDetailResponse,
     DecisionListResponse,
     DoctrineProjectionResponse,
+    DoctrineUpdateRequest,
+    ProjectDoctrineResponse,
     LatestCheckpointResponse,
     ProjectCostSummaryResponse,
     ProjectDetailResponse,
@@ -415,6 +417,27 @@ async def get_project_task_doctrine_projection(
     if projection is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return projection
+
+
+@router.patch(
+    "/{project_id}/doctrine",
+    response_model=ProjectDoctrineResponse,
+)
+async def update_project_doctrine(
+    project_id: str,
+    request: DoctrineUpdateRequest,
+    user_id: str = Depends(get_current_user_any),
+    database_url: str = Depends(get_project_state_db_url),
+) -> ProjectDoctrineResponse:
+    """Set or merge project-level doctrine into project metadata."""
+    del user_id  # Reserved for future RBAC/ownership checks.
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        result = service.update_project_doctrine(project_id, request)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return result
 
 
 _SSE_HEARTBEAT_INTERVAL_SECONDS = 20
