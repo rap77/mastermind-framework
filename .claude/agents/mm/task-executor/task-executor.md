@@ -256,23 +256,9 @@ Before committing, ensure:
 
 ### Phase 6: Checkpoint
 
-Save state to ALL THREE:
+**Do not edit progress files manually.** `task-progress.json`, `execution-state.json`,
+`todo.md`, and `HANDOFF-CURRENT.md` are all **handler-managed projections/state**.
 
-**1. task-progress.json:**
-```json
-{
-  "subtasks": {
-    "D2.1": {
-      "status": "completed",
-      "completed_at": "2026-04-17T...",
-      "commit_sha": "<sha>"
-    }
-  },
-  "last_checkpoint": "D2.1"
-}
-```
-
-**2. Objective todo + execution state (CRITICAL — handler-managed):**
 After each successful subtask, do BOTH steps in order:
 
 **Step A — Mark completion via handler:**
@@ -519,7 +505,7 @@ When all subtasks complete (or you exit due to context limit):
 5. **Continue on failure** (mark failed, move to next)
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
-8. **Use handler commands as the single writer for progress** — `--mark-in-progress` and `--mark-done` own execution-state, todo, and handoff synchronization.
+8. **Use handler commands as the single writer for progress** — `--mark-in-progress` and `--mark-done` own `task-progress.json`, `execution-state.json`, `todo.md`, and `HANDOFF-CURRENT.md`.
 9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
 10. **ALWAYS call `update-todo-times.py` after EACH subtask** (not just at the end) — this is what makes progress visible in real-time: `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 

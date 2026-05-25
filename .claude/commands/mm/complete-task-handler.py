@@ -517,6 +517,92 @@ def get_root_task_statuses(todo_path: Path) -> list[tuple[str, str, str]]:
     ]
 
 
+def checkbox_for_status(status: str) -> str:
+    """Map durable/runtme status names to todo checkbox characters."""
+    if status == "completed":
+        return "x"
+    if status == "in_progress":
+        return "~"
+    return " "
+
+
+def sync_objective_todo_from_state(task_id: str) -> None:
+    """Project todo.md checkbox state from durable objective execution state.
+
+    The objective execution ledger is the source of truth. This function rewrites
+    parent and subtask checkboxes so manual edits in todo.md cannot get ahead of
+    the durable state.
+    """
+    objective_state = load_objective_state(task_id=task_id)
+    if not objective_state:
+        return
+
+    try:
+        plan_path, todo_path = get_active_paths(task_id)
+        todo_content = todo_path.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError, ValueError):
+        return
+
+    original_content = todo_content
+    for root_id in get_task_ids_from_plan(plan_path):
+        task_entry = objective_state.get("tasks", {}).get(root_id, {})
+        todo_content = re.sub(
+            rf"(^-\s\[[ x~]\]\s+){re.escape(root_id)}:",
+            rf"\g<1>{root_id}:",
+            todo_content,
+            count=0,
+            flags=re.MULTILINE,
+        )
+
+        parent_checkbox = checkbox_for_status(task_entry.get("status", "pending"))
+        todo_content = re.sub(
+            rf"(^-\s\[)([ x~])(\]\s+{re.escape(root_id)}:)",
+            rf"\g<1>{parent_checkbox}\g<3>",
+            todo_content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+
+        for subtask_id, subtask_entry in task_entry.get("subtasks", {}).items():
+            desired = checkbox_for_status(subtask_entry.get("status", "pending"))
+            todo_content = re.sub(
+                rf"(^\s*-\s\[)([ x~])(\]\s+{re.escape(subtask_id)}:)",
+                rf"\g<1>{desired}\g<3>",
+                todo_content,
+                count=1,
+                flags=re.MULTILINE,
+            )
+
+    if todo_content != original_content:
+        try:
+            todo_path.write_text(todo_content, encoding="utf-8")
+        except OSError as exc:
+            mm_error(f"Failed to sync objective todo from durable state: {exc}")
+            return
+
+    sync_objective_handoff(task_id)
+
+
+def get_execution_subtasks(task_id: str) -> list[dict[str, Any]]:
+    """Read subtasks for execution, preferring durable objective state over todo."""
+    sync_objective_todo_from_state(task_id)
+    subtasks = read_subtasks_from_todo(task_id)
+    objective_state = load_objective_state(task_id=task_id)
+    if not objective_state:
+        return subtasks
+
+    task_entry = objective_state.get("tasks", {}).get(task_id, {})
+    durable_subtasks = task_entry.get("subtasks", {})
+    if not durable_subtasks:
+        return subtasks
+
+    for subtask in subtasks:
+        durable = durable_subtasks.get(subtask["id"])
+        if durable:
+            subtask["completed"] = durable.get("status") == "completed"
+    return subtasks
+
+
 def bootstrap_objective_state_from_artifacts(
     objective_slug: str, plan_path: Path, todo_path: Path
 ) -> dict[str, Any]:
@@ -1873,20 +1959,15 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
     try:
         source = resolve_task_source(task_id)
         task = read_task_from_plan(task_id)
-        subtasks = read_subtasks_from_todo(task_id)
-        git_completed = get_git_commits_for_task(task_id)
+        subtasks = get_execution_subtasks(task_id)
 
-        # Filter to pending subtasks only
-        pending_subtasks = [
-            st
-            for st in subtasks
-            if st["id"] not in git_completed and not st["completed"]
-        ]
+        # Filter to pending subtasks from durable state only. Git history is
+        # informational, not a progress source of truth in the objective flow.
+        pending_subtasks = [st for st in subtasks if not st["completed"]]
 
-        # Mark parent as [~] in todo.md if some subtasks are done but not all
-        has_completed = any(
-            st["completed"] or st["id"] in git_completed for st in subtasks
-        )
+        # Mark parent as [~] in todo.md if some subtasks are done but not all.
+        # This is safe because todo is reprojected from objective state first.
+        has_completed = any(st["completed"] for st in subtasks)
         has_pending = len(pending_subtasks) > 0
         if has_completed and has_pending and source.todo_path.exists():
             try:
@@ -2012,6 +2093,7 @@ def start_task(task_id: str) -> None:
     mm_info(
         f"Planning source: {source.mode} ({source.plan_path.relative_to(PROJECT_ROOT)})"
     )
+    sync_objective_todo_from_state(task_id)
 
     # Gate: previous task must have all acceptance criteria verified
     if not check_previous_criteria_complete(task_id):
@@ -2019,7 +2101,7 @@ def start_task(task_id: str) -> None:
 
     # Read task and subtasks
     task = read_task_from_plan(task_id)
-    subtasks = read_subtasks_from_todo(task_id)
+    subtasks = get_execution_subtasks(task_id)
 
     mm_task(task_id, task["title"])
 
@@ -2028,27 +2110,17 @@ def start_task(task_id: str) -> None:
         status = "[x]" if st["completed"] else "[ ]"
         mm_subtask(st["id"], status, st["description"])
 
-    # Check git for existing commits
+    # Git commits are informative only in the objective flow; they are not the
+    # source of truth for completion.
     git_completed = get_git_commits_for_task(task_id)
-    expected_ids = {f"{task_id}.{i+1}" for i in range(len(subtasks))}
-
     mm_git(len(git_completed), len(subtasks), sorted(git_completed))
 
-    # Check if task is complete
-    if git_completed == expected_ids:
-        mm_status("TASK COMPLETE - all subtasks have git commits")
-        mark_all_complete(task_id, subtasks)
-        run_criteria_verification(task_id)
-        return
-
-    # Filter pending subtasks
-    pending_subtasks = [
-        st for st in subtasks if st["id"] not in git_completed and not st["completed"]
-    ]
+    # Filter pending subtasks from durable execution state.
+    pending_subtasks = [st for st in subtasks if not st["completed"]]
 
     if not pending_subtasks:
-        mm_status("TASK COMPLETE - marking done")
-        mark_all_complete(task_id, subtasks)
+        mm_status("TASK COMPLETE - all subtasks completed in durable state")
+        sync_objective_todo_from_state(task_id)
         run_criteria_verification(task_id)
         return
 
@@ -2106,6 +2178,8 @@ def resume_task(task_id: str) -> None:
     if state.get("task_id") != task_id:
         mm_error(f"Runtime state is for task {state.get('task_id')}, not {task_id}")
         return
+
+    sync_objective_todo_from_state(task_id)
 
     mm_info(f"Previous session: {state['session_id']}")
     mm_info(f"Last checkpoint: {state.get('last_checkpoint', 'none')}")
@@ -2219,77 +2293,14 @@ def resume_task(task_id: str) -> None:
 
 
 def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
-    """Mark all subtasks as complete in todo.md and commit.
+    """Legacy no-op retained only for backward compatibility.
 
-    Note: This does NOT verify acceptance criteria in plan.md.
-    Use verify-criteria-handler.py to manually verify what was implemented.
-
-    Args:
-        task_id: Task identifier.
-        subtasks: List of subtask dicts.
+    Objective-flow completion must come from handler-managed subtask checkpoints,
+    never from bulk checkbox mutation or git-commit inference.
     """
-    # Mark in todo.md (supports both V1 and V2 formats)
-    _, todo_path = get_active_paths(task_id)
-    todo_content = todo_path.read_text()
-
-    def replace_todo_checkboxes(match: re.Match[str]) -> str:
-        section = match.group(0)
-        # Replace both [ ] and [~] with [x] (pending and in-progress -> completed)
-        section = re.sub(r"- \[ \]", "- [x]", section)
-        section = re.sub(r"- \[~\]", "- [x]", section)
-        # Also replace V2 indented checkboxes
-        section = re.sub(r"  - \[ \]", "  - [x]", section)
-        section = re.sub(r"  - \[~\]", "  - [x]", section)
-        return section
-
-    # Try V2 format first (hierarchical list)
-    v2_pattern = (
-        rf"(^-\s\[([ x~])\]\s+{re.escape(task_id)}:.*?)(?=^##|^-\s\[[ x~]\]\s+[A-Z]|\Z)"
+    mm_error(
+        f"mark_all_complete({task_id}) is deprecated in the objective flow. Use --mark-done per subtask."
     )
-    if re.search(v2_pattern, todo_content, re.MULTILINE | re.DOTALL):
-        todo_content = re.sub(
-            v2_pattern,
-            replace_todo_checkboxes,
-            todo_content,
-            flags=re.MULTILINE | re.DOTALL,
-        )
-    else:
-        # Fall back to V1 format (heading-based)
-        v1_pattern = rf"(### {task_id}:.*?)(?=\n###|\n---|\Z)"
-        todo_content = re.sub(
-            v1_pattern, replace_todo_checkboxes, todo_content, flags=re.DOTALL
-        )
-
-    todo_path.write_text(todo_content)
-
-    # Commit todo.md only
-    task = read_task_from_plan(task_id)
-    task_letter = task_id[0]
-    commit_msg = f"feat(phase-{task_letter}): {task['title']}"
-
-    subprocess.run(
-        ["git", "add", str(todo_path.relative_to(PROJECT_ROOT))],
-        cwd=PROJECT_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    result = subprocess.run(
-        ["git", "commit", "-m", commit_msg],
-        cwd=PROJECT_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode == 0:
-        mm_info(f"Committed: {commit_msg}")
-        mm_info(
-            "NOTE: verify-criteria-handler.py manages acceptance criteria verification"
-        )
-    else:
-        mm_info("No changes to commit")
-    sync_objective_handoff(task_id)
 
 
 def show_status() -> None:
@@ -2308,8 +2319,12 @@ def show_status() -> None:
         if not tasks_path.exists() or not todo_path.exists():
             continue
         print(f"\n  [{objective_dir.name}]", flush=True)
+        objective_state = load_objective_state(objective_slug=objective_dir.name)
+        if objective_state and objective_state.get("tasks"):
+            first_task_ids = get_task_ids_from_plan(tasks_path)
+            if first_task_ids:
+                sync_objective_todo_from_state(first_task_ids[0])
         objective_content = tasks_path.read_text(encoding="utf-8")
-        objective_todo = todo_path.read_text(encoding="utf-8")
         for match in re.finditer(
             r"^## ([A-Z]{1,4}\d+):([^\n]+)$", objective_content, re.MULTILINE
         ):
@@ -2321,15 +2336,25 @@ def show_status() -> None:
             elif durable_status == "in_progress":
                 checkbox_state = "~"
             else:
-                parent_match = re.search(
-                    rf"^-\s\[([ x~])\]\s+{re.escape(task_id)}:",
-                    objective_todo,
-                    re.MULTILINE,
-                )
-                checkbox_state = parent_match.group(1) if parent_match else " "
-            subtasks = read_subtasks_from_todo(task_id)
-            completed = sum(1 for st in subtasks if st["completed"])
-            total = len(subtasks)
+                checkbox_state = " "
+
+            objective_state = load_objective_state(task_id=task_id)
+            task_entry = (
+                objective_state.get("tasks", {}).get(task_id, {})
+                if objective_state
+                else {}
+            )
+            subtask_entries = task_entry.get("subtasks", {})
+            total = len(subtask_entries) or len(read_subtasks_from_todo(task_id))
+            completed = sum(
+                1
+                for subtask in subtask_entries.values()
+                if subtask.get("status") == "completed"
+            )
+            if not subtask_entries:
+                subtasks = read_subtasks_from_todo(task_id)
+                completed = sum(1 for st in subtasks if st["completed"])
+                total = len(subtasks)
             if checkbox_state == "x":
                 status = "✅"
             elif checkbox_state == "~":

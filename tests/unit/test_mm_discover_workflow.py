@@ -391,6 +391,80 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "- [x] PS1.1: Review requirements and design context for PS1", todo_text
         )
 
+    def test_start_task_reprojects_manual_todo_drift_from_objective_state(self) -> None:
+        """Manual todo edits must be overwritten from durable objective state before execution."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        objective_state["tasks"]["PS1"]["status"] = "in_progress"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"] = "completed"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.2"]["status"] = "pending"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"] = "pending"
+        objective_state_path.write_text(json.dumps(objective_state), encoding="utf-8")
+
+        todo_path = objective_dir / "todo.md"
+        drifted = todo_path.read_text(encoding="utf-8")
+        drifted = drifted.replace("- [ ] PS1:", "- [x] PS1:")
+        drifted = drifted.replace("- [ ] PS1.2:", "- [x] PS1.2:")
+        drifted = drifted.replace("- [ ] PS1.3:", "- [x] PS1.3:")
+        todo_path.write_text(drifted, encoding="utf-8")
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+        repaired_todo = todo_path.read_text(encoding="utf-8")
+        self.assertIn("- [~] PS1: Realtime events for project_state", repaired_todo)
+        self.assertIn(
+            "- [x] PS1.1: Review requirements and design context for PS1", repaired_todo
+        )
+        self.assertIn("- [ ] PS1.2: Implement PS1 end-to-end", repaired_todo)
+        self.assertIn("- [ ] PS1.3: Run validation for PS1", repaired_todo)
+        self.assertIn("PENDING: 2 subtasks to execute", result.stdout)
+
+    def test_show_status_uses_durable_state_not_manual_todo_checkboxes(self) -> None:
+        """Status output must reflect execution-state truth even if todo.md was manually advanced."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        objective_state["tasks"]["PS1"]["status"] = "in_progress"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"] = "completed"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.2"]["status"] = "pending"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"] = "pending"
+        objective_state_path.write_text(json.dumps(objective_state), encoding="utf-8")
+
+        todo_path = objective_dir / "todo.md"
+        drifted = todo_path.read_text(encoding="utf-8")
+        drifted = drifted.replace("- [ ] PS1:", "- [x] PS1:")
+        drifted = drifted.replace("- [ ] PS1.2:", "- [x] PS1.2:")
+        drifted = drifted.replace("- [ ] PS1.3:", "- [x] PS1.3:")
+        todo_path.write_text(drifted, encoding="utf-8")
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "--status")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("PS1 [~] 1/3", result.stdout)
+
     def test_starting_new_root_task_preserves_previous_objective_history(self) -> None:
         """Starting the next root task must not erase durable status of the previous one."""
         discover_result = self.run_command(
