@@ -4,7 +4,7 @@
   "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/artifact-versioning-and-lineage/todo.md",
   "tasks": {
     "AV1": {
-      "status": "in_progress",
+      "status": "completed",
       "subtasks": {
         "AV1.1": {
           "description": "Review requirements and design context for AV1",
@@ -16,23 +16,23 @@
         },
         "AV1.2": {
           "description": "Implement AV1 end-to-end (models + repository + tests TDD)",
-          "status": "in_progress",
+          "status": "completed",
           "started_at": "2026-05-24T22:44:14.408328",
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": "2026-05-24T22:44:14.408328"
+          "completed_at": "2026-05-25T07:00:35.042126",
+          "duration_seconds": 29780.63,
+          "updated_at": "2026-05-25T07:00:35.042126"
         },
         "AV1.3": {
           "description": "Run validation for AV1",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T07:00:35.201757",
+          "completed_at": "2026-05-25T07:00:35.304303",
+          "duration_seconds": 0.1,
+          "updated_at": "2026-05-25T07:00:35.304303"
         }
       },
       "started_at": "2026-05-24T22:43:33.947545",
-      "completed_at": null,
+      "completed_at": "2026-05-25T07:00:35.304303",
       "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/artifact-versioning-and-lineage/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/artifact-versioning-and-lineage/todo.md"
     },
@@ -103,6 +103,6 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/artifact-versioning-and-lineage/todo.md"
     }
   },
-  "updated_at": "2026-05-24T22:44:14.408328",
+  "updated_at": "2026-05-25T07:00:35.304303",
   "bootstrapped_from_artifacts": true
 }

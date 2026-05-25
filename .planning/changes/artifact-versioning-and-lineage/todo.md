@@ -3,6 +3,9 @@
 ## Execution Checklist
 
 - [x] AV1: Schema foundation — artifact_versions + artifact_links
+⏱️ **Estimate**: N/A | **Actual**: 8.3h | **Deviation**: N/A | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 2.8h | **ETA**: 8.3h
+
   - [x] AV1.1: Review requirements and design context for AV1
   - [x] AV1.2: Implement AV1 end-to-end (models + repository + tests TDD)
   - [x] AV1.3: Run validation for AV1

@@ -9,16 +9,13 @@
 - Sesiones en tests usan `session_factory()` bare (sin `with`) — ResourceWarnings esperados, I-2 del code review. No bloqueante.
 
 ## Completed tasks
-- [x] AV1: Schema foundation — 9 pytest passed, code review PASS (0 Critical, 2 Important, 3 Suggestions no-bloqueantes).
-  - `ArtifactVersion`, `ArtifactLink` modelos en `project_state/models/artifact.py`
-  - `ArtifactRepository` en `project_state/repositories/artifacts.py`
-  - Tests en `tests/api/test_artifact_lineage.py`
+- [x] AV1: Schema foundation — artifact_versions + artifact_links
 
 ## Blockers / risks
 - Ninguno. AV1 desbloqueó AV2.
 
 ## Exact next recommended task
-- `AV2` — Lineage service: `get_artifact_lineage()` + `ArtifactLineageResponse` schema.
+- `AV2` from `tasks.md` — depends on AV1.
 
 ## Validation commands
 - cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_artifact_lineage.py
