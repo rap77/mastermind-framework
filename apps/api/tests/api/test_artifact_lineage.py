@@ -6,7 +6,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
+from mastermind_cli.api.app import create_app
+from mastermind_cli.api.dependencies import get_db_path, get_project_state_db_url
+from mastermind_cli.api.routes.auth import create_access_token
 from mastermind_cli.project_state.database.session import (
     dispose_engines,
     get_session_factory,
@@ -18,6 +23,20 @@ from mastermind_cli.project_state.repositories.artifacts import ArtifactReposito
 from mastermind_cli.project_state.services.project_overview import (
     ProjectOverviewService,
 )
+
+
+def _build_test_app(db_path: str, project_state_db_url: str) -> FastAPI:
+    app = create_app(db_path)
+
+    async def _override_db_path() -> str:
+        return db_path
+
+    async def _override_project_state_db_url() -> str:
+        return project_state_db_url
+
+    app.dependency_overrides[get_db_path] = _override_db_path
+    app.dependency_overrides[get_project_state_db_url] = _override_project_state_db_url
+    return app
 
 
 @pytest.fixture()
@@ -384,3 +403,84 @@ def test_get_artifact_lineage_versions_ordered_ascending(
 
     assert result is not None
     assert [v.version for v in result.versions] == [1, 2, 3]
+
+
+# ---------------------------------------------------------------------------
+# AV3 — HTTP endpoint: GET /api/projects/{project_id}/artifacts/{artifact_id}/lineage
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_artifact_lineage_endpoint_returns_200(tmp_path: Path) -> None:
+    """GET lineage returns 200 with the causal graph for a known artifact."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {"Authorization": f"Bearer {create_access_token('test-user')}"}
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+
+    project_id = "proj-av3-001"
+    artifact_id = "artifact-av3-001"
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id=project_id,
+                name="AV3 Project",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+            )
+        )
+        session.add(
+            ArtifactVersion(
+                version_id="ver-av3-001",
+                artifact_id=artifact_id,
+                project_id=project_id,
+                artifact_type="task",
+                version=1,
+                content_hash="sha256:abc",
+                created_at=now,
+                metadata_json={},
+            )
+        )
+        session.commit()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(
+            f"/api/projects/{project_id}/artifacts/{artifact_id}/lineage",
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["artifact_id"] == artifact_id
+    assert len(data["versions"]) == 1
+    assert data["links"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_artifact_lineage_endpoint_returns_404_for_unknown(
+    tmp_path: Path,
+) -> None:
+    """GET lineage returns 404 when the artifact_id has no versions."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {"Authorization": f"Bearer {create_access_token('test-user')}"}
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(
+            "/api/projects/any-project/artifacts/does-not-exist/lineage",
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 404

@@ -15,6 +15,7 @@ from mastermind_cli.project_state.database.session import get_session_factory
 from mastermind_cli.project_state.schemas.overview import (
     ActiveRunsResponse,
     ActivityFeedResponse,
+    ArtifactLineageResponse,
     CreateCheckpointRequest,
     CreateDecisionRequest,
     DecisionDetailResponse,
@@ -482,3 +483,24 @@ async def stream_project_state_events(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get(
+    "/{project_id}/artifacts/{artifact_id}/lineage",
+    response_model=ArtifactLineageResponse,
+)
+async def get_artifact_lineage(
+    project_id: str,
+    artifact_id: str,
+    user_id: str = Depends(get_current_user_any),
+    database_url: str = Depends(get_project_state_db_url),
+) -> ArtifactLineageResponse:
+    """Return the causal lineage graph for an artifact."""
+    del user_id
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        lineage = service.get_artifact_lineage(artifact_id)
+    if lineage is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return lineage

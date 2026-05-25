@@ -10,12 +10,14 @@
 
 ## Completed tasks
 - [x] AV1: Schema foundation — artifact_versions + artifact_links
+- [x] AV2: Lineage service — get_artifact_lineage()
+- [x] AV3: Lineage read endpoint
 
 ## Blockers / risks
 - Ninguno. AV1 desbloqueó AV2.
 
 ## Exact next recommended task
-- `AV2` from `tasks.md` — depends on AV1.
+- Objective package has no pending root tasks.
 
 ## Validation commands
 - cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_artifact_lineage.py
