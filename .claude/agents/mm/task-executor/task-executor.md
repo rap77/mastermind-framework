@@ -61,25 +61,22 @@ For each subtask in the list:
 
 ### Step 0: Mark subtask as in_progress
 
-**FIRST action before anything else — do BOTH steps:**
+**FIRST action before anything else — call the handler:**
 
-**Step 0a — Update task-progress.json:**
+**Step 0 — Update execution state via handler:**
 ```bash
 python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress {subtask_id}
 ```
 
-**Step 0b — Edit todo.md directly with the Edit tool** (this is what makes it visible in real-time):
-1. Read `payload.todo_path`
-2. Find the subtask line: `- [ ] {subtask_id}:`
-3. Change `[ ]` to `[~]` on that exact line using the Edit tool
-4. Also change the parent task line `- [ ] {task_id}:` to `- [~] {task_id}:` if not already `[~]`
+This command is the **only** authorized writer for progress state. It updates:
+- `.planning/task-progress.json` (current execution session)
+- `.planning/changes/<objective>/execution-state.json` (durable objective ledger)
+- `.planning/changes/<objective>/todo.md` (projected checklist)
+- `.planning/changes/<objective>/HANDOFF-CURRENT.md` (projected next step)
 
-**Why direct Edit?** The Edit tool writes immediately to disk — the user sees the update in their editor the moment it happens. The handler subprocess updates state, but direct Edit gives instant visual feedback.
-
-**Critical restriction:** use direct Edit only for the temporary `[~]` in-progress visual.
-Do **not** manually mark a subtask or parent as `[x]`, and do **not** manually advance
-`HANDOFF-CURRENT.md`. Completion and handoff progression must come from the handler
-(`--mark-done`) so runtime truth remains authoritative.
+**Critical restriction:** do **not** manually edit checkbox state in `todo.md` and do **not**
+manually advance `HANDOFF-CURRENT.md`. Completion and handoff progression must come
+from handler commands so runtime truth remains authoritative.
 
 **Example — starting D1.02:**
 ```
@@ -275,26 +272,19 @@ Save state to ALL THREE:
 }
 ```
 
-**2. tasks/todo.md (CRITICAL — user-visible checklist):**
-After each successful subtask, do ALL THREE steps in order:
+**2. Objective todo + execution state (CRITICAL — handler-managed):**
+After each successful subtask, do BOTH steps in order:
 
-**Step A — Edit todo.md directly with the Edit tool** (immediate visual feedback):
-1. Read `tasks/todo.md`
-2. Find `- [~] {subtask_id}:` (marked in-progress at Step 0)
-3. Change `[~]` to `[x]` using the Edit tool
-4. If ALL siblings are now `[x]`, also change parent `- [~] {task_id}:` to `- [x] {task_id}:`
-
-```
-Before: - [~] D1.02: Frontend: implementar layout...
-After:  - [x] D1.02: Frontend: implementar layout...
-```
-
-**Step B — Update task-progress.json via handler:**
+**Step A — Mark completion via handler:**
 ```bash
 python3 .claude/commands/mm/complete-task-handler.py --mark-done {subtask_id}
 ```
 
-**Step C — Update time tracking header:**
+This is the canonical checkpoint. It updates runtime state, durable objective state,
+checkbox projections in `todo.md`, parent propagation, handoff synchronization, and
+completion notification when the root task finishes.
+
+**Step B — Update time tracking header:**
 ```bash
 python3 .claude/commands/mm/update-todo-times.py {task_id}
 ```
@@ -305,12 +295,11 @@ This updates the `todo.md` header with real-time metrics:
 📊 Avg/subtask: 15m | ETA: 1.25h remaining
 ```
 
-**Why three steps?**
-- Step A: Direct Edit = instant visual feedback for the user watching the file
-- Step B: Handler = correct state in task-progress.json + propagation logic
-- Step C: Time script = progress metrics in the todo.md header
+**Why two steps?**
+- Step A: Handler = single writer for progress truth + projections
+- Step B: Time script = progress metrics in the todo.md header
 
-Never bypass Step B. If Step A says `[x]` but Step B did not run, the flow is inconsistent.
+Never bypass Step A. If code changed but `--mark-done` did not run, the flow is inconsistent.
 
 **3. Engram via mem_save:**
 ```javascript
@@ -453,7 +442,7 @@ Never stop the entire batch. Always continue to next subtask.
 
 **Only run this phase when ALL subtasks in the task are done (no more pending).**
 
-Run the verify-criteria handler to check acceptance criteria in `tasks/plan.md`:
+Run the verify-criteria handler to check acceptance criteria in the objective `tasks.md` package:
 
 ```bash
 python3 .claude/commands/mm/verify-criteria-handler.py {task_id} --verify
@@ -530,13 +519,14 @@ When all subtasks complete (or you exit due to context limit):
 5. **Continue on failure** (mark failed, move to next)
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
-8. **Update todo.md with DIRECT EDIT + handler** — Edit tool for instant visual feedback ([~]→[x]), then `--mark-done` for state propagation. Both are required.
+8. **Use handler commands as the single writer for progress** — `--mark-in-progress` and `--mark-done` own execution-state, todo, and handoff synchronization.
 9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
 10. **ALWAYS call `update-todo-times.py` after EACH subtask** (not just at the end) — this is what makes progress visible in real-time: `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 
 ## Files
 
-- `tasks/plan.md` — Task definitions with acceptance criteria
-- `tasks/todo.md` — Task checklist (UPDATED ON CHECKPOINT — user-visible progress)
-- `.planning/task-progress.json` — Runtime state (checkpoint)
+- `.planning/changes/<objective>/tasks.md` — Task definitions with acceptance criteria
+- `.planning/changes/<objective>/todo.md` — Task checklist (projected from handler-managed state)
+- `.planning/changes/<objective>/execution-state.json` — Durable objective execution ledger
+- `.planning/task-progress.json` — Active runtime session / current task checkpoint
 - `.planning/.agent-{task_id}-running` — Agent marker file

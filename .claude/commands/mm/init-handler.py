@@ -146,9 +146,7 @@ COMMANDS_WHITELIST = {
     "complete-task.md",
     "continue-task.md",
     "discover-contract-check.md",
-    "execute-milestone.md",
-    "execute-prp.md",
-    "verify-criteria.md",
+    "archive-objective.md",
     # Brain consultation
     "ask-all.md",
     "ask-product.md",
@@ -191,12 +189,9 @@ AGENTS_WHITELIST = {
     "brain-05-backend",
     "brain-06-qa",
     "brain-07-growth",
-    "discover-planner",
-    "rediscovery-auditor",
     "roadmap-planner",
     "objective-packager",
     "task-executor",
-    "milestone-executor",
     "code-reviewer",
     "ship-executor",
 }

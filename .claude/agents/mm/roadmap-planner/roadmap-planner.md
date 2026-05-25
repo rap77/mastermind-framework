@@ -36,8 +36,8 @@ Do not generate an archaeology roadmap from code alone.
 - `.planning/SOURCE-OF-TRUTH.md`
 
 ### Tier 2 — Planning state
-- `tasks/plan.md`
-- `tasks/todo.md`
+- `.planning/roadmap/objectives.md`
+- `.planning/changes/<objective>/tasks.md`
 - `.planning/changes/**`
 - `.planning/archive/**`
 - `.planning/HANDOFF-*`

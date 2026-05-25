@@ -70,7 +70,7 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 
 **`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` and automatically runs acceptance-criteria verification. No agent needed.
 
-**IMPORTANT**: `/mm:complete-task` already triggers `verify-criteria-handler.py` when all subtasks are done. The user may still run `/mm:verify-criteria <task-id>` manually to inspect or re-run verification, but acceptance checking is part of the normal completion flow.
+**IMPORTANT**: `/mm:complete-task` already triggers `verify-criteria-handler.py` when all subtasks are done. Acceptance checking is part of the normal completion flow.
 
 **Handler ERROR**: Show error to user, suggest next steps.
 
@@ -127,8 +127,8 @@ Resume reads `task-progress.json` and continues from last checkpoint.
 
 `/mm:complete-task` is the execution phase of an already-planned task. It must:
 
-1. read `tasks/plan.md`
-2. read `tasks/todo.md`
+1. read `.planning/changes/<objective>/tasks.md`
+2. read `.planning/changes/<objective>/todo.md`
 3. respect dependency ordering
 4. execute only the pending subtasks of the requested task
 5. validate before marking progress
@@ -143,7 +143,7 @@ If the plan is ambiguous or contradictory, stop and escalate instead of redesign
     ↓
 Python handler (complete-task-handler.py)
     ↓
-Reads plan.md + todo.md
+Reads objective `tasks.md` + `todo.md`
     ↓
 Checks git for existing commits
     ↓
@@ -164,9 +164,10 @@ Notification when complete
 
 - `.planning/changes/<objective>/tasks.md` — Objective-scoped task definitions
 - `.planning/changes/<objective>/todo.md` — Objective-scoped execution checklist helper
+- `.planning/changes/<objective>/execution-state.json` — Durable execution ledger for the objective
 - `.claude/commands/mm/complete-task-handler.py` — Python handler
 - `.claude/agents/mm/task-executor/task-executor.md` — Background agent
-- `.planning/task-progress.json` — Runtime state
+- `.planning/task-progress.json` — Runtime state for the active task/session
 
 ## Example Output
 

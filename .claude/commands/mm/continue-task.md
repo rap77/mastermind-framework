@@ -24,8 +24,9 @@ This command is equivalent to:
 
 ## Required Inputs
 
-- `task-progress.json` must exist for the task
+- `.planning/task-progress.json` must exist for the task
 - the objective package paths recorded in `task-progress.json` must still exist
+- `.planning/changes/<objective>/execution-state.json` should exist to preserve durable task history across root tasks
 
 ## Continuation Contract
 

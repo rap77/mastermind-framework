@@ -94,6 +94,16 @@ class ObjectiveCandidate:
     dependencies: list[str] = field(default_factory=list)
 
 
+OBJECTIVE_SLUG_ALIASES: dict[str, str] = {
+    "project-state": "project-state-mvp",
+}
+
+
+def canonical_objective_slug(slug: str) -> str:
+    """Normalize known alias slugs to the canonical roadmap objective slug."""
+    return OBJECTIVE_SLUG_ALIASES.get(slug, slug)
+
+
 def read_text(path: Path) -> str:
     """Read UTF-8 text from a path, returning an empty string if absent."""
     if not path.exists() or not path.is_file():
@@ -116,7 +126,8 @@ def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
         slug_source = handoff_path.stem.replace("HANDOFF-", "")
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", slug_source):
             continue
-        slug = slugify(re.sub(r"-\d{4}-\d{2}-\d{2}$", "", slug_source))
+        raw_slug = slugify(re.sub(r"-\d{4}-\d{2}-\d{2}$", "", slug_source))
+        slug = canonical_objective_slug(raw_slug)
         text = read_text(handoff_path)
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         goal_line = next((line for line in lines if line.startswith("## Goal")), "")
@@ -128,6 +139,12 @@ def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
         next_step_section = "Supports continuity for the next implementation slice."
         if "Best next steps" in text or "next steps" in text.lower():
             next_step_section = "Already has identified next implementation slices."
+        status = "active"
+        if raw_slug != slug:
+            status = "stale"
+            next_step_section = (
+                "Historical handoff merged into the canonical objective alias."
+            )
         candidates.append(
             ObjectiveCandidate(
                 slug=slug,
@@ -135,7 +152,7 @@ def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
                 summary=summary
                 or f"Continuation package derived from {handoff_path.name}.",
                 why_it_matters=next_step_section,
-                status="active",
+                status=status,
                 mvp=True,
                 evidence_sources=[str(handoff_path.relative_to(root_dir))],
             )
@@ -148,21 +165,47 @@ def collect_change_directory_candidates(root_dir: Path) -> list[ObjectiveCandida
     candidates: list[ObjectiveCandidate] = []
     for state_dir, status in (
         (root_dir / ".planning" / "changes", "active"),
-        (root_dir / ".planning" / "archive", "done"),
+        (root_dir / ".planning" / "archive" / "objectives", "done"),
     ):
         if not state_dir.exists():
             continue
         for child in sorted(state_dir.iterdir()):
             if not child.is_dir() or child.name.startswith("_"):
                 continue
+            slug = canonical_objective_slug(child.name)
             summary = f"Planning package present in {child.relative_to(root_dir)}."
+            child_status = status
+            if state_dir.name == "changes":
+                execution_state_path = child / "execution-state.json"
+                handoff_path = child / "HANDOFF-CURRENT.md"
+                execution_state_text = read_text(execution_state_path)
+                handoff_text = read_text(handoff_path)
+                if execution_state_text:
+                    try:
+                        execution_state = json.loads(execution_state_text)
+                        task_statuses = [
+                            task.get("status", "pending")
+                            for task in execution_state.get("tasks", {}).values()
+                        ]
+                        if task_statuses and all(
+                            status == "completed" for status in task_statuses
+                        ):
+                            child_status = "done"
+                    except json.JSONDecodeError:
+                        pass
+                if (
+                    child_status != "done"
+                    and "## Current objective" in handoff_text
+                    and "**COMPLETE**" in handoff_text
+                ):
+                    child_status = "done"
             candidates.append(
                 ObjectiveCandidate(
-                    slug=child.name,
-                    name=child.name.replace("-", " ").title(),
+                    slug=slug,
+                    name=slug.replace("-", " ").title(),
                     summary=summary,
                     why_it_matters="Structured planning package already exists.",
-                    status=status,
+                    status=child_status,
                     mvp=True,
                     evidence_sources=[str(child.relative_to(root_dir))],
                 )
@@ -188,13 +231,15 @@ def collect_phase_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
             continue
         for match in phase_pattern.finditer(text):
             phase_name = match.group("name").strip()
-            phase_slug = slugify(phase_name)
+            phase_slug = canonical_objective_slug(slugify(phase_name))
             block = text[match.start() : match.start() + 600]
             status = "planned"
             if "complete" in block.lower() or "✅" in block:
                 status = "done"
             elif "in progress" in block.lower() or "🔄" in block:
                 status = "active"
+            if status == "done":
+                continue
             goal_match = re.search(r"\*\*Goal:\*\*\s*(.+)", block)
             summary = (
                 goal_match.group(1).strip()
@@ -278,6 +323,7 @@ def collect_canonical_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
     }
 
     for slug, (name, summary) in objective_docs.items():
+        slug = canonical_objective_slug(slug)
         matched_files = list(
             canonical_dir.glob(
                 f"*{slug.upper().replace('-', '*').replace('_', '*')}*.md"
@@ -308,6 +354,7 @@ def collect_canonical_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
 
 def dependency_hints(slug: str) -> list[str]:
     """Return lightweight dependency hints for known objectives."""
+    slug = canonical_objective_slug(slug)
     hints: dict[str, list[str]] = {
         "project-state-realtime": ["project-state-mvp", "dashboard-realtime"],
         "dashboard-realtime": ["project-state-mvp"],
@@ -340,6 +387,11 @@ def reconcile_candidates(
     }
 
     for candidate in candidates:
+        candidate.slug = canonical_objective_slug(candidate.slug)
+        candidate.dependencies = [
+            canonical_objective_slug(dependency)
+            for dependency in candidate.dependencies
+        ]
         existing = merged.get(candidate.slug)
         if existing is None:
             candidate.dependencies = sorted(
@@ -492,7 +544,7 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
                 f'- Run `/mm:discover --existing --objective {next_objective.slug} "{next_objective.name}"` to generate the active objective package.',
                 "",
                 "## Validation commands",
-                "- `/mm:discover-contract-check` (legacy/global contract)",
+                f"- `/mm:discover-contract-check --objective {next_objective.slug}`",
                 f"- Verify `{roadmap_dir.relative_to(root_dir) / 'objectives.md'}` and `{roadmap_dir.relative_to(root_dir) / 'dependency-graph.md'}` were generated",
             ]
         )
@@ -1095,7 +1147,7 @@ def require_existing_context(context: dict[str, object]) -> None:
         ]
     ):
         print(
-            "ERROR: No project context found (README.md, PROJECT.md, CLAUDE.md, docs/PRD, docs/canonical, or tasks/plan.md required for existing-project discovery)"
+            "ERROR: No project context found (README.md, PROJECT.md, CLAUDE.md, docs/PRD, docs/canonical, or .planning sources required for existing-project discovery)"
         )
         sys.exit(1)
 
@@ -1150,50 +1202,21 @@ def main() -> None:
             print(f"INFO: Session ID: {payload['session_id']}")
             return
 
-        if args.health:
-            agent_type = "health-checker"
-        elif args.gaps:
-            agent_type = "gap-analyzer"
-        elif args.replan:
-            agent_type = "re-planner"
-        else:
-            agent_type = "rediscovery-auditor"
-
-        payload = generate_existing_project_payload(
-            context,
-            {
-                "health": args.health,
-                "gaps": args.gaps,
-                "replan": args.replan,
-                "mode": args.mode,
-            },
-            root_dir,
+        print(
+            "ERROR: Legacy discover modes (--health/--gaps/--replan/plain --existing) were removed."
         )
-
-        print("MODE: existing")
-        print(f"TASK: {agent_type}")
-        print(f"PAYLOAD: {json.dumps(payload, indent=2)}")
-        print("LAUNCH: discover-agent")
-        print()
-        print("INFO: Auditing existing project...")
-        print(f"INFO: Session ID: {payload['session_id']}")
-        return
-
-    if not args.idea:
-        print("ERROR: Idea required for new project mode")
-        print('Usage: /mm:discover "<your idea>"')
+        print("ERROR: Use one of:")
+        print("  /mm:discover --roadmap --existing")
+        print('  /mm:discover --existing --objective <slug> "Objective Name"')
         sys.exit(1)
 
-    payload = generate_new_project_payload(args.idea, args.mode, root_dir)
-    print("MODE: new")
-    print("TASK: discover-planner")
-    print(f"PAYLOAD: {json.dumps(payload, indent=2)}")
-    print("LAUNCH: discover-agent")
-    print()
-    print("INFO: Discovering new project idea...")
-    print(f"INFO: Idea: {args.idea[:100]}...")
-    print(f"INFO: Mode: {args.mode}")
-    print(f"INFO: Session ID: {payload['session_id']}")
+    print(
+        "ERROR: New-project legacy discover mode was removed from the active MM flow."
+    )
+    print("ERROR: Use the objective-package flow instead:")
+    print("  /mm:discover --roadmap --existing")
+    print('  /mm:discover --existing --objective <slug> "Objective Name"')
+    sys.exit(1)
 
 
 if __name__ == "__main__":

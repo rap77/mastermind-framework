@@ -6,6 +6,10 @@ argument-hint: "[--verify] [--tag vX.Y.Z] [--patch|--minor|--major] [--archive] 
 
 # /mm:ship
 
+> **Legacy notice:** `/mm:ship` still documents the versioned `tasks/` shipping flow.
+> It is **not** the primary lifecycle for the active objective-package workflow.
+> For objective-package closure, use `/mm:archive-objective`.
+
 Ship: verify preconditions, calculate next version, generate changelog, and delegate to ship-executor agent for tagging and archiving.
 
 ## Usage

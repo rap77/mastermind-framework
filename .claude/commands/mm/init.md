@@ -41,7 +41,7 @@ Install MasterMind Framework into any project. Verifies services, detects stack,
 3. **File Copy:**
    - **Commands:** `.claude/commands/mm/` (init, discover, complete-task, review, ship + handlers)
    - **Skills:** `.claude/skills/mm/` (brain-context, brain-persistence, discover, safe-commit, review, ship)
-   - **Agents:** `.claude/agents/mm/` (7 brains + discover-planner + rediscovery-auditor + task-executor)
+   - **Agents:** `.claude/agents/mm/` (7 brains + roadmap-planner + objective-packager + task-executor)
 
 4. **Configuration:**
    - Creates `.mastermind/config.yaml` with detected stack + DB connection info
@@ -185,7 +185,7 @@ Done — ready for /mm:discover
     ↓
 3. /mm:discover "your idea"
     ↓
-4. SPEC.md + plan.md + todo.md generated
+4. Roadmap/objective package generation available for the active flow
     ↓
 5. /mm:complete-task A1
     ↓

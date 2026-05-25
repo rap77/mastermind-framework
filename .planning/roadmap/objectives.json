@@ -1,19 +1,6 @@
 [
   {
     "id": "O1",
-    "slug": "project-state",
-    "name": "Project State",
-    "summary": "Continue the MasterMind `project_state` MVP thin slice across API + web without losing architectural coherence.",
-    "status": "active",
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Already has identified next implementation slices.",
-    "evidence_sources": [
-      ".planning/HANDOFF-PROJECT-STATE-2026-05-24.md"
-    ]
-  },
-  {
-    "id": "O2",
     "slug": "artifact-versioning-and-lineage",
     "name": "Artifact Versioning and Lineage",
     "summary": "Preserve causality between specs, tasks, decisions, and implementation state.",
@@ -28,7 +15,7 @@
     ]
   },
   {
-    "id": "O3",
+    "id": "O2",
     "slug": "backend-service-boundary-for-agents",
     "name": "Backend Service Boundary For Agents",
     "summary": "Models interact through semantic services instead of direct database access.",
@@ -43,7 +30,7 @@
     ]
   },
   {
-    "id": "O4",
+    "id": "O3",
     "slug": "collaboration-rbac",
     "name": "Collaboration and RBAC",
     "summary": "Human + agent participation model with explicit roles and permissions.",
@@ -58,7 +45,7 @@
     ]
   },
   {
-    "id": "O5",
+    "id": "O4",
     "slug": "context-projection",
     "name": "Context Projection",
     "summary": "Build model-ready context from structured project state instead of chat history.",
@@ -74,7 +61,7 @@
     ]
   },
   {
-    "id": "O6",
+    "id": "O5",
     "slug": "context-window-management",
     "name": "Context Window Management",
     "summary": "Manage context-fit, packing, and compression across model backends.",
@@ -89,7 +76,7 @@
     ]
   },
   {
-    "id": "O7",
+    "id": "O6",
     "slug": "dashboard-realtime",
     "name": "Dashboard Realtime",
     "summary": "Realtime events and live visibility for project operations.",
@@ -104,7 +91,7 @@
     ]
   },
   {
-    "id": "O8",
+    "id": "O7",
     "slug": "engineering-doctrine-layer",
     "name": "Engineering Doctrine Layer",
     "summary": "Persistent methodology, architecture rules, and phase gates for agents and humans.",
@@ -119,21 +106,20 @@
     ]
   },
   {
-    "id": "O9",
+    "id": "O8",
     "slug": "knowledge-distillation",
     "name": "Knowledge Distillation",
-    "summary": "Brains learn from every interaction and accumulate expertise over time.",
+    "summary": "Brains learn from every interaction and accumulate expertise over time",
     "status": "planned",
     "mvp": true,
     "dependencies": [],
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
+      ".planning/ROADMAP.md"
     ]
   },
   {
-    "id": "O10",
+    "id": "O9",
     "slug": "knowledge-ingestion-manual",
     "name": "Knowledge Ingestion (Manual)",
     "summary": "Cargar el corpus de conocimiento en cada brain's vector store.",
@@ -146,21 +132,20 @@
     ]
   },
   {
-    "id": "O11",
+    "id": "O10",
     "slug": "multi-channel-gateway",
     "name": "Multi-channel Gateway",
-    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability.",
+    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability",
     "status": "planned",
     "mvp": true,
     "dependencies": [],
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
+      ".planning/ROADMAP.md"
     ]
   },
   {
-    "id": "O12",
+    "id": "O11",
     "slug": "observability-real-time-hub",
     "name": "Observability + Real-time Hub",
     "summary": "Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring",
@@ -169,12 +154,11 @@
     "dependencies": [],
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
+      ".planning/ROADMAP.md"
     ]
   },
   {
-    "id": "O13",
+    "id": "O12",
     "slug": "pgvector-schema-langsmith-foundation-paralelo",
     "name": "pgvector Schema + LangSmith Foundation (paralelo)",
     "summary": "Embeddings table, vector index, asyncpg utilities, LangSmith instrumentation \u2014 todo en una fase paralela. pgvector ya live.",
@@ -187,7 +171,7 @@
     ]
   },
   {
-    "id": "O14",
+    "id": "O13",
     "slug": "postgres-hybrid-data-model",
     "name": "Postgres Hybrid Data Model",
     "summary": "Relational core + JSONB + vector memory for project state and retrieval.",
@@ -202,7 +186,7 @@
     ]
   },
   {
-    "id": "O15",
+    "id": "O14",
     "slug": "rag-evaluation-gate",
     "name": "RAG Evaluation Gate",
     "summary": "Validar que el RAG mejora calidad antes de escalar a los 7 brains.",
@@ -215,7 +199,7 @@
     ]
   },
   {
-    "id": "O16",
+    "id": "O15",
     "slug": "rag-pilot-brain-1-only",
     "name": "RAG Pilot \u2014 Brain #1 Only",
     "summary": "Un solo brain con RAG funcional, recuperando contexto de sus dos colecciones antes de responder.",
@@ -228,7 +212,7 @@
     ]
   },
   {
-    "id": "O17",
+    "id": "O16",
     "slug": "rag-scale-out-brains-2-7",
     "name": "RAG Scale-Out \u2014 Brains 2\u20137",
     "summary": "Extender RAG a los 6 brains restantes, usando el mismo patr\u00f3n validado en Brain #1.",
@@ -241,7 +225,7 @@
     ]
   },
   {
-    "id": "O18",
+    "id": "O17",
     "slug": "rust-control-plane",
     "name": "Rust Control Plane",
     "summary": "State management, auth, and event sourcing migrated to Rust with PostgreSQL",
@@ -250,12 +234,11 @@
     "dependencies": [],
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
+      ".planning/ROADMAP.md"
     ]
   },
   {
-    "id": "O19",
+    "id": "O18",
     "slug": "rust-control-plane-hardening",
     "name": "Rust Control Plane Hardening",
     "summary": "Stabilize and harden the canonical Rust control plane before further expansion.",
@@ -270,7 +253,7 @@
     ]
   },
   {
-    "id": "O20",
+    "id": "O19",
     "slug": "task-time-and-estimation",
     "name": "Task Time and Estimation",
     "summary": "Track effort, ETA, and estimation quality over time.",
@@ -285,7 +268,7 @@
     ]
   },
   {
-    "id": "O21",
+    "id": "O20",
     "slug": "token-cost-quality-telemetry",
     "name": "Token Cost and Quality Telemetry",
     "summary": "Track token usage, cost, and output quality trends by project and task.",
@@ -300,7 +283,7 @@
     ]
   },
   {
-    "id": "O22",
+    "id": "O21",
     "slug": "vertical-slice",
     "name": "Vertical Slice",
     "summary": "Validate 3-service architecture works end-to-end before committing to full Rust build",
@@ -309,12 +292,11 @@
     "dependencies": [],
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
+      ".planning/ROADMAP.md"
     ]
   },
   {
-    "id": "O23",
+    "id": "O22",
     "slug": "window-scheduler",
     "name": "Window Scheduler",
     "summary": "Subscription-window-aware backend switching, checkpointing, and morning reports.",
@@ -328,43 +310,17 @@
     ]
   },
   {
-    "id": "O24",
-    "slug": "mm-flow-audit-trail",
-    "name": "MM-Flow + Audit Trail",
-    "summary": "MM-Flow infrastructure, CLI Skills Bridge, Context Persistence, and Audit Trail + JWT.",
+    "id": "O23",
+    "slug": "project-state-mvp",
+    "name": "Project State Mvp",
+    "summary": "Continue the MasterMind `project_state` MVP thin slice across API + web without losing architectural coherence.",
     "status": "done",
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Historical handoff merged into the canonical objective alias.",
     "evidence_sources": [
-      ".planning/SOURCE-OF-TRUTH.md"
-    ]
-  },
-  {
-    "id": "O25",
-    "slug": "ui-evolution",
-    "name": "UI Evolution",
-    "summary": "Extract Paperclip UX patterns and rebuild in Next.js 16 App Router (NOT a fork \u2014 Paperclip uses Vite)",
-    "status": "done",
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md",
-      ".planning/SOURCE-OF-TRUTH.md"
-    ]
-  },
-  {
-    "id": "O26",
-    "slug": "v3.0",
-    "name": "V3.0",
-    "summary": "Planning package present in .planning/archive/v3.0.",
-    "status": "done",
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".planning/archive/v3.0"
+      ".planning/HANDOFF-PROJECT-STATE-2026-05-24.md",
+      ".planning/archive/objectives/project-state-mvp"
     ]
   }
 ]

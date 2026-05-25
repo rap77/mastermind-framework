@@ -85,6 +85,7 @@ TASKS_DIR = PROJECT_ROOT / "tasks"
 PLANNING_DIR = PROJECT_ROOT / ".planning"
 RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
 NOTIFY_SCRIPT_PATH = PROJECT_ROOT / ".claude" / "commands" / "mm" / "notify-complete.py"
+OBJECTIVE_STATE_FILENAME = "execution-state.json"
 
 
 @dataclass
@@ -246,6 +247,10 @@ def resolve_task_source(task_id: str) -> TaskSource:
 
 def get_active_paths(task_id: str | None = None) -> tuple[Path, Path]:
     """Return the active plan/todo paths for the objective flow."""
+    if task_id:
+        source = resolve_task_source(get_root_task_id(task_id))
+        return source.plan_path, source.todo_path
+
     if RUNTIME_STATE_PATH.exists():
         try:
             state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
@@ -255,10 +260,6 @@ def get_active_paths(task_id: str | None = None) -> tuple[Path, Path]:
                 return Path(plan_path), Path(todo_path)
         except (json.JSONDecodeError, OSError):
             pass
-
-    if task_id:
-        source = resolve_task_source(task_id)
-        return source.plan_path, source.todo_path
 
     raise ValueError(
         "No active planning source available. Run /mm:discover --existing --objective <name> first."
@@ -285,6 +286,20 @@ def runtime_task_complete(state: dict[str, Any]) -> bool:
 
 def get_objective_handoff_path(task_id: str | None = None) -> Path | None:
     """Return the active objective handoff path if available."""
+    if task_id:
+        try:
+            source = resolve_task_source(get_root_task_id(task_id))
+        except ValueError:
+            return None
+        if source.objective_slug:
+            return (
+                PROJECT_ROOT
+                / ".planning"
+                / "changes"
+                / source.objective_slug
+                / "HANDOFF-CURRENT.md"
+            )
+
     if RUNTIME_STATE_PATH.exists():
         try:
             state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
@@ -301,21 +316,131 @@ def get_objective_handoff_path(task_id: str | None = None) -> Path | None:
         except (json.JSONDecodeError, OSError):
             pass
 
+    return None
+
+
+def get_objective_state_path(
+    objective_slug: str | None = None, task_id: str | None = None
+) -> Path | None:
+    """Return the durable execution-state path for an objective."""
+    if objective_slug:
+        return (
+            PROJECT_ROOT
+            / ".planning"
+            / "changes"
+            / objective_slug
+            / OBJECTIVE_STATE_FILENAME
+        )
+
     if task_id:
         try:
-            source = resolve_task_source(task_id)
+            source = resolve_task_source(get_root_task_id(task_id))
         except ValueError:
             return None
-        if source.objective_slug:
-            return (
-                PROJECT_ROOT
-                / ".planning"
-                / "changes"
-                / source.objective_slug
-                / "HANDOFF-CURRENT.md"
-            )
+        return get_objective_state_path(objective_slug=source.objective_slug)
+
+    state = load_runtime_state()
+    active_slug = state.get("objective_slug") if state else None
+    if active_slug:
+        return get_objective_state_path(objective_slug=active_slug)
 
     return None
+
+
+def load_objective_state(
+    objective_slug: str | None = None, task_id: str | None = None
+) -> dict[str, Any] | None:
+    """Load durable objective execution state if available."""
+    state_path = get_objective_state_path(
+        objective_slug=objective_slug, task_id=task_id
+    )
+    if state_path is None:
+        return None
+    if not state_path.exists():
+        if objective_slug is None and task_id is not None:
+            try:
+                source = resolve_task_source(task_id)
+            except ValueError:
+                return None
+            if source.objective_slug:
+                return bootstrap_objective_state_from_artifacts(
+                    source.objective_slug, source.plan_path, source.todo_path
+                )
+        elif objective_slug is not None:
+            objective_dir = PROJECT_ROOT / ".planning" / "changes" / objective_slug
+            plan_path = objective_dir / "tasks.md"
+            todo_path = ensure_objective_todo(objective_dir, objective_slug)
+            if plan_path.exists() and todo_path.exists():
+                return bootstrap_objective_state_from_artifacts(
+                    objective_slug, plan_path, todo_path
+                )
+        return None
+    try:
+        return json.loads(state_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def save_objective_state(state: dict[str, Any]) -> None:
+    """Persist objective execution state."""
+    objective_slug = state.get("objective_slug")
+    state_path = get_objective_state_path(objective_slug=objective_slug)
+    if state_path is None:
+        return
+    try:
+        state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    except OSError as exc:
+        mm_error(f"Failed to write objective execution state: {exc}")
+
+
+def get_root_task_id(identifier: str) -> str:
+    """Return the root task ID for a task or subtask identifier."""
+    return identifier.split(".", 1)[0]
+
+
+def seed_objective_task_state(
+    source: TaskSource, task_id: str, subtasks: list[dict[str, Any]]
+) -> None:
+    """Ensure a durable execution-state entry exists for the active objective task."""
+    if not source.objective_slug:
+        return
+
+    state = load_objective_state(objective_slug=source.objective_slug) or {
+        "objective_slug": source.objective_slug,
+        "plan_path": str(source.plan_path),
+        "todo_path": str(source.todo_path),
+        "tasks": {},
+        "updated_at": None,
+    }
+    tasks = state.setdefault("tasks", {})
+    task_entry = tasks.setdefault(
+        task_id,
+        {
+            "status": "pending",
+            "subtasks": {},
+            "started_at": None,
+            "completed_at": None,
+        },
+    )
+    task_entry["plan_path"] = str(source.plan_path)
+    task_entry["todo_path"] = str(source.todo_path)
+    task_entry.setdefault("subtasks", {})
+
+    for subtask in subtasks:
+        existing = task_entry["subtasks"].get(subtask["id"], {})
+        task_entry["subtasks"][subtask["id"]] = {
+            "description": subtask["description"],
+            "status": existing.get(
+                "status", "completed" if subtask["completed"] else "pending"
+            ),
+            "started_at": existing.get("started_at"),
+            "completed_at": existing.get("completed_at"),
+            "duration_seconds": existing.get("duration_seconds", 0),
+            "updated_at": existing.get("updated_at"),
+        }
+
+    state["updated_at"] = datetime.now().isoformat()
+    save_objective_state(state)
 
 
 def get_task_ids_from_plan(plan_path: Path) -> list[str]:
@@ -392,6 +517,96 @@ def get_root_task_statuses(todo_path: Path) -> list[tuple[str, str, str]]:
     ]
 
 
+def bootstrap_objective_state_from_artifacts(
+    objective_slug: str, plan_path: Path, todo_path: Path
+) -> dict[str, Any]:
+    """Create a durable objective execution state from tasks/todo artifacts.
+
+    This is a one-time migration fallback for objectives created before
+    `execution-state.json` existed. Runtime state, when present for the same
+    objective, overrides the matching active root task.
+    """
+    state: dict[str, Any] = {
+        "objective_slug": objective_slug,
+        "plan_path": str(plan_path),
+        "todo_path": str(todo_path),
+        "tasks": {},
+        "updated_at": datetime.now().isoformat(),
+        "bootstrapped_from_artifacts": True,
+    }
+
+    root_status_map = {
+        task_id: checkbox
+        for task_id, checkbox, _title in get_root_task_statuses(todo_path)
+    }
+    runtime_state = load_runtime_state()
+    runtime_task_id = runtime_state.get("task_id") if runtime_state else None
+    runtime_same_objective = (
+        runtime_state is not None
+        and runtime_state.get("objective_slug") == objective_slug
+    )
+
+    for root_task_id in get_task_ids_from_plan(plan_path):
+        subtasks = read_subtasks_from_todo(root_task_id)
+        task_entry: dict[str, Any] = {
+            "status": "pending",
+            "subtasks": {},
+            "started_at": None,
+            "completed_at": None,
+            "plan_path": str(plan_path),
+            "todo_path": str(todo_path),
+        }
+        for subtask in subtasks:
+            task_entry["subtasks"][subtask["id"]] = {
+                "description": subtask["description"],
+                "status": "completed" if subtask["completed"] else "pending",
+                "started_at": None,
+                "completed_at": None,
+                "duration_seconds": 0,
+                "updated_at": None,
+            }
+
+        if runtime_same_objective and runtime_task_id == root_task_id:
+            for subtask_id, runtime_subtask in runtime_state.get(
+                "subtasks", {}
+            ).items():
+                if subtask_id in task_entry["subtasks"]:
+                    task_entry["subtasks"][subtask_id]["status"] = runtime_subtask.get(
+                        "status", task_entry["subtasks"][subtask_id]["status"]
+                    )
+                    task_entry["subtasks"][subtask_id]["started_at"] = (
+                        runtime_subtask.get("started_at")
+                    )
+                    task_entry["subtasks"][subtask_id]["completed_at"] = (
+                        runtime_subtask.get("completed_at")
+                    )
+                    task_entry["subtasks"][subtask_id]["duration_seconds"] = (
+                        runtime_subtask.get("duration_seconds", 0)
+                    )
+                    task_entry["subtasks"][subtask_id]["updated_at"] = (
+                        runtime_subtask.get("updated_at")
+                    )
+
+        subtask_states = [s["status"] for s in task_entry["subtasks"].values()]
+        parent_checkbox = root_status_map.get(root_task_id, " ")
+        if subtask_states and all(status == "completed" for status in subtask_states):
+            task_entry["status"] = "completed"
+        elif (
+            any(status == "in_progress" for status in subtask_states)
+            or parent_checkbox == "~"
+        ):
+            task_entry["status"] = "in_progress"
+        elif any(status == "completed" for status in subtask_states):
+            task_entry["status"] = "in_progress"
+        else:
+            task_entry["status"] = "pending"
+
+        state["tasks"][root_task_id] = task_entry
+
+    save_objective_state(state)
+    return state
+
+
 def sync_objective_handoff(task_id: str) -> None:
     """Synchronize objective HANDOFF-CURRENT.md from objective todo/task state."""
     handoff_path = get_objective_handoff_path(task_id)
@@ -404,7 +619,23 @@ def sync_objective_handoff(task_id: str) -> None:
     except (FileNotFoundError, OSError, ValueError):
         return
 
-    root_statuses = get_root_task_statuses(todo_path)
+    objective_state = load_objective_state(task_id=task_id)
+    if objective_state and objective_state.get("tasks"):
+        root_statuses: list[tuple[str, str, str]] = []
+        for root_id in get_task_ids_from_plan(plan_path):
+            root_title = get_task_title_from_plan(plan_path, root_id) or root_id
+            task_state = objective_state.get("tasks", {}).get(root_id, {})
+            task_status = task_state.get("status", "pending")
+            checkbox = (
+                "x"
+                if task_status == "completed"
+                else "~"
+                if task_status == "in_progress"
+                else " "
+            )
+            root_statuses.append((root_id, checkbox, root_title))
+    else:
+        root_statuses = get_root_task_statuses(todo_path)
     if not root_statuses:
         return
 
@@ -626,6 +857,38 @@ def reconcile_artifacts_from_runtime(task_id: str) -> None:
     sync_objective_handoff(task_id)
 
 
+def sync_subtask_checkbox(subtask_id: str, checkbox: str) -> None:
+    """Synchronize a subtask checkbox in todo.md to the desired value."""
+    _, todo_path = get_active_paths(subtask_id)
+    if not todo_path.exists():
+        return
+    try:
+        todo_content = todo_path.read_text(encoding="utf-8")
+        updated_content, count = re.subn(
+            rf"(^\s*-\s?\[)([ x~])(\]\s+{re.escape(subtask_id)}:)",
+            rf"\g<1>{checkbox}\g<3>",
+            todo_content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if count > 0:
+            todo_path.write_text(updated_content, encoding="utf-8")
+    except OSError as exc:
+        mm_error(f"Failed to sync todo checkbox for {subtask_id}: {exc}")
+
+
+def get_objective_task_status(task_id: str) -> str | None:
+    """Return durable status for a root task from objective execution state."""
+    objective_state = load_objective_state(task_id=task_id)
+    if not objective_state:
+        return None
+    task_entry = objective_state.get("tasks", {}).get(task_id)
+    if not task_entry:
+        return None
+    status = task_entry.get("status")
+    return status if isinstance(status, str) else None
+
+
 def trigger_completion_notification(task_id: str) -> None:
     """Play the completion notification exactly once per runtime task."""
     state = load_runtime_state()
@@ -765,8 +1028,12 @@ def check_previous_criteria_complete(task_id: str) -> bool:
         mm_error(
             f"❌ BLOCKED: Task {prev_id} has {pending}/{total} unverified acceptance criteria"
         )
-        mm_error(f"   Complete them first: /mm:verify-criteria {prev_id} --all")
-        mm_error(f"   Or auto-check: /mm:verify-criteria {prev_id} --verify")
+        mm_error(
+            f"   Complete them with: python3 .claude/commands/mm/verify-criteria-handler.py {prev_id} --all"
+        )
+        mm_error(
+            f"   Or auto-check: python3 .claude/commands/mm/verify-criteria-handler.py {prev_id} --verify"
+        )
         return False
 
     return True
@@ -803,7 +1070,9 @@ def run_criteria_verification(task_id: str) -> None:
     """Run verify-criteria-handler.py after task completion."""
     handler = PROJECT_ROOT / ".claude/commands/mm/verify-criteria-handler.py"
     if not handler.exists():
-        mm_info("NOTE: Use /mm:verify-criteria to mark acceptance criteria in plan.md")
+        mm_info(
+            "NOTE: verify-criteria-handler.py manages acceptance criteria verification"
+        )
         return
 
     mm_info("=" * 60)
@@ -1192,6 +1461,8 @@ def init_runtime_state(
         mm_error(f"Failed to write runtime state: {e}")
         raise
 
+    seed_objective_task_state(source, task_id, subtasks)
+
     return runtime_state
 
 
@@ -1213,6 +1484,8 @@ def update_subtask_status(
         return
 
     state = json.loads(RUNTIME_STATE_PATH.read_text())
+    objective_slug = state.get("objective_slug")
+    root_task_id = get_root_task_id(subtask_id)
 
     if subtask_id in state["subtasks"]:
         now = datetime.now()
@@ -1249,9 +1522,77 @@ def update_subtask_status(
             mm_error(f"Failed to write runtime state: {e}")
             raise
 
+        objective_state = load_objective_state(objective_slug=objective_slug) or (
+            {
+                "objective_slug": objective_slug,
+                "plan_path": state.get("plan_path"),
+                "todo_path": state.get("todo_path"),
+                "tasks": {},
+            }
+            if objective_slug
+            else None
+        )
+        if objective_state is not None:
+            task_entry = objective_state.setdefault("tasks", {}).setdefault(
+                root_task_id,
+                {
+                    "status": "pending",
+                    "subtasks": {},
+                    "started_at": None,
+                    "completed_at": None,
+                },
+            )
+            subtask_entry = task_entry.setdefault("subtasks", {}).setdefault(
+                subtask_id,
+                {
+                    "description": state["subtasks"][subtask_id].get(
+                        "description", subtask_id
+                    )
+                },
+            )
+            subtask_entry["description"] = state["subtasks"][subtask_id].get(
+                "description", subtask_entry.get("description", subtask_id)
+            )
+            subtask_entry["status"] = status
+            subtask_entry["started_at"] = state["subtasks"][subtask_id].get(
+                "started_at"
+            )
+            subtask_entry["completed_at"] = state["subtasks"][subtask_id].get(
+                "completed_at"
+            )
+            subtask_entry["duration_seconds"] = state["subtasks"][subtask_id].get(
+                "duration_seconds", 0
+            )
+            subtask_entry["updated_at"] = now_iso
+            if error:
+                subtask_entry["error"] = error
+            if commit_sha:
+                subtask_entry["commit_sha"] = commit_sha
+
+            subtask_states = [
+                sub_state.get("status", "pending")
+                for sub_state in task_entry.get("subtasks", {}).values()
+            ]
+            if subtask_states and all(s == "completed" for s in subtask_states):
+                task_entry["status"] = "completed"
+                task_entry["completed_at"] = now_iso
+                task_entry.setdefault("started_at", state.get("started_at"))
+            elif any(s == "in_progress" for s in subtask_states) or any(
+                s == "completed" for s in subtask_states
+            ):
+                task_entry["status"] = "in_progress"
+                task_entry["started_at"] = task_entry.get("started_at") or now_iso
+                task_entry["completed_at"] = None
+            else:
+                task_entry["status"] = "pending"
+
+            objective_state["updated_at"] = now_iso
+            save_objective_state(objective_state)
+
     # If this subtask was just completed, check if all siblings are complete
     # and propagate completion to parent
     if status == "completed":
+        sync_subtask_checkbox(subtask_id, "x")
         # Extract parent task ID from subtask_id (e.g., "B2.1" -> "B2", "B2.1.a" -> "B2.1")
         if "." in subtask_id:
             parts = subtask_id.rsplit(".", 1)
@@ -1267,9 +1608,6 @@ def update_subtask_status(
         try:
             # Get the root parent task ID for time tracking
             # For B2.6.01, we want to update B2 (not B2.6)
-            root_parts = subtask_id.split(".")
-            root_task_id = root_parts[0] if root_parts else subtask_id
-
             update_incremental_time_tracking(root_task_id)
         except Exception as e:
             # Don't fail the checkpoint if time tracking fails
@@ -1277,6 +1615,7 @@ def update_subtask_status(
 
     # If this subtask is now in_progress, mark all parents with ~
     if status == "in_progress":
+        sync_subtask_checkbox(subtask_id, "~")
         if "." in subtask_id:
             parts = subtask_id.rsplit(".", 1)
             parent_id = parts[0] if len(parts) == 2 else subtask_id
@@ -1883,7 +2222,7 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
     """Mark all subtasks as complete in todo.md and commit.
 
     Note: This does NOT verify acceptance criteria in plan.md.
-    Use /mm:verify-criteria to manually verify what was implemented.
+    Use verify-criteria-handler.py to manually verify what was implemented.
 
     Args:
         task_id: Task identifier.
@@ -1945,7 +2284,9 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
 
     if result.returncode == 0:
         mm_info(f"Committed: {commit_msg}")
-        mm_info("NOTE: Use /mm:verify-criteria to mark acceptance criteria in plan.md")
+        mm_info(
+            "NOTE: verify-criteria-handler.py manages acceptance criteria verification"
+        )
     else:
         mm_info("No changes to commit")
     sync_objective_handoff(task_id)
@@ -1974,12 +2315,18 @@ def show_status() -> None:
         ):
             task_id = match.group(1)
             title = match.group(2).strip()
-            parent_match = re.search(
-                rf"^-\s\[([ x~])\]\s+{re.escape(task_id)}:",
-                objective_todo,
-                re.MULTILINE,
-            )
-            checkbox_state = parent_match.group(1) if parent_match else " "
+            durable_status = get_objective_task_status(task_id)
+            if durable_status == "completed":
+                checkbox_state = "x"
+            elif durable_status == "in_progress":
+                checkbox_state = "~"
+            else:
+                parent_match = re.search(
+                    rf"^-\s\[([ x~])\]\s+{re.escape(task_id)}:",
+                    objective_todo,
+                    re.MULTILINE,
+                )
+                checkbox_state = parent_match.group(1) if parent_match else " "
             subtasks = read_subtasks_from_todo(task_id)
             completed = sum(1 for st in subtasks if st["completed"])
             total = len(subtasks)
@@ -2091,25 +2438,7 @@ def mark_done(subtask_id: str) -> None:
 
     if current_status == "completed":
         mm_info(f"{subtask_id} is already complete — ensuring todo.md is synced")
-        # Ensure the checkbox is marked in todo.md (idempotent)
-        _, todo_path = get_active_paths()
-        if todo_path.exists():
-            try:
-                todo_content = todo_path.read_text()
-                subtask_escaped = re.escape(subtask_id)
-                pattern = rf"(^\s*-\s?\[)([ ~])(\]\s+{subtask_escaped}:)"
-                new_content, count = re.subn(
-                    pattern,
-                    lambda m: f"{m.group(1)}x{m.group(3)}",
-                    todo_content,
-                    count=1,
-                    flags=re.MULTILINE,
-                )
-                if count > 0:
-                    todo_path.write_text(new_content)
-                    mm_info(f"Synced {subtask_id} checkbox to [x] in todo.md")
-            except OSError as e:
-                mm_error(f"Failed to update todo.md checkbox: {e}")
+        sync_subtask_checkbox(subtask_id, "x")
         # Still propagate in case parent wasn't updated (idempotent)
         if "." in subtask_id:
             parent_id = subtask_id.rsplit(".", 1)[0]
@@ -2127,27 +2456,6 @@ def mark_done(subtask_id: str) -> None:
         mm_error(f"Failed to mark {subtask_id} as complete: {e}")
         sys.exit(1)
 
-    # Also mark the checkbox in todo.md directly (update_subtask_status only
-    # updates task-progress.json; propagate_parent_completion handles the parent
-    # but never writes the subtask's own checkbox)
-    _, todo_path = get_active_paths()
-    if todo_path.exists():
-        try:
-            todo_content = todo_path.read_text()
-            subtask_escaped = re.escape(subtask_id)
-            pattern = rf"(^\s*-\s?\[)([ ~])(\]\s+{subtask_escaped}:)"
-            new_content, count = re.subn(
-                pattern,
-                lambda m: f"{m.group(1)}x{m.group(3)}",
-                todo_content,
-                count=1,
-                flags=re.MULTILINE,
-            )
-            if count > 0:
-                todo_path.write_text(new_content)
-        except OSError as e:
-            mm_error(f"Failed to update todo.md checkbox for {subtask_id}: {e}")
-
     mm_info(f"Marked {subtask_id} as complete")
     if "." in subtask_id:
         sync_objective_handoff(subtask_id.rsplit(".", 1)[0])
@@ -2158,9 +2466,9 @@ def mark_done(subtask_id: str) -> None:
             updated_state = json.loads(RUNTIME_STATE_PATH.read_text())
             if "." in subtask_id:
                 parent_id = subtask_id.rsplit(".", 1)[0]
-                # Check todo.md to see if parent was propagated
+                _, todo_path = get_active_paths(subtask_id)
                 if todo_path.exists():
-                    todo_content = todo_path.read_text()
+                    todo_content = todo_path.read_text(encoding="utf-8")
                     parent_done = re.search(
                         rf"^-\s\[x\]\s+{re.escape(parent_id)}:",
                         todo_content,
@@ -2171,7 +2479,6 @@ def mark_done(subtask_id: str) -> None:
                             f"Parent {parent_id} propagated to [x] (all subtasks done)"
                         )
                     else:
-                        # Count siblings done vs total from updated state
                         siblings = {
                             sid: sdata
                             for sid, sdata in updated_state.get("subtasks", {}).items()
@@ -2186,7 +2493,7 @@ def mark_done(subtask_id: str) -> None:
                             f"Parent {parent_id} not yet complete "
                             f"({done_count}/{len(siblings)} siblings done)"
                         )
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError, ValueError):
             pass  # Best-effort reporting — don't fail the command
 
     if "." in subtask_id:
@@ -2230,45 +2537,6 @@ def mark_in_progress(subtask_id: str) -> None:
     except Exception as e:
         mm_error(f"Failed to mark {subtask_id} as in_progress: {e}")
         sys.exit(1)
-
-    # Mark subtask AND parent as [~] in todo.md in a single read-modify-write
-    _, todo_path = get_active_paths()
-    if todo_path.exists():
-        try:
-            todo_content = todo_path.read_text()
-
-            def _to_tilde(m: re.Match[str]) -> str:
-                return f"{m.group(1)}~{m.group(3)}"
-
-            # Mark subtask's own checkbox: [ ] → [~]
-            subtask_escaped = re.escape(subtask_id)
-            todo_content, subtask_count = re.subn(
-                rf"(^\s*-\s?\[)([ ])(\]\s+{subtask_escaped}:)",
-                _to_tilde,
-                todo_content,
-                count=1,
-                flags=re.MULTILINE,
-            )
-            if subtask_count > 0:
-                mm_info(f"Marked {subtask_id} as [~] in todo.md")
-
-            # Mark parent's checkbox: [ ] → [~] (only if not already [~] or [x])
-            if "." in subtask_id:
-                parent_id = subtask_id.rsplit(".", 1)[0]
-                parent_escaped = re.escape(parent_id)
-                todo_content, parent_count = re.subn(
-                    rf"(^\s*-\s?\[)([ ])(\]\s+{parent_escaped}:)",
-                    _to_tilde,
-                    todo_content,
-                    count=1,
-                    flags=re.MULTILINE,
-                )
-                if parent_count > 0:
-                    mm_info(f"Parent {parent_id} marked as [~] (in progress)")
-
-            todo_path.write_text(todo_content)
-        except OSError as e:
-            mm_error(f"Failed to update [~] in todo.md: {e}")
 
     mm_info(f"Marked {subtask_id} as in_progress")
     if "." in subtask_id:

@@ -18,6 +18,9 @@ CONTRACT_CHECK = (
 COMPLETE_TASK_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "complete-task-handler.py"
 )
+ARCHIVE_OBJECTIVE_HANDLER = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "archive-objective-handler.py"
+)
 UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-times.py"
 
 
@@ -83,13 +86,57 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertTrue(objectives_path.exists())
         self.assertTrue(dependency_path.exists())
         self.assertIn("project-state", objectives_path.read_text(encoding="utf-8"))
-        self.assertIn(
-            "Project State",
-            (self.temp_dir / ".planning" / "HANDOFF-CURRENT.md").read_text(
-                encoding="utf-8"
-            ),
-        )
+        current_handoff = (
+            self.temp_dir / ".planning" / "HANDOFF-CURRENT.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("## Current objective", current_handoff)
+        self.assertIn("/mm:discover --existing --objective", current_handoff)
         self.assertIn("WRITTEN:", result.stdout)
+
+    def test_roadmap_merges_project_state_aliases_and_marks_completed_package_done(
+        self,
+    ) -> None:
+        """Roadmap discovery should not split project-state and project-state-mvp into separate active tracks."""
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir.mkdir(parents=True, exist_ok=True)
+        (objective_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime events\n",
+            encoding="utf-8",
+        )
+        (objective_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime events\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (objective_dir / "HANDOFF-CURRENT.md").write_text(
+            "# Handoff — project-state-mvp\n\n## Current objective\n- `project-state-mvp` — **COMPLETE**\n",
+            encoding="utf-8",
+        )
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+        objectives = json.loads(
+            (self.temp_dir / ".planning" / "roadmap" / "objectives.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        project_state_entries = [
+            item
+            for item in objectives
+            if item["slug"] in {"project-state", "project-state-mvp"}
+        ]
+        self.assertEqual(len(project_state_entries), 1)
+        self.assertEqual(project_state_entries[0]["slug"], "project-state-mvp")
+        self.assertEqual(project_state_entries[0]["status"], "done")
 
     def test_objective_mode_materializes_package_and_validates(self) -> None:
         """Objective mode should write the package and pass the objective validator."""
@@ -145,6 +192,18 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertIn("LAUNCH: task-executor", result.stdout)
         self.assertIn('"planning_mode": "objective"', result.stdout)
         self.assertIn('"objective_slug": "project-state-mvp"', result.stdout)
+
+        objective_state_path = (
+            self.temp_dir
+            / ".planning"
+            / "changes"
+            / "project-state-mvp"
+            / "execution-state.json"
+        )
+        self.assertTrue(objective_state_path.exists())
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(objective_state["objective_slug"], "project-state-mvp")
+        self.assertIn("PS1", objective_state["tasks"])
 
     def test_update_todo_times_uses_objective_todo_path(self) -> None:
         """update-todo-times should update the active objective todo.md from runtime state."""
@@ -280,6 +339,178 @@ class DiscoverWorkflowTest(unittest.TestCase):
         result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS3")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("previous runtime task PS2 is incomplete", result.stderr)
+
+    def test_mark_commands_update_durable_objective_state_and_todo_projection(
+        self,
+    ) -> None:
+        """Handler mark commands should be the single writer for progress state."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+
+        mark_progress = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "--mark-in-progress", "PS1.1"
+        )
+        self.assertEqual(mark_progress.returncode, 0, msg=mark_progress.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"],
+            "in_progress",
+        )
+        self.assertEqual(objective_state["tasks"]["PS1"]["status"], "in_progress")
+
+        todo_text = (objective_dir / "todo.md").read_text(encoding="utf-8")
+        self.assertIn("- [~] PS1: Realtime events for project_state", todo_text)
+        self.assertIn(
+            "- [~] PS1.1: Review requirements and design context for PS1", todo_text
+        )
+
+        mark_done = self.run_command(str(COMPLETE_TASK_HANDLER), "--mark-done", "PS1.1")
+        self.assertEqual(mark_done.returncode, 0, msg=mark_done.stderr)
+
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"],
+            "completed",
+        )
+        self.assertEqual(objective_state["tasks"]["PS1"]["status"], "in_progress")
+
+        todo_text = (objective_dir / "todo.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "- [x] PS1.1: Review requirements and design context for PS1", todo_text
+        )
+
+    def test_starting_new_root_task_preserves_previous_objective_history(self) -> None:
+        """Starting the next root task must not erase durable status of the previous one."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_state_path = objective_dir / "execution-state.json"
+
+        start_ps1 = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_ps1.returncode, 0, msg=start_ps1.stderr)
+        for subtask_id in ("PS1.1", "PS1.2", "PS1.3"):
+            in_progress = self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-in-progress", subtask_id
+            )
+            self.assertEqual(in_progress.returncode, 0, msg=in_progress.stderr)
+            done = self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-done", subtask_id
+            )
+            self.assertEqual(done.returncode, 0, msg=done.stderr)
+
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(objective_state["tasks"]["PS1"]["status"], "completed")
+
+        start_ps2 = self.run_command(str(COMPLETE_TASK_HANDLER), "PS2")
+        self.assertEqual(start_ps2.returncode, 0, msg=start_ps2.stderr)
+
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(objective_state["tasks"]["PS1"]["status"], "completed")
+        self.assertIn("PS2", objective_state["tasks"])
+
+    def test_task_resolution_prefers_explicit_task_objective_over_stale_runtime(
+        self,
+    ) -> None:
+        """Explicit task IDs must resolve against their own objective package, not stale runtime paths."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stderr)
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(second.returncode, 0, msg=second.stderr)
+
+        first_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        runtime_state = {
+            "task_id": "PS1",
+            "objective_slug": "project-state-mvp",
+            "plan_path": str(first_dir / "tasks.md"),
+            "todo_path": str(first_dir / "todo.md"),
+            "subtasks": {
+                "PS1.1": {"status": "completed"},
+                "PS1.2": {"status": "completed"},
+                "PS1.3": {"status": "completed"},
+            },
+        }
+        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+            json.dumps(runtime_state),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "T1")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn(
+            ".planning/changes/artifact-versioning-and-lineage/tasks.md", result.stdout
+        )
+        self.assertIn(
+            '"objective_slug": "artifact-versioning-and-lineage"', result.stdout
+        )
+
+    def test_archive_objective_moves_completed_package_to_archive_objectives(
+        self,
+    ) -> None:
+        """Completed objective packages should archive into archive/objectives, not legacy roots."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {
+                        "PS1": {"status": "completed"},
+                        "PS2": {"status": "completed"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        archive_result = self.run_command(
+            str(ARCHIVE_OBJECTIVE_HANDLER), "--objective", "project-state-mvp"
+        )
+        self.assertEqual(archive_result.returncode, 0, msg=archive_result.stderr)
+        self.assertFalse(objective_dir.exists())
+        archived_dir = (
+            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+        )
+        self.assertTrue(archived_dir.exists())
+        self.assertTrue((archived_dir / "COMPLETION-SUMMARY.md").exists())
 
 
 if __name__ == "__main__":

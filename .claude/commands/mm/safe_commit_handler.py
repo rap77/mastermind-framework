@@ -234,7 +234,7 @@ def check_frontend_tests() -> tuple[bool, str]:
 
     try:
         result = subprocess.run(
-            ["pnpm", "--prefix", str(web_dir), "test", "run"],
+            ["pnpm", "--prefix", str(web_dir), "test:run"],
             capture_output=True,
             text=True,
             timeout=120,

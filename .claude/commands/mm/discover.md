@@ -1,12 +1,12 @@
 ---
 name: mm:discover
 description: Discover roadmap and objective packages for the active MasterMind workflow.
-argument-hint: "\"<idea>\" | --existing [--mode=fast|deep] [--health] [--gaps] [--replan] [--roadmap] [--objective <name>] [--quick]"
+argument-hint: "--roadmap --existing | --existing --objective <name> [\"Objective Name\"] [--quick]"
 ---
 
 # /mm:discover
 
-Discover and plan using the roadmap + objective-package workflow.
+Discover and plan using the **objective-package workflow**.
 
 ## Usage
 
@@ -42,7 +42,7 @@ Discover and plan using the roadmap + objective-package workflow.
   HANDOFF-CURRENT.md
 ```
 
-The global `.planning/HANDOFF-CURRENT.md` is also refreshed to point at the active objective package.
+The global `.planning/HANDOFF-CURRENT.md` is also refreshed to point at the next objective.
 
 ---
 
@@ -146,9 +146,6 @@ If validation fails, discovery is NOT complete — fix the missing artifacts/sec
 | `--existing` | Audit existing project instead of new idea |
 | `--mode=fast` | Quick discovery (15 min) |
 | `--mode=deep` | Deep analysis (60 min) |
-| `--health` | Health check only (existing mode) |
-| `--gaps` | Gap analysis only (existing mode) |
-| `--replan` | Re-plan with current gaps (existing mode) |
 | `--roadmap` | Build/refresh objective roadmap (requires `--existing`) |
 | `--objective <name>` | Create/update planning package for one objective |
 | `--quick` | Lighter/faster objective package generation (requires `--objective`) |
@@ -157,58 +154,42 @@ If validation fails, discovery is NOT complete — fix the missing artifacts/sec
 
 ## Examples
 
-### New Project
+### Existing Project / Objective Flow
 
 ```bash
-# Quick discovery
-/mm:discover "SaaS de task management para equipos remotos"
-# → SPEC.md + plan.md + todo.md in ~15 min
+# Refresh roadmap from current repo state
+/mm:discover --roadmap --existing
 
-# Deep discovery
-/mm:discover "E-commerce de café especial" --mode=deep
-# → SPEC.md + plan.md + todo.md in ~60 min (more detailed)
-```
+# Create/update one objective package
+/mm:discover --existing --objective artifact-versioning-and-lineage "Artifact Versioning and Lineage"
 
-### Existing Project
-
-```bash
-# Full audit + re-plan
-/mm:discover --existing
-# → Analyzes everything, regenerates plan with gaps
-
-# Health check only
-/mm:discover --existing --health
-# → Just .planning/HEALTH-CHECK.md
-
-# Gap analysis only
-/mm:discover --existing --gaps
-# → Just .planning/GAPS.md
-
-# Re-plan only
-/mm:discover --existing --replan
-# → Updates tasks/plan.md + tasks/todo.md with current gaps
+# Faster objective packaging
+/mm:discover --existing --objective small-ui-fix --quick "Add dashboard filters"
 ```
 
 ---
 
 ## Architecture
 
-```
-/mm:discover "idea..." o --existing
+```text
+/mm:discover --roadmap --existing
     ↓
-Python Handler (discover-handler.py)
+.planning/roadmap/objectives.md
     ↓
-Lee contexto (si --existing)
+/mm:discover --existing --objective <slug> "Objective Name"
     ↓
-Ejecuta Brains en paralelo:
-  - Brain #1: Clarification/Rediscovery
-  - Brain #4: Backend analysis
-  - Brain #5: Frontend analysis
-  - Brain #7: Validation
+.planning/changes/<objective>/
+  requirements.md
+  design.md
+  tasks.md
+  todo.md
+  HANDOFF-CURRENT.md
     ↓
-Genera SPEC.md + plan.md + todo.md
+/mm:discover-contract-check --objective <slug>
     ↓
-Listo para /mm:complete-task
+/mm:complete-task <TASK_ID>
+    ↓
+/mm:archive-objective --objective <slug>
 ```
 
 ---
@@ -216,12 +197,12 @@ Listo para /mm:complete-task
 ## Files
 
 - `.claude/commands/mm/discover-handler.py` — Python handler
-- `.claude/agents/mm/discover-planner/discover-planner.md` — New project agent
-- `.claude/agents/mm/rediscovery-auditor/rediscovery-auditor.md` — Existing project agent
-- `.claude/skills/mm/discover/SKILL.md` — Reactive skill
-- `SPEC.md` — Generated specification
-- `tasks/plan.md` — Generated plan
-- `tasks/todo.md` — Generated checklist
+- `.planning/roadmap/objectives.md` — Current roadmap
+- `.planning/changes/<objective>/requirements.md`
+- `.planning/changes/<objective>/design.md`
+- `.planning/changes/<objective>/tasks.md`
+- `.planning/changes/<objective>/todo.md`
+- `.planning/changes/<objective>/HANDOFF-CURRENT.md`
 
 ---
 
@@ -229,15 +210,23 @@ Listo para /mm:complete-task
 
 **Complete flow:**
 
+```text
+/mm:discover --roadmap --existing
+    ↓
+/mm:discover --existing --objective <slug>
+    ↓
+/mm:discover-contract-check --objective <slug>
+    ↓
+/mm:complete-task <TASK_ID>
+    ↓
+/mm:archive-objective --objective <slug>
 ```
-/mm:discover (nuevo)
-    ↓
-SPEC.md + plan.md + todo.md
-    ↓
-/mm:complete-task (existente)
-    ↓
-/build → /test → /review → /ship
-```
+
+## Legacy note
+
+Older global artifacts may still exist in repository history, but they are
+**not** the active workflow for new execution. The active path is:
+roadmap → objective package → execution → archive.
 
 ---
 

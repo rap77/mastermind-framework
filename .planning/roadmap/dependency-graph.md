@@ -2,7 +2,6 @@
 
 ## Edges
 
-- `project-state` has no declared prerequisites
 - `project-state-mvp` -> `artifact-versioning-and-lineage`
 - `project-state-mvp` -> `backend-service-boundary-for-agents`
 - `project-state-mvp` -> `collaboration-rbac`
@@ -26,10 +25,8 @@
 - `project-state-mvp` -> `token-cost-quality-telemetry`
 - `vertical-slice` has no declared prerequisites
 - `window-scheduler` has no declared prerequisites
-- `mm-flow-audit-trail` has no declared prerequisites
-- `ui-evolution` has no declared prerequisites
-- `v3.0` has no declared prerequisites
+- `project-state-mvp` has no declared prerequisites
 
 ## Recommended next active objective
 
-- `project-state`
+- `artifact-versioning-and-lineage`

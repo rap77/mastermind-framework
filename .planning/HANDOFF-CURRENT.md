@@ -1,7 +1,7 @@
-# Handoff — project-state-mvp
+# Handoff — artifact-versioning-and-lineage
 
 ## Current objective
-- `project-state-mvp`
+- `artifact-versioning-and-lineage`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single global spec forever.
@@ -12,7 +12,7 @@
 - Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
 
 ## Exact next recommended task
-- Start with `PS1` from `tasks.md`.
+- Start with `T1` from `tasks.md`.
 
 ## Validation commands
 - `/mm:discover-contract-check` (legacy/global validator still active)

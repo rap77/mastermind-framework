@@ -23,6 +23,9 @@
   - validation: cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_project_write_side.py | cd apps/web && pnpm exec eslint src/app/actions/project-state.ts src/components/project-state/ProjectStateWritePanel.tsx
 
 - [x] PS3: Replace transitional audit gap
+⏱️ **Estimate**: N/A | **Actual**: 4.5h | **Deviation**: N/A | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 1.5h | **ETA**: 4.5h
+
   - [x] PS3.1: Review requirements and design context for PS3
   - [x] PS3.2: Implement PS3 end-to-end
   - [x] PS3.3: Run validation for PS3
