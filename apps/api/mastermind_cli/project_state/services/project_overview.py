@@ -9,6 +9,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from mastermind_cli.project_state.repositories.artifacts import ArtifactRepository
 from mastermind_cli.project_state.repositories.checkpoints import CheckpointsRepository
 from mastermind_cli.project_state.repositories.decisions import DecisionsRepository
 from mastermind_cli.project_state.repositories.projects import ProjectsRepository
@@ -22,6 +23,9 @@ from mastermind_cli.project_state.schemas.overview import (
     ActiveRunsResponse,
     ActivityFeedEventResponse,
     ActivityFeedResponse,
+    ArtifactLinkResponse,
+    ArtifactLineageResponse,
+    ArtifactVersionResponse,
     CheckpointSummary,
     ContextDecisionSummary,
     CreateCheckpointRequest,
@@ -332,6 +336,50 @@ class ProjectOverviewService:
         self.checkpoints = CheckpointsRepository(session)
         self.decisions = DecisionsRepository(session)
         self.telemetry = TelemetryRepository(session)
+        self.artifacts = ArtifactRepository(session)
+
+    def get_artifact_lineage(self, artifact_id: str) -> ArtifactLineageResponse | None:
+        """Return the causal lineage graph for a logical artifact.
+
+        Returns None if no versions exist for the given artifact_id.
+        The response includes all versions (ordered ascending) and all causal
+        links where any of those versions appears as source or target.
+        """
+        versions = self.artifacts.get_versions_by_artifact_id(artifact_id)
+        if not versions:
+            return None
+
+        version_ids = [v.version_id for v in versions]
+        links = self.artifacts.get_links_by_version_ids(version_ids)
+
+        return ArtifactLineageResponse(
+            artifact_id=artifact_id,
+            versions=[
+                ArtifactVersionResponse(
+                    version_id=v.version_id,
+                    artifact_id=v.artifact_id,
+                    artifact_type=v.artifact_type,
+                    version=v.version,
+                    content_hash=v.content_hash,
+                    created_at=v.created_at,
+                    metadata=v.metadata_json,
+                )
+                for v in versions
+            ],
+            links=[
+                ArtifactLinkResponse(
+                    link_id=lnk.link_id,
+                    source_artifact_id=lnk.source_artifact_id,
+                    target_artifact_id=lnk.target_artifact_id,
+                    link_type=lnk.link_type,
+                    task_id=lnk.task_id,
+                    decision_id=lnk.decision_id,
+                    checkpoint_id=lnk.checkpoint_id,
+                    created_at=lnk.created_at,
+                )
+                for lnk in links
+            ],
+        )
 
     def get_task_list(
         self, project_id: str, limit: int = 200

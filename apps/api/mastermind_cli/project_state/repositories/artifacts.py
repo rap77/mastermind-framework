@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import asc, select
+from sqlalchemy import asc, or_, select
 from sqlalchemy.orm import Session
 
 from mastermind_cli.project_state.models.artifact import ArtifactLink, ArtifactVersion
@@ -77,5 +77,19 @@ class ArtifactRepository:
             select(ArtifactVersion)
             .where(ArtifactVersion.artifact_id == artifact_id)
             .order_by(asc(ArtifactVersion.version))
+        )
+        return list(result.scalars().all())
+
+    def get_links_by_version_ids(self, version_ids: list[str]) -> list[ArtifactLink]:
+        """Return all links where any of the given version_ids is source or target."""
+        if not version_ids:
+            return []
+        result = self.session.execute(
+            select(ArtifactLink).where(
+                or_(
+                    ArtifactLink.source_artifact_id.in_(version_ids),
+                    ArtifactLink.target_artifact_id.in_(version_ids),
+                )
+            )
         )
         return list(result.scalars().all())

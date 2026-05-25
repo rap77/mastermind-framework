@@ -15,6 +15,9 @@ from mastermind_cli.project_state.database.session import (
 from mastermind_cli.project_state.models import ArtifactVersion
 from mastermind_cli.project_state.models.project import Project
 from mastermind_cli.project_state.repositories.artifacts import ArtifactRepository
+from mastermind_cli.project_state.services.project_overview import (
+    ProjectOverviewService,
+)
 
 
 @pytest.fixture()
@@ -254,3 +257,130 @@ def test_get_versions_by_artifact_id_returns_empty_list_for_unknown_id(
     repo = ArtifactRepository(session_factory())
     result = repo.get_versions_by_artifact_id("nonexistent-artifact")
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# AV2 — Service: get_artifact_lineage()
+# ---------------------------------------------------------------------------
+
+
+def test_get_artifact_lineage_returns_none_for_unknown_artifact(
+    session_factory, seeded_project: str
+) -> None:
+    """get_artifact_lineage() must return None when the artifact_id has no versions."""
+    service = ProjectOverviewService(session_factory())
+    result = service.get_artifact_lineage("artifact-does-not-exist")
+    assert result is None
+
+
+def test_get_artifact_lineage_returns_response_with_versions_and_no_links(
+    session_factory, seeded_project: str
+) -> None:
+    """get_artifact_lineage() returns versions and an empty links list when no links exist."""
+    repo = ArtifactRepository(session_factory())
+    now = datetime.now(timezone.utc)
+    repo.create_version(
+        version_id="av2-version-001",
+        artifact_id="av2-artifact-no-links",
+        project_id=seeded_project,
+        artifact_type="spec",
+        version=1,
+        content_hash="sha256:no-links",
+        created_at=now,
+        metadata_json={"note": "no links"},
+    )
+
+    service = ProjectOverviewService(session_factory())
+    result = service.get_artifact_lineage("av2-artifact-no-links")
+
+    assert result is not None
+    assert result.artifact_id == "av2-artifact-no-links"
+    assert len(result.versions) == 1
+    assert result.versions[0].version_id == "av2-version-001"
+    assert result.versions[0].artifact_type == "spec"
+    assert result.versions[0].version == 1
+    assert result.versions[0].metadata == {"note": "no links"}
+    assert result.links == []
+
+
+def test_get_artifact_lineage_returns_links_with_relations(
+    session_factory, seeded_project: str
+) -> None:
+    """get_artifact_lineage() includes links and their task/decision/checkpoint relations."""
+    repo = ArtifactRepository(session_factory())
+    now = datetime.now(timezone.utc)
+
+    source = repo.create_version(
+        version_id="av2-src-version",
+        artifact_id="av2-artifact-with-links",
+        project_id=seeded_project,
+        artifact_type="spec",
+        version=1,
+        content_hash="sha256:src",
+        created_at=now,
+        metadata_json={},
+    )
+    target = repo.create_version(
+        version_id="av2-tgt-version",
+        artifact_id="av2-artifact-target",
+        project_id=seeded_project,
+        artifact_type="plan",
+        version=1,
+        content_hash="sha256:tgt",
+        created_at=now,
+        metadata_json={},
+    )
+    repo.create_link(
+        link_id="av2-link-001",
+        source_artifact_id=source.version_id,
+        target_artifact_id=target.version_id,
+        link_type="derived_from",
+        created_at=now,
+        task_id=None,
+        decision_id=None,
+        checkpoint_id=None,
+    )
+
+    service = ProjectOverviewService(session_factory())
+    result = service.get_artifact_lineage("av2-artifact-with-links")
+
+    assert result is not None
+    assert result.artifact_id == "av2-artifact-with-links"
+    assert len(result.versions) == 1
+    assert result.versions[0].version_id == "av2-src-version"
+    assert len(result.links) == 1
+    link = result.links[0]
+    assert link.link_id == "av2-link-001"
+    assert link.source_artifact_id == "av2-src-version"
+    assert link.target_artifact_id == "av2-tgt-version"
+    assert link.link_type == "derived_from"
+    assert link.task_id is None
+    assert link.decision_id is None
+    assert link.checkpoint_id is None
+
+
+def test_get_artifact_lineage_versions_ordered_ascending(
+    session_factory, seeded_project: str
+) -> None:
+    """get_artifact_lineage() returns versions in ascending version order."""
+    repo = ArtifactRepository(session_factory())
+    now = datetime.now(timezone.utc)
+    artifact_id = "av2-multi-version"
+
+    for v_num, v_id in [(3, "av2-mv-3"), (1, "av2-mv-1"), (2, "av2-mv-2")]:
+        repo.create_version(
+            version_id=v_id,
+            artifact_id=artifact_id,
+            project_id=seeded_project,
+            artifact_type="decision",
+            version=v_num,
+            content_hash=f"sha256:v{v_num}",
+            created_at=now,
+            metadata_json={},
+        )
+
+    service = ProjectOverviewService(session_factory())
+    result = service.get_artifact_lineage(artifact_id)
+
+    assert result is not None
+    assert [v.version for v in result.versions] == [1, 2, 3]

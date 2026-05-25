@@ -452,3 +452,48 @@ class ProjectListResponse(BaseModel):
     projects: list[ProjectDetailResponse] = Field(
         default_factory=list, description="Projects ordered by recent activity"
     )
+
+
+class ArtifactVersionResponse(BaseModel):
+    """Single artifact version included in a lineage response."""
+
+    version_id: str = Field(..., description="Unique version identifier")
+    artifact_id: str = Field(..., description="Logical artifact group identifier")
+    artifact_type: str = Field(..., description="Artifact type (spec, plan, decision…)")
+    version: int = Field(..., description="Monotonically increasing version number")
+    content_hash: str = Field(
+        ..., description="Content fingerprint (SHA-256 or similar)"
+    )
+    created_at: datetime = Field(..., description="Version creation timestamp")
+    metadata: dict[str, object] = Field(
+        default_factory=dict, description="Artifact version metadata"
+    )
+
+
+class ArtifactLinkResponse(BaseModel):
+    """Causal link between two artifact versions included in a lineage response."""
+
+    link_id: str = Field(..., description="Unique link identifier")
+    source_artifact_id: str = Field(..., description="Source version_id")
+    target_artifact_id: str = Field(..., description="Target version_id")
+    link_type: str = Field(..., description="Link type (derived_from, supersedes…)")
+    task_id: str | None = Field(None, description="Associated task identifier")
+    decision_id: str | None = Field(None, description="Associated decision identifier")
+    checkpoint_id: str | None = Field(
+        None, description="Associated checkpoint identifier"
+    )
+    created_at: datetime = Field(..., description="Link creation timestamp")
+
+
+class ArtifactLineageResponse(BaseModel):
+    """Causal lineage graph for a logical artifact."""
+
+    artifact_id: str = Field(..., description="Logical artifact group identifier")
+    versions: list[ArtifactVersionResponse] = Field(
+        default_factory=list,
+        description="All versions for the artifact, ordered ascending by version",
+    )
+    links: list[ArtifactLinkResponse] = Field(
+        default_factory=list,
+        description="Causal links connecting version nodes (source or target in this artifact)",
+    )

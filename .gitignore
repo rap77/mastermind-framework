@@ -57,6 +57,7 @@ rust_control_plane/target/
 
 # Credentials / API keys
 .claude/zai.sh
+.claude/settings.local.json
 
 .claude/worktrees/
 apps/api/mastermind.db
