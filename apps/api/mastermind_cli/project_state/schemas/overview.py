@@ -235,6 +235,21 @@ class TokenUsageListResponse(BaseModel):
     )
 
 
+class RecordTokenUsageRequest(BaseModel):
+    """Request body for recording a token usage event from an agent."""
+
+    model: str = Field(..., description="Model identifier (e.g. claude-sonnet-4-6)")
+    provider: str = Field("anthropic", description="Provider identifier")
+    auth_mode: str = Field("api", description="Authentication mode")
+    prompt_tokens: int = Field(..., ge=0, description="Prompt tokens consumed")
+    completion_tokens: int = Field(..., ge=0, description="Completion tokens consumed")
+    estimated_cost: float = Field(0.0, ge=0.0, description="Estimated cost in USD")
+    run_id: str | None = Field(None, description="Associated run identifier")
+    metadata: dict[str, object] = Field(
+        default_factory=dict, description="Usage metadata"
+    )
+
+
 class ActivityFeedEventResponse(BaseModel):
     """Single activity feed event for a project timeline."""
 

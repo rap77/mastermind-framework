@@ -12,10 +12,13 @@
   - depends_on: none
   - validation: Review requirements/design/tasks package for consistency.
 
-- [ ] T2: Implement the smallest coherent deliverable
-  - [ ] T2.1: Review requirements and design context for T2
-  - [ ] T2.2: Implement T2 end-to-end
-  - [ ] T2.3: Run validation for T2
+- [x] T2: Implement the smallest coherent deliverable
+⏱️ **Estimate**: N/A | **Actual**: 0s | **Deviation**: N/A | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 0s | **ETA**: 0s
+
+  - [x] T2.1: Review requirements and design context for T2
+  - [x] T2.2: Implement T2 end-to-end
+  - [x] T2.3: Run validation for T2
   - depends_on: T1
   - validation: Run targeted validation commands for the touched area.
 

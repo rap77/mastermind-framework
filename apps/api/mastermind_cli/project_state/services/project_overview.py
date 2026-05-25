@@ -51,6 +51,7 @@ from mastermind_cli.project_state.schemas.overview import (
     TaskDependencyResponse,
     TaskDetailResponse,
     TaskListResponse,
+    RecordTokenUsageRequest,
     TokenUsageEventResponse,
     TokenUsageListResponse,
     UpdateTaskStatusRequest,
@@ -439,6 +440,48 @@ class ProjectOverviewService:
             )
         ]
         return TokenUsageListResponse(project_id=project_id, events=events)
+
+    def record_token_usage(
+        self,
+        project_id: str,
+        task_id: str,
+        request: RecordTokenUsageRequest,
+    ) -> TokenUsageEventResponse | None:
+        """Record a token usage event for a task via the service layer.
+
+        Returns None if the task does not exist or belongs to a different project.
+        """
+        task = self.tasks.get_by_id(project_id, task_id)
+        if task is None:
+            return None
+
+        event = self.telemetry.create_event(
+            usage_event_id=str(uuid.uuid4()),
+            project_id=project_id,
+            task_id=task_id,
+            model=request.model,
+            provider=request.provider,
+            auth_mode=request.auth_mode,
+            prompt_tokens=request.prompt_tokens,
+            completion_tokens=request.completion_tokens,
+            estimated_cost=request.estimated_cost,
+            run_id=request.run_id,
+            metadata_json=request.metadata,
+        )
+        return TokenUsageEventResponse(
+            usage_event_id=event.usage_event_id,
+            project_id=event.project_id,
+            task_id=event.task_id,
+            run_id=event.run_id,
+            provider=event.provider,
+            model=event.model,
+            auth_mode=event.auth_mode,
+            prompt_tokens=event.prompt_tokens,
+            completion_tokens=event.completion_tokens,
+            estimated_cost=event.estimated_cost,
+            metadata=event.metadata_json,
+            created_at=event.created_at,
+        )
 
     def get_task_dependencies(
         self, project_id: str, task_id: str

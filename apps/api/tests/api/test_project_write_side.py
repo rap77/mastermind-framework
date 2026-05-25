@@ -453,3 +453,138 @@ async def test_task_status_update_appears_in_activity_feed(tmp_path: Path) -> No
     # Confirm the updated status is visible in the event metadata.
     task_event = next(e for e in body["events"] if e["event_type"] == "task_updated")
     assert task_event["metadata"]["status"] == "done"
+
+
+# ---------------------------------------------------------------------------
+# T2 — POST /api/projects/{project_id}/tasks/{task_id}/token-usage
+# ---------------------------------------------------------------------------
+
+
+async def _seed_project_and_task(
+    session_factory,
+    project_id: str,
+    task_id: str,
+) -> None:
+    now = datetime.now(timezone.utc)
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id=project_id,
+                name="Token Usage Project",
+                status="active",
+                adapter_id="adapter-token",
+                metadata_json={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id=task_id,
+                project_id=project_id,
+                title="Token usage task",
+                status="in_progress",
+                priority="high",
+                owner_type="agent",
+                owner_id="brain-05",
+                metadata_json={},
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+
+@pytest.mark.asyncio
+async def test_record_token_usage_returns_201(tmp_path: Path) -> None:
+    """POST token-usage records the event and returns 201."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {"Authorization": f"Bearer {create_access_token('test-user')}"}
+    session_factory = get_session_factory(database_url)
+    await _seed_project_and_task(session_factory, "proj-token-001", "task-token-001")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/projects/proj-token-001/tasks/task-token-001/token-usage",
+            headers=auth_headers,
+            json={
+                "model": "claude-sonnet-4-6",
+                "prompt_tokens": 1000,
+                "completion_tokens": 500,
+                "estimated_cost": 0.0042,
+            },
+        )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["model"] == "claude-sonnet-4-6"
+    assert data["prompt_tokens"] == 1000
+    assert data["completion_tokens"] == 500
+    assert data["task_id"] == "task-token-001"
+    assert data["project_id"] == "proj-token-001"
+
+
+@pytest.mark.asyncio
+async def test_record_token_usage_returns_404_for_unknown_task(
+    tmp_path: Path,
+) -> None:
+    """POST token-usage returns 404 when the task does not exist."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {"Authorization": f"Bearer {create_access_token('test-user')}"}
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/projects/any-project/tasks/does-not-exist/token-usage",
+            headers=auth_headers,
+            json={
+                "model": "claude-sonnet-4-6",
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+            },
+        )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_record_token_usage_returns_404_for_wrong_project(
+    tmp_path: Path,
+) -> None:
+    """POST token-usage returns 404 when task exists but belongs to a different project."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {"Authorization": f"Bearer {create_access_token('test-user')}"}
+    session_factory = get_session_factory(database_url)
+    await _seed_project_and_task(session_factory, "proj-real", "task-real")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/projects/proj-wrong/tasks/task-real/token-usage",
+            headers=auth_headers,
+            json={
+                "model": "claude-sonnet-4-6",
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+            },
+        )
+
+    assert response.status_code == 404

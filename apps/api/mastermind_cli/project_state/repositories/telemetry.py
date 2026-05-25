@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -36,6 +37,40 @@ class TelemetryRepository:
     def __init__(self, session: Session) -> None:
         """Initialize the repository with an async SQLAlchemy session."""
         self.session = session
+
+    def create_event(
+        self,
+        usage_event_id: str,
+        project_id: str,
+        task_id: str | None,
+        model: str,
+        provider: str,
+        auth_mode: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        estimated_cost: float,
+        run_id: str | None = None,
+        metadata_json: dict[str, object] | None = None,
+    ) -> TokenUsageEvent:
+        """Persist a new token usage event and return it."""
+        event = TokenUsageEvent(
+            usage_event_id=usage_event_id,
+            project_id=project_id,
+            task_id=task_id,
+            run_id=run_id,
+            provider=provider,
+            model=model,
+            auth_mode=auth_mode,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            estimated_cost=estimated_cost,
+            metadata_json=metadata_json or {},
+            created_at=datetime.now(timezone.utc),
+        )
+        self.session.add(event)
+        self.session.commit()
+        self.session.refresh(event)
+        return event
 
     def list_recent_by_project(
         self, project_id: str, limit: int

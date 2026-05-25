@@ -17,6 +17,7 @@ from mastermind_cli.project_state.schemas.overview import (
     ActivityFeedResponse,
     ArtifactLineageResponse,
     CreateCheckpointRequest,
+    RecordTokenUsageRequest,
     CreateDecisionRequest,
     DecisionDetailResponse,
     DecisionListResponse,
@@ -32,6 +33,7 @@ from mastermind_cli.project_state.schemas.overview import (
     TaskDependenciesResponse,
     TaskDetailResponse,
     TaskListResponse,
+    TokenUsageEventResponse,
     TokenUsageListResponse,
     UpdateTaskStatusRequest,
 )
@@ -504,3 +506,26 @@ async def get_artifact_lineage(
     if lineage is None:
         raise HTTPException(status_code=404, detail="Artifact not found")
     return lineage
+
+
+@router.post(
+    "/{project_id}/tasks/{task_id}/token-usage",
+    response_model=TokenUsageEventResponse,
+    status_code=201,
+)
+async def record_task_token_usage(
+    project_id: str,
+    task_id: str,
+    request: RecordTokenUsageRequest,
+    user_id: str = Depends(get_current_user_any),
+    database_url: str = Depends(get_project_state_db_url),
+) -> TokenUsageEventResponse:
+    """Record a token usage event for a task via the service layer."""
+    del user_id
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        event = service.record_token_usage(project_id, task_id, request)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Task not found in project")
+    return event
