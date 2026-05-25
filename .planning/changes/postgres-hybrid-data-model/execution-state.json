@@ -37,35 +37,35 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
     },
     "T2": {
-      "status": "pending",
+      "status": "completed",
       "subtasks": {
         "T2.1": {
           "description": "Review requirements and design context for T2",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:28:48.704941",
+          "completed_at": "2026-05-25T17:28:53.011934",
+          "duration_seconds": 4.31,
+          "updated_at": "2026-05-25T17:28:53.011934"
         },
         "T2.2": {
           "description": "Implement T2 end-to-end",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:28:53.132928",
+          "completed_at": "2026-05-25T17:29:08.517137",
+          "duration_seconds": 15.38,
+          "updated_at": "2026-05-25T17:29:08.517137"
         },
         "T2.3": {
           "description": "Run validation for T2",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:29:08.654628",
+          "completed_at": "2026-05-25T17:31:09.878220",
+          "duration_seconds": 121.22,
+          "updated_at": "2026-05-25T17:31:09.878220"
         }
       },
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "2026-05-25T17:28:48.704941",
+      "completed_at": "2026-05-25T17:31:09.878220",
       "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
     },
@@ -103,6 +103,6 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
     }
   },
-  "updated_at": "2026-05-25T17:25:58.053108",
+  "updated_at": "2026-05-25T17:31:09.878220",
   "bootstrapped_from_artifacts": true
 }
