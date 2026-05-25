@@ -1,7 +1,7 @@
 ---
 name: mm:continue-task
 description: Resume a MasterMind task from the last checkpoint. Alias for /mm:complete-task <task-id> --continue.
-argument-hint: "<task-id>"
+argument-hint: "<task-id> [--brief]"
 ---
 
 # /mm:continue-task
@@ -12,6 +12,7 @@ Resume a previously started MasterMind task from its latest checkpoint.
 
 ```bash
 /mm:continue-task D2
+/mm:continue-task D2 --brief
 ```
 
 ## Behavior
@@ -20,6 +21,12 @@ This command is equivalent to:
 
 ```bash
 /mm:complete-task D2 --continue
+```
+
+To print the exact brief another model should use before resuming:
+
+```bash
+/mm:complete-task D2 --brief
 ```
 
 ## Required Inputs

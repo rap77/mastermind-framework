@@ -21,6 +21,9 @@ COMPLETE_TASK_HANDLER = (
 ARCHIVE_OBJECTIVE_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "archive-objective-handler.py"
 )
+ACTIVATE_NEXT_OBJECTIVE_HANDLER = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "activate-next-objective-handler.py"
+)
 UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-times.py"
 CHECKPOINT_GUARD = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "pre_commit_checkpoint_guard.py"
@@ -152,6 +155,145 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(len(project_state_entries), 1)
         self.assertEqual(project_state_entries[0]["slug"], "project-state-mvp")
         self.assertEqual(project_state_entries[0]["status"], "done")
+        self.assertIn("rank", project_state_entries[0])
+        self.assertEqual(project_state_entries[0]["stable_id"], "project-state-mvp")
+
+    def test_roadmap_marks_archived_objective_done_and_sets_recommended_next(
+        self,
+    ) -> None:
+        """Archived objectives should remain done and roadmap should emit a deterministic recommendation."""
+        archived_dir = (
+            self.temp_dir
+            / ".planning"
+            / "archive"
+            / "objectives"
+            / "artifact-versioning-and-lineage"
+        )
+        archived_dir.mkdir(parents=True, exist_ok=True)
+        archived_project_state_dir = (
+            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_dir / "tasks.md").write_text(
+            "# Tasks — artifact-versioning-and-lineage\n\n## AV1: Foundation\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_dir / "todo.md").write_text(
+            "# Todo — artifact-versioning-and-lineage\n\n## Execution Checklist\n\n- [x] AV1: Foundation\n  - [x] AV1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "artifact-versioning-and-lineage",
+                    "tasks": {"AV1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+        objectives = json.loads(
+            (self.temp_dir / ".planning" / "roadmap" / "objectives.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        artifact = next(
+            item
+            for item in objectives
+            if item["slug"] == "artifact-versioning-and-lineage"
+        )
+        self.assertEqual(artifact["status"], "done")
+        backend = next(
+            item
+            for item in objectives
+            if item["slug"] == "backend-service-boundary-for-agents"
+        )
+        self.assertTrue(backend["ready_now"])
+        self.assertTrue(backend["recommended_next"])
+        self.assertEqual(backend["stable_id"], "backend-service-boundary-for-agents")
+
+        objectives_md = (
+            self.temp_dir / ".planning" / "roadmap" / "objectives.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("## Recommended next objective", objectives_md)
+        self.assertIn("| Rank | Objective |", objectives_md)
+        self.assertIn("`backend-service-boundary-for-agents`", objectives_md)
+
+    def test_activate_next_objective_materializes_recommended_package(self) -> None:
+        """activate-next-objective should create the package for the roadmap recommendation."""
+        archived_project_state_dir = (
+            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+
+        roadmap_result = self.run_command(
+            str(DISCOVER_HANDLER), "--roadmap", "--existing"
+        )
+        self.assertEqual(roadmap_result.returncode, 0, msg=roadmap_result.stderr)
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+
+        objective_dir = (
+            self.temp_dir
+            / ".planning"
+            / "changes"
+            / "backend-service-boundary-for-agents"
+        )
+        self.assertTrue((objective_dir / "requirements.md").exists())
+        self.assertTrue((objective_dir / "design.md").exists())
+        self.assertTrue((objective_dir / "tasks.md").exists())
 
     def test_objective_mode_materializes_package_and_validates(self) -> None:
         """Objective mode should write the package and pass the objective validator."""
@@ -219,6 +361,37 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
         self.assertEqual(objective_state["objective_slug"], "project-state-mvp")
         self.assertIn("PS1", objective_state["tasks"])
+
+    def test_complete_task_brief_mode_emits_model_handoff(self) -> None:
+        """Brief mode should print a ready-to-use model handoff summary."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "--brief", "PS1")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("MODEL_BRIEF_START", result.stdout)
+        self.assertIn("Objective: project-state-mvp", result.stdout)
+        self.assertIn(
+            ".planning/changes/project-state-mvp/execution-state.json",
+            result.stdout,
+        )
+        self.assertIn(
+            "python3 .claude/commands/mm/discover-contract-check.py --objective project-state-mvp",
+            result.stdout,
+        )
+
+    def test_complete_task_handler_help_exits_cleanly(self) -> None:
+        """Help flags should print usage instead of being treated as a task id."""
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "--help")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("Usage: mm-complete-task", result.stdout)
+        self.assertNotIn("Starting task --HELP", result.stdout)
 
     def test_update_todo_times_uses_objective_todo_path(self) -> None:
         """update-todo-times should update the active objective todo.md from runtime state."""

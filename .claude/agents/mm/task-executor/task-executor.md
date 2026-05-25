@@ -65,6 +65,7 @@ For each subtask in the list:
 
 **Step 0 — Update execution state via handler:**
 ```bash
+cd "${payload.working_directory}" && \
 python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress {subtask_id}
 ```
 
@@ -263,6 +264,7 @@ After each successful subtask, do BOTH steps in order:
 
 **Step A — Mark completion via handler:**
 ```bash
+cd "${payload.working_directory}" && \
 python3 .claude/commands/mm/complete-task-handler.py --mark-done {subtask_id}
 ```
 
@@ -272,6 +274,7 @@ completion notification when the root task finishes.
 
 **Step B — Update time tracking header:**
 ```bash
+cd "${payload.working_directory}" && \
 python3 .claude/commands/mm/update-todo-times.py {task_id}
 ```
 

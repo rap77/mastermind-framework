@@ -92,6 +92,7 @@ class ObjectiveCandidate:
     mvp: bool
     evidence_sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
+    priority_score: int = 0
 
 
 OBJECTIVE_SLUG_ALIASES: dict[str, str] = {
@@ -372,19 +373,107 @@ def dependency_hints(slug: str) -> list[str]:
     return hints.get(slug, [])
 
 
+def priority_hints(slug: str) -> int:
+    """Return a deterministic priority hint for known objectives.
+
+    Higher scores mean the objective should be preferred earlier once dependencies
+    are satisfied. This encodes the repo's current architecture-first sequencing.
+    """
+    slug = canonical_objective_slug(slug)
+    hints: dict[str, int] = {
+        "backend-service-boundary-for-agents": 95,
+        "postgres-hybrid-data-model": 92,
+        "engineering-doctrine-layer": 86,
+        "token-cost-quality-telemetry": 84,
+        "collaboration-rbac": 82,
+        "dashboard-realtime": 78,
+        "window-scheduler": 76,
+        "context-window-management": 74,
+        "context-projection": 72,
+        "rust-control-plane-hardening": 70,
+        "rust-control-plane": 68,
+        "observability-real-time-hub": 66,
+        "knowledge-distillation": 62,
+        "knowledge-ingestion-manual": 60,
+        "multi-channel-gateway": 58,
+        "pgvector-schema-langsmith-foundation-paralelo": 56,
+        "task-time-and-estimation": 55,
+        "rag-evaluation-gate": 54,
+        "rag-pilot-brain-1-only": 53,
+        "rag-scale-out-brains-2-7": 52,
+        "vertical-slice": 50,
+    }
+    return hints.get(slug, 40)
+
+
+def status_priority(status: str) -> int:
+    """Return precedence for merging and ordering statuses."""
+    rank = {
+        "active": 5,
+        "done": 4,
+        "missing-but-required": 3,
+        "planned": 2,
+        "deferred": 1,
+        "stale": 0,
+    }
+    return rank.get(status, -1)
+
+
+def compute_ready_now(
+    objective: ObjectiveCandidate, all_objectives: list[ObjectiveCandidate]
+) -> bool:
+    """Return True when an objective has no unresolved dependencies and is not done."""
+    if objective.status in {"done", "stale"}:
+        return False
+    if objective.status == "active":
+        return True
+
+    done_or_active = {
+        item.slug for item in all_objectives if item.status in {"done", "active"}
+    }
+    return all(dependency in done_or_active for dependency in objective.dependencies)
+
+
+def count_unlocks(slug: str, objectives: list[ObjectiveCandidate]) -> int:
+    """Count downstream objectives that depend directly on the given slug."""
+    return sum(1 for objective in objectives if slug in objective.dependencies)
+
+
+def choose_recommended_next(
+    objectives: list[ObjectiveCandidate],
+) -> ObjectiveCandidate | None:
+    """Choose the deterministic next objective to activate."""
+    active = [objective for objective in objectives if objective.status == "active"]
+    if active:
+        return sorted(
+            active,
+            key=lambda item: (-item.priority_score, item.slug),
+        )[0]
+
+    ready = [
+        objective
+        for objective in objectives
+        if objective.status in {"planned", "missing-but-required"}
+        and compute_ready_now(objective, objectives)
+    ]
+    if not ready:
+        return None
+
+    return sorted(
+        ready,
+        key=lambda item: (
+            -item.priority_score,
+            -count_unlocks(item.slug, objectives),
+            item.slug,
+        ),
+    )[0]
+
+
 def reconcile_candidates(
     candidates: list[ObjectiveCandidate],
 ) -> list[ObjectiveCandidate]:
     """Merge duplicated candidates and normalize status/evidence/dependencies."""
     merged: dict[str, ObjectiveCandidate] = {}
-    status_rank = {
-        "active": 4,
-        "missing-but-required": 3,
-        "planned": 2,
-        "deferred": 1,
-        "done": 0,
-        "stale": -1,
-    }
 
     for candidate in candidates:
         candidate.slug = canonical_objective_slug(candidate.slug)
@@ -392,6 +481,7 @@ def reconcile_candidates(
             canonical_objective_slug(dependency)
             for dependency in candidate.dependencies
         ]
+        candidate.priority_score = priority_hints(candidate.slug)
         existing = merged.get(candidate.slug)
         if existing is None:
             candidate.dependencies = sorted(
@@ -400,15 +490,14 @@ def reconcile_candidates(
             merged[candidate.slug] = candidate
             continue
 
-        if status_rank.get(candidate.status, -10) > status_rank.get(
-            existing.status, -10
-        ):
+        if status_priority(candidate.status) > status_priority(existing.status):
             existing.status = candidate.status
         if len(candidate.summary) > len(existing.summary):
             existing.summary = candidate.summary
         if len(candidate.why_it_matters) > len(existing.why_it_matters):
             existing.why_it_matters = candidate.why_it_matters
         existing.mvp = existing.mvp or candidate.mvp
+        existing.priority_score = max(existing.priority_score, candidate.priority_score)
         existing.evidence_sources = sorted(
             set(existing.evidence_sources + candidate.evidence_sources)
         )
@@ -423,7 +512,8 @@ def reconcile_candidates(
     ordered = sorted(
         merged.values(),
         key=lambda item: (
-            -status_rank.get(item.status, -10),
+            -status_priority(item.status),
+            -item.priority_score,
             item.slug,
         ),
     )
@@ -453,6 +543,12 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
     roadmap_dir = Path(str(payload["roadmap_dir"]))
     ensure_directory(roadmap_dir)
     objectives = build_roadmap_candidates(root_dir)
+    recommended_next = choose_recommended_next(objectives)
+    active_objectives = [obj for obj in objectives if obj.status == "active"]
+    done_objectives = [obj for obj in objectives if obj.status == "done"]
+    pending_objectives = [
+        obj for obj in objectives if obj.status not in {"active", "done", "stale"}
+    ]
 
     objectives_md = roadmap_dir / "objectives.md"
     dependency_graph_md = roadmap_dir / "dependency-graph.md"
@@ -463,26 +559,64 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
         "",
         f"_Generated: {datetime.now().isoformat(timespec='seconds')}_",
         "",
-        "| ID | Objective | Status | MVP | Dependencies | Why it matters | Evidence |",
-        "|---|---|---|---|---|---|---|",
+        "## Recommended next objective",
+        "",
+        f"- `{recommended_next.slug}`" if recommended_next else "- `none`",
+        (
+            f"- Why: ready now, highest deterministic priority ({recommended_next.priority_score}), "
+            f"unlocks {count_unlocks(recommended_next.slug, objectives)} downstream objective(s)."
+        )
+        if recommended_next
+        else "- Why: no ready objective could be derived from current dependencies.",
+        "",
+        "## Status summary",
+        "",
+        f"- Active: {len(active_objectives)}",
+        f"- Planned/blocked: {len(pending_objectives)}",
+        f"- Done: {len(done_objectives)}",
+        "",
+        "| Rank | Objective | Status | Ready Now | Priority | Recommended | MVP | Dependencies | Why it matters | Evidence |",
+        "|---:|---|---|---|---:|---|---|---|---|---|",
     ]
     objective_payload: list[dict[str, object]] = []
-    for index, objective in enumerate(objectives, start=1):
-        objective_id = f"O{index}"
+    display_order = sorted(
+        objectives,
+        key=lambda item: (
+            0
+            if item.status == "active"
+            else 1
+            if compute_ready_now(item, objectives)
+            else 2
+            if item.status != "done"
+            else 3,
+            -item.priority_score,
+            -count_unlocks(item.slug, objectives),
+            item.slug,
+        ),
+    )
+    for index, objective in enumerate(display_order, start=1):
         deps = ", ".join(objective.dependencies) if objective.dependencies else "—"
         evidence = (
             ", ".join(objective.evidence_sources) if objective.evidence_sources else "—"
         )
+        ready_now = compute_ready_now(objective, objectives)
+        recommended = (
+            recommended_next is not None and objective.slug == recommended_next.slug
+        )
         lines.append(
-            f"| {objective_id} | `{objective.slug}` | {objective.status} | {'yes' if objective.mvp else 'no'} | {deps} | {objective.why_it_matters} | {evidence} |"
+            f"| {index} | `{objective.slug}` | {objective.status} | {'yes' if ready_now else 'no'} | {objective.priority_score} | {'yes' if recommended else 'no'} | {'yes' if objective.mvp else 'no'} | {deps} | {objective.why_it_matters} | {evidence} |"
         )
         objective_payload.append(
             {
-                "id": objective_id,
+                "rank": index,
+                "stable_id": objective.slug,
                 "slug": objective.slug,
                 "name": objective.name,
                 "summary": objective.summary,
                 "status": objective.status,
+                "ready_now": ready_now,
+                "priority_score": objective.priority_score,
+                "recommended_next": recommended,
                 "mvp": objective.mvp,
                 "dependencies": objective.dependencies,
                 "why_it_matters": objective.why_it_matters,
@@ -507,7 +641,7 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
             "",
             "## Recommended next active objective",
             "",
-            f"- `{next((obj.slug for obj in objectives if obj.status in {'active', 'planned', 'missing-but-required'}), 'none')}`",
+            f"- `{recommended_next.slug if recommended_next else 'none'}`",
         ]
     )
     dependency_graph_md.write_text("\n".join(graph_lines) + "\n", encoding="utf-8")
@@ -517,14 +651,7 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
 
     current_handoff_path = root_dir / ".planning" / "HANDOFF-CURRENT.md"
     if objectives:
-        next_objective = next(
-            (
-                obj
-                for obj in objectives
-                if obj.status in {"active", "planned", "missing-but-required"}
-            ),
-            objectives[0],
-        )
+        next_objective = recommended_next or display_order[0]
         handoff_text = "\n".join(
             [
                 f"# Handoff — {next_objective.name}",
@@ -542,6 +669,9 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
                 "",
                 "## Exact next recommended task",
                 f'- Run `/mm:discover --existing --objective {next_objective.slug} "{next_objective.name}"` to generate the active objective package.',
+                (
+                    f"- This objective is ready now and carries priority score {next_objective.priority_score}."
+                ),
                 "",
                 "## Validation commands",
                 f"- `/mm:discover-contract-check --objective {next_objective.slug}`",

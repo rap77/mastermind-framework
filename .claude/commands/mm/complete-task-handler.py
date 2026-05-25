@@ -176,6 +176,13 @@ def mm_error(msg: str) -> None:
     print(f"ERROR: {msg}", flush=True, file=sys.stderr)
 
 
+def mm_model_brief(brief: str) -> None:
+    """Print a model-resume brief."""
+    print("MODEL_BRIEF_START", flush=True)
+    print(brief.rstrip(), flush=True)
+    print("MODEL_BRIEF_END", flush=True)
+
+
 def task_heading_exists(plan_path: Path, task_id: str) -> bool:
     """Return True if the plan file contains a heading for the task."""
     if not plan_path.exists():
@@ -2011,6 +2018,83 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
         raise RuntimeError(f"Unexpected error building payload: {e}") from e
 
 
+def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
+    """Build a concise model handoff brief for a root task.
+
+    Args:
+        task_id: Root task identifier.
+        resume_mode: Whether the brief is for an explicit resume flow.
+
+    Returns:
+        Markdown brief that another model can follow without a long custom prompt.
+    """
+    source = resolve_task_source(task_id)
+    task = read_task_from_plan(task_id)
+    objective_dir = source.plan_path.parent
+    objective_state_path = objective_dir / OBJECTIVE_STATE_FILENAME
+    handoff_path = objective_dir / "HANDOFF-CURRENT.md"
+    requirements_path = objective_dir / "requirements.md"
+    design_path = objective_dir / "design.md"
+    objective_state = load_objective_state(task_id=task_id) or {}
+    task_state = objective_state.get("tasks", {}).get(task_id, {})
+    task_status = task_state.get("status", "pending")
+    validation_commands = get_task_validation_commands_from_plan(
+        source.plan_path, task_id
+    )
+
+    read_files = [
+        "docs/canonical/45-HYBRID-SPEC-FLOW-AND-RULES.md",
+        str(requirements_path.relative_to(PROJECT_ROOT)),
+        str(design_path.relative_to(PROJECT_ROOT)),
+        str(source.plan_path.relative_to(PROJECT_ROOT)),
+        str(source.todo_path.relative_to(PROJECT_ROOT)),
+        str(handoff_path.relative_to(PROJECT_ROOT)),
+        str(objective_state_path.relative_to(PROJECT_ROOT)),
+    ]
+
+    lines = [
+        f"Objective: {source.objective_slug}",
+        f"Task: {task_id} — {task['title']}",
+        f"Task status in ledger: {task_status}",
+        "Read these files first and do not improvise outside them:",
+    ]
+    lines.extend(f"{idx}. {path}" for idx, path in enumerate(read_files, start=1))
+    lines.extend(
+        [
+            "",
+            "Rules:",
+            "- Do not manually edit todo.md, HANDOFF-CURRENT.md, task-progress.json, or execution-state.json.",
+            "- The complete-task handler is the only valid writer for progress state.",
+            "- Do not start or commit a later task until this task is completed in execution-state.json.",
+            "",
+            "First commands:",
+            f"- python3 .claude/commands/mm/discover-contract-check.py --objective {source.objective_slug}",
+            "- python3 .claude/commands/mm/complete-task-handler.py --status",
+        ]
+    )
+
+    if resume_mode:
+        lines.append(f"- /mm:continue-task {task_id}")
+    else:
+        lines.append(f"- /mm:complete-task {task_id}")
+
+    if validation_commands:
+        lines.extend(["", "Validation commands for this task:"])
+        lines.extend(f"- {command}" for command in validation_commands)
+
+    lines.extend(
+        [
+            "",
+            "Before acting, confirm:",
+            "1. the exact ledger status of this task",
+            "2. the source-of-truth file for progress",
+            "3. whether the task is blocked or ready",
+            "4. the next handler command you will run",
+        ]
+    )
+    return "\n".join(lines)
+
+
 # ============================================================================
 # Permission Detection
 # ============================================================================
@@ -2104,6 +2188,7 @@ def start_task(task_id: str) -> None:
     subtasks = get_execution_subtasks(task_id)
 
     mm_task(task_id, task["title"])
+    mm_model_brief(build_model_brief(task_id))
 
     # Show all subtasks with status
     for st in subtasks:
@@ -2180,6 +2265,8 @@ def resume_task(task_id: str) -> None:
         return
 
     sync_objective_todo_from_state(task_id)
+    mm_task(task_id, read_task_from_plan(task_id)["title"])
+    mm_model_brief(build_model_brief(task_id, resume_mode=True))
 
     mm_info(f"Previous session: {state['session_id']}")
     mm_info(f"Last checkpoint: {state.get('last_checkpoint', 'none')}")
@@ -2570,6 +2657,8 @@ def mark_in_progress(subtask_id: str) -> None:
 
 def main() -> None:
     """Main entry point."""
+    help_flags = {"-h", "--help", "help"}
+
     if len(sys.argv) < 2:
         print(
             "Usage: mm-complete-task <TASK_ID> [--continue] [--status] [--reset-stale] [--reconcile]",
@@ -2588,7 +2677,35 @@ def main() -> None:
             "       mm-complete-task --reconcile <TASK_ID>  # Repair todo/handoff from runtime truth",
             flush=True,
         )
+        print(
+            "       mm-complete-task --brief <TASK_ID>  # Print a concise model handoff brief",
+            flush=True,
+        )
         sys.exit(1)
+
+    if sys.argv[1] in help_flags:
+        print(
+            "Usage: mm-complete-task <TASK_ID> [--continue] [--status] [--reset-stale] [--reconcile]",
+            flush=True,
+        )
+        print("       mm-complete-task --status  # Show all tasks", flush=True)
+        print(
+            "       mm-complete-task --mark-done <SUBTASK_ID>       # Mark subtask complete",
+            flush=True,
+        )
+        print(
+            "       mm-complete-task --mark-in-progress <SUBTASK_ID>  # Mark subtask started",
+            flush=True,
+        )
+        print(
+            "       mm-complete-task --reconcile <TASK_ID>  # Repair todo/handoff from runtime truth",
+            flush=True,
+        )
+        print(
+            "       mm-complete-task --brief <TASK_ID>  # Print a concise model handoff brief",
+            flush=True,
+        )
+        return
 
     # Status mode
     if sys.argv[1] == "--status":
@@ -2626,6 +2743,15 @@ def main() -> None:
                 mm_error(f"SYNC: {issue}")
             sys.exit(1)
         mm_status(f"RECONCILED {task_id}")
+        return
+
+    if sys.argv[1] == "--brief":
+        if len(sys.argv) < 3:
+            mm_error("Usage: mm-complete-task --brief <TASK_ID>")
+            mm_error("Example: mm-complete-task --brief AV2")
+            sys.exit(1)
+        task_id = sys.argv[2].upper()
+        mm_model_brief(build_model_brief(task_id))
         return
 
     # Reset stale mode

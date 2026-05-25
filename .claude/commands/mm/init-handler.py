@@ -147,6 +147,7 @@ COMMANDS_WHITELIST = {
     "continue-task.md",
     "discover-contract-check.md",
     "archive-objective.md",
+    "activate-next-objective.md",
     # Brain consultation
     "ask-all.md",
     "ask-product.md",

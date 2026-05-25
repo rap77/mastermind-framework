@@ -44,6 +44,16 @@ Discover and plan using the **objective-package workflow**.
 
 The global `.planning/HANDOFF-CURRENT.md` is also refreshed to point at the next objective.
 
+### Mode C: Automatic next activation
+
+If the roadmap already marks a `recommended_next` objective, prefer:
+
+```bash
+/mm:activate-next-objective
+```
+
+This activates the next package automatically instead of repeating the slug manually.
+
 ---
 
 ## Protocol (For Assistant)
@@ -176,7 +186,7 @@ If validation fails, discovery is NOT complete — fix the missing artifacts/sec
     ↓
 .planning/roadmap/objectives.md
     ↓
-/mm:discover --existing --objective <slug> "Objective Name"
+/mm:activate-next-objective
     ↓
 .planning/changes/<objective>/
   requirements.md
@@ -213,7 +223,7 @@ If validation fails, discovery is NOT complete — fix the missing artifacts/sec
 ```text
 /mm:discover --roadmap --existing
     ↓
-/mm:discover --existing --objective <slug>
+/mm:activate-next-objective
     ↓
 /mm:discover-contract-check --objective <slug>
     ↓

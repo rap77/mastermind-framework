@@ -1,7 +1,7 @@
 ---
 name: mm:complete-task
 description: Execute MasterMind tasks with full agent-skills cycle. Launches task-executor to run /build → /test → /review → code-reviewer → /mm:safe-commit per subtask in BACKGROUND.
-argument-hint: "<task-id> [--continue]"
+argument-hint: "<task-id> [--continue|--brief]"
 ---
 
 # /mm:complete-task
@@ -13,6 +13,7 @@ Execute objective-package task subtasks using the full agent-skills cycle **in B
 ```bash
 /mm:complete-task D1          # Start D1 task
 /mm:complete-task D2 --continue  # Resume from checkpoint
+/mm:complete-task D2 --brief  # Print the exact brief another model should follow
 /mm:complete-task --status    # Show all tasks status
 ```
 
@@ -27,6 +28,12 @@ python3 .claude/commands/mm/complete-task-handler.py <task-id> [options]
 ```
 
 Run from the **project root** (auto-detected via `git rev-parse --show-toplevel`)
+or explicitly:
+
+```bash
+cd "$(git rev-parse --show-toplevel)" && \
+python3 .claude/commands/mm/complete-task-handler.py <task-id> [options]
+```
 
 ### Step 2: Parse Handler Output
 
@@ -68,6 +75,8 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 
 **`--status` flag**: Show handler output directly, don't launch agent.
 
+**`--brief` flag**: Print the exact handoff brief for another model. Use this instead of manually writing a long prompt.
+
 **`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` and automatically runs acceptance-criteria verification. No agent needed.
 
 **IMPORTANT**: `/mm:complete-task` already triggers `verify-criteria-handler.py` when all subtasks are done. Acceptance checking is part of the normal completion flow.
@@ -81,6 +90,7 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 3. **Generates** `task-progress.json` with pending subtasks
 4. **Launches** `task-executor` agent in background
 5. **Monitor** with `tail -f .planning/task-progress.json`
+6. **Emits** a `MODEL_BRIEF` block so another model can resume with the right context
 
 ## Execution Cycle (per subtask)
 
