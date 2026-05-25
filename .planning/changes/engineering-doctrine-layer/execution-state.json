@@ -1,0 +1,108 @@
+{
+  "objective_slug": "engineering-doctrine-layer",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:59:55.992582",
+          "completed_at": "2026-05-25T18:00:35.249691",
+          "duration_seconds": 39.26,
+          "updated_at": "2026-05-25T18:00:35.249691"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T18:00:35.380344",
+          "completed_at": "2026-05-25T18:03:06.449897",
+          "duration_seconds": 151.07,
+          "updated_at": "2026-05-25T18:03:06.449897"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T18:03:06.566379",
+          "completed_at": "2026-05-25T18:03:12.753595",
+          "duration_seconds": 6.19,
+          "updated_at": "2026-05-25T18:03:12.753595"
+        }
+      },
+      "started_at": "2026-05-25T17:59:55.992582",
+      "completed_at": "2026-05-25T18:03:12.753595",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    },
+    "T2": {
+      "status": "pending",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    }
+  },
+  "updated_at": "2026-05-25T18:03:12.753595",
+  "bootstrapped_from_artifacts": true
+}
