@@ -70,39 +70,39 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
     },
     "T3": {
-      "status": "pending",
+      "status": "completed",
       "subtasks": {
         "T3.1": {
           "description": "Review requirements and design context for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:14.507902",
+          "completed_at": "2026-05-25T17:44:14.591536",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-05-25T17:44:14.591536"
         },
         "T3.2": {
           "description": "Implement T3 end-to-end",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:14.721661",
+          "completed_at": "2026-05-25T17:44:42.891186",
+          "duration_seconds": 28.17,
+          "updated_at": "2026-05-25T17:44:42.891186"
         },
         "T3.3": {
           "description": "Run validation for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:43.017533",
+          "completed_at": "2026-05-25T17:45:36.744227",
+          "duration_seconds": 53.73,
+          "updated_at": "2026-05-25T17:45:36.744227"
         }
       },
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "2026-05-25T17:44:14.507902",
+      "completed_at": "2026-05-25T17:45:36.744227",
       "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
     }
   },
-  "updated_at": "2026-05-25T17:31:09.878220",
+  "updated_at": "2026-05-25T17:45:36.744227",
   "bootstrapped_from_artifacts": true
 }
