@@ -1,19 +1,20 @@
-# Handoff — artifact-versioning-and-lineage
+# Handoff — Backend Service Boundary For Agents
 
 ## Current objective
-- `artifact-versioning-and-lineage`
+- `backend-service-boundary-for-agents`
 
 ## Decisions already made
-- Use a per-objective planning package instead of relying on a single global spec forever.
-- Another model should be able to resume from artifacts, not from chat memory alone.
+- Roadmap is derived from explicit intent, planning state, decision history, and implementation reality.
+- Only one objective package should be actively expanded at a time unless parallel tracks are explicitly justified.
 
 ## Blockers / risks
-- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
-- Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
+- Roadmap is heuristic and should be refined when new canonical docs or handoffs appear.
+- Legacy global discovery files still coexist with the target per-objective package model.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- Run `/mm:discover --existing --objective backend-service-boundary-for-agents "Backend Service Boundary For Agents"` to generate the active objective package.
+- This objective is ready now and carries priority score 95.
 
 ## Validation commands
-- `/mm:discover-contract-check` (legacy/global validator still active)
-- Run targeted tests for touched files before handing off again
+- `/mm:discover-contract-check --objective backend-service-boundary-for-agents`
+- Verify `.planning/roadmap/objectives.md` and `.planning/roadmap/dependency-graph.md` were generated
