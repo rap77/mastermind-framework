@@ -23,6 +23,12 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: mm-objective-checkpoint-guard
+        name: MM Objective Checkpoint Guard
+        entry: python3 .claude/commands/mm/pre_commit_checkpoint_guard.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
 
   # ============================================
   # General - Pre-commit hooks

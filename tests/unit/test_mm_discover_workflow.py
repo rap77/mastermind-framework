@@ -22,6 +22,9 @@ ARCHIVE_OBJECTIVE_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "archive-objective-handler.py"
 )
 UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-times.py"
+CHECKPOINT_GUARD = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "pre_commit_checkpoint_guard.py"
+)
 
 
 class DiscoverWorkflowTest(unittest.TestCase):
@@ -32,6 +35,18 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.temp_dir = Path(tempfile.mkdtemp(prefix="mm-discover-"))
         subprocess.run(
             ["git", "init"], cwd=self.temp_dir, check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
         )
         (self.temp_dir / ".planning").mkdir(parents=True, exist_ok=True)
         (self.temp_dir / "docs" / "canonical").mkdir(parents=True, exist_ok=True)
@@ -585,6 +600,93 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertTrue(archived_dir.exists())
         self.assertTrue((archived_dir / "COMPLETION-SUMMARY.md").exists())
+
+    def test_checkpoint_guard_blocks_code_commit_without_execution_state_advance(
+        self,
+    ) -> None:
+        """Pre-commit guard must reject staged code when objective state did not advance."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        code_path = self.temp_dir / "README.md"
+        code_path.write_text("# Temp Repo\nchanged\n", encoding="utf-8")
+
+        subprocess.run(
+            [
+                "git",
+                "add",
+                "README.md",
+                str(
+                    (objective_dir / "execution-state.json").relative_to(self.temp_dir)
+                ),
+                str((objective_dir / "todo.md").relative_to(self.temp_dir)),
+                str((objective_dir / "HANDOFF-CURRENT.md").relative_to(self.temp_dir)),
+            ],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+
+        result = self.run_command(str(CHECKPOINT_GUARD))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no durable task progress advancement", result.stdout)
+
+    def test_checkpoint_guard_allows_commit_when_execution_state_advances(
+        self,
+    ) -> None:
+        """Pre-commit guard should pass when staged execution-state advances active subtask status."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        execution_state_path = objective_dir / "execution-state.json"
+        execution_state = json.loads(execution_state_path.read_text(encoding="utf-8"))
+        execution_state["tasks"]["PS1"]["status"] = "in_progress"
+        execution_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"] = "completed"
+        execution_state_path.write_text(json.dumps(execution_state), encoding="utf-8")
+
+        todo_path = objective_dir / "todo.md"
+        todo_text = todo_path.read_text(encoding="utf-8")
+        todo_text = todo_text.replace("- [ ] PS1:", "- [~] PS1:")
+        todo_text = todo_text.replace("- [ ] PS1.1:", "- [x] PS1.1:")
+        todo_path.write_text(todo_text, encoding="utf-8")
+
+        code_path = self.temp_dir / "README.md"
+        code_path.write_text("# Temp Repo\nchanged\n", encoding="utf-8")
+
+        subprocess.run(
+            [
+                "git",
+                "add",
+                "README.md",
+                str(execution_state_path.relative_to(self.temp_dir)),
+                str(todo_path.relative_to(self.temp_dir)),
+                str((objective_dir / "HANDOFF-CURRENT.md").relative_to(self.temp_dir)),
+            ],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+
+        result = self.run_command(str(CHECKPOINT_GUARD))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

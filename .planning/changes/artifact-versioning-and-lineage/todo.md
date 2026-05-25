@@ -12,9 +12,9 @@
   - depends_on: none
   - validation: cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_artifact_lineage.py
 
-- [~] AV2: Lineage service — get_artifact_lineage()
-  - [x] AV2.1: Review requirements and design context for AV2
-  - [~] AV2.2: Implement AV2 end-to-end (service method + schema + tests)
+- [ ] AV2: Lineage service — get_artifact_lineage()
+  - [ ] AV2.1: Review requirements and design context for AV2
+  - [ ] AV2.2: Implement AV2 end-to-end (service method + schema + tests)
   - [ ] AV2.3: Run validation for AV2
   - depends_on: AV1
   - validation: cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_artifact_lineage.py
