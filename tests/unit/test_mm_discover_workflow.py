@@ -774,6 +774,83 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertTrue(archived_dir.exists())
         self.assertTrue((archived_dir / "COMPLETION-SUMMARY.md").exists())
 
+    def test_archive_objective_infers_single_active_objective_by_default(self) -> None:
+        """archive-objective should default to the sole active objective without requiring --objective."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {
+                        "PS1": {"status": "completed"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (self.temp_dir / ".planning" / "HANDOFF-CURRENT.md").write_text(
+            "# Handoff — wrong-objective\n\n## Current objective\n- `wrong-objective`\n",
+            encoding="utf-8",
+        )
+
+        archive_result = self.run_command(str(ARCHIVE_OBJECTIVE_HANDLER))
+        self.assertEqual(
+            archive_result.returncode,
+            0,
+            msg=archive_result.stdout + archive_result.stderr,
+        )
+        self.assertIn("project-state-mvp", archive_result.stdout)
+
+    def test_archive_objective_blocks_when_runtime_task_is_incomplete(self) -> None:
+        """archive-objective should fail if runtime state still shows an incomplete task for the objective."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {
+                        "PS1": {"status": "completed"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+            json.dumps(
+                {
+                    "task_id": "PS1",
+                    "objective_slug": "project-state-mvp",
+                    "subtasks": {
+                        "PS1.1": {"status": "completed"},
+                        "PS1.2": {"status": "in_progress"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        archive_result = self.run_command(str(ARCHIVE_OBJECTIVE_HANDLER))
+        self.assertNotEqual(archive_result.returncode, 0)
+        self.assertIn("runtime task PS1 is still incomplete", archive_result.stdout)
+
     def test_checkpoint_guard_blocks_code_commit_without_execution_state_advance(
         self,
     ) -> None:

@@ -33,6 +33,15 @@ PLANNING_DIR = ROOT / ".planning"
 CHANGES_DIR = PLANNING_DIR / "changes"
 ARCHIVE_OBJECTIVES_DIR = PLANNING_DIR / "archive" / "objectives"
 GLOBAL_HANDOFF = PLANNING_DIR / "HANDOFF-CURRENT.md"
+RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
+REQUIRED_OBJECTIVE_FILES = (
+    "requirements.md",
+    "design.md",
+    "tasks.md",
+    "todo.md",
+    "HANDOFF-CURRENT.md",
+    "execution-state.json",
+)
 
 
 def parse_args() -> Namespace:
@@ -52,7 +61,19 @@ def parse_args() -> Namespace:
 
 
 def infer_objective() -> str | None:
-    """Infer objective from global handoff or single changes dir."""
+    """Infer the active objective, preferring the current changes directory state.
+
+    Resolution order:
+    1. If exactly one objective exists under `.planning/changes/`, use it.
+    2. Otherwise, if global handoff points at an objective that still exists in
+       `.planning/changes/`, use that.
+    3. Otherwise return None and require explicit `--objective`.
+    """
+    if CHANGES_DIR.exists():
+        dirs = sorted(path.name for path in CHANGES_DIR.iterdir() if path.is_dir())
+        if len(dirs) == 1:
+            return dirs[0]
+
     if GLOBAL_HANDOFF.exists():
         text = GLOBAL_HANDOFF.read_text(encoding="utf-8")
         import re
@@ -63,10 +84,6 @@ def infer_objective() -> str | None:
             if (CHANGES_DIR / candidate).exists():
                 return candidate
 
-    if CHANGES_DIR.exists():
-        dirs = [path.name for path in CHANGES_DIR.iterdir() if path.is_dir()]
-        if len(dirs) == 1:
-            return dirs[0]
     return None
 
 
@@ -79,6 +96,46 @@ def load_execution_state(objective_dir: Path) -> dict | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def load_runtime_state() -> dict | None:
+    """Load active runtime state when present."""
+    if not RUNTIME_STATE_PATH.exists():
+        return None
+    try:
+        return json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def required_files_present(objective_dir: Path) -> tuple[bool, list[str]]:
+    """Return whether the required objective artifacts are present."""
+    missing = [
+        filename
+        for filename in REQUIRED_OBJECTIVE_FILES
+        if not (objective_dir / filename).exists()
+    ]
+    return not missing, missing
+
+
+def runtime_allows_archive(objective: str, objective_dir: Path) -> tuple[bool, str]:
+    """Ensure the active runtime session is not still open for this objective."""
+    runtime_state = load_runtime_state()
+    if runtime_state is None:
+        return True, "no active runtime state found"
+
+    runtime_slug = runtime_state.get("objective_slug")
+    if runtime_slug != objective:
+        return True, "runtime state belongs to another objective"
+
+    subtasks = runtime_state.get("subtasks", {})
+    if subtasks and all(
+        subtask.get("status") == "completed" for subtask in subtasks.values()
+    ):
+        return True, "runtime subtasks are fully completed"
+
+    runtime_task = runtime_state.get("task_id", "unknown")
+    return False, f"runtime task {runtime_task} is still incomplete"
 
 
 def is_completed(objective_dir: Path) -> tuple[bool, str]:
@@ -99,6 +156,23 @@ def is_completed(objective_dir: Path) -> tuple[bool, str]:
         ):
             return True, "handoff indicates objective complete"
     return False, "objective completion could not be proven"
+
+
+def archive_safety(objective: str, objective_dir: Path) -> tuple[bool, str]:
+    """Run full archive safety validation for an objective package."""
+    files_ok, missing = required_files_present(objective_dir)
+    if not files_ok:
+        return False, f"missing required objective files: {', '.join(missing)}"
+
+    completed, completion_reason = is_completed(objective_dir)
+    if not completed:
+        return False, completion_reason
+
+    runtime_ok, runtime_reason = runtime_allows_archive(objective, objective_dir)
+    if not runtime_ok:
+        return False, runtime_reason
+
+    return True, completion_reason
 
 
 def write_completion_summary(
@@ -141,7 +215,7 @@ def main() -> int:
         print(f"- Active objective package missing: {objective_dir}")
         return 1
 
-    completed, reason = is_completed(objective_dir)
+    completed, reason = archive_safety(objective, objective_dir)
     if not completed:
         print("STATUS: FAILED")
         print(f"- Objective `{objective}` is not archive-safe: {reason}")

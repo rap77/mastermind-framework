@@ -1,7 +1,14 @@
-# Handoff — postgres-hybrid-data-model
+# Completion Summary — backend-service-boundary-for-agents
+
+- Archived at: 2026-05-25T17:13:31
+- Completion basis: execution-state.json shows all root tasks completed
+- Source moved from: /home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents
+
+## Handoff Snapshot
+# Handoff — backend-service-boundary-for-agents
 
 ## Current objective
-- `postgres-hybrid-data-model`
+- `backend-service-boundary-for-agents`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single global spec forever.
@@ -12,7 +19,7 @@
 - Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- Objective package has no pending root tasks.
 
 ## Validation commands
 - `/mm:discover-contract-check` (legacy/global validator still active)

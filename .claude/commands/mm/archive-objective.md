@@ -26,14 +26,23 @@ to:
 ```
 
 If omitted, `--objective` is inferred from `.planning/HANDOFF-CURRENT.md` or the
-single remaining directory under `.planning/changes/`.
+single active directory under `.planning/changes/`.
+
+In normal flow, if there is exactly one active objective package, you can simply run:
+
+```bash
+/mm:archive-objective
+```
 
 ## What it validates
 
 Before moving anything, the handler verifies the objective is truly complete:
 
+- all required objective files exist
 - `execution-state.json` exists and all root tasks are `completed`, **or**
 - the objective handoff proves completion
+- if `.planning/task-progress.json` is still pointing at this objective, its active
+  subtasks must also be fully completed
 
 If that proof is missing, archiving fails.
 

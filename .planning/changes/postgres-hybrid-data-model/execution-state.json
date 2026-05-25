@@ -1,0 +1,108 @@
+{
+  "objective_slug": "postgres-hybrid-data-model",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:24:40.338588",
+          "completed_at": "2026-05-25T17:24:44.633082",
+          "duration_seconds": 4.29,
+          "updated_at": "2026-05-25T17:24:44.633082"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T17:24:47.155095",
+          "completed_at": "2026-05-25T17:25:52.644037",
+          "duration_seconds": 65.49,
+          "updated_at": "2026-05-25T17:25:52.644037"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:25:55.586532",
+          "completed_at": "2026-05-25T17:25:58.053108",
+          "duration_seconds": 2.47,
+          "updated_at": "2026-05-25T17:25:58.053108"
+        }
+      },
+      "started_at": "2026-05-25T17:22:19.587228",
+      "completed_at": "2026-05-25T17:25:58.053108",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    },
+    "T2": {
+      "status": "pending",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    }
+  },
+  "updated_at": "2026-05-25T17:25:58.053108",
+  "bootstrapped_from_artifacts": true
+}

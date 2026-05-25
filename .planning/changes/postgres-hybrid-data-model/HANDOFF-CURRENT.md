@@ -12,7 +12,7 @@
 - Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- `T2` from `tasks.md` — depends on T1.
 
 ## Validation commands
 - `/mm:discover-contract-check` (legacy/global validator still active)
