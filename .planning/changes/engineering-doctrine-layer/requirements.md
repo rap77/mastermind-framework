@@ -34,8 +34,8 @@ a project's execution; they would have to manually patch the untyped metadata_js
 - Follow existing route and service patterns in `project_overview.py`.
 
 ## Objective-level Acceptance Criteria
-- [ ] `PATCH /api/projects/{project_id}/doctrine` endpoint exists and is auth-gated.
-- [ ] Request body is typed via `DoctrineUpdateRequest` (not raw dict).
-- [ ] Service method `update_project_doctrine` merges doctrine into `metadata_json["doctrine"]`.
-- [ ] At least one test covers the PATCH → GET doctrine-projection round-trip.
-- [ ] All existing doctrine tests still pass.
+- [x] `PATCH /api/projects/{project_id}/doctrine` endpoint exists and is auth-gated.
+- [x] Request body is typed via `DoctrineUpdateRequest` (not raw dict).
+- [x] Service method `update_project_doctrine` merges doctrine into `metadata_json["doctrine"]`.
+- [x] At least one test covers the PATCH → GET doctrine-projection round-trip.
+- [x] All existing doctrine tests still pass.

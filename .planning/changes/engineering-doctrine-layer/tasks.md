@@ -25,8 +25,8 @@ no
 - Review requirements/design/tasks package for consistency.
 
 ### Acceptance Criteria
-- [ ] The exact boundary of the objective is implemented or tightened.
-- [ ] Existing architecture constraints are preserved and documented.
+- [x] The exact boundary of the objective is implemented or tightened.
+- [x] Existing architecture constraints are preserved and documented.
 
 ## T2: Implement the smallest coherent deliverable
 
@@ -48,11 +48,11 @@ no
 - `cd apps/api && uv run pytest tests/api/test_project_doctrine_projection.py -v`
 
 ### Acceptance Criteria
-- [ ] `PATCH /api/projects/{project_id}/doctrine` exists and is auth-gated.
-- [ ] `DoctrineUpdateRequest` schema is typed (not raw dict).
-- [ ] `update_project_doctrine` service method merges doctrine into `metadata_json["doctrine"]`.
-- [ ] New test covers the PATCH → GET doctrine-projection write → read cycle.
-- [ ] All doctrine tests pass.
+- [x] `PATCH /api/projects/{project_id}/doctrine` exists and is auth-gated.
+- [x] `DoctrineUpdateRequest` schema is typed (not raw dict).
+- [x] `update_project_doctrine` service method merges doctrine into `metadata_json["doctrine"]`.
+- [x] New test covers the PATCH → GET doctrine-projection write → read cycle.
+- [x] All doctrine tests pass.
 
 ## T3: Close the continuity loop
 
@@ -76,6 +76,6 @@ no
 - `cd apps/api && uv run pytest tests/api/test_project_doctrine_projection.py -v`
 
 ### Acceptance Criteria
-- [ ] Handoff notes are refreshed with next recommended work.
-- [ ] Contract check passes.
-- [ ] Doctrine test suite passes.
+- [x] Handoff notes are refreshed with next recommended work.
+- [x] Contract check passes.
+- [x] Doctrine test suite passes.
