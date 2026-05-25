@@ -12,7 +12,7 @@
 - Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
 
 ## Exact next recommended task
-- `T3` from `tasks.md` — depends on T2.
+- Objective package has no pending root tasks.
 
 ## Validation commands
 - `/mm:discover-contract-check` (legacy/global validator still active)
