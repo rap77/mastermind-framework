@@ -145,7 +145,7 @@ Key discoveries:
 
 ### New Patterns
 
-- **Direct Edit on `todo.md` per subtask** — Agent must use Edit tool directly on `tasks/todo.md` (not subprocess handler) for instant visual feedback. Handler call updates `task-progress.json` state; direct Edit drives the UI update the user sees.
+- **Handler-only progress updates** — Agents must not edit `todo.md`, `HANDOFF-CURRENT.md`, `task-progress.json`, or `execution-state.json` manually. Use `complete-task-handler.py --mark-in-progress/--mark-done`; projections are derived automatically from the ledger.
 - **`--mark-in-progress` + `--mark-done` per subtask** — Handler now marks both the subtask AND the parent `[~]` in a single read-modify-write. Parent `[~]` → `[x]` propagation is automatic when all siblings complete.
 - **`update-todo-times.py` must run after EACH subtask** — Not just at the end. This is what makes the ⏱️ progress header update in real-time (Avg/subtask, ETA, %).
 - **`brain_registry` migration needs explicit `DATABASE_URL`** — Inside Docker, env var is `POSTGRES_URL` not `DATABASE_URL`. Seed/migrate scripts use `DATABASE_URL` fallback to `localhost:5434`; must be passed explicitly: `DATABASE_URL=postgresql://postgres:devpassword@postgres:5432/mastermind_bd`.

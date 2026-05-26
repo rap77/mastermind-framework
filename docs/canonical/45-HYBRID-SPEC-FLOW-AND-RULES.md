@@ -251,18 +251,18 @@ The executing model/agent must:
 5. run tests and validation
 6. checkpoint progress
 7. update execution state
-8. run acceptance verification when the task is complete
+8. let the handler project completion state from the ledger
 
 ### Important note
 
-`/mm:complete-task` is already stronger than its earlier docs implied.
+`/mm:complete-task` is ledger-driven.
 
-The current handler already supports:
+The current handler supports:
 - runtime state
 - resumption
 - todo synchronization
-- task gating based on criteria verification
-- automatic `verify-criteria` when all subtasks complete
+- handoff synchronization
+- task gating based on durable execution state
 
 ---
 
@@ -295,8 +295,8 @@ The resuming model must:
 
 Verification happens at two levels:
 
-### A. Task-level acceptance verification
-Performed by the execution flow via `verify-criteria-handler.py`.
+### A. Task-level execution verification
+Performed by the execution flow through targeted tests, review, and safe-commit.
 
 ### B. Objective-level completion review
 When all tasks in the objective are done, create a completion summary and archive the objective package.
@@ -327,20 +327,9 @@ This prevents the active planning surface from becoming an unmanageable pile of 
 
 ---
 
-## Current State vs Target State
+## Current State
 
-## Current state
-
-Today the existing MM command flow still centers on the legacy/global files:
-
-- `SPEC.md`
-- `tasks/plan.md`
-- `tasks/todo.md`
-- `.planning/HANDOFF-CURRENT.md`
-
-This works and should not be discarded abruptly.
-
-## Target state
+The active MM command flow now centers on objective packages:
 
 The intended next evolution is:
 
@@ -352,20 +341,14 @@ The intended next evolution is:
   HANDOFF-CURRENT.md
 ```
 
-With a separate roadmap at:
+with a separate roadmap at:
 
 ```text
 .planning/roadmap/
 ```
 
-### Migration rule
-Do not migrate by mixing both models chaotically.
-
-Instead:
-1. define the target contract clearly
-2. adapt discovery to write per-objective packages
-3. adapt the validator to check the per-objective package
-4. adapt execution commands to target the active objective package
+Historical root-level planning artifacts may still exist under archive/legacy
+for reference, but they are not part of the active workflow.
 
 ---
 
@@ -377,9 +360,9 @@ Instead:
 Used to generate the planning artifacts.
 
 Current reality:
-- good for generating the active plan
-- still legacy/global in output structure
-- now hardened by a stronger contract and validation expectations
+- generates roadmap and per-objective packages
+- uses the objective-package contract
+- no longer depends on root-level planning files
 
 ### `/mm:discover-contract-check`
 Validates that discovery produced the minimum structural contract.

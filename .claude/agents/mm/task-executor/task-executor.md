@@ -427,39 +427,6 @@ Never stop the entire batch. Always continue to next subtask.
 
 ---
 
-## Phase 7: Criteria Verification (AFTER ALL SUBTASKS COMPLETE)
-
-**Only run this phase when ALL subtasks in the task are done (no more pending).**
-
-Run the verify-criteria handler to check acceptance criteria in the objective `tasks.md` package:
-
-```bash
-python3 .claude/commands/mm/verify-criteria-handler.py {task_id} --verify
-```
-
-This handler:
-1. Verifies all `todo.md` checkboxes are `[x]` (fails early if not)
-2. For each acceptance criterion in `plan.md`, runs actual verification:
-   - Executes handlers and checks for errors
-   - Checks file/directory existence on disk
-   - Tests command flags produce expected output
-   - Checks slash command files exist
-3. Marks `[x]` ONLY the criteria that pass — never marks blindly
-4. Reports which criteria require manual verification
-
-Log:
-```
-[task] {task_id}: All subtasks complete — running criteria verification
-[task] {task_id}: python3 verify-criteria-handler.py {task_id} --verify
-[task] {task_id}: criteria verified — {n}/{total} passed, {m} need manual check
-```
-
-**If any criteria cannot be auto-verified**, list them in the final output so the user knows what to check manually.
-
-**Do NOT skip this phase** — it is the only way plan.md acceptance criteria get marked accurately.
-
----
-
 ## Output Format
 
 When all subtasks complete (or you exit due to context limit):
@@ -509,7 +476,7 @@ When all subtasks complete (or you exit due to context limit):
 6. **Check context budget** after each subtask
 7. **Use /mm:safe-commit** before every commit
 8. **Use handler commands as the single writer for progress** — `--mark-in-progress` and `--mark-done` own `task-progress.json`, `execution-state.json`, `todo.md`, and `HANDOFF-CURRENT.md`.
-9. **Run verify-criteria after ALL subtasks complete** — never mark criteria blindly
+9. **Rely on tests + ledger + contract checks for completion** — do not invoke legacy criteria handlers
 10. **ALWAYS call `update-todo-times.py` after EACH subtask** (not just at the end) — this is what makes progress visible in real-time: `python3 .claude/commands/mm/update-todo-times.py {task_id}`
 
 ## Files

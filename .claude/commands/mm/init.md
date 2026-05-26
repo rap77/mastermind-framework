@@ -187,11 +187,11 @@ Done — ready for /mm:discover
     ↓
 4. Roadmap/objective package generation available for the active flow
     ↓
-5. /mm:complete-task A1
+5. /mm:activate-next-objective
     ↓
-6. /mm:review --last-commit
+6. /mm:discover-contract-check --objective <slug>
     ↓
-7. /mm:ship --verify
+7. /mm:complete-task <TASK_ID> --brief
 ```
 
 ---
@@ -289,7 +289,7 @@ chmod u+w /path/to/project  # if needed
 
 ## See Also
 
-- `/mm:discover` — Generate SPEC + plan from idea
-- `/mm:complete-task` — Execute tasks from plan.md
+- `/mm:discover` — Generate roadmap/objective packages
+- `/mm:complete-task` — Execute tasks from the active objective package
 - `/mm:review` — Code review with brains
-- `/mm:ship` — Tag + archive + cleanup
+- `/mm:archive-objective` — Archive a completed objective package

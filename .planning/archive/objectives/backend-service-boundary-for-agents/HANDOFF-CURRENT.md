@@ -4,7 +4,7 @@
 - `backend-service-boundary-for-agents`
 
 ## Decisions already made
-- Use a per-objective planning package instead of relying on a single global spec forever.
+- Use a per-objective planning package instead of relying on a single root planning surface forever.
 - Another model should be able to resume from artifacts, not from chat memory alone.
 
 ## Blockers / risks
@@ -15,5 +15,5 @@
 - Objective package has no pending root tasks.
 
 ## Validation commands
-- `/mm:discover-contract-check` (legacy/global validator still active)
+- `/mm:discover-contract-check --objective backend-service-boundary-for-agents`
 - Run targeted tests for touched files before handing off again

@@ -1060,127 +1060,6 @@ def ensure_runtime_can_start_task(task_id: str) -> None:
     sys.exit(1)
 
 
-def get_previous_task_id(task_id: str) -> str | None:
-    """Return the task ID that precedes task_id in plan.md, or None if first."""
-    plan_path, _ = get_active_paths(task_id)
-    if not plan_path.exists():
-        return None
-    content = plan_path.read_text()
-    # Match headings at any level (##, ###, ####) — task IDs like B1.1 live under ####
-    task_ids = re.findall(r"^#{2,6}\s+([\w][\w.\-]*):", content, re.MULTILINE)
-    # Remove checkpoint/summary headers (keep only real task IDs)
-    task_ids = [t for t in task_ids if not t.lower().startswith("checkpoint")]
-    try:
-        idx = task_ids.index(task_id)
-        return task_ids[idx - 1] if idx > 0 else None
-    except ValueError:
-        return None
-
-
-def check_previous_criteria_complete(task_id: str) -> bool:
-    """Block task start if the previous task has unverified acceptance criteria.
-
-    For subtasks (e.g., "B2.1"), checks the parent task (B2) ONLY if the parent
-    is marked as complete. Otherwise, skips verification to allow parallel execution.
-
-    Returns True if OK to proceed, False if blocked.
-    """
-    # If this is a subtask (has a dot), check if parent is complete
-    if "." in task_id:
-        parent_id = task_id.rsplit(".", 1)[0]
-        parent_complete = _is_parent_task_complete(parent_id)
-
-        if not parent_complete:
-            # Parent not complete - don't verify criteria (allow parallel work)
-            return True
-
-        # Parent IS complete - verify its acceptance criteria
-        prev_id = parent_id
-    else:
-        # Not a subtask - get previous task normally
-        prev_id = get_previous_task_id(task_id)
-        if not prev_id:
-            return True  # First task — no previous to check
-
-    plan_path, _ = get_active_paths(task_id)
-    content = plan_path.read_text()
-    pattern = (
-        r"#{2,6}\s+"
-        + re.escape(prev_id)
-        + r".*?\*\*Acceptance(?: Criteria)?\*\*:?\n(.*?)(?=\n#|\n---|\Z)"
-    )
-    m = re.search(pattern, content, re.DOTALL)
-    if not m:
-        return True  # No criteria section found — don't block
-
-    criteria_block = m.group(1)
-    pending = criteria_block.count("- [ ]")
-    total = pending + criteria_block.count("- [x]")
-
-    if pending > 0:
-        mm_error(
-            f"❌ BLOCKED: Task {prev_id} has {pending}/{total} unverified acceptance criteria"
-        )
-        mm_error(
-            f"   Complete them with: python3 .claude/commands/mm/verify-criteria-handler.py {prev_id} --all"
-        )
-        mm_error(
-            f"   Or auto-check: python3 .claude/commands/mm/verify-criteria-handler.py {prev_id} --verify"
-        )
-        return False
-
-    return True
-
-
-def _is_parent_task_complete(parent_id: str) -> bool:
-    """Check if parent task is marked as complete in todo.md.
-
-    A parent task is considered complete if it has a checkpoint section
-    with all checkboxes marked as complete.
-
-    Args:
-        parent_id: Parent task ID (e.g., "B2")
-
-    Returns:
-        True if parent task has a complete checkpoint section, False otherwise.
-    """
-    _, todo_path = get_active_paths(parent_id)
-    try:
-        content = todo_path.read_text()
-    except (FileNotFoundError, OSError):
-        return False
-
-    # Look for checkpoint section for this parent task
-    checkpoint_pattern = rf"### .*{re.escape(parent_id)}.*Checkpoint.*Complete"
-    if re.search(checkpoint_pattern, content, re.IGNORECASE | re.DOTALL):
-        return True
-
-    # Alternative: check if parent heading exists and has [x] checkboxes
-    return False
-
-
-def run_criteria_verification(task_id: str) -> None:
-    """Run verify-criteria-handler.py after task completion."""
-    handler = PROJECT_ROOT / ".claude/commands/mm/verify-criteria-handler.py"
-    if not handler.exists():
-        mm_info(
-            "NOTE: verify-criteria-handler.py manages acceptance criteria verification"
-        )
-        return
-
-    mm_info("=" * 60)
-    mm_info("Running acceptance criteria verification...")
-    mm_info("=" * 60)
-    result = subprocess.run(
-        ["python3", str(handler), task_id, "--verify"],
-        cwd=PROJECT_ROOT,
-        capture_output=False,
-        text=True,
-    )
-    if result.returncode != 0:
-        mm_info("Criteria verification completed with warnings — check output above")
-
-
 # ============================================================================
 # Git Detection - Improved with git log --grep
 # ============================================================================
@@ -2179,10 +2058,6 @@ def start_task(task_id: str) -> None:
     )
     sync_objective_todo_from_state(task_id)
 
-    # Gate: previous task must have all acceptance criteria verified
-    if not check_previous_criteria_complete(task_id):
-        return
-
     # Read task and subtasks
     task = read_task_from_plan(task_id)
     subtasks = get_execution_subtasks(task_id)
@@ -2206,7 +2081,6 @@ def start_task(task_id: str) -> None:
     if not pending_subtasks:
         mm_status("TASK COMPLETE - all subtasks completed in durable state")
         sync_objective_todo_from_state(task_id)
-        run_criteria_verification(task_id)
         return
 
     mm_pending(len(pending_subtasks))
@@ -2246,10 +2120,6 @@ def resume_task(task_id: str) -> None:
         task_id: Task identifier (e.g., "D1").
     """
     mm_info(f"Resuming task {task_id}")
-
-    # Gate: previous task must have all acceptance criteria verified
-    if not check_previous_criteria_complete(task_id):
-        return
 
     if not RUNTIME_STATE_PATH.exists():
         mm_error("No runtime state found. Run without --continue first.")
@@ -2317,7 +2187,6 @@ def resume_task(task_id: str) -> None:
     # Check if task is actually complete
     if not pending:
         mm_status("TASK COMPLETE - all subtasks completed in runtime state")
-        run_criteria_verification(task_id)
         return
 
     mm_pending(len(pending))

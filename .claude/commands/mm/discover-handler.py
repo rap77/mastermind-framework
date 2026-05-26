@@ -995,18 +995,18 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
             f"- `{objective_slug}`",
             "",
             "## Decisions already made",
-            "- Use a per-objective planning package instead of relying on a single global spec forever.",
+            "- Use a per-objective planning package instead of relying on a single root planning surface forever.",
             "- Another model should be able to resume from artifacts, not from chat memory alone.",
             "",
             "## Blockers / risks",
             "- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.",
-            "- Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.",
+            "- Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.",
             "",
             "## Exact next recommended task",
             f"- Start with `{('PS1' if objective_slug == 'project-state-mvp' else 'T1')}` from `tasks.md`.",
             "",
             "## Validation commands",
-            "- `/mm:discover-contract-check` (legacy/global validator still active)",
+            f"- `/mm:discover-contract-check --objective {objective_slug}`",
             "- Run targeted tests for touched files before handing off again",
         ]
     )
@@ -1102,10 +1102,9 @@ def read_context_files(root_dir: Path) -> dict[str, object]:
         "root": str(root_dir),
         "has_readme": False,
         "has_claude_md": False,
-        "has_plan": False,
-        "has_todo": False,
         "has_planning": False,
-        "has_spec": False,
+        "has_active_objectives": False,
+        "has_archived_objectives": False,
         "has_project_md": False,
         "has_docs_prd": False,
         "has_canonical_docs": False,
@@ -1116,9 +1115,6 @@ def read_context_files(root_dir: Path) -> dict[str, object]:
         "README.md": "has_readme",
         "CLAUDE.md": "has_claude_md",
         "PROJECT.md": "has_project_md",
-        "tasks/plan.md": "has_plan",
-        "tasks/todo.md": "has_todo",
-        "SPEC.md": "has_spec",
     }
 
     for file_path, key in files_to_check.items():
@@ -1128,6 +1124,12 @@ def read_context_files(root_dir: Path) -> dict[str, object]:
     planning_dir = root_dir / ".planning"
     if planning_dir.exists() and any(planning_dir.iterdir()):
         context["has_planning"] = True
+    context["has_active_objectives"] = any(
+        (root_dir / ".planning" / "changes").glob("*/")
+    )
+    context["has_archived_objectives"] = any(
+        (root_dir / ".planning" / "archive" / "objectives").glob("*/")
+    )
 
     context["has_docs_prd"] = (root_dir / "docs" / "PRD").exists()
     context["has_canonical_docs"] = (root_dir / "docs" / "canonical").exists()
@@ -1270,7 +1272,9 @@ def require_existing_context(context: dict[str, object]) -> None:
         [
             context["has_readme"],
             context["has_claude_md"],
-            context["has_plan"],
+            context["has_planning"],
+            context["has_active_objectives"],
+            context["has_archived_objectives"],
             context["has_project_md"],
             context["has_docs_prd"],
             context["has_canonical_docs"],

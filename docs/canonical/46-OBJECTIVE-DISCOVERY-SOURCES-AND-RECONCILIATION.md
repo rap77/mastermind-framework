@@ -50,8 +50,6 @@ These should be treated as the strongest signals for objective discovery.
 These sources define what work is already structured.
 
 Examples:
-- `tasks/plan.md`
-- `tasks/todo.md`
 - `.planning/changes/**`
 - `.planning/archive/**`
 - `.planning/HANDOFF-*`

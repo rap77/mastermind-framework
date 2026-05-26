@@ -77,9 +77,7 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 
 **`--brief` flag**: Print the exact handoff brief for another model. Use this instead of manually writing a long prompt.
 
-**`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` and automatically runs acceptance-criteria verification. No agent needed.
-
-**IMPORTANT**: `/mm:complete-task` already triggers `verify-criteria-handler.py` when all subtasks are done. Acceptance checking is part of the normal completion flow.
+**`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` from the durable ledger. No agent needed.
 
 **Handler ERROR**: Show error to user, suggest next steps.
 
@@ -101,8 +99,7 @@ Execute the pending subtasks sequentially following the task-executor protocol.
 4. Agent(code-reviewer) → 5-axis review (MANDATORY)
 5. Skill("mm:safe-commit") → Validate + commit
 6. Checkpoint → task-progress.json + Engram
-7. Acceptance verification → verify-criteria-handler.py when task completes
-8. Context check → if >75%, exit gracefully
+7. Context check → if >75%, exit gracefully
 ```
 
 ## Features

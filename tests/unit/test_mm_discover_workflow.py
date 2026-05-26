@@ -28,6 +28,9 @@ UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-tim
 CHECKPOINT_GUARD = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "pre_commit_checkpoint_guard.py"
 )
+VERIFY_CRITERIA_HANDLER = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "verify-criteria-handler.py"
+)
 
 
 class DiscoverWorkflowTest(unittest.TestCase):
@@ -392,6 +395,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("Usage: mm-complete-task", result.stdout)
         self.assertNotIn("Starting task --HELP", result.stdout)
+
+    def test_active_mm_flow_has_no_verify_criteria_handler_dependency(self) -> None:
+        """The active complete-task flow should not depend on the legacy verify-criteria handler."""
+        self.assertFalse(VERIFY_CRITERIA_HANDLER.exists())
+        handler_source = COMPLETE_TASK_HANDLER.read_text(encoding="utf-8")
+        self.assertNotIn("verify-criteria-handler.py", handler_source)
 
     def test_update_todo_times_uses_objective_todo_path(self) -> None:
         """update-todo-times should update the active objective todo.md from runtime state."""

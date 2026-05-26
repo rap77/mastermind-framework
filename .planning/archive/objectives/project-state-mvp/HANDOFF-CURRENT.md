@@ -4,7 +4,7 @@
 - `project-state-mvp` — **COMPLETE**
 
 ## Decisions already made
-- Use a per-objective planning package instead of relying on a single global spec forever.
+- Use a per-objective planning package instead of relying on a single root planning surface forever.
 - Another model should be able to resume from artifacts, not from chat memory alone.
 - PS1: SSE endpoint `GET /api/projects/{id}/events` + `ProjectStateRealtimeEvent` contract + `ProjectStateLiveShell.tsx` EventSource — pre-existing, confirmed complete.
 - PS2: `PATCH /api/projects/{id}/tasks/{task_id}/status` + `UpdateTaskStatusRequest` schema + `tasks.update_status()` + `updateProjectTaskStatus` server action + write panel UI — complete.
