@@ -37,7 +37,7 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
     },
     "T2": {
-      "status": "in_progress",
+      "status": "completed",
       "subtasks": {
         "T2.1": {
           "description": "Review requirements and design context for T2",
@@ -57,36 +57,36 @@
         },
         "T2.3": {
           "description": "Run validation for T2",
-          "status": "in_progress",
+          "status": "completed",
           "started_at": "2026-05-30T10:25:11.563881",
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": "2026-05-30T10:25:11.563881"
+          "completed_at": "2026-05-30T10:28:34.119975",
+          "duration_seconds": 202.56,
+          "updated_at": "2026-05-30T10:28:34.119975"
         }
       },
       "started_at": "2026-05-30T10:23:43.475321",
-      "completed_at": null,
+      "completed_at": "2026-05-30T10:28:34.119975",
       "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
     },
     "T3": {
-      "status": "pending",
+      "status": "in_progress",
       "subtasks": {
         "T3.1": {
           "description": "Review requirements and design context for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-30T10:35:21.248096",
+          "completed_at": "2026-05-30T10:35:40.868834",
+          "duration_seconds": 19.62,
+          "updated_at": "2026-05-30T10:35:40.868834"
         },
         "T3.2": {
           "description": "Implement T3 end-to-end",
-          "status": "pending",
-          "started_at": null,
+          "status": "in_progress",
+          "started_at": "2026-05-30T10:35:44.422092",
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T10:35:44.422092"
         },
         "T3.3": {
           "description": "Run validation for T3",
@@ -97,12 +97,12 @@
           "updated_at": null
         }
       },
-      "started_at": null,
+      "started_at": "2026-05-30T10:35:21.248096",
       "completed_at": null,
       "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
     }
   },
-  "updated_at": "2026-05-30T10:25:11.563881",
+  "updated_at": "2026-05-30T10:35:44.422092",
   "bootstrapped_from_artifacts": true
 }
