@@ -1,0 +1,108 @@
+{
+  "objective_slug": "collaboration-rbac",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "in_progress",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "in_progress",
+          "started_at": "2026-05-30T08:52:33.472990",
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-05-30T08:52:33.472990"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": "2026-05-30T08:52:33.472990",
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
+    },
+    "T2": {
+      "status": "pending",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
+    }
+  },
+  "updated_at": "2026-05-30T08:52:33.472990",
+  "bootstrapped_from_artifacts": true
+}
