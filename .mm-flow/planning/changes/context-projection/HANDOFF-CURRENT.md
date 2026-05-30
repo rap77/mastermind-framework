@@ -1,19 +1,19 @@
 # Handoff — context-projection
 
 ## Current objective
-- `context-projection`
+- `context-projection` — **COMPLETE** (T1 ✅ T2 ✅ T3 ✅)
 
-## Decisions already made
-- Use a per-objective planning package instead of relying on a single root planning surface forever.
-- Another model should be able to resume from artifacts, not from chat memory alone.
+## Decisions made
+- Use a per-objective planning package instead of relying on a single root planning surface.
+- Another model must be able to resume from artifacts alone, not from chat memory.
+- Scoped git detection implemented in mm-flow: detects whether current working directory is inside a git repo.
+- Context-projection planning state integrated in mm-flow pipeline.
 
 ## Blockers / risks
-- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
-- Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
+- None. Objective is fully executed and validated.
 
 ## Exact next recommended task
-- `T2` from `tasks.md` — depends on T1.
+- Objective package has no pending root tasks.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective context-projection`
-- Run targeted tests for touched files before handing off again
+- `python3 .claude/commands/mm/discover-contract-check.py --objective context-projection` → **PASSED**

@@ -37,7 +37,7 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/todo.md"
     },
     "T2": {
-      "status": "in_progress",
+      "status": "completed",
       "subtasks": {
         "T2.1": {
           "description": "Review requirements and design context for T2",
@@ -57,52 +57,52 @@
         },
         "T2.3": {
           "description": "Run validation for T2",
-          "status": "in_progress",
+          "status": "completed",
           "started_at": "2026-05-30T19:29:26.819631",
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": "2026-05-30T19:29:26.819631"
+          "completed_at": "2026-05-30T19:33:19.691540",
+          "duration_seconds": 232.87,
+          "updated_at": "2026-05-30T19:33:19.691540"
         }
       },
       "started_at": "2026-05-30T19:17:30.337375",
-      "completed_at": null,
+      "completed_at": "2026-05-30T19:33:19.691540",
       "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/todo.md"
     },
     "T3": {
-      "status": "pending",
+      "status": "completed",
       "subtasks": {
         "T3.1": {
           "description": "Review requirements and design context for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-30T19:43:45.328746",
+          "completed_at": "2026-05-30T19:45:03.968287",
+          "duration_seconds": 78.64,
+          "updated_at": "2026-05-30T19:45:03.968287"
         },
         "T3.2": {
           "description": "Implement T3 end-to-end",
-          "status": "pending",
+          "status": "completed",
           "started_at": null,
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T19:45:04.072928"
         },
         "T3.3": {
           "description": "Run validation for T3",
-          "status": "pending",
+          "status": "completed",
           "started_at": null,
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T19:45:04.186486"
         }
       },
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "2026-05-30T19:43:45.328746",
+      "completed_at": "2026-05-30T19:45:04.186486",
       "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/todo.md"
     }
   },
-  "updated_at": "2026-05-30T19:29:26.819631",
+  "updated_at": "2026-05-30T19:45:04.186486",
   "bootstrapped_from_artifacts": true
 }
