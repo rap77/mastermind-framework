@@ -82,11 +82,11 @@ no
 
 ### Acceptance Criteria
 
-- [ ] `RecordTokenUsageRequest` accepts `agent_id`, `review_pass`, `verification_pass`, `rework_count` as optional fields
-- [ ] `POST /token-usage` persists quality fields into `metadata_json` (backward-compatible with existing callers)
-- [ ] `GET /api/projects/{id}/costs/quality-summary` returns aggregated quality signals + cost totals
-- [ ] Existing `test_project_token_usage.py` and `test_project_cost_summary.py` still pass
-- [ ] New test file `test_project_quality_summary.py` has at least 3 test cases
+- [x] `RecordTokenUsageRequest` accepts `agent_id`, `review_pass`, `verification_pass`, `rework_count` as optional fields
+- [x] `POST /token-usage` persists quality fields into `metadata_json` (backward-compatible with existing callers)
+- [x] `GET /api/projects/{id}/costs/quality-summary` returns aggregated quality signals + cost totals
+- [x] Existing `test_project_token_usage.py` and `test_project_cost_summary.py` still pass
+- [x] New test file `test_project_quality_summary.py` has at least 3 test cases
 
 ## T3: Close the continuity loop
 
@@ -116,7 +116,7 @@ no
 
 ### Acceptance Criteria
 
-- [ ] Handoff notes are refreshed with next recommended work
-- [ ] Acceptance criteria in tasks.md are checked for T2
-- [ ] Validation commands are documented and pass
-- [ ] Objective is ready for archiving or handoff to next model/session
+- [x] Handoff notes are refreshed with next recommended work
+- [x] Acceptance criteria in tasks.md are checked for T2
+- [x] Validation commands are documented and pass
+- [x] Objective is ready for archiving or handoff to next model/session
