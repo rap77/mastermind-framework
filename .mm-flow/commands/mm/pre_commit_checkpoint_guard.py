@@ -33,7 +33,7 @@ def find_project_root() -> Path:
 
 
 PROJECT_ROOT = find_project_root()
-RUNTIME_STATE = PROJECT_ROOT / ".planning" / "task-progress.json"
+RUNTIME_STATE = PROJECT_ROOT / ".mm-flow" / "planning" / "task-progress.json"
 
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
@@ -98,7 +98,7 @@ def status_rank(status: str) -> int:
 
 def is_code_like_path(path: str) -> bool:
     """Return True for paths that represent code/docs changes outside planning."""
-    if path.startswith(".planning/"):
+    if path.startswith(".mm-flow/planning/"):
         return False
     if path.startswith(".gitignore"):
         return False
@@ -132,7 +132,7 @@ def main() -> int:
     if not any(is_code_like_path(path) for path in files):
         return 0
 
-    objective_base = f".planning/changes/{objective_slug}"
+    objective_base = f".mm-flow/planning/changes/{objective_slug}"
     execution_state_path = f"{objective_base}/execution-state.json"
     todo_path = f"{objective_base}/todo.md"
     handoff_path = f"{objective_base}/HANDOFF-CURRENT.md"

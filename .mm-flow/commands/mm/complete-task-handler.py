@@ -82,7 +82,7 @@ def _read_project_id_from_config(project_root: Path) -> str | None:
 
 PROJECT_ROOT = _find_project_root()
 TASKS_DIR = PROJECT_ROOT / "tasks"
-PLANNING_DIR = PROJECT_ROOT / ".planning"
+PLANNING_DIR = PROJECT_ROOT / ".mm-flow" / "planning"
 RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
 NOTIFY_SCRIPT_PATH = PROJECT_ROOT / ".claude" / "commands" / "mm" / "notify-complete.py"
 OBJECTIVE_STATE_FILENAME = "execution-state.json"
@@ -232,7 +232,7 @@ def ensure_objective_todo(objective_dir: Path, task_id: str) -> Path:
 
 def resolve_task_source(task_id: str) -> TaskSource:
     """Resolve a task from an active objective package."""
-    changes_dir = PROJECT_ROOT / ".planning" / "changes"
+    changes_dir = PROJECT_ROOT / ".mm-flow" / "planning" / "changes"
     if changes_dir.exists():
         for objective_dir in sorted(changes_dir.iterdir()):
             if not objective_dir.is_dir():
@@ -248,7 +248,7 @@ def resolve_task_source(task_id: str) -> TaskSource:
                 )
 
     raise ValueError(
-        f"Task {task_id} not found in objective packages under .planning/changes/"
+        f"Task {task_id} not found in objective packages under .mm-flow/planning/changes/"
     )
 
 
@@ -301,7 +301,8 @@ def get_objective_handoff_path(task_id: str | None = None) -> Path | None:
         if source.objective_slug:
             return (
                 PROJECT_ROOT
-                / ".planning"
+                / ".mm-flow"
+                / "planning"
                 / "changes"
                 / source.objective_slug
                 / "HANDOFF-CURRENT.md"
@@ -314,7 +315,8 @@ def get_objective_handoff_path(task_id: str | None = None) -> Path | None:
             if objective_slug:
                 path = (
                     PROJECT_ROOT
-                    / ".planning"
+                    / ".mm-flow"
+                    / "planning"
                     / "changes"
                     / objective_slug
                     / "HANDOFF-CURRENT.md"
@@ -333,7 +335,8 @@ def get_objective_state_path(
     if objective_slug:
         return (
             PROJECT_ROOT
-            / ".planning"
+            / ".mm-flow"
+            / "planning"
             / "changes"
             / objective_slug
             / OBJECTIVE_STATE_FILENAME
@@ -374,7 +377,9 @@ def load_objective_state(
                     source.objective_slug, source.plan_path, source.todo_path
                 )
         elif objective_slug is not None:
-            objective_dir = PROJECT_ROOT / ".planning" / "changes" / objective_slug
+            objective_dir = (
+                PROJECT_ROOT / ".mm-flow" / "planning" / "changes" / objective_slug
+            )
             plan_path = objective_dir / "tasks.md"
             todo_path = ensure_objective_todo(objective_dir, objective_slug)
             if plan_path.exists() and todo_path.exists():
@@ -2296,9 +2301,9 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
 def show_status() -> None:
     """Show status of all tasks."""
     mm_info("Task Status Overview")
-    changes_dir = PROJECT_ROOT / ".planning" / "changes"
+    changes_dir = PROJECT_ROOT / ".mm-flow" / "planning" / "changes"
     if not changes_dir.exists():
-        mm_error("No objective packages found under .planning/changes")
+        mm_error("No objective packages found under .mm-flow/planning/changes")
         return
 
     for objective_dir in sorted(changes_dir.iterdir()):

@@ -27,9 +27,10 @@ def project_root() -> Path:
 
 
 ROOT = project_root()
-PLANNING_DIR = ROOT / ".planning"
+PLANNING_DIR = ROOT / ".mm-flow" / "planning"
 ROADMAP_JSON = PLANNING_DIR / "roadmap" / "objectives.json"
 CHANGES_DIR = PLANNING_DIR / "changes"
+ARCHIVE_DIR = PLANNING_DIR / "archive"
 COMMANDS_DIR = Path(__file__).resolve().parent
 DISCOVER_HANDLER = COMMANDS_DIR / "discover-handler.py"
 
@@ -120,7 +121,7 @@ def main() -> int:
     if recommended is None:
         print("STATUS: FAILED")
         print(
-            "- No recommended_next objective found in .planning/roadmap/objectives.json"
+            "- No recommended_next objective found in .mm-flow/planning/roadmap/objectives.json"
         )
         return 1
 

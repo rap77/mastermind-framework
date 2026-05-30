@@ -239,8 +239,12 @@ After each phase, print one line:
 
 1. Run `python3 .claude/commands/mm/complete-task-handler.py --status` to read current execution state.
 2. Determine the **next command** using this logic:
-   - If any subtask in the current task is still pending → `NEXT_COMMAND: /mm:complete-task <task_id> --continue`
+   - If the **current task** has any subtask with status `in_progress` → `NEXT_COMMAND: /mm:complete-task <task_id> --continue`
+     (task was interrupted mid-execution; --continue resumes from checkpoint)
+   - If the **current task** has all subtasks as `pending` (never started) → `NEXT_COMMAND: /mm:complete-task <task_id>`
+     (fresh start — no --continue needed, no checkpoint exists)
    - If another task is pending in the same objective → `NEXT_COMMAND: /mm:complete-task <next_task_id>`
+     (new task, fresh start — no --continue)
    - If all tasks in the objective are complete → `NEXT_COMMAND: /mm:archive-objective <objective_slug>`
 
 Then emit the summary:

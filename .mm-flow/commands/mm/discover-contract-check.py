@@ -12,7 +12,12 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 PROJECT_ROOT = Path.cwd()
-HANDOFF_PATH = PROJECT_ROOT / ".planning" / "HANDOFF-CURRENT.md"
+
+# Use .mm-flow/planning/ as base (new structure)
+PLANNING_BASE = PROJECT_ROOT / ".mm-flow" / "planning"
+HANDOFF_PATH = PLANNING_BASE / "HANDOFF-CURRENT.md"
+CHANGES_DIR = PLANNING_BASE / "changes"
+ARCHIVE_DIR = PLANNING_BASE / "archive"
 
 
 def read_text(path: Path) -> str:
@@ -30,7 +35,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--objective",
         default=None,
-        help="Validate a per-objective package in .planning/changes/<objective>/ instead of the legacy global contract.",
+        help="Validate a per-objective package in .mm-flow/planning/changes/<objective>/ instead of the legacy global contract.",
     )
     return parser.parse_args()
 
@@ -42,7 +47,7 @@ def infer_active_objective() -> str | None:
     if match:
         return match.group(1).strip()
 
-    changes_dir = PROJECT_ROOT / ".planning" / "changes"
+    changes_dir = PLANNING_BASE / "changes"
     if not changes_dir.exists():
         return None
     directories = sorted(path.name for path in changes_dir.iterdir() if path.is_dir())
@@ -52,7 +57,7 @@ def infer_active_objective() -> str | None:
 
 
 def validate_handoff(text: str) -> list[str]:
-    """Validate minimum required sections in .planning/HANDOFF-CURRENT.md."""
+    """Validate minimum required sections in .mm-flow/planning/HANDOFF-CURRENT.md."""
     issues: list[str] = []
     if not text:
         return ["HANDOFF-CURRENT.md missing"]
@@ -77,7 +82,7 @@ def validate_requirements(text: str, objective: str) -> list[str]:
     """Validate minimum required sections in requirements.md."""
     issues: list[str] = []
     if not text:
-        return [f".planning/changes/{objective}/requirements.md missing"]
+        return [f".mm-flow/planning/changes/{objective}/requirements.md missing"]
 
     section_checks = {
         "problem/purpose": ["## problem / purpose", "# requirements"],
@@ -97,7 +102,7 @@ def validate_design(text: str, objective: str) -> list[str]:
     """Validate minimum required sections in design.md."""
     issues: list[str] = []
     if not text:
-        return [f".planning/changes/{objective}/design.md missing"]
+        return [f".mm-flow/planning/changes/{objective}/design.md missing"]
 
     section_checks = {
         "architecture / boundaries": ["## architecture / boundaries"],
@@ -116,7 +121,7 @@ def validate_objective_tasks(text: str, objective: str) -> list[str]:
     """Validate minimum required structure in objective tasks.md."""
     issues: list[str] = []
     if not text:
-        return [f".planning/changes/{objective}/tasks.md missing"]
+        return [f".mm-flow/planning/changes/{objective}/tasks.md missing"]
 
     if not re.findall(r"^##\s+[A-Z]{1,4}\d+:", text, re.MULTILINE):
         issues.append("tasks.md missing concrete task headings")
@@ -147,7 +152,7 @@ def find_next_task(todo_text: str) -> str | None:
 
 def validate_objective_contract(objective: str) -> list[str]:
     """Validate the per-objective planning package."""
-    base_dir = PROJECT_ROOT / ".planning" / "changes" / objective
+    base_dir = CHANGES_DIR / objective
     issues: list[str] = []
     issues.extend(
         validate_requirements(read_text(base_dir / "requirements.md"), objective)
@@ -157,7 +162,7 @@ def validate_objective_contract(objective: str) -> list[str]:
     issues.extend(validate_handoff(read_text(base_dir / "HANDOFF-CURRENT.md")))
     todo_text = read_text(base_dir / "todo.md")
     if not todo_text:
-        issues.append(f".planning/changes/{objective}/todo.md missing")
+        issues.append(f".mm-flow/planning/changes/{objective}/todo.md missing")
     else:
         if (
             "- [ ]" not in todo_text
@@ -181,7 +186,7 @@ def main() -> int:
     if not objective:
         print("STATUS: FAILED")
         print(
-            "- Could not infer an active objective. Pass --objective <name> or refresh .planning/HANDOFF-CURRENT.md."
+            "- Could not infer an active objective. Pass --objective <name> or refresh .mm-flow/planning/HANDOFF-CURRENT.md."
         )
         return 1
 
@@ -193,7 +198,7 @@ def main() -> int:
             print(f"- {issue}")
         return 1
 
-    base_dir = PROJECT_ROOT / ".planning" / "changes" / objective
+    base_dir = CHANGES_DIR / objective
     next_task = find_next_task(read_text(base_dir / "todo.md"))
 
     print("STATUS: PASSED")

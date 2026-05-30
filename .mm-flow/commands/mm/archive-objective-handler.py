@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Archive a completed objective package from .planning/changes to archive/objectives."""
+"""Archive a completed objective package from .mm-flow/planning/changes to archive/objectives."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def project_root() -> Path:
 
 
 ROOT = project_root()
-PLANNING_DIR = ROOT / ".planning"
+PLANNING_DIR = ROOT / ".mm-flow" / "planning"
 CHANGES_DIR = PLANNING_DIR / "changes"
 ARCHIVE_OBJECTIVES_DIR = PLANNING_DIR / "archive" / "objectives"
 GLOBAL_HANDOFF = PLANNING_DIR / "HANDOFF-CURRENT.md"
@@ -50,7 +50,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--objective",
         default=None,
-        help="Objective slug under .planning/changes/<objective>.",
+        help="Objective slug under .mm-flow/planning/changes/<objective>.",
     )
     parser.add_argument(
         "--summary-only",
@@ -64,9 +64,9 @@ def infer_objective() -> str | None:
     """Infer the active objective, preferring the current changes directory state.
 
     Resolution order:
-    1. If exactly one objective exists under `.planning/changes/`, use it.
+    1. If exactly one objective exists under `.mm-flow/planning/changes/`, use it.
     2. Otherwise, if global handoff points at an objective that still exists in
-       `.planning/changes/`, use that.
+       `.mm-flow/planning/changes/`, use that.
     3. Otherwise return None and require explicit `--objective`.
     """
     if CHANGES_DIR.exists():
