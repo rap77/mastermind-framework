@@ -1902,6 +1902,30 @@ def get_task_payload(task_id: str) -> dict[str, Any]:
         raise RuntimeError(f"Unexpected error building payload: {e}") from e
 
 
+def _has_checkpoint(task_id: str) -> bool:
+    """Return True if there's a real checkpoint to resume from.
+
+       Checks:
+    1. task-progress.json exists for this task_id
+       2. Has at least one completed subtask (not just initialized)
+    """
+    if not RUNTIME_STATE_PATH.exists():
+        return False
+    try:
+        state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
+        if state.get("task_id") != task_id:
+            return False
+        # Must have at least one completed subtask to justify --continue
+        completed = [
+            sid
+            for sid, info in state.get("subtasks", {}).items()
+            if info.get("status") == "completed"
+        ]
+        return len(completed) > 0
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
     """Build a concise model handoff brief for a root task.
 
@@ -1925,6 +1949,11 @@ def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
     validation_commands = get_task_validation_commands_from_plan(
         source.plan_path, task_id
     )
+
+    # Only suggest --continue if there's a real checkpoint to resume from.
+    # If resume_mode=True but no checkpoint exists, fall back to fresh start.
+    has_checkpoint = _has_checkpoint(task_id)
+    suggest_continue = resume_mode and has_checkpoint
 
     read_files = [
         "docs/canonical/45-HYBRID-SPEC-FLOW-AND-RULES.md",
@@ -1957,7 +1986,7 @@ def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
         ]
     )
 
-    if resume_mode:
+    if suggest_continue:
         lines.append(f"- /mm:continue-task {task_id}")
     else:
         lines.append(f"- /mm:complete-task {task_id}")

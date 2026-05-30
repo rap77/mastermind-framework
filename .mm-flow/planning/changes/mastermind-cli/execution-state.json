@@ -37,23 +37,23 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/todo.md"
     },
     "T2": {
-      "status": "pending",
+      "status": "in_progress",
       "subtasks": {
         "T2.1": {
           "description": "Review requirements and design context for T2",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-05-30T18:29:47.444465",
+          "completed_at": "2026-05-30T18:30:34.309762",
+          "duration_seconds": 46.87,
+          "updated_at": "2026-05-30T18:30:34.309762"
         },
         "T2.2": {
           "description": "Implement T2 end-to-end",
-          "status": "pending",
-          "started_at": null,
+          "status": "in_progress",
+          "started_at": "2026-05-30T18:30:34.534209",
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T18:30:34.534209"
         },
         "T2.3": {
           "description": "Run validation for T2",
@@ -64,7 +64,7 @@
           "updated_at": null
         }
       },
-      "started_at": null,
+      "started_at": "2026-05-30T18:29:47.444465",
       "completed_at": null,
       "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/todo.md"
@@ -103,6 +103,6 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/todo.md"
     }
   },
-  "updated_at": "2026-05-30T18:06:29.798713",
+  "updated_at": "2026-05-30T18:30:34.534209",
   "bootstrapped_from_artifacts": true
 }

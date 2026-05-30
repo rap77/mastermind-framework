@@ -4,6 +4,7 @@
 
 - [x] T1: Define and stabilize the slice
 ⏱️ **Estimate**: N/A | **Actual**: 6.7m | **Deviation**: — | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 2.2m | **ETA**: done **Estimate**: N/A | **Actual**: 6.7m | **Deviation**: — | **Progress**: 3/3 (100%)
 📊 **Avg/subtask**: 2.2m | **ETA**: done **Estimate**: N/A | **Actual**: in progress | **Deviation**: — | **Progress**: 2/3 (66%)
 📊 **Avg/subtask**: 2.6m | **ETA**: in progress **Estimate**: N/A | **Actual**: 5.1m | **Deviation**: -2.6m | **Progress**: 2/3 (66%)
 📊 **Avg/subtask**: 2.6m | **ETA**: 2.6m **Estimate**: N/A | **Actual**: in progress | **Deviation**: — | **Progress**: 1/3 (33%)
@@ -16,9 +17,12 @@
   - depends_on: none
   - validation: Review requirements/design/tasks package for consistency.
 
-- [ ] T2: Implement the smallest coherent deliverable
-  - [ ] T2.1: Review requirements and design context for T2
-  - [ ] T2.2: Implement T2 end-to-end
+- [~] T2: Implement the smallest coherent deliverable
+⏱️ **Estimate**: N/A | **Actual**: 47s | **Deviation**: -1.6m | **Progress**: 1/3 (33%)
+📊 **Avg/subtask**: 47s | **ETA**: 1.6m
+
+  - [x] T2.1: Review requirements and design context for T2
+  - [~] T2.2: Implement T2 end-to-end
   - [ ] T2.3: Run validation for T2
   - depends_on: T1
   - validation: Run targeted validation commands for the touched area.

@@ -1,16 +1,35 @@
 #!/usr/bin/env bash
 # mastermind — MasterMind Framework CLI
-# Runs init-handler.py using the framework's .venv (has psycopg2).
+# Routes to Python handlers via the framework's .venv (has psycopg2).
 #
 # Usage:
-#   mastermind --target ~/proy/mi-proyecto
-#   mastermind --target ~/proy/mi-proyecto --force
-#   mastermind --check --target ~/proy/mi-proyecto
+#   mastermind init [--target PATH] [--force]
+#   mastermind discover [--objective NAME]
+#   mastermind complete-task [--task-id ID] [--continue]
+#   mastermind archive-objective [--objective SLUG]
+#   mastermind activate-next-objective
+#   mastermind extract-objectives
+#   mastermind new-canonical [--title TITLE]
+#   mastermind validate [--objective NAME]
+#   mastermind safe-commit
 
 FRAMEWORK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PYTHON="$FRAMEWORK_DIR/.venv/bin/python3"
-HANDLER="$FRAMEWORK_DIR/.claude/commands/mm/init-handler.py"
+COMMANDS_DIR="$FRAMEWORK_DIR/.mm-flow/commands/mm"
 BIN_DIR="$HOME/.local/bin"
+
+# Subcommand to handler mapping
+declare -A HANDLERS=(
+  ["init"]="init-handler.py"
+  ["discover"]="discover-handler.py"
+  ["complete-task"]="complete-task-handler.py"
+  ["archive-objective"]="archive-objective-handler.py"
+  ["activate-next-objective"]="activate-next-objective-handler.py"
+  ["extract-objectives"]="extract-objectives-handler.py"
+  ["new-canonical"]="new-canonical-handler.py"
+  ["validate"]="discover-contract-check.py"
+  ["safe-commit"]="safe_commit_handler.py"
+)
 
 # Auto-install symlinks on first run (idempotent)
 _install_symlinks() {
@@ -33,4 +52,28 @@ if [[ ! -x "$PYTHON" ]]; then
   exit 1
 fi
 
+# Parse subcommand
+SUBCOMMAND="${1:-}"
+if [[ -z "$SUBCOMMAND" ]]; then
+  echo "Usage: mastermind <command> [options]"
+  echo "Commands: ${!HANDLERS[@]}"
+  exit 1
+fi
+
+# Lookup handler
+HANDLER_NAME="${HANDLERS[$SUBCOMMAND]}"
+if [[ -z "$HANDLER_NAME" ]]; then
+  echo "ERROR: Unknown command '$SUBCOMMAND'"
+  echo "Available commands: ${!HANDLERS[@]}"
+  exit 1
+fi
+
+HANDLER="$COMMANDS_DIR/$HANDLER_NAME"
+if [[ ! -f "$HANDLER" ]]; then
+  echo "ERROR: Handler not found: $HANDLER" >&2
+  exit 1
+fi
+
+# Shift to remove subcommand, pass remaining args to handler
+shift
 exec "$PYTHON" "$HANDLER" "$@"
