@@ -1,40 +1,42 @@
 {
-  "task_id": "T2",
+  "task_id": "T1",
   "source_mode": "objective",
-  "objective_slug": "mastermind-cli",
-  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/tasks.md",
-  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/todo.md",
-  "session_id": "sess-20260530-182918",
-  "started_at": "2026-05-30T18:29:18.244193",
+  "objective_slug": "context-projection",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/todo.md",
+  "session_id": "sess-20260530-190201",
+  "started_at": "2026-05-30T19:02:01.393322",
   "phase": 19,
   "subtasks": {
-    "T2.1": {
-      "description": "Review requirements and design context for T2",
+    "T1.1": {
+      "description": "Review requirements and design context for T1",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-30T18:29:47.444465",
-      "completed_at": "2026-05-30T18:30:34.309762",
-      "duration_seconds": 46.87,
-      "updated_at": "2026-05-30T18:30:34.309762"
+      "started_at": "2026-05-30T19:02:20.815411",
+      "completed_at": "2026-05-30T19:03:05.952628",
+      "duration_seconds": 45.14,
+      "updated_at": "2026-05-30T19:03:05.952628"
     },
-    "T2.2": {
-      "description": "Implement T2 end-to-end",
-      "status": "in_progress",
+    "T1.2": {
+      "description": "Implement T1 end-to-end",
+      "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-30T18:30:34.534209",
-      "completed_at": null,
-      "duration_seconds": 0,
-      "updated_at": "2026-05-30T18:30:34.534209"
+      "started_at": "2026-05-30T19:03:12.315544",
+      "completed_at": "2026-05-30T19:04:58.000307",
+      "duration_seconds": 105.68,
+      "updated_at": "2026-05-30T19:04:58.000307"
     },
-    "T2.3": {
-      "description": "Run validation for T2",
-      "status": "pending",
+    "T1.3": {
+      "description": "Run validation for T1",
+      "status": "completed",
       "retries": 0,
-      "started_at": null,
-      "completed_at": null,
-      "duration_seconds": 0
+      "started_at": "2026-05-30T19:05:06.094464",
+      "completed_at": "2026-05-30T19:05:52.952417",
+      "duration_seconds": 46.86,
+      "updated_at": "2026-05-30T19:05:52.952417"
     }
   },
-  "last_checkpoint": "T2.2",
-  "context_budget_exit": null
+  "last_checkpoint": "T1.3",
+  "context_budget_exit": null,
+  "completion_notified_at": "2026-05-30T19:05:58.106224"
 }

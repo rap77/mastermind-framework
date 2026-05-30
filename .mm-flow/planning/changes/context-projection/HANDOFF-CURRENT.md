@@ -12,7 +12,7 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- `T2` from `tasks.md` — depends on T1.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective context-projection`
