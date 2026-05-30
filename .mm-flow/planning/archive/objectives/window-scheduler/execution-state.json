@@ -1,0 +1,108 @@
+{
+  "objective_slug": "window-scheduler",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-30T14:27:36.050781",
+          "completed_at": "2026-05-30T14:27:47.161009",
+          "duration_seconds": 11.11,
+          "updated_at": "2026-05-30T14:27:47.161009"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T14:27:52.224494",
+          "completed_at": "2026-05-30T14:29:43.134219",
+          "duration_seconds": 110.91,
+          "updated_at": "2026-05-30T14:29:43.134219"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-30T14:29:48.371880",
+          "completed_at": "2026-05-30T14:30:35.078439",
+          "duration_seconds": 46.71,
+          "updated_at": "2026-05-30T14:30:35.078439"
+        }
+      },
+      "started_at": "2026-05-30T14:27:36.050781",
+      "completed_at": "2026-05-30T14:30:35.078439",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-05-30T14:37:42.234793",
+          "completed_at": "2026-05-30T14:38:38.141680",
+          "duration_seconds": 55.91,
+          "updated_at": "2026-05-30T14:38:38.141680"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T14:39:15.327713",
+          "completed_at": "2026-05-30T14:49:25.746692",
+          "duration_seconds": 610.42,
+          "updated_at": "2026-05-30T14:49:25.746692"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-05-30T14:49:38.108294",
+          "completed_at": "2026-05-30T14:50:12.333557",
+          "duration_seconds": 34.23,
+          "updated_at": "2026-05-30T14:50:12.333557"
+        }
+      },
+      "started_at": "2026-05-30T14:37:42.234793",
+      "completed_at": "2026-05-30T14:50:12.333557",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "completed",
+          "started_at": "2026-05-30T14:57:07.912277",
+          "completed_at": "2026-05-30T14:57:11.213719",
+          "duration_seconds": 3.3,
+          "updated_at": "2026-05-30T14:57:11.213719"
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T14:57:15.109366",
+          "completed_at": "2026-05-30T14:57:31.315965",
+          "duration_seconds": 16.21,
+          "updated_at": "2026-05-30T14:57:31.315965"
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "completed",
+          "started_at": "2026-05-30T14:57:33.067861",
+          "completed_at": "2026-05-30T14:57:39.285794",
+          "duration_seconds": 6.22,
+          "updated_at": "2026-05-30T14:57:39.285794"
+        }
+      },
+      "started_at": "2026-05-30T14:57:07.912277",
+      "completed_at": "2026-05-30T14:57:39.285794",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/window-scheduler/todo.md"
+    }
+  },
+  "updated_at": "2026-05-30T14:57:39.285794",
+  "bootstrapped_from_artifacts": true
+}

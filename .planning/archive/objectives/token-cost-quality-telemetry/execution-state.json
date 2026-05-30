@@ -1,0 +1,108 @@
+{
+  "objective_slug": "token-cost-quality-telemetry",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-29T19:44:36.239694",
+          "completed_at": "2026-05-29T19:46:16.521503",
+          "duration_seconds": 100.28,
+          "updated_at": "2026-05-29T19:46:16.521503"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-29T19:46:22.956020",
+          "completed_at": "2026-05-29T19:48:10.933273",
+          "duration_seconds": 107.98,
+          "updated_at": "2026-05-29T19:48:10.933273"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-29T19:48:17.310497",
+          "completed_at": "2026-05-29T19:48:42.009086",
+          "duration_seconds": 24.7,
+          "updated_at": "2026-05-29T19:48:42.009086"
+        }
+      },
+      "started_at": "2026-05-29T19:44:36.239694",
+      "completed_at": "2026-05-29T19:48:42.009086",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-05-29T19:55:21.208053",
+          "completed_at": "2026-05-29T19:55:25.421000",
+          "duration_seconds": 4.21,
+          "updated_at": "2026-05-29T19:55:25.421000"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T07:26:14.069954",
+          "completed_at": "2026-05-30T07:37:16.584340",
+          "duration_seconds": 662.51,
+          "updated_at": "2026-05-30T07:37:16.584340"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-05-30T07:37:23.553025",
+          "completed_at": "2026-05-30T07:38:50.383533",
+          "duration_seconds": 86.83,
+          "updated_at": "2026-05-30T07:38:50.383533"
+        }
+      },
+      "started_at": "2026-05-29T19:55:21.208053",
+      "completed_at": "2026-05-30T07:38:50.383533",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "completed",
+          "started_at": "2026-05-30T07:48:14.047826",
+          "completed_at": "2026-05-30T07:48:21.335252",
+          "duration_seconds": 7.29,
+          "updated_at": "2026-05-30T07:48:21.335252"
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T07:48:28.282561",
+          "completed_at": "2026-05-30T07:49:52.730796",
+          "duration_seconds": 84.45,
+          "updated_at": "2026-05-30T07:49:52.730796"
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "completed",
+          "started_at": "2026-05-30T07:50:00.167159",
+          "completed_at": "2026-05-30T07:50:21.670759",
+          "duration_seconds": 21.5,
+          "updated_at": "2026-05-30T07:50:21.670759"
+        }
+      },
+      "started_at": "2026-05-30T07:48:14.047826",
+      "completed_at": "2026-05-30T07:50:21.670759",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/token-cost-quality-telemetry/todo.md"
+    }
+  },
+  "updated_at": "2026-05-30T07:50:21.670759",
+  "bootstrapped_from_artifacts": true
+}

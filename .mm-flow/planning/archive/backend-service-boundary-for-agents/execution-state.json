@@ -1,0 +1,108 @@
+{
+  "objective_slug": "backend-service-boundary-for-agents",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T16:33:30.534994",
+          "completed_at": "2026-05-25T16:33:30.618083",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-05-25T16:33:30.618083"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T16:33:30.746918",
+          "completed_at": "2026-05-25T16:33:30.819116",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-05-25T16:33:30.819116"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T16:33:30.936957",
+          "completed_at": "2026-05-25T16:33:31.011679",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-05-25T16:33:31.011679"
+        }
+      },
+      "started_at": "2026-05-25T16:33:30.534994",
+      "completed_at": "2026-05-25T16:33:31.011679",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T16:45:29.621577",
+          "completed_at": "2026-05-25T16:45:29.704518",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-05-25T16:45:29.704518"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T16:45:29.823376",
+          "completed_at": "2026-05-25T16:45:29.896496",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-05-25T16:45:29.896496"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T16:45:30.011484",
+          "completed_at": "2026-05-25T16:45:30.089643",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-05-25T16:45:30.089643"
+        }
+      },
+      "started_at": "2026-05-25T16:45:29.621577",
+      "completed_at": "2026-05-25T16:45:30.089643",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T16:59:48.302516",
+          "completed_at": "2026-05-25T16:59:48.391814",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-05-25T16:59:48.391814"
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T16:59:48.503314",
+          "completed_at": "2026-05-25T16:59:48.577891",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-05-25T16:59:48.577891"
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T17:00:14.903654",
+          "completed_at": "2026-05-25T17:00:14.975612",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-05-25T17:00:14.975612"
+        }
+      },
+      "started_at": "2026-05-25T16:59:48.302516",
+      "completed_at": "2026-05-25T17:00:14.975612",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/backend-service-boundary-for-agents/todo.md"
+    }
+  },
+  "updated_at": "2026-05-25T17:00:14.975612",
+  "bootstrapped_from_artifacts": true
+}

@@ -1,0 +1,108 @@
+{
+  "objective_slug": "engineering-doctrine-layer",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:59:55.992582",
+          "completed_at": "2026-05-25T18:00:35.249691",
+          "duration_seconds": 39.26,
+          "updated_at": "2026-05-25T18:00:35.249691"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T18:00:35.380344",
+          "completed_at": "2026-05-25T18:03:06.449897",
+          "duration_seconds": 151.07,
+          "updated_at": "2026-05-25T18:03:06.449897"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T18:03:06.566379",
+          "completed_at": "2026-05-25T18:03:12.753595",
+          "duration_seconds": 6.19,
+          "updated_at": "2026-05-25T18:03:12.753595"
+        }
+      },
+      "started_at": "2026-05-25T17:59:55.992582",
+      "completed_at": "2026-05-25T18:03:12.753595",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T18:25:02.013648",
+          "completed_at": "2026-05-25T18:25:06.438530",
+          "duration_seconds": 4.42,
+          "updated_at": "2026-05-25T18:25:06.438530"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T18:25:06.724705",
+          "completed_at": "2026-05-25T18:55:16.955156",
+          "duration_seconds": 1810.23,
+          "updated_at": "2026-05-25T18:55:16.955156"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T18:55:17.104262",
+          "completed_at": "2026-05-25T18:56:41.038522",
+          "duration_seconds": 83.93,
+          "updated_at": "2026-05-25T18:56:41.038522"
+        }
+      },
+      "started_at": "2026-05-25T18:25:02.013648",
+      "completed_at": "2026-05-25T18:56:41.038522",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T19:07:02.339397",
+          "completed_at": "2026-05-25T19:07:12.335110",
+          "duration_seconds": 10.0,
+          "updated_at": "2026-05-25T19:07:12.335110"
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T19:07:23.530078",
+          "completed_at": "2026-05-25T19:08:16.455080",
+          "duration_seconds": 52.93,
+          "updated_at": "2026-05-25T19:08:16.455080"
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T19:08:43.953741",
+          "completed_at": "2026-05-25T19:09:23.970689",
+          "duration_seconds": 40.02,
+          "updated_at": "2026-05-25T19:09:23.970689"
+        }
+      },
+      "started_at": "2026-05-25T19:07:02.339397",
+      "completed_at": "2026-05-25T19:09:23.970689",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/engineering-doctrine-layer/todo.md"
+    }
+  },
+  "updated_at": "2026-05-25T19:09:23.970689",
+  "bootstrapped_from_artifacts": true
+}

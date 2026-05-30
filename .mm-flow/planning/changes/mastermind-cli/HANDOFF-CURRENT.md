@@ -1,7 +1,7 @@
-# Handoff — window-scheduler
+# Handoff — mastermind-cli
 
 ## Current objective
-- `window-scheduler`
+- `mastermind-cli`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -12,8 +12,8 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- `T2` from `tasks.md` — depends on T1.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective window-scheduler`
+- `/mm:discover-contract-check --objective mastermind-cli`
 - Run targeted tests for touched files before handing off again

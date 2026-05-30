@@ -9,6 +9,7 @@ Plantillas operativas para materializar la capacidad de Brain Factory.
 3. `EXPERT-PACK-TEMPLATE.md`
 4. `DISTILLATION-PACK-TEMPLATE.md`
 5. `BRAIN-VALIDATION-TEMPLATE.md`
+6. `DISCOVER-OBJECTIVE-TEMPLATE.md` — Template para crear objectives con `/mm:discover`
 
 ## Uso recomendado
 

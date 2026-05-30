@@ -1,0 +1,108 @@
+{
+  "objective_slug": "postgres-hybrid-data-model",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:24:40.338588",
+          "completed_at": "2026-05-25T17:24:44.633082",
+          "duration_seconds": 4.29,
+          "updated_at": "2026-05-25T17:24:44.633082"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T17:24:47.155095",
+          "completed_at": "2026-05-25T17:25:52.644037",
+          "duration_seconds": 65.49,
+          "updated_at": "2026-05-25T17:25:52.644037"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-05-25T17:25:55.586532",
+          "completed_at": "2026-05-25T17:25:58.053108",
+          "duration_seconds": 2.47,
+          "updated_at": "2026-05-25T17:25:58.053108"
+        }
+      },
+      "started_at": "2026-05-25T17:22:19.587228",
+      "completed_at": "2026-05-25T17:25:58.053108",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T17:28:48.704941",
+          "completed_at": "2026-05-25T17:28:53.011934",
+          "duration_seconds": 4.31,
+          "updated_at": "2026-05-25T17:28:53.011934"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T17:28:53.132928",
+          "completed_at": "2026-05-25T17:29:08.517137",
+          "duration_seconds": 15.38,
+          "updated_at": "2026-05-25T17:29:08.517137"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-05-25T17:29:08.654628",
+          "completed_at": "2026-05-25T17:31:09.878220",
+          "duration_seconds": 121.22,
+          "updated_at": "2026-05-25T17:31:09.878220"
+        }
+      },
+      "started_at": "2026-05-25T17:28:48.704941",
+      "completed_at": "2026-05-25T17:31:09.878220",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:14.507902",
+          "completed_at": "2026-05-25T17:44:14.591536",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-05-25T17:44:14.591536"
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:14.721661",
+          "completed_at": "2026-05-25T17:44:42.891186",
+          "duration_seconds": 28.17,
+          "updated_at": "2026-05-25T17:44:42.891186"
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "completed",
+          "started_at": "2026-05-25T17:44:43.017533",
+          "completed_at": "2026-05-25T17:45:36.744227",
+          "duration_seconds": 53.73,
+          "updated_at": "2026-05-25T17:45:36.744227"
+        }
+      },
+      "started_at": "2026-05-25T17:44:14.507902",
+      "completed_at": "2026-05-25T17:45:36.744227",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/postgres-hybrid-data-model/todo.md"
+    }
+  },
+  "updated_at": "2026-05-25T17:45:36.744227",
+  "bootstrapped_from_artifacts": true
+}

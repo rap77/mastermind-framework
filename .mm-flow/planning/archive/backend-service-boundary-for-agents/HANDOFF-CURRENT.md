@@ -1,7 +1,7 @@
-# Handoff — window-scheduler
+# Handoff — backend-service-boundary-for-agents
 
 ## Current objective
-- `window-scheduler`
+- `backend-service-boundary-for-agents`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -9,11 +9,11 @@
 
 ## Blockers / risks
 - The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
-- Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
+- Legacy/global MM discovery artifacts still coexist during the transition to the hybrid flow.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- Objective package has no pending root tasks.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective window-scheduler`
+- `/mm:discover-contract-check --objective backend-service-boundary-for-agents`
 - Run targeted tests for touched files before handing off again

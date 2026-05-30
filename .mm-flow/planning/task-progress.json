@@ -1,0 +1,42 @@
+{
+  "task_id": "T1",
+  "source_mode": "objective",
+  "objective_slug": "mastermind-cli",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mastermind-cli/todo.md",
+  "session_id": "sess-20260530-175832",
+  "started_at": "2026-05-30T17:58:32.073427",
+  "phase": 19,
+  "subtasks": {
+    "T1.1": {
+      "description": "Review requirements and design context for T1",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-30T17:59:12.151650",
+      "completed_at": "2026-05-30T17:59:52.828206",
+      "duration_seconds": 40.68,
+      "updated_at": "2026-05-30T17:59:52.828206"
+    },
+    "T1.2": {
+      "description": "Implement T1 end-to-end",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-30T18:00:08.985970",
+      "completed_at": "2026-05-30T18:04:36.281219",
+      "duration_seconds": 267.3,
+      "updated_at": "2026-05-30T18:04:36.281219"
+    },
+    "T1.3": {
+      "description": "Run validation for T1",
+      "status": "completed",
+      "retries": 0,
+      "started_at": "2026-05-30T18:04:53.702272",
+      "completed_at": "2026-05-30T18:06:29.798713",
+      "duration_seconds": 96.1,
+      "updated_at": "2026-05-30T18:06:29.798713"
+    }
+  },
+  "last_checkpoint": "T1.3",
+  "context_budget_exit": null,
+  "completion_notified_at": "2026-05-30T18:06:34.679795"
+}

@@ -1,0 +1,108 @@
+{
+  "objective_slug": "dashboard-realtime",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/todo.md",
+  "tasks": {
+    "RT1": {
+      "status": "completed",
+      "subtasks": {
+        "RT1.1": {
+          "description": "Review requirements and design context for RT1",
+          "status": "completed",
+          "started_at": "2026-05-30T11:53:40.106003",
+          "completed_at": "2026-05-30T11:54:55.055256",
+          "duration_seconds": 74.95,
+          "updated_at": "2026-05-30T11:54:55.055256"
+        },
+        "RT1.2": {
+          "description": "Implement RT1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T11:55:06.079473",
+          "completed_at": "2026-05-30T11:56:58.451246",
+          "duration_seconds": 112.37,
+          "updated_at": "2026-05-30T11:56:58.451246"
+        },
+        "RT1.3": {
+          "description": "Run validation for RT1",
+          "status": "completed",
+          "started_at": "2026-05-30T11:57:01.399817",
+          "completed_at": "2026-05-30T11:57:05.653365",
+          "duration_seconds": 4.25,
+          "updated_at": "2026-05-30T11:57:05.653365"
+        }
+      },
+      "started_at": "2026-05-30T11:53:40.106003",
+      "completed_at": "2026-05-30T11:57:05.653365",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/todo.md"
+    },
+    "RT2": {
+      "status": "completed",
+      "subtasks": {
+        "RT2.1": {
+          "description": "Review requirements and design context for RT2",
+          "status": "completed",
+          "started_at": "2026-05-30T12:00:17.645687",
+          "completed_at": "2026-05-30T12:02:55.489994",
+          "duration_seconds": 157.84,
+          "updated_at": "2026-05-30T12:02:55.489994"
+        },
+        "RT2.2": {
+          "description": "Implement RT2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T12:07:48.147082",
+          "completed_at": "2026-05-30T12:08:24.752024",
+          "duration_seconds": 36.6,
+          "updated_at": "2026-05-30T12:08:24.752024"
+        },
+        "RT2.3": {
+          "description": "Run validation for RT2",
+          "status": "completed",
+          "started_at": "2026-05-30T12:08:29.200526",
+          "completed_at": "2026-05-30T12:08:40.208840",
+          "duration_seconds": 11.01,
+          "updated_at": "2026-05-30T12:08:40.208840"
+        }
+      },
+      "started_at": "2026-05-30T12:00:17.645687",
+      "completed_at": "2026-05-30T12:08:40.208840",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/todo.md"
+    },
+    "RT3": {
+      "status": "completed",
+      "subtasks": {
+        "RT3.1": {
+          "description": "Review requirements and design context for RT3",
+          "status": "completed",
+          "started_at": "2026-05-30T12:12:14.263423",
+          "completed_at": "2026-05-30T12:12:42.538247",
+          "duration_seconds": 28.27,
+          "updated_at": "2026-05-30T12:12:42.538247"
+        },
+        "RT3.2": {
+          "description": "Implement RT3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-05-30T12:12:44.823847",
+          "completed_at": "2026-05-30T12:16:51.959333",
+          "duration_seconds": 247.14,
+          "updated_at": "2026-05-30T12:16:51.959333"
+        },
+        "RT3.3": {
+          "description": "Run validation for RT3",
+          "status": "completed",
+          "started_at": "2026-05-30T12:16:56.989201",
+          "completed_at": "2026-05-30T12:18:07.621644",
+          "duration_seconds": 70.63,
+          "updated_at": "2026-05-30T12:18:07.621644"
+        }
+      },
+      "started_at": "2026-05-30T12:12:14.263423",
+      "completed_at": "2026-05-30T12:18:07.621644",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/dashboard-realtime/todo.md"
+    }
+  },
+  "updated_at": "2026-05-30T12:18:07.621644",
+  "bootstrapped_from_artifacts": true
+}

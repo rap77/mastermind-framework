@@ -18,7 +18,7 @@ _Generated: 2026-05-29T19:40:58_
 | 1 | `token-cost-quality-telemetry` | done | yes | 84 | yes | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md |
 | 2 | `collaboration-rbac` | done | yes | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
 | 3 | `dashboard-realtime` | done | yes | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
-| 4 | `window-scheduler` | planned | yes | 76 | no | yes | — | Captured in canonical implementation docs. | docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md |
+| 4 | `window-scheduler` | done | yes | 76 | no | yes | — | Captured in canonical implementation docs. | docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md |
 | 5 | `context-projection` | planned | yes | 72 | no | yes | postgres-hybrid-data-model, project-state-mvp | Captured in canonical implementation docs. | docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md |
 | 6 | `rust-control-plane-hardening` | planned | yes | 70 | no | yes | backend-service-boundary-for-agents | Captured in canonical implementation docs. | docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md |
 | 7 | `rust-control-plane` | planned | yes | 68 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
