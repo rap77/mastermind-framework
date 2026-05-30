@@ -32,6 +32,9 @@ from mastermind_cli.api.routes.keys import (
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.api.routes.project_overview import router as project_overview_router
+from mastermind_cli.api.routes.project_participants import (
+    router as project_participants_router,
+)
 from mastermind_cli.state.database import DatabaseConnection
 
 # gRPC server (Phase 18: gap-closure)
@@ -286,6 +289,11 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         project_overview_router,
         prefix="/api/projects",
         tags=["Project State"],
+    )
+    app.include_router(
+        project_participants_router,
+        prefix="/api/projects",
+        tags=["Project Participants"],
     )
 
     # Audit trail router (MM-Flow infrastructure — Phase 16+)

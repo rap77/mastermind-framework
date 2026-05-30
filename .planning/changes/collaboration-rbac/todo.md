@@ -3,9 +3,12 @@
 ## Execution Checklist
 
 - [~] T1: Define and stabilize the slice
-  - [~] T1.1: Review requirements and design context for T1
-  - [ ] T1.2: Implement T1 end-to-end
-  - [ ] T1.3: Run validation for T1
+⏱️ **Estimate**: N/A | **Actual**: 11.1m | **Deviation**: N/A | **Progress**: 1/3 (33%)
+📊 **Avg/subtask**: 11.1m | **ETA**: 33.4m
+
+  - [x] T1.1: Review requirements and design context for T1
+  - [~] T1.2: Implement T1 end-to-end
+  - [~] T1.3: Run validation for T1
   - depends_on: none
   - validation: Review requirements/design/tasks package for consistency.
 

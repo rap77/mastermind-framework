@@ -8,27 +8,27 @@
       "subtasks": {
         "T1.1": {
           "description": "Review requirements and design context for T1",
-          "status": "in_progress",
+          "status": "completed",
           "started_at": "2026-05-30T08:52:33.472990",
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": "2026-05-30T08:52:33.472990"
+          "completed_at": "2026-05-30T09:03:41.719968",
+          "duration_seconds": 668.25,
+          "updated_at": "2026-05-30T09:03:41.719968"
         },
         "T1.2": {
           "description": "Implement T1 end-to-end",
-          "status": "pending",
-          "started_at": null,
+          "status": "in_progress",
+          "started_at": "2026-05-30T09:03:45.025216",
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T09:03:45.025216"
         },
         "T1.3": {
           "description": "Run validation for T1",
-          "status": "pending",
-          "started_at": null,
+          "status": "in_progress",
+          "started_at": "2026-05-30T09:30:25.707548",
           "completed_at": null,
           "duration_seconds": 0,
-          "updated_at": null
+          "updated_at": "2026-05-30T09:30:25.707548"
         }
       },
       "started_at": "2026-05-30T08:52:33.472990",
@@ -103,6 +103,6 @@
       "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/collaboration-rbac/todo.md"
     }
   },
-  "updated_at": "2026-05-30T08:52:33.472990",
+  "updated_at": "2026-05-30T09:30:25.707548",
   "bootstrapped_from_artifacts": true
 }

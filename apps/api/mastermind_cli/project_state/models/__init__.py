@@ -3,6 +3,7 @@
 from mastermind_cli.project_state.models.artifact import ArtifactLink, ArtifactVersion
 from mastermind_cli.project_state.models.checkpoint import Checkpoint
 from mastermind_cli.project_state.models.decision import DecisionRecord
+from mastermind_cli.project_state.models.participant import Participant
 from mastermind_cli.project_state.models.project import Project
 from mastermind_cli.project_state.models.task import Task
 from mastermind_cli.project_state.models.task_dependency import TaskDependency
@@ -14,6 +15,7 @@ __all__ = [
     "ArtifactVersion",
     "Checkpoint",
     "DecisionRecord",
+    "Participant",
     "Project",
     "Task",
     "TaskDependency",
