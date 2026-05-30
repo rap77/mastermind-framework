@@ -25,12 +25,24 @@
 - `apps/api/mastermind_cli/api/routes/project_overview.py` — new GET endpoint
 - `apps/api/tests/api/test_project_quality_summary.py` — new test file (5 tests)
 
+## Decisions already made
+
+- Quality signals are stored in `metadata_json` (no DB migration) — acceptable for MVP; indexed columns are the upgrade path if query performance becomes an issue
+- All new fields are optional and backward-compatible — callers that omit them get null aggregates in quality-summary
+- `bool`-safe guard on `rework_count` because Python `isinstance(True, int)` returns True
+- Unbounded query in `get_project_quality_aggregate` (no 10k limit) — quality summary is a full-project aggregate, not a paginated list
+
+## Blockers / Risks
+
+- None active — all tasks complete and tests passing
+- Pre-existing failures in `test_ship_handler.py` (x11) and `test_rag_*.py` (x8) are unrelated to this objective and were present before T1
+
 ## Validation commands
 - `cd apps/api && uv run pytest tests/api/test_project_quality_summary.py tests/api/test_project_cost_summary.py tests/api/test_project_token_usage.py -v`
   - 7/7 passing
 - `python3 .claude/commands/mm/discover-contract-check.py --objective token-cost-quality-telemetry`
   - STATUS: PASSED
 
-## Next recommended work
+## Next task / Next recommended work
 - Objective is complete and ready for archiving via `/mm:archive-objective token-cost-quality-telemetry`
 - Pre-existing failures (test_ship_handler.py x11, test_rag_*.py x8 errors) are unrelated to this objective

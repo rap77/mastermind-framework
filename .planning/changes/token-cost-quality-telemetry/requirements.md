@@ -62,9 +62,9 @@ Extend the existing telemetry slice with quality signal support:
 - [x] `GET /api/projects/{id}/costs/summary` returns aggregated cost (already shipped)
 - [x] `GET /api/projects/{id}/token-usage` returns events list (already shipped)
 - [x] `POST /api/projects/{id}/tasks/{task_id}/token-usage` records events (already shipped)
-- [ ] `RecordTokenUsageRequest` accepts and validates `agent_id`, `review_pass`,
+- [x] `RecordTokenUsageRequest` accepts and validates `agent_id`, `review_pass`,
       `verification_pass`, `rework_count` as optional fields
-- [ ] `POST /token-usage` persists quality fields into `metadata_json` (backward-compatible)
-- [ ] `GET /api/projects/{id}/costs/quality-summary` returns cost + quality aggregates
-- [ ] All new endpoints and schema changes have test coverage
-- [ ] Validation commands pass after implementation
+- [x] `POST /token-usage` persists quality fields into `metadata_json` (backward-compatible)
+- [x] `GET /api/projects/{id}/costs/quality-summary` returns cost + quality aggregates
+- [x] All new endpoints and schema changes have test coverage
+- [x] Validation commands pass after implementation
