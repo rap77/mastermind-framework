@@ -1070,30 +1070,62 @@ def ensure_runtime_can_start_task(task_id: str) -> None:
 # ============================================================================
 
 
-def get_git_commits_for_task(task_id: str) -> set[str]:
-    """Get subtask IDs that have commits in git using --grep.
+def get_git_commits_for_task(
+    task_id: str, objective_slug: str | None = None
+) -> set[str]:
+    """Get subtask IDs that have commits in git scoped to an objective directory.
 
-    Uses git log --grep for more reliable detection.
-    Pattern: matches "D1.1", "D1.2", etc. in commit messages.
+    Uses git log with -- <path> to restrict search to the objective's planning
+    package. This avoids false matches from OTHER objectives' commits that happen
+    to use the same task ID pattern (e.g., T2.2 in mastermind-cli vs context-projection).
     """
     completed = set()
-
-    # Pattern 1: grep for task ID in commit messages
-    # Matches: "D1.1:", "(D1.1)", "[D1.1]", etc.
     patterns = [
         rf"{re.escape(task_id)}\.(\d+)",
     ]
 
+    # Build the scoped path for git log
+    scope_path: str | None = None
+    if objective_slug:
+        scope_path = str(
+            PROJECT_ROOT / ".mm-flow" / "planning" / "changes" / objective_slug
+        )
+    elif task_id:
+        # Fallback: try to resolve objective from task_id
+        try:
+            source = resolve_task_source(get_root_task_id(task_id))
+            if source.objective_slug:
+                scope_path = str(
+                    PROJECT_ROOT
+                    / ".mm-flow"
+                    / "planning"
+                    / "changes"
+                    / source.objective_slug
+                )
+        except ValueError:
+            pass
+
     for pattern in patterns:
+        cmd = ["git", "log", "--all", "--pretty=format:%H%n%s", "-100"]
+        if scope_path:
+            cmd.append("--")
+            cmd.append(scope_path)
         result = subprocess.run(
-            ["git", "log", "--all", "--pretty=format:%s", "-100"],
+            cmd,
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
         )
 
         for line in result.stdout.split("\n"):
-            match = re.search(pattern, line)
+            if not line.strip():
+                continue
+            # Each entry is "commit_hash subject" — extract subject part
+            parts = line.split("\n", 1)
+            if len(parts) < 2:
+                continue
+            subject = parts[1]
+            match = re.search(pattern, subject)
             if match:
                 subtask_num = match.group(1)
                 completed.add(f"{task_id}.{subtask_num}")
@@ -2139,8 +2171,9 @@ def start_task(task_id: str) -> None:
         mm_subtask(st["id"], status, st["description"])
 
     # Git commits are informative only in the objective flow; they are not the
-    # source of truth for completion.
-    git_completed = get_git_commits_for_task(task_id)
+    # source of truth for completion. Scoped to objective directory to avoid
+    # cross-objective false matches (e.g., T2.2 in mastermind-cli vs context-projection).
+    git_completed = get_git_commits_for_task(task_id, source.objective_slug)
     mm_git(len(git_completed), len(subtasks), sorted(git_completed))
 
     # Filter pending subtasks from durable execution state.

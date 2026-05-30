@@ -4,6 +4,7 @@
 
 - [x] T1: Define and stabilize the slice
 ⏱️ **Estimate**: N/A | **Actual**: 3.3m | **Deviation**: — | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 1.1m | **ETA**: done **Estimate**: N/A | **Actual**: 3.3m | **Deviation**: — | **Progress**: 3/3 (100%)
 📊 **Avg/subtask**: 1.1m | **ETA**: done **Estimate**: N/A | **Actual**: 2.5m | **Deviation**: -1.3m | **Progress**: 2/3 (66%)
 📊 **Avg/subtask**: 1.3m | **ETA**: 1.3m **Estimate**: N/A | **Actual**: 45s | **Deviation**: -1.5m | **Progress**: 1/3 (33%)
 📊 **Avg/subtask**: 45s | **ETA**: 1.5m
@@ -14,10 +15,15 @@
   - depends_on: none
   - validation: Review requirements/design/tasks package for consistency.
 
-- [ ] T2: Implement the smallest coherent deliverable
-  - [ ] T2.1: Review requirements and design context for T2
-  - [ ] T2.2: Implement T2 end-to-end
-  - [ ] T2.3: Run validation for T2
+- [~] T2: Implement the smallest coherent deliverable
+⏱️ **Estimate**: N/A | **Actual**: — | **Deviation**: — | **Progress**: 2/3 (66%)
+📊 **Avg/subtask**: — | **ETA**: — **Estimate**: N/A | **Actual**: — | **Deviation**: — | **Progress**: 1/3 (33%)
+📊 **Avg/subtask**: — | **ETA**: — **Estimate**: N/A | **Actual**: 1.9m | **Deviation**: -3.7m | **Progress**: 1/3 (33%)
+📊 **Avg/subtask**: 1.9m | **ETA**: 3.7m
+
+  - [x] T2.1: Review requirements and design context for T2
+  - [x] T2.2: Implement T2 end-to-end
+  - [~] T2.3: Run validation for T2
   - depends_on: T1
   - validation: Run targeted validation commands for the touched area.
 

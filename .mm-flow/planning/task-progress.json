@@ -1,42 +1,41 @@
 {
-  "task_id": "T1",
+  "task_id": "T2",
   "source_mode": "objective",
   "objective_slug": "context-projection",
   "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/tasks.md",
   "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/context-projection/todo.md",
-  "session_id": "sess-20260530-190201",
-  "started_at": "2026-05-30T19:02:01.393322",
+  "session_id": "sess-resume-20260530-192333",
+  "started_at": "2026-05-30T19:22:40.565845",
   "phase": 19,
   "subtasks": {
-    "T1.1": {
-      "description": "Review requirements and design context for T1",
+    "T2.1": {
+      "description": "Review requirements and design context for T2",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-30T19:02:20.815411",
-      "completed_at": "2026-05-30T19:03:05.952628",
-      "duration_seconds": 45.14,
-      "updated_at": "2026-05-30T19:03:05.952628"
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": 0
     },
-    "T1.2": {
-      "description": "Implement T1 end-to-end",
+    "T2.2": {
+      "description": "Implement T2 end-to-end",
       "status": "completed",
       "retries": 0,
-      "started_at": "2026-05-30T19:03:12.315544",
-      "completed_at": "2026-05-30T19:04:58.000307",
-      "duration_seconds": 105.68,
-      "updated_at": "2026-05-30T19:04:58.000307"
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": 0,
+      "updated_at": "2026-05-30T19:29:22.416803"
     },
-    "T1.3": {
-      "description": "Run validation for T1",
-      "status": "completed",
+    "T2.3": {
+      "description": "Run validation for T2",
+      "status": "in_progress",
       "retries": 0,
-      "started_at": "2026-05-30T19:05:06.094464",
-      "completed_at": "2026-05-30T19:05:52.952417",
-      "duration_seconds": 46.86,
-      "updated_at": "2026-05-30T19:05:52.952417"
+      "started_at": "2026-05-30T19:29:26.819631",
+      "completed_at": null,
+      "duration_seconds": 0,
+      "updated_at": "2026-05-30T19:29:26.819631"
     }
   },
-  "last_checkpoint": "T1.3",
+  "last_checkpoint": "T2.3",
   "context_budget_exit": null,
-  "completion_notified_at": "2026-05-30T19:05:58.106224"
+  "resumed_at": "2026-05-30T19:23:33.371894"
 }
