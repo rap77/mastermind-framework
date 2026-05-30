@@ -59,12 +59,12 @@ uv run pytest --tb=short -q
 ```
 
 ### Acceptance Criteria
-- [ ] `ps_participants` table created by `initialize_database()`.
-- [ ] `POST /api/projects/{project_id}/participants` → 201 with ParticipantResponse.
-- [ ] `GET /api/projects/{project_id}/participants` → 200 with ParticipantListResponse.
-- [ ] `DELETE /api/projects/{project_id}/participants/{participant_id}` → 204.
-- [ ] Invalid role → 422.
-- [ ] All new tests pass. Full suite stays green.
+- [x] `ps_participants` table created by `initialize_database()`.
+- [x] `POST /api/projects/{project_id}/participants` → 201 with ParticipantResponse.
+- [x] `GET /api/projects/{project_id}/participants` → 200 with ParticipantListResponse.
+- [x] `DELETE /api/projects/{project_id}/participants/{participant_id}` → 204.
+- [x] Invalid role → 422.
+- [x] All new tests pass. Full suite stays green.
 
 ## T3: Close the continuity loop
 
