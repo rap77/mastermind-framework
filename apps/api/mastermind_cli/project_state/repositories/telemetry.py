@@ -31,6 +31,22 @@ class ProjectCostAggregate:
     providers: list[ProviderCostAggregate]
 
 
+@dataclass(slots=True)
+class ProjectQualityAggregate:
+    """Aggregated quality signal and cost values for a project."""
+
+    total_events: int
+    review_pass_count: int
+    review_fail_count: int
+    review_pass_rate: float | None
+    verification_pass_count: int
+    verification_fail_count: int
+    verification_pass_rate: float | None
+    avg_rework_count: float | None
+    total_estimated_cost: float
+    cost_per_reviewed_event: float | None
+
+
 class TelemetryRepository:
     """Repository for token and cost telemetry."""
 
@@ -131,4 +147,71 @@ class TelemetryRepository:
             total_completion_tokens=int(completion_tokens),
             total_estimated_cost=float(estimated_cost),
             providers=providers,
+        )
+
+    def get_project_quality_aggregate(self, project_id: str) -> ProjectQualityAggregate:
+        """Return quality signal aggregates for a project by scanning metadata_json."""
+        result = self.session.execute(
+            select(TokenUsageEvent)
+            .where(TokenUsageEvent.project_id == project_id)
+            .order_by(TokenUsageEvent.created_at.desc())
+        )
+        events = list(result.scalars().all())
+
+        total_events = len(events)
+        total_estimated_cost = sum(e.estimated_cost for e in events)
+
+        review_pass_count = 0
+        review_fail_count = 0
+        verification_pass_count = 0
+        verification_fail_count = 0
+        rework_values: list[int] = []
+
+        for event in events:
+            meta = event.metadata_json if isinstance(event.metadata_json, dict) else {}
+            review_pass = meta.get("review_pass")
+            if review_pass is True:
+                review_pass_count += 1
+            elif review_pass is False:
+                review_fail_count += 1
+
+            verification_pass = meta.get("verification_pass")
+            if verification_pass is True:
+                verification_pass_count += 1
+            elif verification_pass is False:
+                verification_fail_count += 1
+
+            rework_count = meta.get("rework_count")
+            if isinstance(rework_count, int) and not isinstance(rework_count, bool):
+                rework_values.append(rework_count)
+
+        reviewed_count = review_pass_count + review_fail_count
+        review_pass_rate: float | None = None
+        if reviewed_count > 0:
+            review_pass_rate = round(review_pass_count / reviewed_count, 3)
+
+        verified_count = verification_pass_count + verification_fail_count
+        verification_pass_rate: float | None = None
+        if verified_count > 0:
+            verification_pass_rate = round(verification_pass_count / verified_count, 3)
+
+        avg_rework_count: float | None = None
+        if rework_values:
+            avg_rework_count = round(sum(rework_values) / len(rework_values), 3)
+
+        cost_per_reviewed_event: float | None = None
+        if reviewed_count > 0:
+            cost_per_reviewed_event = round(total_estimated_cost / reviewed_count, 3)
+
+        return ProjectQualityAggregate(
+            total_events=total_events,
+            review_pass_count=review_pass_count,
+            review_fail_count=review_fail_count,
+            review_pass_rate=review_pass_rate,
+            verification_pass_count=verification_pass_count,
+            verification_fail_count=verification_fail_count,
+            verification_pass_rate=verification_pass_rate,
+            avg_rework_count=avg_rework_count,
+            total_estimated_cost=total_estimated_cost,
+            cost_per_reviewed_event=cost_per_reviewed_event,
         )

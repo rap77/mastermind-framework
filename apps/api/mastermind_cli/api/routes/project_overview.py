@@ -29,6 +29,7 @@ from mastermind_cli.project_state.schemas.overview import (
     ProjectDetailResponse,
     ProjectListResponse,
     ProjectOverviewResponse,
+    ProjectQualitySummaryResponse,
     ProjectTimeSummaryResponse,
     RunDetailResponse,
     TaskContextProjectionResponse,
@@ -260,6 +261,26 @@ async def get_project_cost_summary(
     with session_factory() as session:
         service = ProjectOverviewService(session)
         summary = service.get_project_cost_summary(project_id)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return summary
+
+
+@router.get(
+    "/{project_id}/costs/quality-summary",
+    response_model=ProjectQualitySummaryResponse,
+)
+async def get_project_quality_summary(
+    project_id: str,
+    user_id: str = Depends(get_current_user_any),
+    database_url: str = Depends(get_project_state_db_url),
+) -> ProjectQualitySummaryResponse:
+    """Return aggregated quality signals and cost totals for the given project ID."""
+    del user_id  # Reserved for future RBAC/ownership checks in the thin slice.
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        summary = service.get_project_quality_summary(project_id)
     if summary is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return summary

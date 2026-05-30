@@ -248,6 +248,46 @@ class RecordTokenUsageRequest(BaseModel):
     metadata: dict[str, object] = Field(
         default_factory=dict, description="Usage metadata"
     )
+    agent_id: str | None = Field(None, description="Brain or agent identifier")
+    review_pass: bool | None = Field(None, description="Code-review passed flag")
+    verification_pass: bool | None = Field(
+        None, description="Acceptance-criteria verified flag"
+    )
+    rework_count: int | None = Field(
+        None, ge=0, description="Retry/rework iteration count"
+    )
+
+
+class ProjectQualitySummaryResponse(BaseModel):
+    """Aggregated quality signal and cost summary for a project."""
+
+    project_id: str = Field(..., description="Project identifier")
+    total_events: int = Field(..., description="Total token usage events")
+    review_pass_count: int = Field(..., description="Events with review_pass=true")
+    review_fail_count: int = Field(..., description="Events with review_pass=false")
+    review_pass_rate: float | None = Field(
+        None, description="Fraction of reviewed events that passed"
+    )
+    verification_pass_count: int = Field(
+        ..., description="Events with verification_pass=true"
+    )
+    verification_fail_count: int = Field(
+        ..., description="Events with verification_pass=false"
+    )
+    verification_pass_rate: float | None = Field(
+        None, description="Fraction of verified events that passed"
+    )
+    avg_rework_count: float | None = Field(
+        None,
+        description="Average rework iterations across events that set rework_count",
+    )
+    total_estimated_cost: float = Field(
+        ..., description="Total estimated cost across all events"
+    )
+    cost_per_reviewed_event: float | None = Field(
+        None,
+        description="Total cost divided by events that have a review_pass value",
+    )
 
 
 class ActivityFeedEventResponse(BaseModel):

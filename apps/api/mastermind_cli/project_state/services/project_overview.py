@@ -45,6 +45,7 @@ from mastermind_cli.project_state.schemas.overview import (
     ProjectDetailResponse,
     ProjectListResponse,
     ProjectOverviewResponse,
+    ProjectQualitySummaryResponse,
     ProjectStateRealtimeEvent,
     ProjectTimeSummaryResponse,
     ProviderCostSummary,
@@ -541,10 +542,22 @@ class ProjectOverviewService:
         """Record a token usage event for a task via the service layer.
 
         Returns None if the task does not exist or belongs to a different project.
+        Quality signal fields (agent_id, review_pass, verification_pass, rework_count)
+        are merged into metadata_json for backward-compatible storage.
         """
         task = self.tasks.get_by_id(project_id, task_id)
         if task is None:
             return None
+
+        metadata: dict[str, Any] = deepcopy(request.metadata)
+        if request.agent_id is not None:
+            metadata["agent_id"] = request.agent_id
+        if request.review_pass is not None:
+            metadata["review_pass"] = request.review_pass
+        if request.verification_pass is not None:
+            metadata["verification_pass"] = request.verification_pass
+        if request.rework_count is not None:
+            metadata["rework_count"] = request.rework_count
 
         event = self.telemetry.create_event(
             usage_event_id=str(uuid.uuid4()),
@@ -557,7 +570,7 @@ class ProjectOverviewService:
             completion_tokens=request.completion_tokens,
             estimated_cost=request.estimated_cost,
             run_id=request.run_id,
-            metadata_json=request.metadata,
+            metadata_json=metadata,
         )
         return TokenUsageEventResponse(
             usage_event_id=event.usage_event_id,
@@ -572,6 +585,29 @@ class ProjectOverviewService:
             estimated_cost=event.estimated_cost,
             metadata=event.metadata_json,
             created_at=event.created_at,
+        )
+
+    def get_project_quality_summary(
+        self, project_id: str
+    ) -> ProjectQualitySummaryResponse | None:
+        """Return aggregated quality signals and cost totals for a project."""
+        project = self.projects.get_by_id(project_id)
+        if project is None:
+            return None
+
+        aggregate = self.telemetry.get_project_quality_aggregate(project_id)
+        return ProjectQualitySummaryResponse(
+            project_id=project_id,
+            total_events=aggregate.total_events,
+            review_pass_count=aggregate.review_pass_count,
+            review_fail_count=aggregate.review_fail_count,
+            review_pass_rate=aggregate.review_pass_rate,
+            verification_pass_count=aggregate.verification_pass_count,
+            verification_fail_count=aggregate.verification_fail_count,
+            verification_pass_rate=aggregate.verification_pass_rate,
+            avg_rework_count=aggregate.avg_rework_count,
+            total_estimated_cost=aggregate.total_estimated_cost,
+            cost_per_reviewed_event=aggregate.cost_per_reviewed_event,
         )
 
     def get_task_dependencies(
