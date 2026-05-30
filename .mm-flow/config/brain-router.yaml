@@ -1,0 +1,23 @@
+# Brain Router Configuration
+# Define qué brain packs están activos para este proyecto
+
+# Activar integración de brains (false = framework puro)
+enabled: false
+
+# Brain packs activos — referencian directorio brains/
+active_brains: []
+
+# Consulta de brains
+consultation:
+  # Fases donde se consultan brains antes de ejecutar
+  before_phase: []
+  # Fases donde se consultan brains después de ejecutar
+  after_phase: []
+  # Consultar brain #7 (evaluador) al completar task
+  on_task_complete: false
+
+# Nicho default — se usa cuando no se especifica
+default_niche: software-development
+
+# Ubicación de brain packs (relativo a la raíz del repo)
+brains_base_path: ./brains

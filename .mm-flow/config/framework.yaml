@@ -1,0 +1,49 @@
+# .mm-flow Configuration
+# Framework principal — agnóstico al modelo y al dominio
+
+version: "1.0.0"
+name: mm-flow
+
+# Directorio de trabajo
+working_directory: .mm-flow
+planning_directory: .mm-flow/planning
+
+# Estructura de planning
+planning:
+  changes_dir: .mm-flow/planning/changes
+  archive_dir: .mm-flow/planning/archive
+  roadmap_file: .mm-flow/planning/roadmap/objectives.json
+
+# Task lifecycle
+task_lifecycle:
+  cycle:
+    - build        # implementer skill
+    - test         # tester skill
+    - review       # review skill
+    - code-review  # code-reviewer agent
+    - safe-commit  # safe-commit skill
+    - checkpoint   # update task-progress.json
+  checkpoint_file: .planning/task-progress.json
+  context_budget_threshold: 0.75
+
+# Permisos default
+permissions:
+  allow:
+    - Bash(git add *)
+    - Bash(git commit *)
+    - Bash(git status *)
+    - Bash(git log *)
+    - Bash(uv run *)
+    - Bash(pnpm *)
+    - Bash(cargo *)
+    - Bash(python3 *)
+    - mcp__notebooklm-mcp__*
+    - mcp__plugin_engram_engram__*
+
+# Brain integration (opcional)
+brains:
+  enabled: false
+  config_file: .mm-flow/config/brain-router.yaml
+
+# Modelo default
+default_model: sonnet
