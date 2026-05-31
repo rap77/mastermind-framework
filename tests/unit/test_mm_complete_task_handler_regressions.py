@@ -87,6 +87,18 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
         self.assertNotIn("LAUNCH: task-executor", result.stdout)
         self.assertNotIn("INFO: Starting task PS1", result.stdout)
 
+    def test_brief_includes_matching_objective_canonical_doc(self) -> None:
+        """Brief should surface the primary canonical doc when one matches the objective slug."""
+        (self.temp_dir / "docs" / "canonical" / "21-project-state-mvp.md").write_text(
+            "# Project State MVP\n",
+            encoding="utf-8",
+        )
+        self._materialize_project_state_objective()
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "--brief", "PS1")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("docs/canonical/21-project-state-mvp.md", result.stdout)
+
     def test_resume_task_persists_runtime_completion_into_objective_state(self) -> None:
         """`--continue` must promote completed runtime subtasks into execution-state.json."""
         objective_dir = self._materialize_project_state_objective()

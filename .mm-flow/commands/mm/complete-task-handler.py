@@ -48,6 +48,31 @@ def _find_project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent.parent
 
 
+def _find_objective_canonical_doc(objective_slug: str) -> Path | None:
+    """Find the main canonical doc for an objective if one exists."""
+    canonical_dir = PROJECT_ROOT / "docs" / "canonical"
+    if not canonical_dir.exists():
+        return None
+
+    base_slug = re.sub(r"[-_]?v\\d+$", "", objective_slug.lower())
+    slug_variants = [objective_slug.lower(), base_slug]
+
+    for path in canonical_dir.glob("*.md"):
+        path_name = path.name.lower()
+        if any(
+            slug_variant and slug_variant in path_name for slug_variant in slug_variants
+        ):
+            return path
+
+    wildcard_variants = [slug.replace("-", "*") for slug in slug_variants if slug]
+    for pattern in wildcard_variants:
+        matches = sorted(canonical_dir.glob(f"*{pattern}*.md"))
+        if matches:
+            return matches[0]
+
+    return None
+
+
 def _read_stack_from_config(project_root: Path) -> list[str]:
     """Read stack list from .mastermind/config.yaml (no external deps)."""
     config_path = project_root / ".mastermind" / "config.yaml"
@@ -2069,6 +2094,11 @@ def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
     handoff_path = objective_dir / "HANDOFF-CURRENT.md"
     requirements_path = objective_dir / "requirements.md"
     design_path = objective_dir / "design.md"
+    canonical_doc_path = (
+        _find_objective_canonical_doc(source.objective_slug)
+        if source.objective_slug
+        else None
+    )
     objective_state = load_objective_state(task_id=task_id) or {}
     task_state = objective_state.get("tasks", {}).get(task_id, {})
     task_status = task_state.get("status", "pending")
@@ -2083,13 +2113,19 @@ def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
 
     read_files = [
         "docs/canonical/45-HYBRID-SPEC-FLOW-AND-RULES.md",
-        str(requirements_path.relative_to(PROJECT_ROOT)),
-        str(design_path.relative_to(PROJECT_ROOT)),
-        str(source.plan_path.relative_to(PROJECT_ROOT)),
-        str(source.todo_path.relative_to(PROJECT_ROOT)),
-        str(handoff_path.relative_to(PROJECT_ROOT)),
-        str(objective_state_path.relative_to(PROJECT_ROOT)),
     ]
+    if canonical_doc_path is not None:
+        read_files.append(str(canonical_doc_path.relative_to(PROJECT_ROOT)))
+    read_files.extend(
+        [
+            str(requirements_path.relative_to(PROJECT_ROOT)),
+            str(design_path.relative_to(PROJECT_ROOT)),
+            str(source.plan_path.relative_to(PROJECT_ROOT)),
+            str(source.todo_path.relative_to(PROJECT_ROOT)),
+            str(handoff_path.relative_to(PROJECT_ROOT)),
+            str(objective_state_path.relative_to(PROJECT_ROOT)),
+        ]
+    )
 
     lines = [
         f"Objective: {source.objective_slug}",
