@@ -1,6 +1,6 @@
 # mm-flow
 
-Framework de orquestación de desarrollo agnóstico al modelo LLM.
+Framework de orquestación de desarrollo lo más agnóstico posible al runtime de modelo.
 
 ## Estructura
 
@@ -28,6 +28,7 @@ Framework de orquestación de desarrollo agnóstico al modelo LLM.
 - `/mm:complete-task <id> --continue` — Continuar desde checkpoint
 - `/mm:archive-objective <slug>` — Archivar objective completado
 - `/mm:activate-next-objective` — Activar siguiente objective del roadmap
+- `/mm:context-to-canonical` — Convertir contexto real del proyecto en docs canónicos
 - `/mm:discover-contract-check --objective <slug>` — Validar planning contract
 - `/mm:safe-commit` — Commit con validación
 
@@ -41,16 +42,25 @@ Framework de orquestación de desarrollo agnóstico al modelo LLM.
 BRAINS_NICHE=software-development ./.mm-flow/installer/install.sh --target /path/proyecto
 ```
 
+After installation:
+
+- generic runtime path: `.mm-flow/commands/mm/*.py`
+- Claude Code compatibility path: `.claude/commands/mm/*`
+
 ## Brain Integration
 
 Los brain packs se instalan desde `brains/<niche>/` y se activan via `brain-router.yaml`.
 
 ## Modelo Agnóstico
 
-El framework funciona con cualquier LLM CLI (Claude Code, Codex, Gemini CLI, etc.) porque:
-- Commands son scripts de shell puros
-- Agents usan YAML + Markdown (no vendor-specific)
-- Skills son Markdown con front matter
+El framework busca funcionar con cualquier LLM CLI (Claude Code, Codex, Gemini CLI, etc.) porque:
+- Los handlers son scripts Python invocables desde shell
+- Los agentes/skills son Markdown con protocolo legible por cualquier runtime
+- El flujo principal puede ejecutarse sin depender de una API de subagents específica
+
+Si un runtime soporta subagentes, puede usar los documentos de `agents/` como
+protocolos opcionales. Si no los soporta, los handlers siguen siendo ejecutables
+directamente.
 
 ## Versión
 

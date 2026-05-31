@@ -55,6 +55,22 @@ Working directory: use `payload.working_directory`. If missing, detect via `git 
 
 ## Orchestration Cycle (per subtask)
 
+**IRON RULE — applies to every subtask without exception:**
+> `--mark-done` is MANDATORY before moving to the next subtask.
+> It does not matter if the subtask only reads files, runs a check, or has no code change.
+> Reading is work. Checking is work. Every subtask ends with `--mark-done`.
+
+### Subtask type detection (before Step 0)
+
+Classify the subtask from its description:
+
+| Type | Indicators | Steps to run |
+|------|-----------|--------------|
+| **read-only** | "Leer", "Read", "Review", "Entender", "Check" (no code output) | Step 0 → read files → **Step 6** |
+| **implementation** | "Crear", "Implementar", "Agregar", "Extender", "Fix" | Step 0 → 1 → 2 → 3 → 4 → 5 → **Step 6** |
+
+For read-only subtasks: skip Steps 1–5. Jump directly to Step 6 after completing the read.
+
 ### Step 0: Mark in-progress
 
 Run from `working_directory` (use it as the cwd, not as a `cd` prefix where possible):
@@ -122,6 +138,8 @@ If there are unresolved issues: append `[unresolved: <brief list>]` to the commi
 
 ### Step 6: Mark done + checkpoint
 
+**NEVER SKIP THIS STEP.** Regardless of subtask type (read-only, implementation, check), this step is mandatory.
+
 ```bash
 # Mark done (single writer for state)
 python3 .claude/commands/mm/complete-task-handler.py --mark-done <subtask_id>
@@ -131,6 +149,8 @@ python3 .claude/commands/mm/update-todo-times.py <task_id>
 ```
 
 If not already in `working_directory`, prefix with `cd "<working_directory>" &&`.
+
+Call `--mark-done` before doing anything else for the next subtask. No exceptions.
 
 Save to Engram:
 ```javascript

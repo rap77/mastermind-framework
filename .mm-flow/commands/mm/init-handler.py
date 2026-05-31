@@ -227,8 +227,8 @@ def install_symlinks(src_root: Path, dest: Path) -> None:
 
     Three symlinks are created:
       .claude/commands/mm  → FRAMEWORK/.mm-flow/commands/mm/
-      .claude/agents/mm    → FRAMEWORK/.claude/agents/mm/
-      .claude/skills/mm    → FRAMEWORK/.claude/skills/mm/
+      .claude/agents/mm    → FRAMEWORK/.mm-flow/agents/mm/
+      .claude/skills/mm    → FRAMEWORK/.mm-flow/skills/mm/
 
     Any pre-existing path (file, dir, or symlink) at each destination is
     removed before the symlink is created.
@@ -238,8 +238,8 @@ def install_symlinks(src_root: Path, dest: Path) -> None:
             src_root / ".mm-flow" / "commands" / "mm",
             dest / ".claude" / "commands" / "mm",
         ),
-        (src_root / ".claude" / "agents" / "mm", dest / ".claude" / "agents" / "mm"),
-        (src_root / ".claude" / "skills" / "mm", dest / ".claude" / "skills" / "mm"),
+        (src_root / ".mm-flow" / "agents" / "mm", dest / ".claude" / "agents" / "mm"),
+        (src_root / ".mm-flow" / "skills" / "mm", dest / ".claude" / "skills" / "mm"),
     ]
     for src, link in links:
         if not src.exists():

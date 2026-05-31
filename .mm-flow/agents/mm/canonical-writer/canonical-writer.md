@@ -1,8 +1,8 @@
 # Canonical Writer Agent
 
-**Purpose:** Read a project's existing context and produce a fully populated canonical document — replacing every template placeholder with synthesized real content.
+**Purpose:** Optional enrichment path. Read a project's existing context and produce a fully populated canonical document — replacing every template placeholder with synthesized real content.
 
-**Input:** A JSON payload from `context-to-canonical-handler.py` containing:
+**Input:** A JSON payload from `context-to-canonical-handler.py --payload-only` containing:
 - `doc_type` — type of canonical doc to produce
 - `target` — absolute path to the source project
 - `output_path` — where to write the output file
@@ -11,6 +11,9 @@
 - `context` — collected project signals (files content, stack, git log)
 
 **Output:** A single populated canonical `.md` file written to `output_path`.
+
+> Note: the handler already supports direct-write mode. Use this agent only when
+> you want richer model-authored synthesis.
 
 ---
 
@@ -50,9 +53,9 @@ Do not read more than necessary. The payload content is the primary source.
 
 ### Step 3 — Synthesize each section
 
-For each section of the template:
+For each section of the template, use the field mapping for the active `doc_type`.
 
-1. Map template fields to payload context signals:
+#### doc_type: project-adapter
 
 | Template section | Primary source |
 |-----------------|----------------|
@@ -67,9 +70,30 @@ For each section of the template:
 | Memory Boundaries | synthesize from all sources |
 | Success Criteria | `readme`, `docs_prd`, `claude_md` |
 
-2. Write real content for each field — no angle-bracket placeholders, no "TBD".
-3. If a field has no evidence, write: `(not documented — to be defined)`
-4. Preserve the template section headers exactly.
+#### doc_type: objective
+
+| Template section | Primary source |
+|-----------------|----------------|
+| Objective Identity | `objective_name`, `objective_slug`, `objective_intent`, `project_name` |
+| Summary | synthesize from `objective_name` + `claude_md` + `readme` — one sentence |
+| Why It Matters | `docs_prd`, `claude_md`, `readme` — product + technical + user impact |
+| Scope | synthesize from `objective_name` + project patterns — be specific about what is NOT included |
+| Acceptance Criteria | derive from `objective_name` + `objective_intent` + project conventions — concrete, testable |
+| MVP Relevance | `handoff`, `roadmap` — check if similar objective is active/done |
+| Dependencies | `roadmap` (existing objectives), `canonical_index` |
+| Technical Context | `stack`, `claude_md`, `docs_prd` — affected modules, approach, constraints |
+| Evidence | `files_found` — list actual source docs read |
+
+**For objective docs, the `<!-- mm:objective-spec -->` comment line MUST be populated:**
+```
+<!-- mm:objective-spec | slug: {objective_slug} | intent: {objective_intent} | status: draft -->
+```
+
+This marker is what allows `/mm:discover` to reliably identify and parse this file as an objective candidate.
+
+Write real content for each field — no angle-bracket placeholders, no "TBD".
+If a field has no evidence, write: `(not documented — to be defined)`
+Preserve the template section headers exactly.
 
 ### Step 4 — Write the output file
 

@@ -24,6 +24,10 @@ ARCHIVE_OBJECTIVE_HANDLER = (
 ACTIVATE_NEXT_OBJECTIVE_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "activate-next-objective-handler.py"
 )
+CONTEXT_TO_CANONICAL_HANDLER = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "context-to-canonical-handler.py"
+)
+INIT_HANDLER = REPO_ROOT / ".claude" / "commands" / "mm" / "init-handler.py"
 UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-times.py"
 CHECKPOINT_GUARD = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "pre_commit_checkpoint_guard.py"
@@ -54,14 +58,17 @@ class DiscoverWorkflowTest(unittest.TestCase):
             check=True,
             capture_output=True,
         )
-        (self.temp_dir / ".planning").mkdir(parents=True, exist_ok=True)
+        (self.temp_dir / ".mm-flow" / "planning").mkdir(parents=True, exist_ok=True)
         (self.temp_dir / "docs" / "canonical").mkdir(parents=True, exist_ok=True)
-        (self.temp_dir / ".planning" / "SOURCE-OF-TRUTH.md").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "SOURCE-OF-TRUTH.md").write_text(
             "# Source of Truth\n\n## Roadmap\n\n### Phase 21: Project State Realtime\n\n**Goal:** Add realtime updates to the project-state dashboard.\n",
             encoding="utf-8",
         )
         (
-            self.temp_dir / ".planning" / "HANDOFF-PROJECT-STATE-2026-05-24.md"
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "HANDOFF-PROJECT-STATE-2026-05-24.md"
         ).write_text(
             "# Project State Handoff\n\n## Goal\nContinue the Project State MVP.\n\n## Best next steps\n1. Add realtime events\n",
             encoding="utf-8",
@@ -101,14 +108,14 @@ class DiscoverWorkflowTest(unittest.TestCase):
         """Roadmap mode should write roadmap files and the current handoff."""
         result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        roadmap_dir = self.temp_dir / ".planning" / "roadmap"
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
         objectives_path = roadmap_dir / "objectives.md"
         dependency_path = roadmap_dir / "dependency-graph.md"
         self.assertTrue(objectives_path.exists())
         self.assertTrue(dependency_path.exists())
         self.assertIn("project-state", objectives_path.read_text(encoding="utf-8"))
         current_handoff = (
-            self.temp_dir / ".planning" / "HANDOFF-CURRENT.md"
+            self.temp_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md"
         ).read_text(encoding="utf-8")
         self.assertIn("## Current objective", current_handoff)
         self.assertIn("/mm:discover --existing --objective", current_handoff)
@@ -118,7 +125,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self,
     ) -> None:
         """Roadmap discovery should not split project-state and project-state-mvp into separate active tracks."""
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         objective_dir.mkdir(parents=True, exist_ok=True)
         (objective_dir / "tasks.md").write_text(
             "# Tasks — project-state-mvp\n\n## PS1: Realtime events\n",
@@ -146,9 +155,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
 
         objectives = json.loads(
-            (self.temp_dir / ".planning" / "roadmap" / "objectives.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
         )
         project_state_entries = [
             item
@@ -167,14 +176,20 @@ class DiscoverWorkflowTest(unittest.TestCase):
         """Archived objectives should remain done and roadmap should emit a deterministic recommendation."""
         archived_dir = (
             self.temp_dir
-            / ".planning"
+            / ".mm-flow"
+            / "planning"
             / "archive"
             / "objectives"
             / "artifact-versioning-and-lineage"
         )
         archived_dir.mkdir(parents=True, exist_ok=True)
         archived_project_state_dir = (
-            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
         )
         archived_project_state_dir.mkdir(parents=True, exist_ok=True)
         (archived_dir / "tasks.md").write_text(
@@ -222,9 +237,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
 
         objectives = json.loads(
-            (self.temp_dir / ".planning" / "roadmap" / "objectives.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
         )
         artifact = next(
             item
@@ -242,7 +257,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(backend["stable_id"], "backend-service-boundary-for-agents")
 
         objectives_md = (
-            self.temp_dir / ".planning" / "roadmap" / "objectives.md"
+            self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.md"
         ).read_text(encoding="utf-8")
         self.assertIn("## Recommended next objective", objectives_md)
         self.assertIn("| Rank | Objective |", objectives_md)
@@ -251,7 +266,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
     def test_activate_next_objective_materializes_recommended_package(self) -> None:
         """activate-next-objective should create the package for the roadmap recommendation."""
         archived_project_state_dir = (
-            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
         )
         archived_project_state_dir.mkdir(parents=True, exist_ok=True)
         (archived_project_state_dir / "tasks.md").write_text(
@@ -290,13 +310,129 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         objective_dir = (
             self.temp_dir
-            / ".planning"
+            / ".mm-flow"
+            / "planning"
             / "changes"
             / "backend-service-boundary-for-agents"
         )
         self.assertTrue((objective_dir / "requirements.md").exists())
         self.assertTrue((objective_dir / "design.md").exists())
         self.assertTrue((objective_dir / "tasks.md").exists())
+
+    def test_context_to_canonical_writes_project_adapter_directly(self) -> None:
+        """context-to-canonical should write a project-adapter doc without agent help."""
+        result = self.run_command(
+            str(CONTEXT_TO_CANONICAL_HANDLER),
+            "--target",
+            str(self.temp_dir),
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+
+        output_dir = self.temp_dir / "docs" / "canonical" / "project-adapter"
+        output_candidates = list(output_dir.glob("*.md"))
+        self.assertEqual(len(output_candidates), 1, msg=result.stdout + result.stderr)
+        output_path = output_candidates[0]
+        self.assertTrue(output_path.exists())
+        content = output_path.read_text(encoding="utf-8")
+        self.assertIn("# Project Adapter:", content)
+        self.assertIn("## 10. Success Criteria", content)
+
+    def test_context_to_canonical_writes_objective_spec_directly(self) -> None:
+        """context-to-canonical objective mode should write a discoverable canonical spec."""
+        result = self.run_command(
+            str(CONTEXT_TO_CANONICAL_HANDLER),
+            "--type",
+            "objective",
+            "--target",
+            str(self.temp_dir),
+            "--name",
+            "Add OAuth Login",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+
+        output_dir = self.temp_dir / "docs" / "canonical" / "objective-specs"
+        output_candidates = list(output_dir.glob("*.md"))
+        self.assertEqual(len(output_candidates), 1, msg=result.stdout + result.stderr)
+        output_path = output_candidates[0]
+        self.assertTrue(output_path.exists())
+        content = output_path.read_text(encoding="utf-8")
+        self.assertIn("<!-- mm:objective-spec | slug: add-oauth-login", content)
+        self.assertIn("## 5. Acceptance Criteria", content)
+
+    def test_init_handler_symlinks_to_mm_flow_source(self) -> None:
+        """init-handler should install symlinks pointing at .mm-flow sources, not .claude wrappers."""
+        target = self.temp_dir / "installed-project"
+        target.mkdir(parents=True, exist_ok=True)
+
+        result = self.run_command(
+            str(INIT_HANDLER),
+            "--target",
+            str(target),
+            "--skip-postgres-check",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        commands_link = target / ".claude" / "commands" / "mm"
+        agents_link = target / ".claude" / "agents" / "mm"
+        skills_link = target / ".claude" / "skills" / "mm"
+        self.assertTrue(commands_link.is_symlink())
+        self.assertTrue(agents_link.is_symlink())
+        self.assertTrue(skills_link.is_symlink())
+        self.assertEqual(
+            commands_link.resolve(), REPO_ROOT / ".mm-flow" / "commands" / "mm"
+        )
+        self.assertEqual(
+            agents_link.resolve(), REPO_ROOT / ".mm-flow" / "agents" / "mm"
+        )
+        self.assertEqual(
+            skills_link.resolve(), REPO_ROOT / ".mm-flow" / "skills" / "mm"
+        )
+
+    def test_installed_project_can_run_context_to_canonical_via_symlink(self) -> None:
+        """An installed project should be able to run context-to-canonical through .claude symlinks."""
+        target = self.temp_dir / "installed-project"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "README.md").write_text(
+            "# Installed Demo\n\nBuild a scheduler.\n", encoding="utf-8"
+        )
+
+        init_result = self.run_command(
+            str(INIT_HANDLER),
+            "--target",
+            str(target),
+            "--skip-postgres-check",
+        )
+        self.assertEqual(
+            init_result.returncode, 0, msg=init_result.stdout + init_result.stderr
+        )
+
+        result = subprocess.run(
+            [
+                "python3",
+                str(
+                    target
+                    / ".claude"
+                    / "commands"
+                    / "mm"
+                    / "context-to-canonical-handler.py"
+                ),
+                "--type",
+                "objective",
+                "--name",
+                "Add Scheduler API",
+            ],
+            cwd=target,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        output_path = (
+            target / "docs" / "canonical" / "objective-specs" / "add-scheduler-api.md"
+        )
+        self.assertTrue(output_path.exists())
 
     def test_objective_mode_materializes_package_and_validates(self) -> None:
         """Objective mode should write the package and pass the objective validator."""
@@ -308,7 +444,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         for filename in (
             "requirements.md",
             "design.md",
@@ -355,7 +493,8 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         objective_state_path = (
             self.temp_dir
-            / ".planning"
+            / ".mm-flow"
+            / "planning"
             / "changes"
             / "project-state-mvp"
             / "execution-state.json"
@@ -381,13 +520,30 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertIn("MODEL_BRIEF_START", result.stdout)
         self.assertIn("Objective: project-state-mvp", result.stdout)
         self.assertIn(
-            ".planning/changes/project-state-mvp/execution-state.json",
+            ".mm-flow/planning/changes/project-state-mvp/execution-state.json",
             result.stdout,
         )
         self.assertIn(
             "python3 .claude/commands/mm/discover-contract-check.py --objective project-state-mvp",
             result.stdout,
         )
+
+    def test_complete_task_brief_mode_accepts_task_then_flag_order(self) -> None:
+        """Brief mode must work even when Claude passes `<TASK_ID> --brief`."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1", "--brief")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("MODEL_BRIEF_START", result.stdout)
+        self.assertNotIn("LAUNCH: task-executor", result.stdout)
+        self.assertNotIn("INFO: Starting task PS1", result.stdout)
 
     def test_complete_task_handler_help_exits_cleanly(self) -> None:
         """Help flags should print usage instead of being treated as a task id."""
@@ -413,7 +569,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         runtime_state = {
             "task_id": "PS1",
             "plan_path": str(objective_dir / "tasks.md"),
@@ -424,7 +582,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
                 "PS1.3": {"status": "pending", "duration_seconds": 0},
             },
         }
-        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
             json.dumps(runtime_state),
             encoding="utf-8",
         )
@@ -446,7 +604,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         runtime_state = {
             "task_id": "PS1",
             "objective_slug": "project-state-mvp",
@@ -458,7 +618,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
                 "PS1.3": {"status": "pending", "duration_seconds": 0},
             },
         }
-        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
             json.dumps(runtime_state),
             encoding="utf-8",
         )
@@ -516,7 +676,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         runtime_state = {
             "task_id": "PS2",
             "objective_slug": "project-state-mvp",
@@ -528,7 +690,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
                 "PS2.3": {"status": "pending"},
             },
         }
-        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
             json.dumps(runtime_state),
             encoding="utf-8",
         )
@@ -558,7 +720,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(mark_progress.returncode, 0, msg=mark_progress.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         objective_state_path = objective_dir / "execution-state.json"
         objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
         self.assertEqual(
@@ -599,7 +763,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
         objective_state_path = objective_dir / "execution-state.json"
@@ -640,7 +806,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
         objective_state_path = objective_dir / "execution-state.json"
@@ -662,6 +830,82 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("PS1 [~] 1/3", result.stdout)
 
+    def test_resume_task_persists_runtime_completion_into_objective_state(self) -> None:
+        """Resume should reconcile completed runtime subtasks back into execution-state.json."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
+        runtime_state = {
+            "task_id": "PS1",
+            "objective_slug": "project-state-mvp",
+            "session_id": "resume-test-session",
+            "started_at": "2026-05-31T10:00:00",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "subtasks": {
+                "PS1.1": {
+                    "description": "Review requirements and design context for PS1",
+                    "status": "completed",
+                    "started_at": "2026-05-31T10:00:00",
+                    "completed_at": "2026-05-31T10:05:00",
+                    "duration_seconds": 300,
+                },
+                "PS1.2": {
+                    "description": "Implement PS1 end-to-end",
+                    "status": "completed",
+                    "started_at": "2026-05-31T10:06:00",
+                    "completed_at": "2026-05-31T10:12:00",
+                    "duration_seconds": 360,
+                },
+                "PS1.3": {
+                    "description": "Run validation for PS1",
+                    "status": "completed",
+                    "started_at": "2026-05-31T10:13:00",
+                    "completed_at": "2026-05-31T10:14:00",
+                    "duration_seconds": 60,
+                },
+            },
+            "last_checkpoint": "PS1.3",
+        }
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
+            json.dumps(runtime_state),
+            encoding="utf-8",
+        )
+
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        objective_state["tasks"]["PS1"]["status"] = "in_progress"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"] = "completed"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.2"]["status"] = "completed"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"] = "pending"
+        objective_state_path.write_text(json.dumps(objective_state), encoding="utf-8")
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1", "--continue")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("TASK COMPLETE", result.stdout)
+
+        repaired_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        self.assertEqual(repaired_state["tasks"]["PS1"]["status"], "completed")
+        self.assertEqual(
+            repaired_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"], "completed"
+        )
+
+        todo_path = objective_dir / "todo.md"
+        todo_text = todo_path.read_text(encoding="utf-8")
+        self.assertIn("- [x] PS1: Realtime events for project_state", todo_text)
+        self.assertIn("- [x] PS1.3: Run validation for PS1", todo_text)
+
     def test_starting_new_root_task_preserves_previous_objective_history(self) -> None:
         """Starting the next root task must not erase durable status of the previous one."""
         discover_result = self.run_command(
@@ -673,7 +917,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         objective_state_path = objective_dir / "execution-state.json"
 
         start_ps1 = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
@@ -719,7 +965,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(second.returncode, 0, msg=second.stderr)
 
-        first_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        first_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         runtime_state = {
             "task_id": "PS1",
             "objective_slug": "project-state-mvp",
@@ -731,7 +979,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
                 "PS1.3": {"status": "completed"},
             },
         }
-        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
             json.dumps(runtime_state),
             encoding="utf-8",
         )
@@ -739,7 +987,8 @@ class DiscoverWorkflowTest(unittest.TestCase):
         result = self.run_command(str(COMPLETE_TASK_HANDLER), "T1")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn(
-            ".planning/changes/artifact-versioning-and-lineage/tasks.md", result.stdout
+            ".mm-flow/planning/changes/artifact-versioning-and-lineage/tasks.md",
+            result.stdout,
         )
         self.assertIn(
             '"objective_slug": "artifact-versioning-and-lineage"', result.stdout
@@ -758,7 +1007,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         (objective_dir / "execution-state.json").write_text(
             json.dumps(
                 {
@@ -778,7 +1029,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(archive_result.returncode, 0, msg=archive_result.stderr)
         self.assertFalse(objective_dir.exists())
         archived_dir = (
-            self.temp_dir / ".planning" / "archive" / "objectives" / "project-state-mvp"
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
         )
         self.assertTrue(archived_dir.exists())
         self.assertTrue((archived_dir / "COMPLETION-SUMMARY.md").exists())
@@ -794,7 +1050,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         (objective_dir / "execution-state.json").write_text(
             json.dumps(
                 {
@@ -806,7 +1064,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (self.temp_dir / ".planning" / "HANDOFF-CURRENT.md").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md").write_text(
             "# Handoff — wrong-objective\n\n## Current objective\n- `wrong-objective`\n",
             encoding="utf-8",
         )
@@ -830,7 +1088,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         (objective_dir / "execution-state.json").write_text(
             json.dumps(
                 {
@@ -842,7 +1102,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (self.temp_dir / ".planning" / "task-progress.json").write_text(
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
             json.dumps(
                 {
                     "task_id": "PS1",
@@ -875,7 +1135,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         code_path = self.temp_dir / "README.md"
         code_path.write_text("# Temp Repo\nchanged\n", encoding="utf-8")
 
@@ -914,7 +1176,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
 
-        objective_dir = self.temp_dir / ".planning" / "changes" / "project-state-mvp"
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
         execution_state_path = objective_dir / "execution-state.json"
         execution_state = json.loads(execution_state_path.read_text(encoding="utf-8"))
         execution_state["tasks"]["PS1"]["status"] = "in_progress"

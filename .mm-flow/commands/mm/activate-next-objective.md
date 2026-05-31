@@ -46,13 +46,26 @@ When user executes `/mm:activate-next-objective`:
 python3 .claude/commands/mm/activate-next-objective-handler.py [--quick]
 ```
 
-2. Parse:
-- `STATUS: PASSED` → package activated
-- `STATUS: FAILED` → explain why activation was blocked
+2. Parse output:
 
-3. On success, tell the user to continue with:
-
-```bash
-/mm:discover-contract-check --objective <slug>
-/mm:complete-task <FIRST_TASK_ID> --brief
+**`STATUS: PASSED`** → package activated. Tell the user:
 ```
+▶ Next: /mm:complete-task <FIRST_TASK_ID> --brief
+```
+
+**`STATUS: FAILED` — active objective already exists** → do NOT ask questions. Instead:
+
+a. Read `.mm-flow/planning/changes/<active-slug>/tasks.md` to find the first non-completed task ID.
+
+b. Reply with exactly:
+```
+⚠ Already active: <active-slug>
+
+▶ Next: /mm:complete-task <FIRST_PENDING_TASK_ID>
+```
+
+No extra questions. No offers to read more files. Stop there.
+
+**`STATUS: FAILED` — other reason** → explain the specific error and stop.
+
+3. Never ask clarifying questions after parsing the handler output. Always close with the next command.
