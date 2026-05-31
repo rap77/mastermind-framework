@@ -138,66 +138,6 @@ def check_provider_available(db: Optional[MasterMindDB]) -> bool:
         return True  # Don't fail if check fails
 
 
-COMMANDS_WHITELIST = {
-    # Core workflow
-    "init.md",
-    "discover.md",
-    "discovery.md",
-    "complete-task.md",
-    "continue-task.md",
-    "discover-contract-check.md",
-    "archive-objective.md",
-    "activate-next-objective.md",
-    # Brain consultation
-    "ask-all.md",
-    "ask-product.md",
-    "ask-ux.md",
-    "ask-design.md",
-    "ask-frontend.md",
-    "ask-backend.md",
-    "ask-qa.md",
-    "ask-growth.md",
-    "ask-ui-docs.md",
-    # Planning & ideation
-    "propose.md",
-    "improve-prompt.md",
-    "explore-first.md",
-    "lite-prd-generator.md",
-    "prd-clarifier.md",
-    "generate-prp.md",
-    "ux-spec-to-prompt.md",
-    # Quality & shipping
-    "review.md",
-    "audit.md",
-    "project-health-check.md",
-    "safe-commit.md",
-    "ship.md",
-}
-SKILLS_WHITELIST = {
-    "brain-context",
-    "brain-persistence",
-    "discover",
-    "mastermind-consultant",
-    "safe-commit",
-    "review",
-    "ship",
-}
-AGENTS_WHITELIST = {
-    "brain-01-product",
-    "brain-02-ux",
-    "brain-03-ui",
-    "brain-04-frontend",
-    "brain-05-backend",
-    "brain-06-qa",
-    "brain-07-growth",
-    "roadmap-planner",
-    "objective-packager",
-    "task-executor",
-    "code-reviewer",
-    "ship-executor",
-}
-
-
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments for init-handler.
 
@@ -273,91 +213,42 @@ def detect_stack(target: Path) -> list[str]:
     return stack or ["unknown"]
 
 
-def copy_commands(src_root: Path, dest: Path) -> None:
-    """Copy MasterMind command files to target project.
+def _remove_existing(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
 
-    Args:
-        src_root: Path to the MasterMind framework root directory.
-        dest: Path to the target project directory.
+
+def install_symlinks(src_root: Path, dest: Path) -> None:
+    """Create symlinks in target project pointing to the framework.
+
+    Three symlinks are created:
+      .claude/commands/mm  → FRAMEWORK/.mm-flow/commands/mm/
+      .claude/agents/mm    → FRAMEWORK/.claude/agents/mm/
+      .claude/skills/mm    → FRAMEWORK/.claude/skills/mm/
+
+    Any pre-existing path (file, dir, or symlink) at each destination is
+    removed before the symlink is created.
     """
-    src_commands = src_root / ".claude" / "commands" / "mm"
-    dest_commands = dest / ".claude" / "commands" / "mm"
-    dest_commands.mkdir(parents=True, exist_ok=True)
-
-    for item in src_commands.iterdir():
-        if item.is_file() and (
-            item.name in COMMANDS_WHITELIST
-            or item.name.endswith("-handler.py")
-            or item.name.endswith("_handler.py")
-            or item.name in ("db_client.py", "db_write.py")
-        ):
-            shutil.copy2(item, dest_commands / item.name)
-
-
-def _replace_directory_atomic(src: Path, dest: Path) -> None:
-    """Atomically replace destination directory with source.
-
-    Copies src to dest.tmp, then removes old dest and moves tmp into place.
-    If copy fails, tmp is cleaned up and original dest is preserved.
-    """
-    tmp_dest = dest.parent / f"{dest.name}.tmp"
-    try:
-        shutil.rmtree(tmp_dest, ignore_errors=True)
-        shutil.copytree(src, tmp_dest)
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.move(tmp_dest, dest)
-    except Exception:
-        # Clean up .tmp on failure
-        shutil.rmtree(tmp_dest, ignore_errors=True)
-        raise
-
-
-def copy_skills(src_root: Path, dest: Path) -> None:
-    """Copy MasterMind skill files to target project.
-
-    Args:
-        src_root: Path to the MasterMind framework root directory.
-        dest: Path to the target project directory.
-    """
-    src_skills = src_root / ".claude" / "skills" / "mm"
-    dest_skills = dest / ".claude" / "skills" / "mm"
-
-    for skill_name in SKILLS_WHITELIST:
-        src_skill = src_skills / skill_name
-        if src_skill.exists():
-            dest_skill = dest_skills / skill_name
-            if dest_skill.exists():
-                _replace_directory_atomic(src_skill, dest_skill)
-            else:
-                shutil.copytree(src_skill, dest_skill)
-
-
-def copy_agents(src_root: Path, dest: Path) -> None:
-    """Copy MasterMind agent files to target project.
-
-    Args:
-        src_root: Path to the MasterMind framework root directory.
-        dest: Path to the target project directory.
-    """
-    src_agents = src_root / ".claude" / "agents" / "mm"
-    dest_agents = dest / ".claude" / "agents" / "mm"
-    dest_agents.mkdir(parents=True, exist_ok=True)
-
-    # Copy agent directories
-    for agent_name in AGENTS_WHITELIST:
-        src_agent = src_agents / agent_name
-        if src_agent.exists():
-            dest_agent = dest_agents / agent_name
-            if dest_agent.exists():
-                _replace_directory_atomic(src_agent, dest_agent)
-            else:
-                shutil.copytree(src_agent, dest_agent)
-
-    # Copy loose .md files at the agents/mm/ root (e.g. global-protocol.md)
-    for item in src_agents.iterdir():
-        if item.is_file() and item.suffix == ".md":
-            shutil.copy2(item, dest_agents / item.name)
+    links = [
+        (
+            src_root / ".mm-flow" / "commands" / "mm",
+            dest / ".claude" / "commands" / "mm",
+        ),
+        (src_root / ".claude" / "agents" / "mm", dest / ".claude" / "agents" / "mm"),
+        (src_root / ".claude" / "skills" / "mm", dest / ".claude" / "skills" / "mm"),
+    ]
+    for src, link in links:
+        if not src.exists():
+            print(f"WARNING: Framework source not found, skipping: {src}")
+            continue
+        link.parent.mkdir(parents=True, exist_ok=True)
+        _remove_existing(link)
+        link.symlink_to(src)
+        print(f"INFO: Symlinked {link.relative_to(dest)} → {src}")
 
 
 def _sanitize_yaml_string(value: str) -> str:
@@ -545,28 +436,11 @@ def main() -> None:
     stack = detect_stack(target)
     print(f"INFO: Detected stack: {stack}")
 
-    # B1.6 — Copy commands
+    # B1.6-B1.8 — Install symlinks (commands, agents, skills)
     try:
-        copy_commands(FRAMEWORK_ROOT, target)
-        print("INFO: Commands copied")
+        install_symlinks(FRAMEWORK_ROOT, target)
     except Exception as e:
-        print(f"ERROR: Failed to copy commands: {e}")
-        sys.exit(1)
-
-    # B1.7 — Copy skills
-    try:
-        copy_skills(FRAMEWORK_ROOT, target)
-        print("INFO: Skills copied")
-    except Exception as e:
-        print(f"ERROR: Failed to copy skills: {e}")
-        sys.exit(1)
-
-    # B1.8 — Copy agents
-    try:
-        copy_agents(FRAMEWORK_ROOT, target)
-        print("INFO: Agents copied")
-    except Exception as e:
-        print(f"ERROR: Failed to copy agents: {e}")
+        print(f"ERROR: Failed to install symlinks: {e}")
         sys.exit(1)
 
     # B1.8b — Install Python dependencies (psycopg2-binary for DB support)
