@@ -955,6 +955,100 @@ def reconcile_artifacts_from_runtime(task_id: str) -> None:
     sync_objective_handoff(task_id)
 
 
+def reconcile_objective_state_from_runtime(task_id: str) -> None:
+    """Persist runtime subtask truth into execution-state.json for a root task."""
+    runtime_state = load_runtime_state()
+    if not runtime_state:
+        mm_error("No runtime state to reconcile objective state from")
+        return
+
+    objective_slug = runtime_state.get("objective_slug")
+    if not objective_slug:
+        mm_error(
+            "Runtime state has no objective_slug; cannot reconcile objective state"
+        )
+        return
+
+    objective_state = load_objective_state(objective_slug=objective_slug)
+    if objective_state is None:
+        mm_error(
+            f"No objective execution state found for `{objective_slug}` during reconcile"
+        )
+        return
+
+    runtime_subtasks = {
+        subtask_id: subtask_state
+        for subtask_id, subtask_state in runtime_state.get("subtasks", {}).items()
+        if subtask_id.startswith(task_id + ".")
+    }
+    if not runtime_subtasks:
+        mm_error(f"No runtime subtasks found for {task_id}")
+        return
+
+    now_iso = datetime.now().isoformat()
+    task_entry = objective_state.setdefault("tasks", {}).setdefault(
+        task_id,
+        {
+            "status": "pending",
+            "subtasks": {},
+            "started_at": runtime_state.get("started_at"),
+            "completed_at": None,
+        },
+    )
+    task_entry.setdefault("subtasks", {})
+
+    for subtask_id, runtime_subtask in runtime_subtasks.items():
+        subtask_entry = task_entry["subtasks"].setdefault(
+            subtask_id,
+            {"description": runtime_subtask.get("description", subtask_id)},
+        )
+        subtask_entry["description"] = runtime_subtask.get(
+            "description", subtask_entry.get("description", subtask_id)
+        )
+        subtask_entry["status"] = runtime_subtask.get("status", "pending")
+        subtask_entry["started_at"] = runtime_subtask.get("started_at")
+        subtask_entry["completed_at"] = runtime_subtask.get("completed_at")
+        subtask_entry["duration_seconds"] = runtime_subtask.get("duration_seconds", 0)
+        subtask_entry["updated_at"] = runtime_subtask.get("updated_at", now_iso)
+
+    subtask_states = [
+        subtask_state.get("status", "pending")
+        for subtask_state in task_entry.get("subtasks", {}).values()
+    ]
+    if subtask_states and all(status == "completed" for status in subtask_states):
+        task_entry["status"] = "completed"
+        task_entry["completed_at"] = max(
+            (
+                subtask_state.get("completed_at")
+                for subtask_state in task_entry["subtasks"].values()
+                if subtask_state.get("completed_at")
+            ),
+            default=now_iso,
+        )
+        task_entry["started_at"] = task_entry.get("started_at") or min(
+            (
+                subtask_state.get("started_at")
+                for subtask_state in task_entry["subtasks"].values()
+                if subtask_state.get("started_at")
+            ),
+            default=runtime_state.get("started_at"),
+        )
+    elif any(status == "in_progress" for status in subtask_states) or any(
+        status == "completed" for status in subtask_states
+    ):
+        task_entry["status"] = "in_progress"
+        task_entry["started_at"] = task_entry.get("started_at") or runtime_state.get(
+            "started_at"
+        )
+        task_entry["completed_at"] = None
+    else:
+        task_entry["status"] = "pending"
+        task_entry["completed_at"] = None
+
+    objective_state["updated_at"] = now_iso
+    save_objective_state(objective_state)
+
+
 def sync_subtask_checkbox(subtask_id: str, checkbox: str) -> None:
     """Synchronize a subtask checkbox in todo.md to the desired value."""
     _, todo_path = get_active_paths(subtask_id)
@@ -2287,6 +2381,8 @@ def resume_task(task_id: str) -> None:
 
     # Check if task is actually complete
     if not pending:
+        reconcile_objective_state_from_runtime(task_id)
+        sync_objective_todo_from_state(task_id)
         mm_status("TASK COMPLETE - all subtasks completed in runtime state")
         return
 
@@ -2724,16 +2820,22 @@ def main() -> None:
         mm_model_brief(build_model_brief(task_id))
         return
 
+    positional_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+    if not positional_args:
+        mm_error("Usage: mm-complete-task <TASK_ID> [--continue|--brief|--reset-stale]")
+        sys.exit(1)
+
+    task_id = positional_args[0].upper()
+
+    if "--brief" in sys.argv:
+        mm_model_brief(build_model_brief(task_id))
+        return
+
     # Reset stale mode
     if "--reset-stale" in sys.argv:
-        if len(sys.argv) < 3:
-            mm_error("Usage: mm-complete-task <TASK_ID> --reset-stale")
-            sys.exit(1)
-        task_id = sys.argv[1].upper()
         reset_stale_subtasks(task_id)
         return
 
-    task_id = sys.argv[1].upper()
     resume_mode = "--continue" in sys.argv
 
     if resume_mode:
