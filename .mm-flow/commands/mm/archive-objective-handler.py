@@ -183,11 +183,16 @@ def mark_objective_done_in_roadmap(objective: str) -> None:
     if objectives_json.exists():
         try:
             data = json.loads(objectives_json.read_text(encoding="utf-8"))
+            # Support both formats: bare list OR {"objectives": [...], ...} dict
+            entries: list = (
+                data if isinstance(data, list) else data.get("objectives", [])
+            )
             changed = False
-            for entry in data:
+            for entry in entries:
                 if (
                     entry.get("stable_id") == objective
                     or entry.get("slug") == objective
+                    or entry.get("id") == objective
                 ):
                     entry["status"] = "done"
                     entry["ready_now"] = False
@@ -198,7 +203,7 @@ def mark_objective_done_in_roadmap(objective: str) -> None:
                 # Promote the highest-priority planned+ready objective as recommended_next
                 candidates = [
                     o
-                    for o in data
+                    for o in entries
                     if o.get("status") == "planned" and o.get("ready_now", False)
                 ]
                 if candidates:
@@ -208,7 +213,7 @@ def mark_objective_done_in_roadmap(objective: str) -> None:
                     json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                     encoding="utf-8",
                 )
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError, AttributeError):
             pass
 
     objectives_md = PLANNING_DIR / "roadmap" / "objectives.md"
