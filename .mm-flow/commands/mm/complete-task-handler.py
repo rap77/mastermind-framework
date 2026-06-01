@@ -1436,7 +1436,9 @@ def ensure_runtime_can_start_task(task_id: str) -> None:
 # ============================================================================
 
 
-def get_git_commits_for_task(task_id: str) -> set[str]:
+def get_git_commits_for_task(
+    task_id: str, objective_slug: str | None = None
+) -> set[str]:
     """Get subtask IDs that have commits whose messages reference this task.
 
     Uses --grep to filter commits by subject so we don't depend on commits
@@ -1463,6 +1465,8 @@ def get_git_commits_for_task(task_id: str) -> set[str]:
     for subject in result.stdout.splitlines():
         subject = subject.strip()
         if not subject:
+            continue
+        if objective_slug and f"({objective_slug})" not in subject:
             continue
         match = pattern.search(subject)
         if match:
@@ -2532,7 +2536,9 @@ def start_task(task_id: str, objective_slug: str | None = None) -> None:
         status = "[x]" if st["completed"] else "[ ]"
         mm_subtask(st["id"], status, st["description"])
 
-    git_completed = get_git_commits_for_task(task_id)
+    git_completed = get_git_commits_for_task(
+        task_id, objective_slug=source.objective_slug
+    )
     mm_git(len(git_completed), len(subtasks), sorted(git_completed))
 
     # Auto-reconcile: if git has a commit for a subtask the durable state missed
@@ -2666,7 +2672,9 @@ def resume_task(task_id: str, objective_slug: str | None = None) -> None:
     # Git-recovery: promote stale in_progress or pending subtasks that already have commits.
     # This handles the case where --mark-done failed (e.g. broken adapter) leaving the
     # subtask stuck in_progress even though the commit landed.
-    git_completed = get_git_commits_for_task(task_id)
+    git_completed = get_git_commits_for_task(
+        task_id, objective_slug=runtime_objective_slug
+    )
     git_recovered: list[str] = []
     for sid, st_info in state["subtasks"].items():
         if st_info.get("status") in ("in_progress", "pending") and sid in git_completed:

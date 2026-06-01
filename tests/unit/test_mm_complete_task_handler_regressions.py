@@ -577,6 +577,135 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
             "PS1.3", pending_ids, "PS1.3 has no commit — must still be pending"
         )
 
+    def test_git_recovery_ignores_commits_from_other_objective_scopes(self) -> None:
+        """Generic T2 commits from other objective scopes must not auto-complete current subtasks."""
+        objective_dir = self._materialize_generic_objective(
+            "mm-harness-runtime-entrypoint-and-adapters",
+            "MM Harness Runtime Entrypoint And Adapters",
+        )
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = {
+            "objective_slug": "mm-harness-runtime-entrypoint-and-adapters",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "tasks": {
+                "T1": {
+                    "status": "completed",
+                    "subtasks": {
+                        "T1.1": {"status": "completed"},
+                        "T1.2": {"status": "completed"},
+                        "T1.3": {"status": "completed"},
+                    },
+                },
+                "T2": {"status": "pending", "subtasks": {}},
+                "T3": {"status": "pending", "subtasks": {}},
+            },
+        }
+        objective_state_path.write_text(
+            json.dumps(objective_state, indent=2), encoding="utf-8"
+        )
+
+        start_result = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "mm-harness-runtime-entrypoint-and-adapters/T2"
+        )
+        self.assertEqual(
+            start_result.returncode, 0, msg=start_result.stdout + start_result.stderr
+        )
+
+        runtime_state = {
+            "task_id": "T2",
+            "source_mode": "objective",
+            "objective_slug": "mm-harness-runtime-entrypoint-and-adapters",
+            "session_id": "scope-recovery-test",
+            "started_at": "2026-06-01T12:00:00",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "subtasks": {
+                "T2.1": {
+                    "description": "Create the neutral CLI entrypoint and dispatch contract",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "T2.2": {
+                    "description": "Wire the supported subcommands to core handlers",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "T2.3": {
+                    "description": "Validate help/dispatch behavior and targeted tests",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+            },
+            "last_checkpoint": None,
+            "context_budget_exit": None,
+        }
+        runtime_path = self.temp_dir / ".mm-flow" / "planning" / "task-progress.json"
+        runtime_path.write_text(json.dumps(runtime_state, indent=2), encoding="utf-8")
+
+        dummy_file = self.temp_dir / "dummy.txt"
+        dummy_file.write_text("v1\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "dummy.txt"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "feat(other-objective): T2.2 — unrelated work"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        dummy_file.write_text("v2\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "dummy.txt"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "commit",
+                "-m",
+                "feat(other-objective): T2.3 — unrelated validation",
+            ],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+
+        result = self.run_command(
+            str(COMPLETE_TASK_HANDLER),
+            "mm-harness-runtime-entrypoint-and-adapters/T2",
+            "--continue",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertNotIn("Git-recovered completed subtasks", result.stdout)
+
+        payload_line = next(
+            (
+                line
+                for line in result.stdout.splitlines()
+                if line.startswith("PAYLOAD:")
+            ),
+            None,
+        )
+        self.assertIsNotNone(payload_line, "Expected PAYLOAD: line in output")
+        payload = json.loads(payload_line[len("PAYLOAD:") :].strip())
+        pending_ids = [st["id"] for st in payload.get("subtasks", [])]
+        self.assertEqual(pending_ids, ["T2.1", "T2.2", "T2.3"])
+
 
 if __name__ == "__main__":
     unittest.main()
