@@ -1,0 +1,108 @@
+{
+  "objective_slug": "project-state-mvp",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/todo.md",
+  "tasks": {
+    "PS1": {
+      "status": "pending",
+      "subtasks": {
+        "PS1.1": {
+          "description": "Review requirements and design context for PS1",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS1.2": {
+          "description": "Implement PS1 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS1.3": {
+          "description": "Run validation for PS1",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/todo.md"
+    },
+    "PS2": {
+      "status": "pending",
+      "subtasks": {
+        "PS2.1": {
+          "description": "Review requirements and design context for PS2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS2.2": {
+          "description": "Implement PS2 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS2.3": {
+          "description": "Run validation for PS2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/todo.md"
+    },
+    "PS3": {
+      "status": "pending",
+      "subtasks": {
+        "PS3.1": {
+          "description": "Review requirements and design context for PS3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS3.2": {
+          "description": "Implement PS3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "PS3.3": {
+          "description": "Run validation for PS3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/project-state-mvp/todo.md"
+    }
+  },
+  "updated_at": "2026-05-31T19:12:23.396018",
+  "bootstrapped_from_artifacts": true
+}
