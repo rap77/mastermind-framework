@@ -77,6 +77,17 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         return self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
 
+    def _materialize_generic_objective(self, slug: str, title: str) -> Path:
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            slug,
+            title,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        return self.temp_dir / ".mm-flow" / "planning" / "changes" / slug
+
     def test_brief_mode_accepts_task_then_flag_order(self) -> None:
         """`<TASK_ID> --brief` must print the brief without starting execution."""
         self._materialize_project_state_objective()
@@ -316,6 +327,30 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
         )
         self.assertIn("MODEL_BRIEF_START", result_prefixed.stdout)
         self.assertIn("PS1", result_prefixed.stdout)
+
+    def test_brief_blocks_ambiguous_task_ids_across_multiple_active_objectives(
+        self,
+    ) -> None:
+        """Bare `T1` must fail clearly when more than one active objective defines it."""
+        self._materialize_generic_objective("alpha-objective", "Alpha Objective")
+        self._materialize_generic_objective("beta-objective", "Beta Objective")
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "--brief", "T1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ambiguous across active objectives", result.stderr)
+        self.assertIn("Use <objective>/T1", result.stderr)
+
+    def test_brief_accepts_explicit_objective_scoped_task_ref(self) -> None:
+        """Objective-scoped task refs should work when multiple active objectives exist."""
+        self._materialize_generic_objective("alpha-objective", "Alpha Objective")
+        self._materialize_generic_objective("beta-objective", "Beta Objective")
+
+        result = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "--brief", "alpha-objective/T1"
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("MODEL_BRIEF_START", result.stdout)
+        self.assertIn("Objective: alpha-objective", result.stdout)
 
     def test_start_task_blocks_immediately_when_safe_commit_adapter_is_missing(
         self,

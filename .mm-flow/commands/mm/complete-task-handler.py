@@ -206,6 +206,14 @@ class TaskSource:
     objective_slug: str | None = None
 
 
+@dataclass
+class TaskRef:
+    """Normalized task reference with optional objective scope."""
+
+    task_id: str
+    objective_slug: str | None = None
+
+
 def _resolve_notify_script_path() -> Path | None:
     """Resolve the completion notifier with preference for the neutral core path."""
     candidates = [
@@ -319,6 +327,17 @@ def task_heading_exists(plan_path: Path, task_id: str) -> bool:
     )
 
 
+def _split_objective_task_ref(raw: str) -> TaskRef:
+    """Parse `objective/task` or bare `task` references."""
+    raw = raw.strip()
+    if "/" not in raw:
+        return TaskRef(task_id=raw.upper())
+    objective_slug, task_id = raw.rsplit("/", 1)
+    return TaskRef(
+        task_id=task_id.upper(), objective_slug=objective_slug.strip().lower()
+    )
+
+
 def ensure_objective_todo(objective_dir: Path, task_id: str) -> Path:
     """Ensure an objective-local todo.md exists for complete-task execution."""
     todo_path = objective_dir / "todo.md"
@@ -351,16 +370,30 @@ def ensure_objective_todo(objective_dir: Path, task_id: str) -> Path:
     return todo_path
 
 
-def resolve_task_source(task_id: str) -> TaskSource:
+def resolve_task_source(task_id: str, objective_slug: str | None = None) -> TaskSource:
     """Resolve a task from an active objective package."""
     changes_dir = PROJECT_ROOT / ".mm-flow" / "planning" / "changes"
-    if changes_dir.exists():
-        for objective_dir in sorted(changes_dir.iterdir()):
-            if not objective_dir.is_dir():
-                continue
+    if not changes_dir.exists():
+        raise ValueError(
+            f"Task {task_id} not found in objective packages under .mm-flow/planning/changes/"
+        )
+
+    runtime_state = load_runtime_state()
+    if runtime_state is not None:
+        runtime_task_id = runtime_state.get("task_id")
+        runtime_slug = runtime_state.get("objective_slug")
+        if (
+            runtime_task_id
+            and runtime_slug
+            and get_root_task_id(runtime_task_id) == get_root_task_id(task_id)
+            and (objective_slug is None or objective_slug == runtime_slug)
+        ):
+            objective_dir = changes_dir / runtime_slug
             plan_path = objective_dir / "tasks.md"
-            if task_heading_exists(plan_path, task_id):
-                todo_path = ensure_objective_todo(objective_dir, task_id)
+            if task_heading_exists(plan_path, get_root_task_id(task_id)):
+                todo_path = ensure_objective_todo(
+                    objective_dir, get_root_task_id(task_id)
+                )
                 return TaskSource(
                     mode="objective",
                     plan_path=plan_path,
@@ -368,15 +401,59 @@ def resolve_task_source(task_id: str) -> TaskSource:
                     objective_slug=objective_dir.name,
                 )
 
+    candidate_dirs = []
+    if objective_slug:
+        candidate_dir = changes_dir / objective_slug
+        if candidate_dir.exists() and candidate_dir.is_dir():
+            candidate_dirs = [candidate_dir]
+    else:
+        candidate_dirs = sorted(path for path in changes_dir.iterdir() if path.is_dir())
+
+    matches: list[TaskSource] = []
+    for objective_dir in candidate_dirs:
+        plan_path = objective_dir / "tasks.md"
+        if task_heading_exists(plan_path, task_id):
+            todo_path = ensure_objective_todo(objective_dir, task_id)
+            matches.append(
+                TaskSource(
+                    mode="objective",
+                    plan_path=plan_path,
+                    todo_path=todo_path,
+                    objective_slug=objective_dir.name,
+                )
+            )
+
+    if len(matches) == 1:
+        return matches[0]
+
+    if len(matches) > 1:
+        objective_list = ", ".join(
+            sorted(match.objective_slug or "unknown" for match in matches)
+        )
+        raise ValueError(
+            f"Task {task_id} is ambiguous across active objectives: {objective_list}. "
+            f"Use <objective>/{task_id}."
+        )
+
+    if objective_slug:
+        raise ValueError(
+            f"Task {task_id} not found under active objective "
+            f".mm-flow/planning/changes/{objective_slug}/"
+        )
+
     raise ValueError(
         f"Task {task_id} not found in objective packages under .mm-flow/planning/changes/"
     )
 
 
-def get_active_paths(task_id: str | None = None) -> tuple[Path, Path]:
+def get_active_paths(
+    task_id: str | None = None, objective_slug: str | None = None
+) -> tuple[Path, Path]:
     """Return the active plan/todo paths for the objective flow."""
     if task_id:
-        source = resolve_task_source(get_root_task_id(task_id))
+        source = resolve_task_source(
+            get_root_task_id(task_id), objective_slug=objective_slug
+        )
         return source.plan_path, source.todo_path
 
     if RUNTIME_STATE_PATH.exists():
@@ -788,10 +865,12 @@ def sync_objective_todo_from_state(task_id: str) -> None:
     sync_objective_handoff(task_id)
 
 
-def get_execution_subtasks(task_id: str) -> list[dict[str, Any]]:
+def get_execution_subtasks(
+    task_id: str, objective_slug: str | None = None
+) -> list[dict[str, Any]]:
     """Read subtasks for execution, preferring durable objective state over todo."""
     sync_objective_todo_from_state(task_id)
-    subtasks = read_subtasks_from_todo(task_id)
+    subtasks = read_subtasks_from_todo(task_id, objective_slug=objective_slug)
     objective_state = load_objective_state(task_id=task_id)
     if not objective_state:
         return subtasks
@@ -1397,7 +1476,9 @@ def get_git_commits_for_task(task_id: str) -> set[str]:
 # ============================================================================
 
 
-def read_task_from_plan(task_id: str) -> dict[str, str]:
+def read_task_from_plan(
+    task_id: str, objective_slug: str | None = None
+) -> dict[str, str]:
     """Read task details from plan.md, with fallback to todo.md.
 
     Args:
@@ -1411,7 +1492,7 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
         FileNotFoundError: If plan.md doesn't exist.
         OSError: If file cannot be read.
     """
-    plan_path, _ = get_active_paths(task_id)
+    plan_path, _ = get_active_paths(task_id, objective_slug=objective_slug)
     try:
         content = plan_path.read_text()
     except FileNotFoundError:
@@ -1431,7 +1512,7 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
     # Fallback: read title from todo.md
     # Supports both heading style "### 20: Title" and list style "- [ ] 20: Title"
     try:
-        _, todo_path = get_active_paths(task_id)
+        _, todo_path = get_active_paths(task_id, objective_slug=objective_slug)
         todo_content = todo_path.read_text()
         todo_match = re.search(rf"### {task_id_esc}:([^\n]+)", todo_content)
         if todo_match:
@@ -1448,7 +1529,9 @@ def read_task_from_plan(task_id: str) -> dict[str, str]:
     raise ValueError(f"Task {task_id} not found in plan.md or todo.md")
 
 
-def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
+def read_subtasks_from_todo(
+    task_id: str, objective_slug: str | None = None
+) -> list[dict[str, Any]]:
     """Read subtasks from todo.md.
 
     Supports three structures:
@@ -1467,7 +1550,7 @@ def read_subtasks_from_todo(task_id: str) -> list[dict[str, Any]]:
         FileNotFoundError: If todo.md doesn't exist.
         OSError: If file cannot be read.
     """
-    _, todo_path = get_active_paths(task_id)
+    _, todo_path = get_active_paths(task_id, objective_slug=objective_slug)
     try:
         content = todo_path.read_text()
     except FileNotFoundError:
@@ -2216,7 +2299,9 @@ def _has_checkpoint(task_id: str) -> bool:
         return False
 
 
-def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
+def build_model_brief(
+    task_id: str, resume_mode: bool = False, objective_slug: str | None = None
+) -> str:
     """Build a concise model handoff brief for a root task.
 
     Args:
@@ -2226,8 +2311,8 @@ def build_model_brief(task_id: str, resume_mode: bool = False) -> str:
     Returns:
         Markdown brief that another model can follow without a long custom prompt.
     """
-    source = resolve_task_source(task_id)
-    task = read_task_from_plan(task_id)
+    source = resolve_task_source(task_id, objective_slug=objective_slug)
+    task = read_task_from_plan(task_id, objective_slug=source.objective_slug)
     objective_dir = source.plan_path.parent
     objective_state_path = objective_dir / OBJECTIVE_STATE_FILENAME
     handoff_path = objective_dir / "HANDOFF-CURRENT.md"
@@ -2419,7 +2504,7 @@ def validate_previous_tasks_complete(task_id: str, source: "TaskSource") -> None
         sys.exit(1)
 
 
-def start_task(task_id: str) -> None:
+def start_task(task_id: str, objective_slug: str | None = None) -> None:
     """Start or resume a task.
 
     Args:
@@ -2428,7 +2513,7 @@ def start_task(task_id: str) -> None:
     mm_info(f"Starting task {task_id}")
     ensure_runtime_can_start_task(task_id)
 
-    source = resolve_task_source(task_id)
+    source = resolve_task_source(task_id, objective_slug=objective_slug)
     mm_info(
         f"Planning source: {source.mode} ({source.plan_path.relative_to(PROJECT_ROOT)})"
     )
@@ -2436,11 +2521,11 @@ def start_task(task_id: str) -> None:
     sync_objective_todo_from_state(task_id)
 
     # Read task and subtasks
-    task = read_task_from_plan(task_id)
-    subtasks = get_execution_subtasks(task_id)
+    task = read_task_from_plan(task_id, objective_slug=source.objective_slug)
+    subtasks = get_execution_subtasks(task_id, objective_slug=source.objective_slug)
 
     mm_task(task_id, task["title"])
-    mm_model_brief(build_model_brief(task_id))
+    mm_model_brief(build_model_brief(task_id, objective_slug=source.objective_slug))
 
     # Show all subtasks with status
     for st in subtasks:
@@ -2508,7 +2593,7 @@ def start_task(task_id: str) -> None:
     _mm_launch_with_db(task_id, db_session_id)
 
 
-def resume_task(task_id: str) -> None:
+def resume_task(task_id: str, objective_slug: str | None = None) -> None:
     """Resume a task from checkpoint.
 
     Args:
@@ -2519,7 +2604,7 @@ def resume_task(task_id: str) -> None:
     if not RUNTIME_STATE_PATH.exists():
         mm_error("No runtime state found. Run without --continue first.")
         mm_info(f"Starting fresh task {task_id}")
-        start_task(task_id)
+        start_task(task_id, objective_slug=objective_slug)
         return
 
     ensure_runtime_can_start_task(task_id)
@@ -2550,8 +2635,16 @@ def resume_task(task_id: str) -> None:
             RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
 
     sync_objective_todo_from_state(task_id)
-    mm_task(task_id, read_task_from_plan(task_id)["title"])
-    mm_model_brief(build_model_brief(task_id, resume_mode=True))
+    runtime_objective_slug = state.get("objective_slug") or objective_slug
+    mm_task(
+        task_id,
+        read_task_from_plan(task_id, objective_slug=runtime_objective_slug)["title"],
+    )
+    mm_model_brief(
+        build_model_brief(
+            task_id, resume_mode=True, objective_slug=runtime_objective_slug
+        )
+    )
 
     mm_info(f"Previous session: {state['session_id']}")
     mm_info(f"Last checkpoint: {state.get('last_checkpoint', 'none')}")
@@ -3054,7 +3147,8 @@ def main() -> None:
             mm_error("Usage: mm-complete-task --reconcile <TASK_ID>")
             mm_error("Example: mm-complete-task --reconcile PS1")
             sys.exit(1)
-        task_id = _normalize_task_id(sys.argv[2])
+        task_ref = _split_objective_task_ref(sys.argv[2])
+        task_id = task_ref.task_id
         reconcile_artifacts_from_runtime(task_id)
         issues = audit_task_consistency(task_id)
         if issues:
@@ -3069,8 +3163,10 @@ def main() -> None:
             mm_error("Usage: mm-complete-task --brief <TASK_ID>")
             mm_error("Example: mm-complete-task --brief AV2")
             sys.exit(1)
-        task_id = _normalize_task_id(sys.argv[2])
-        mm_model_brief(build_model_brief(task_id))
+        task_ref = _split_objective_task_ref(sys.argv[2])
+        mm_model_brief(
+            build_model_brief(task_ref.task_id, objective_slug=task_ref.objective_slug)
+        )
         return
 
     positional_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
@@ -3078,10 +3174,13 @@ def main() -> None:
         mm_error("Usage: mm-complete-task <TASK_ID> [--continue|--brief|--reset-stale]")
         sys.exit(1)
 
-    task_id = _normalize_task_id(positional_args[0])
+    task_ref = _split_objective_task_ref(positional_args[0])
+    task_id = task_ref.task_id
 
     if "--brief" in sys.argv:
-        mm_model_brief(build_model_brief(task_id))
+        mm_model_brief(
+            build_model_brief(task_id, objective_slug=task_ref.objective_slug)
+        )
         return
 
     # Reset stale mode
@@ -3092,9 +3191,9 @@ def main() -> None:
     resume_mode = "--continue" in sys.argv
 
     if resume_mode:
-        resume_task(task_id)
+        resume_task(task_id, objective_slug=task_ref.objective_slug)
     else:
-        start_task(task_id)
+        start_task(task_id, objective_slug=task_ref.objective_slug)
 
 
 if __name__ == "__main__":
