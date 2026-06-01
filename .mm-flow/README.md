@@ -29,6 +29,7 @@ Framework de orquestación de desarrollo lo más agnóstico posible al runtime d
 - `/mm:archive-objective <slug>` — Archivar objective completado
 - `/mm:activate-next-objective` — Activar siguiente objective del roadmap
 - `/mm:context-to-canonical` — Convertir contexto real del proyecto en docs canónicos
+- `(planned) /mm:objective-context-check` — Validar/tightenear el objetivo canónico antes de `discover`
 - `/mm:discover-contract-check --objective <slug>` — Validar planning contract
 - `/mm:safe-commit` — Commit con validación
 
@@ -57,6 +58,22 @@ El framework busca funcionar con cualquier LLM CLI (Claude Code, Codex, Gemini C
 - Los handlers son scripts Python invocables desde shell
 - Los agentes/skills son Markdown con protocolo legible por cualquier runtime
 - El flujo principal puede ejecutarse sin depender de una API de subagents específica
+
+## Planned Harness Flow
+
+Objetivo objetivo/feature nuevo (flujo target):
+
+```text
+context-to-canonical
+→ objective-context-check   (planned new gate)
+→ discover
+→ discover-contract-check
+→ complete-task
+→ archive-objective
+```
+
+Hoy `objective-context-check` todavía no está implementado como comando del core,
+pero ya queda incorporado como parte de la dirección del harness.
 
 Si un runtime soporta subagentes, puede usar los documentos de `agents/` como
 protocolos opcionales. Si no los soporta, los handlers siguen siendo ejecutables

@@ -43,12 +43,18 @@ model-agnostic path and works the same from Claude Code, Codex, or any shell.
 1. /mm:context-to-canonical --type objective --name "Add X"
    → creates docs/canonical/objective-specs/add-x.md
 
-2. /mm:discover --roadmap --existing
+2. /mm:objective-context-check --objective add-x
+   → planned future gate: validates scope, gaps, evidence, and missing questions
+
+3. /mm:discover --roadmap --existing
    → reads the new spec (Tier 1 source), adds it to the roadmap
 
-3. /mm:activate-next-objective
+4. /mm:activate-next-objective
    → activates the objective for planning and execution
 ```
+
+> Note: `objective-context-check` is not implemented yet. It is the next planned
+> harness step between canonical generation and package materialization.
 
 ## Optional payload mode
 

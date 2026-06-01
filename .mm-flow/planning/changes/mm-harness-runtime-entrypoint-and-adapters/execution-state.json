@@ -1,0 +1,108 @@
+{
+  "objective_slug": "mm-harness-runtime-entrypoint-and-adapters",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review current harness constraints, adapters, and rollout risks",
+          "status": "completed",
+          "started_at": "2026-06-01T11:06:21.066009",
+          "completed_at": "2026-06-01T11:06:21.154919",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T11:06:21.154919"
+        },
+        "T1.2": {
+          "description": "Rewrite the package with explicit CLI/adapters/compatibility decisions and the planned `objective-context-check` gate",
+          "status": "completed",
+          "started_at": "2026-06-01T11:06:21.271256",
+          "completed_at": "2026-06-01T11:06:21.350113",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T11:06:21.350113"
+        },
+        "T1.3": {
+          "description": "Validate the tightened package with contract-check",
+          "status": "completed",
+          "started_at": "2026-06-01T11:06:21.505873",
+          "completed_at": "2026-06-01T11:06:21.581829",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T11:06:21.581829"
+        }
+      },
+      "started_at": "2026-06-01T11:06:21.066009",
+      "completed_at": "2026-06-01T11:06:21.581829",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
+    },
+    "T2": {
+      "status": "pending",
+      "subtasks": {
+        "T2.1": {
+          "description": "Create the neutral CLI entrypoint and dispatch contract",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.2": {
+          "description": "Wire the supported subcommands to core handlers",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.3": {
+          "description": "Validate help/dispatch behavior and targeted tests",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Verify Claude wrappers remain thin compatibility adapters",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Add documentation/tests for shell-Codex-Claude usage and mention the planned `objective-context-check` step",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Refresh handoff with the next harness objective and rerun final validation",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
+    }
+  },
+  "updated_at": "2026-06-01T11:06:21.581829",
+  "bootstrapped_from_artifacts": true
+}
