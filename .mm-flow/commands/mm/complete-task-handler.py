@@ -11,6 +11,7 @@ REFACTOR v2:
 
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -73,6 +74,89 @@ def _find_objective_canonical_doc(objective_slug: str) -> Path | None:
     return None
 
 
+def _preferred_command_dir() -> Path | None:
+    """Return the local command adapter/canonical dir if the project has one."""
+    claude_dir = PROJECT_ROOT / ".claude" / "commands" / "mm"
+    if claude_dir.exists():
+        return claude_dir
+    mm_flow_dir = PROJECT_ROOT / ".mm-flow" / "commands" / "mm"
+    if mm_flow_dir.exists():
+        return mm_flow_dir
+    return None
+
+
+def _preferred_skill_dir() -> Path | None:
+    """Return the local skill adapter/canonical dir if the project has one."""
+    claude_dir = PROJECT_ROOT / ".claude" / "skills" / "mm"
+    if claude_dir.exists():
+        return claude_dir
+    mm_flow_dir = PROJECT_ROOT / ".mm-flow" / "skills" / "mm"
+    if mm_flow_dir.exists():
+        return mm_flow_dir
+    return None
+
+
+def _critical_flow_paths() -> list[tuple[str, Path]]:
+    """Return handler/skill paths that must exist before launching execution."""
+    command_dir = _preferred_command_dir()
+    skill_dir = _preferred_skill_dir()
+    paths: list[tuple[str, Path]] = []
+    if command_dir is not None:
+        paths.extend(
+            [
+                ("complete-task handler", command_dir / "complete-task-handler.py"),
+                ("update-todo-times handler", command_dir / "update-todo-times.py"),
+                ("safe-commit handler", command_dir / "safe-commit-handler.py"),
+            ]
+        )
+    if skill_dir is not None:
+        paths.append(("safe-commit skill", skill_dir / "safe-commit" / "SKILL.md"))
+    return paths
+
+
+def _writable_flow_paths(task_id: str) -> list[tuple[str, Path]]:
+    """Return planning files/directories that execution must be able to write."""
+    state_path = get_objective_state_path(task_id=task_id)
+    _, todo_path = get_active_paths(task_id)
+    handoff_path = get_objective_handoff_path(task_id)
+    return [
+        ("runtime state directory", RUNTIME_STATE_PATH.parent),
+        ("runtime state file parent", RUNTIME_STATE_PATH.parent),
+        ("objective todo", todo_path),
+        (
+            "objective handoff",
+            handoff_path if handoff_path is not None else todo_path.parent,
+        ),
+        (
+            "objective execution-state",
+            state_path if state_path is not None else todo_path.parent,
+        ),
+    ]
+
+
+def validate_execution_prerequisites(task_id: str) -> list[str]:
+    """Validate that critical handlers/skills and planning files are available.
+
+    Returns:
+        List of fatal issues. Empty list means execution may proceed.
+    """
+    issues: list[str] = []
+
+    for label, path in _critical_flow_paths():
+        if not path.exists():
+            issues.append(f"missing {label}: {path.relative_to(PROJECT_ROOT)}")
+
+    for label, path in _writable_flow_paths(task_id):
+        target = path if path.is_dir() else path.parent
+        if not target.exists():
+            issues.append(f"missing writable target for {label}: {target}")
+            continue
+        if not os.access(target, os.W_OK):
+            issues.append(f"{label} is not writable: {target}")
+
+    return issues
+
+
 def _read_stack_from_config(project_root: Path) -> list[str]:
     """Read stack list from .mastermind/config.yaml (no external deps)."""
     config_path = project_root / ".mastermind" / "config.yaml"
@@ -109,7 +193,6 @@ PROJECT_ROOT = _find_project_root()
 TASKS_DIR = PROJECT_ROOT / "tasks"
 PLANNING_DIR = PROJECT_ROOT / ".mm-flow" / "planning"
 RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
-NOTIFY_SCRIPT_PATH = PROJECT_ROOT / ".claude" / "commands" / "mm" / "notify-complete.py"
 OBJECTIVE_STATE_FILENAME = "execution-state.json"
 
 
@@ -121,6 +204,19 @@ class TaskSource:
     plan_path: Path
     todo_path: Path
     objective_slug: str | None = None
+
+
+def _resolve_notify_script_path() -> Path | None:
+    """Resolve the completion notifier with preference for the neutral core path."""
+    candidates = [
+        PROJECT_ROOT / ".mm-flow" / "commands" / "mm" / "notify-complete.py",
+        Path(__file__).resolve().parent / "notify-complete.py",
+        PROJECT_ROOT / ".claude" / "commands" / "mm" / "notify-complete.py",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 # ============================================================================
@@ -167,7 +263,7 @@ def _open_db_session(_task_id: str, _pending_count: int) -> str | None:
     """Open a dev session in the DB. Returns session UUID or None if DB unavailable."""
     try:
         sys.path.insert(0, str(PLANNING_DIR.parent / ".claude" / "commands" / "mm"))
-        from db_client import MasterMindDB  # noqa: PLC0415
+        from db_client import MasterMindDB
 
         project_id = _read_project_id_from_config(PROJECT_ROOT)
         with MasterMindDB() as db:
@@ -539,6 +635,78 @@ def get_task_dependencies_from_plan(plan_path: Path, task_id: str) -> str:
     return first_line or "none"
 
 
+def _task_acceptance_block_pattern(task_id: str) -> str:
+    """Return a regex that captures the acceptance criteria block for a root task."""
+    return (
+        rf"(^##\s+{re.escape(task_id)}:.*?"
+        r"^### Acceptance Criteria\n)"
+        r"(?P<body>.*?)(?=^### |\n## |\Z)"
+    )
+
+
+def sync_task_acceptance_criteria(task_id: str) -> None:
+    """Project task-level acceptance criteria checkboxes from durable task state.
+
+    The current objective flow treats acceptance at the root-task level: once the
+    durable ledger marks a root task as completed, its declared acceptance
+    criteria are projected to `[x]`; otherwise they are projected to `[ ]`.
+    """
+    objective_state = load_objective_state(task_id=task_id)
+    if not objective_state:
+        return
+
+    try:
+        plan_path, _todo_path = get_active_paths(task_id)
+        plan_text = plan_path.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError, ValueError):
+        return
+
+    task_status = (
+        objective_state.get("tasks", {}).get(task_id, {}).get("status", "pending")
+    )
+    desired_checkbox = "x" if task_status == "completed" else " "
+    pattern = _task_acceptance_block_pattern(task_id)
+    match = re.search(pattern, plan_text, re.MULTILINE | re.DOTALL)
+    if not match:
+        return
+
+    body = match.group("body")
+    updated_body = re.sub(
+        r"(^-\s\[)([ x~])(\]\s+)",
+        rf"\g<1>{desired_checkbox}\g<3>",
+        body,
+        flags=re.MULTILINE,
+    )
+    if updated_body == body:
+        return
+
+    updated_plan = (
+        plan_text[: match.start("body")] + updated_body + plan_text[match.end("body") :]
+    )
+    try:
+        plan_path.write_text(updated_plan, encoding="utf-8")
+    except OSError as exc:
+        mm_error(f"Failed to sync acceptance criteria for {task_id}: {exc}")
+
+
+def task_acceptance_criteria_satisfied(task_id: str) -> bool:
+    """Return True when all declared acceptance criteria are marked complete."""
+    try:
+        plan_path, _todo_path = get_active_paths(task_id)
+        plan_text = plan_path.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError, ValueError):
+        return False
+
+    match = re.search(
+        _task_acceptance_block_pattern(task_id), plan_text, re.MULTILINE | re.DOTALL
+    )
+    if not match:
+        return False
+
+    checkboxes = re.findall(r"^-\s\[([ x~])\]\s+", match.group("body"), re.MULTILINE)
+    return bool(checkboxes) and all(checkbox == "x" for checkbox in checkboxes)
+
+
 def get_root_task_statuses(todo_path: Path) -> list[tuple[str, str, str]]:
     """Return ordered root task statuses from todo.md as (task_id, checkbox, title)."""
     if not todo_path.exists():
@@ -717,9 +885,7 @@ def bootstrap_objective_state_from_artifacts(
         elif (
             any(status == "in_progress" for status in subtask_states)
             or parent_checkbox == "~"
-        ):
-            task_entry["status"] = "in_progress"
-        elif any(status == "completed" for status in subtask_states):
+        ) or any(status == "completed" for status in subtask_states):
             task_entry["status"] = "in_progress"
         else:
             task_entry["status"] = "pending"
@@ -1072,6 +1238,7 @@ def reconcile_objective_state_from_runtime(task_id: str) -> None:
 
     objective_state["updated_at"] = now_iso
     save_objective_state(objective_state)
+    sync_task_acceptance_criteria(task_id)
 
 
 def sync_subtask_checkbox(subtask_id: str, checkbox: str) -> None:
@@ -1115,12 +1282,13 @@ def trigger_completion_notification(task_id: str) -> None:
         return
     if not runtime_task_complete(state):
         return
-    if not NOTIFY_SCRIPT_PATH.exists():
+    notify_script_path = _resolve_notify_script_path()
+    if notify_script_path is None:
         return
 
     try:
         result = subprocess.run(
-            ["python3", str(NOTIFY_SCRIPT_PATH), task_id, "complete"],
+            ["python3", str(notify_script_path), task_id, "complete"],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
@@ -1189,65 +1357,37 @@ def ensure_runtime_can_start_task(task_id: str) -> None:
 # ============================================================================
 
 
-def get_git_commits_for_task(
-    task_id: str, objective_slug: str | None = None
-) -> set[str]:
-    """Get subtask IDs that have commits in git scoped to an objective directory.
+def get_git_commits_for_task(task_id: str) -> set[str]:
+    """Get subtask IDs that have commits whose messages reference this task.
 
-    Uses git log with -- <path> to restrict search to the objective's planning
-    package. This avoids false matches from OTHER objectives' commits that happen
-    to use the same task ID pattern (e.g., T2.2 in mastermind-cli vs context-projection).
+    Uses --grep to filter commits by subject so we don't depend on commits
+    touching specific planning files (which they don't — they touch source code).
     """
     completed = set()
-    patterns = [
-        rf"{re.escape(task_id)}\.(\d+)",
+    pattern = re.compile(rf"{re.escape(task_id)}\.(\d+)")
+
+    cmd = [
+        "git",
+        "log",
+        "--all",
+        "--pretty=format:%s",
+        f"--grep={re.escape(task_id)}\\.",
+        "-200",
     ]
+    result = subprocess.run(
+        cmd,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
 
-    # Build the scoped path for git log
-    scope_path: str | None = None
-    if objective_slug:
-        scope_path = str(
-            PROJECT_ROOT / ".mm-flow" / "planning" / "changes" / objective_slug
-        )
-    elif task_id:
-        # Fallback: try to resolve objective from task_id
-        try:
-            source = resolve_task_source(get_root_task_id(task_id))
-            if source.objective_slug:
-                scope_path = str(
-                    PROJECT_ROOT
-                    / ".mm-flow"
-                    / "planning"
-                    / "changes"
-                    / source.objective_slug
-                )
-        except ValueError:
-            pass
-
-    for pattern in patterns:
-        cmd = ["git", "log", "--all", "--pretty=format:%H%n%s", "-100"]
-        if scope_path:
-            cmd.append("--")
-            cmd.append(scope_path)
-        result = subprocess.run(
-            cmd,
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-        )
-
-        for line in result.stdout.split("\n"):
-            if not line.strip():
-                continue
-            # Each entry is "commit_hash subject" — extract subject part
-            parts = line.split("\n", 1)
-            if len(parts) < 2:
-                continue
-            subject = parts[1]
-            match = re.search(pattern, subject)
-            if match:
-                subtask_num = match.group(1)
-                completed.add(f"{task_id}.{subtask_num}")
+    for subject in result.stdout.splitlines():
+        subject = subject.strip()
+        if not subject:
+            continue
+        match = pattern.search(subject)
+        if match:
+            completed.add(f"{task_id}.{match.group(1)}")
 
     return completed
 
@@ -1716,6 +1856,7 @@ def update_subtask_status(
 
             objective_state["updated_at"] = now_iso
             save_objective_state(objective_state)
+            sync_task_acceptance_criteria(root_task_id)
 
     # If this subtask was just completed, check if all siblings are complete
     # and propagate completion to parent
@@ -1978,9 +2119,7 @@ def execute_subtask_with_tracking(subtask_id: str, func: Any) -> Any:
         update_subtask_status(subtask_id, "completed")
         return result
     except Exception as e:
-        update_subtask_status(
-            subtask_id, "failed", error=f"{type(e).__name__}: {str(e)}"
-        )
+        update_subtask_status(subtask_id, "failed", error=f"{type(e).__name__}: {e!s}")
         raise
 
 
@@ -2267,6 +2406,14 @@ def validate_previous_tasks_complete(task_id: str, source: "TaskSource") -> None
             )
             mm_error(f"Run: /mm:complete-task {prior_id}")
             blocked = True
+            continue
+        sync_task_acceptance_criteria(prior_id)
+        if not task_acceptance_criteria_satisfied(prior_id):
+            mm_error(
+                f"Cannot start {task_id}: {prior_id} acceptance criteria are not satisfied in tasks.md."
+            )
+            mm_error(f"Run: /mm:complete-task {prior_id} --continue")
+            blocked = True
 
     if blocked:
         sys.exit(1)
@@ -2300,19 +2447,36 @@ def start_task(task_id: str) -> None:
         status = "[x]" if st["completed"] else "[ ]"
         mm_subtask(st["id"], status, st["description"])
 
-    # Git commits are informative only in the objective flow; they are not the
-    # source of truth for completion. Scoped to objective directory to avoid
-    # cross-objective false matches (e.g., T2.2 in mastermind-cli vs context-projection).
-    git_completed = get_git_commits_for_task(task_id, source.objective_slug)
+    git_completed = get_git_commits_for_task(task_id)
     mm_git(len(git_completed), len(subtasks), sorted(git_completed))
+
+    # Auto-reconcile: if git has a commit for a subtask the durable state missed
+    # (e.g. --mark-done failed due to a broken adapter), promote it to completed.
+    git_recovered: list[str] = []
+    for st in subtasks:
+        if not st["completed"] and st["id"] in git_completed:
+            update_subtask_status(st["id"], "completed")
+            st["completed"] = True
+            git_recovered.append(st["id"])
+    if git_recovered:
+        mm_info(f"Git-recovered completed subtasks: {git_recovered}")
+        subtasks = get_execution_subtasks(task_id)
 
     # Filter pending subtasks from durable execution state.
     pending_subtasks = [st for st in subtasks if not st["completed"]]
 
     if not pending_subtasks:
+        sync_task_acceptance_criteria(task_id)
         mm_status("TASK COMPLETE - all subtasks completed in durable state")
         sync_objective_todo_from_state(task_id)
         return
+
+    fatal_issues = validate_execution_prerequisites(task_id)
+    if fatal_issues:
+        for issue in fatal_issues:
+            mm_error(f"FLOW BLOCKED: {issue}")
+        mm_status("BLOCKED - repair mm-flow/Claude adapter before continuing")
+        sys.exit(1)
 
     mm_pending(len(pending_subtasks))
 
@@ -2365,6 +2529,26 @@ def resume_task(task_id: str) -> None:
         mm_error(f"Runtime state is for task {state.get('task_id')}, not {task_id}")
         return
 
+    # Reconcile in_progress subtasks from the durable ledger.
+    # If execution-state says a subtask is completed but the runtime says in_progress,
+    # the ledger is the source of truth — sync runtime to match before evaluating what's pending.
+    objective_state = load_objective_state(task_id=task_id)
+    if objective_state:
+        ledger_subtasks = (
+            objective_state.get("tasks", {}).get(task_id, {}).get("subtasks", {})
+        )
+        reconciled = []
+        for sid, st_info in state["subtasks"].items():
+            if st_info.get("status") == "in_progress":
+                if ledger_subtasks.get(sid, {}).get("status") == "completed":
+                    state["subtasks"][sid]["status"] = "completed"
+                    reconciled.append(sid)
+        if reconciled:
+            mm_info(
+                f"Reconciled from ledger — marking as completed: {sorted(reconciled)}"
+            )
+            RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+
     sync_objective_todo_from_state(task_id)
     mm_task(task_id, read_task_from_plan(task_id)["title"])
     mm_model_brief(build_model_brief(task_id, resume_mode=True))
@@ -2385,6 +2569,26 @@ def resume_task(task_id: str) -> None:
                     stale_subtasks.append((sid, hours_since))
             except (ValueError, TypeError):
                 pass
+
+    # Git-recovery: promote stale in_progress or pending subtasks that already have commits.
+    # This handles the case where --mark-done failed (e.g. broken adapter) leaving the
+    # subtask stuck in_progress even though the commit landed.
+    git_completed = get_git_commits_for_task(task_id)
+    git_recovered: list[str] = []
+    for sid, st_info in state["subtasks"].items():
+        if st_info.get("status") in ("in_progress", "pending") and sid in git_completed:
+            state["subtasks"][sid]["status"] = "completed"
+            git_recovered.append(sid)
+    if git_recovered:
+        mm_info(f"Git-recovered completed subtasks: {sorted(git_recovered)}")
+        RUNTIME_STATE_PATH.write_text(json.dumps(state, indent=2))
+        # Also persist into durable objective state
+        for sid in git_recovered:
+            update_subtask_status(sid, "completed")
+        state = json.loads(RUNTIME_STATE_PATH.read_text())
+        stale_subtasks = [
+            (sid, h) for sid, h in stale_subtasks if sid not in git_recovered
+        ]
 
     if stale_subtasks:
         mm_error("=" * 60)
@@ -2418,9 +2622,17 @@ def resume_task(task_id: str) -> None:
     # Check if task is actually complete
     if not pending:
         reconcile_objective_state_from_runtime(task_id)
+        sync_task_acceptance_criteria(task_id)
         sync_objective_todo_from_state(task_id)
         mm_status("TASK COMPLETE - all subtasks completed in runtime state")
         return
+
+    fatal_issues = validate_execution_prerequisites(task_id)
+    if fatal_issues:
+        for issue in fatal_issues:
+            mm_error(f"FLOW BLOCKED: {issue}")
+        mm_status("BLOCKED - repair mm-flow/Claude adapter before continuing")
+        sys.exit(1)
 
     mm_pending(len(pending))
     if pending:
@@ -2757,6 +2969,11 @@ def mark_in_progress(subtask_id: str) -> None:
         sync_objective_handoff(subtask_id.rsplit(".", 1)[0])
 
 
+def _normalize_task_id(raw: str) -> str:
+    """Strip objective-slug prefix that agents sometimes prepend (e.g. 'bulk-upload-csv-import/T4' → 'T4')."""
+    return raw.upper().split("/")[-1]
+
+
 def main() -> None:
     """Main entry point."""
     help_flags = {"-h", "--help", "help"}
@@ -2837,7 +3054,7 @@ def main() -> None:
             mm_error("Usage: mm-complete-task --reconcile <TASK_ID>")
             mm_error("Example: mm-complete-task --reconcile PS1")
             sys.exit(1)
-        task_id = sys.argv[2].upper()
+        task_id = _normalize_task_id(sys.argv[2])
         reconcile_artifacts_from_runtime(task_id)
         issues = audit_task_consistency(task_id)
         if issues:
@@ -2852,7 +3069,7 @@ def main() -> None:
             mm_error("Usage: mm-complete-task --brief <TASK_ID>")
             mm_error("Example: mm-complete-task --brief AV2")
             sys.exit(1)
-        task_id = sys.argv[2].upper()
+        task_id = _normalize_task_id(sys.argv[2])
         mm_model_brief(build_model_brief(task_id))
         return
 
@@ -2861,7 +3078,7 @@ def main() -> None:
         mm_error("Usage: mm-complete-task <TASK_ID> [--continue|--brief|--reset-stale]")
         sys.exit(1)
 
-    task_id = positional_args[0].upper()
+    task_id = _normalize_task_id(positional_args[0])
 
     if "--brief" in sys.argv:
         mm_model_brief(build_model_brief(task_id))

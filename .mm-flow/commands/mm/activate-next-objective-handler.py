@@ -46,8 +46,8 @@ def parse_args() -> Namespace:
     return parser.parse_args()
 
 
-def load_roadmap() -> list[dict[str, object]]:
-    """Load roadmap objective records."""
+def load_roadmap() -> object:
+    """Load roadmap data as-is from objectives.json."""
     if not ROADMAP_JSON.exists():
         raise FileNotFoundError(
             "Roadmap not found. Run /mm:discover --roadmap --existing first."
@@ -56,12 +56,33 @@ def load_roadmap() -> list[dict[str, object]]:
 
 
 def get_recommended_next(
-    objectives: list[dict[str, object]],
+    roadmap: object,
 ) -> dict[str, object] | None:
-    """Return the recommended-next roadmap entry, if any."""
-    for objective in objectives:
-        if objective.get("recommended_next") is True:
-            return objective
+    """Return the recommended-next roadmap entry, if any.
+
+    Supports both:
+    - current list format: [{slug, recommended_next, ...}, ...]
+    - future dict format: {recommended_next, objectives: [...]}
+    """
+    if isinstance(roadmap, list):
+        for objective in roadmap:
+            if isinstance(objective, dict) and objective.get("recommended_next"):
+                return objective
+        return None
+
+    if isinstance(roadmap, dict):
+        recommended_slug = roadmap.get("recommended_next")
+        objectives = roadmap.get("objectives", [])
+        if not recommended_slug or not isinstance(objectives, list):
+            return None
+        for objective in objectives:
+            if not isinstance(objective, dict):
+                continue
+            if (
+                objective.get("id") == recommended_slug
+                or objective.get("slug") == recommended_slug
+            ):
+                return objective
     return None
 
 
@@ -111,13 +132,13 @@ def main() -> int:
         return 1
 
     try:
-        objectives = load_roadmap()
+        roadmap = load_roadmap()
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         print("STATUS: FAILED")
         print(f"- {exc}")
         return 1
 
-    recommended = get_recommended_next(objectives)
+    recommended = get_recommended_next(roadmap)
     if recommended is None:
         print("STATUS: FAILED")
         print(
@@ -125,8 +146,12 @@ def main() -> int:
         )
         return 1
 
-    slug = str(recommended["slug"])
-    name = str(recommended.get("name") or slug.replace("-", " ").title())
+    slug = str(recommended.get("slug") or recommended.get("id"))
+    name = str(
+        recommended.get("title")
+        or recommended.get("name")
+        or slug.replace("-", " ").title()
+    )
 
     result = run_discover_for_objective(slug, name, args.quick)
     if result.returncode != 0:

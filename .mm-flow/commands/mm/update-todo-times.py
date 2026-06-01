@@ -47,7 +47,7 @@ def _calculate_stats(subtasks: dict) -> tuple[int, int, float, float]:
     total = len(subtasks)
     completed = 0
     total_duration = 0.0
-    for sid, data in subtasks.items():
+    for _sid, data in subtasks.items():
         if data.get("status") == "completed":
             completed += 1
             total_duration += data.get("duration_seconds", 0) or 0
@@ -63,7 +63,9 @@ def _build_time_tracking_line(
     in_progress: bool,
 ) -> tuple[str, str]:
     """Build the two time tracking lines."""
-    progress = f"{completed}/{total} ({int(completed/total*100) if total > 0 else 0}%)"
+    progress = (
+        f"{completed}/{total} ({int(completed / total * 100) if total > 0 else 0}%)"
+    )
     if in_progress:
         actual_str, eta_str, deviation_str = "in progress", "in progress", "—"
     else:
@@ -97,14 +99,14 @@ def _update_todo_time_tracking(
         return False
     content = todo_path.read_text(encoding="utf-8")
     task_pattern = re.compile(
-        rf"^(\s*-\s*\[[ x~]\]\s*{re.escape(task_id)}:.*?)(\n\s*-\s|\n\s*\n|\n#|\Z)",
+        rf"(?P<block>^-\s*\[[ x~]\]\s*{re.escape(task_id)}:.*?)(?=^\-\s*\[[ x~]\]\s*[A-Z]{{1,4}}\d+:|\Z)",
         re.MULTILINE | re.DOTALL,
     )
     match = task_pattern.search(content)
     if not match:
         return False
 
-    task_block, after_match = match.group(1), match.group(2)
+    task_block = match.group("block")
     subtasks = runtime_state.get("subtasks", {})
     task_prefix = task_id + "."
     task_subtasks = {
@@ -144,16 +146,21 @@ def _update_todo_time_tracking(
         in_progress,
     )
 
-    time_tracking_pattern = re.compile(r"\n\s*⏱️.*?(?:\n\s*📊.*?)?", re.MULTILINE)
-    has_existing = time_tracking_pattern.search(task_block)
-    new_block = task_block
-    if has_existing:
-        new_block = time_tracking_pattern.sub(f"\n{line1}\n{line2}", task_block)
-    else:
-        new_block = task_block.rstrip() + f"\n{line1}\n{line2}\n"
+    # Remove any previously appended metric lines inside this root-task block, then reinsert
+    # a single normalized pair right after the root task line.
+    without_metrics = re.sub(
+        r"^\s*[⏱️📊].*\n?",
+        "",
+        task_block,
+        flags=re.MULTILINE,
+    ).rstrip()
+    lines = without_metrics.splitlines()
+    if not lines:
+        return False
+    new_block = "\n".join([lines[0], line1, line2, *lines[1:]]).rstrip() + "\n"
 
     todo_path.write_text(
-        content[: match.start()] + new_block + after_match + content[match.end() :],
+        content[: match.start("block")] + new_block + content[match.end("block") :],
         encoding="utf-8",
     )
     return True
@@ -221,7 +228,7 @@ def main() -> int:
     task_id = sys.argv[1]
     cwd = Path.cwd()
 
-    runtime_state, runtime_path, todo_path = _find_runtime_state(cwd)
+    runtime_state, _runtime_path, todo_path = _find_runtime_state(cwd)
     if runtime_state is None or todo_path is None:
         print("No runtime state found", file=sys.stderr)
         return 1

@@ -162,6 +162,386 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
             repaired_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"], "completed"
         )
 
+    def test_completed_task_syncs_acceptance_criteria_checkboxes(self) -> None:
+        """A completed root task must project its acceptance criteria to [x] in tasks.md."""
+        objective_dir = self._materialize_project_state_objective()
+        commands_dir = self.temp_dir / ".claude" / "commands" / "mm"
+        skills_dir = self.temp_dir / ".claude" / "skills" / "mm" / "safe-commit"
+        commands_dir.mkdir(parents=True, exist_ok=True)
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        (commands_dir / "complete-task-handler.py").write_text(
+            "# stub\n", encoding="utf-8"
+        )
+        (commands_dir / "update-todo-times.py").write_text("# stub\n", encoding="utf-8")
+        (commands_dir / "safe-commit-handler.py").write_text(
+            "# stub\n", encoding="utf-8"
+        )
+        (skills_dir / "SKILL.md").write_text("# Safe Commit\n", encoding="utf-8")
+
+        bootstrap_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(
+            bootstrap_result.returncode,
+            0,
+            msg=bootstrap_result.stdout + bootstrap_result.stderr,
+        )
+
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+
+        objective_state["tasks"]["PS1"]["status"] = "completed"
+        for subtask_id in objective_state["tasks"]["PS1"]["subtasks"]:
+            objective_state["tasks"]["PS1"]["subtasks"][subtask_id]["status"] = (
+                "completed"
+            )
+        objective_state_path.write_text(
+            json.dumps(objective_state, indent=2), encoding="utf-8"
+        )
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("TASK COMPLETE", result.stdout)
+
+        tasks_text = (objective_dir / "tasks.md").read_text(encoding="utf-8")
+        ps1_section = tasks_text.split("## PS1:", 1)[1].split("## PS2:", 1)[0]
+        self.assertIn("- [x]", ps1_section)
+        self.assertNotIn("- [ ]", ps1_section)
+
+    def test_resume_reconciles_in_progress_subtask_from_ledger(self) -> None:
+        """--continue must reconcile runtime in_progress subtasks that the ledger marks completed.
+
+        Regression: when an agent exits before calling --mark-done, the runtime keeps a subtask
+        as in_progress while the ledger already has it as completed (e.g. marked done in a previous
+        session). On resume, the runtime must trust the ledger and promote the subtask to completed
+        so it's not treated as stale or invisible by the task-executor.
+        """
+        objective_dir = self._materialize_project_state_objective()
+
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(
+            start_result.returncode, 0, msg=start_result.stdout + start_result.stderr
+        )
+
+        # Runtime: PS1.1 stuck in_progress (agent was interrupted), PS1.2 and PS1.3 pending
+        runtime_state = {
+            "task_id": "PS1",
+            "source_mode": "objective",
+            "objective_slug": "project-state-mvp",
+            "session_id": "stale-session-001",
+            "started_at": "2026-05-31T09:00:00",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "subtasks": {
+                "PS1.1": {
+                    "description": "Review requirements and design context for PS1",
+                    "status": "in_progress",
+                    "retries": 0,
+                    "started_at": "2026-05-31T09:01:00",
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "PS1.2": {
+                    "description": "Implement PS1 end-to-end",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "PS1.3": {
+                    "description": "Run validation for PS1",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+            },
+            "last_checkpoint": "PS1.1",
+            "context_budget_exit": None,
+        }
+        runtime_path = self.temp_dir / ".mm-flow" / "planning" / "task-progress.json"
+        runtime_path.write_text(json.dumps(runtime_state, indent=2), encoding="utf-8")
+
+        # Ledger: PS1.1 is already completed (marked done in a previous session)
+        objective_state_path = objective_dir / "execution-state.json"
+        objective_state = json.loads(objective_state_path.read_text(encoding="utf-8"))
+        objective_state["tasks"]["PS1"]["status"] = "in_progress"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["status"] = "completed"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.1"]["completed_at"] = (
+            "2026-05-31T09:20:00"
+        )
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.2"]["status"] = "pending"
+        objective_state["tasks"]["PS1"]["subtasks"]["PS1.3"]["status"] = "pending"
+        objective_state_path.write_text(
+            json.dumps(objective_state, indent=2), encoding="utf-8"
+        )
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1", "--continue")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+        # Verify: runtime was reconciled — PS1.1 must now be completed
+        updated_runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            updated_runtime["subtasks"]["PS1.1"]["status"],
+            "completed",
+            "PS1.1 must be promoted from in_progress to completed after ledger reconciliation",
+        )
+        # And PS1.2/PS1.3 remain pending (still need to be executed)
+        self.assertEqual(updated_runtime["subtasks"]["PS1.2"]["status"], "pending")
+        self.assertEqual(updated_runtime["subtasks"]["PS1.3"]["status"], "pending")
+        # Reconciliation message should be visible
+        self.assertIn("Reconciled from ledger", result.stdout)
+
+    def test_objective_slug_prefix_stripped_from_task_id(self) -> None:
+        """Handler must accept 'slug/TASK_ID' and strip the prefix before processing.
+
+        Regression: agent sometimes passes 'bulk-upload-csv-import/T4' instead of 'T4'
+        causing the handler to crash with 'Task not found' on the mangled task ID.
+        """
+        self._materialize_project_state_objective()
+
+        # Both forms must produce the same --brief output
+        result_plain = self.run_command(str(COMPLETE_TASK_HANDLER), "--brief", "PS1")
+        result_prefixed = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "--brief", "project-state-mvp/PS1"
+        )
+
+        self.assertEqual(
+            result_plain.returncode, 0, msg=result_plain.stdout + result_plain.stderr
+        )
+        self.assertEqual(
+            result_prefixed.returncode,
+            0,
+            msg=result_prefixed.stdout + result_prefixed.stderr,
+        )
+        self.assertIn("MODEL_BRIEF_START", result_prefixed.stdout)
+        self.assertIn("PS1", result_prefixed.stdout)
+
+    def test_start_task_blocks_immediately_when_safe_commit_adapter_is_missing(
+        self,
+    ) -> None:
+        """Execution must abort before launch if critical Claude adapter files are missing."""
+        self._materialize_project_state_objective()
+        commands_dir = self.temp_dir / ".claude" / "commands" / "mm"
+        skills_dir = self.temp_dir / ".claude" / "skills" / "mm" / "safe-commit"
+        commands_dir.mkdir(parents=True, exist_ok=True)
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        (commands_dir / "complete-task-handler.py").write_text(
+            "# stub\n", encoding="utf-8"
+        )
+        (commands_dir / "update-todo-times.py").write_text("# stub\n", encoding="utf-8")
+        (skills_dir / "SKILL.md").write_text("# Safe Commit\n", encoding="utf-8")
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FLOW BLOCKED: missing safe-commit handler", result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertNotIn("LAUNCH: task-executor", result.stdout)
+
+    def test_completion_notification_prefers_mm_flow_notifier_over_claude_adapter(
+        self,
+    ) -> None:
+        """Completion notification should resolve through `.mm-flow` before `.claude`."""
+        self._materialize_project_state_objective()
+        commands_dir = self.temp_dir / ".claude" / "commands" / "mm"
+        skills_dir = self.temp_dir / ".claude" / "skills" / "mm" / "safe-commit"
+        commands_dir.mkdir(parents=True, exist_ok=True)
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        (commands_dir / "complete-task-handler.py").write_text(
+            "# stub\n", encoding="utf-8"
+        )
+        (commands_dir / "update-todo-times.py").write_text("# stub\n", encoding="utf-8")
+        (commands_dir / "safe-commit-handler.py").write_text(
+            "# stub\n", encoding="utf-8"
+        )
+        (skills_dir / "SKILL.md").write_text("# Safe Commit\n", encoding="utf-8")
+
+        core_marker = self.temp_dir / "core-notify.txt"
+        adapter_marker = self.temp_dir / "adapter-notify.txt"
+        mm_flow_notify = (
+            self.temp_dir / ".mm-flow" / "commands" / "mm" / "notify-complete.py"
+        )
+        claude_notify = commands_dir / "notify-complete.py"
+        mm_flow_notify.parent.mkdir(parents=True, exist_ok=True)
+        claude_notify.parent.mkdir(parents=True, exist_ok=True)
+        mm_flow_notify.write_text(
+            "from pathlib import Path\nPath('core-notify.txt').write_text('core', encoding='utf-8')\n",
+            encoding="utf-8",
+        )
+        claude_notify.write_text(
+            "from pathlib import Path\nPath('adapter-notify.txt').write_text('adapter', encoding='utf-8')\n",
+            encoding="utf-8",
+        )
+
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(
+            start_result.returncode, 0, msg=start_result.stdout + start_result.stderr
+        )
+
+        self.assertEqual(
+            self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-in-progress", "PS1.1"
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-done", "PS1.1"
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-in-progress", "PS1.2"
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-done", "PS1.2"
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            self.run_command(
+                str(COMPLETE_TASK_HANDLER), "--mark-in-progress", "PS1.3"
+            ).returncode,
+            0,
+        )
+        final_done = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "--mark-done", "PS1.3"
+        )
+        self.assertEqual(
+            final_done.returncode, 0, msg=final_done.stdout + final_done.stderr
+        )
+
+        self.assertTrue(core_marker.exists(), "core notifier should be used")
+        self.assertFalse(
+            adapter_marker.exists(), "Claude adapter notifier should not be preferred"
+        )
+
+    def test_git_recovery_marks_committed_subtasks_done_on_resume(self) -> None:
+        """resume_task must auto-complete subtasks that have git commits even if --mark-done failed.
+
+        Regression: get_git_commits_for_task had two bugs — broken parsing (always returned
+        empty set) and wrong scope (filtered by planning path, not commit subject). Even when
+        fixed, git results were 'informative only' and never used to update state. This caused
+        re-execution of already-committed subtasks when the handler broke mid-task.
+        """
+        objective_dir = self._materialize_project_state_objective()
+
+        start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
+        self.assertEqual(
+            start_result.returncode, 0, msg=start_result.stdout + start_result.stderr
+        )
+
+        # Simulate: PS1.1 was committed but --mark-done failed (in_progress stuck)
+        # PS1.2 was also committed but never started in state (pending)
+        runtime_state = {
+            "task_id": "PS1",
+            "source_mode": "objective",
+            "objective_slug": "project-state-mvp",
+            "session_id": "git-recovery-test",
+            "started_at": "2026-05-01T09:00:00",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "subtasks": {
+                "PS1.1": {
+                    "description": "Review requirements and design context for PS1",
+                    "status": "in_progress",
+                    "retries": 0,
+                    "started_at": "2026-05-01T09:01:00",
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "PS1.2": {
+                    "description": "Implement PS1 end-to-end",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+                "PS1.3": {
+                    "description": "Run validation for PS1",
+                    "status": "pending",
+                    "retries": 0,
+                    "started_at": None,
+                    "completed_at": None,
+                    "duration_seconds": 0,
+                },
+            },
+            "last_checkpoint": "PS1.1",
+            "context_budget_exit": None,
+        }
+        runtime_path = self.temp_dir / ".mm-flow" / "planning" / "task-progress.json"
+        runtime_path.write_text(json.dumps(runtime_state, indent=2), encoding="utf-8")
+
+        # Create git commits for PS1.1 and PS1.2 in the temp repo
+        dummy_file = self.temp_dir / "dummy.txt"
+        dummy_file.write_text("v1\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "dummy.txt"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "commit",
+                "-m",
+                "feat(project-state-mvp): PS1.1 — review requirements",
+            ],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        dummy_file.write_text("v2\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "dummy.txt"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "feat(project-state-mvp): PS1.2 — implement PS1"],
+            cwd=self.temp_dir,
+            check=True,
+            capture_output=True,
+        )
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1", "--continue")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+        # Git-recovered subtasks must NOT appear in the pending list sent to executor
+        self.assertIn(
+            "git-recovered",
+            result.stdout.lower(),
+            msg="Expected git-recovery log message",
+        )
+        # PS1.3 is the only truly pending subtask — executor should only see that
+        payload_line = next(
+            (
+                line
+                for line in result.stdout.splitlines()
+                if line.startswith("PAYLOAD:")
+            ),
+            None,
+        )
+        self.assertIsNotNone(payload_line, "Expected PAYLOAD: line in output")
+        payload = json.loads(payload_line[len("PAYLOAD:") :].strip())
+        pending_ids = [st["id"] for st in payload.get("subtasks", [])]
+        self.assertNotIn(
+            "PS1.1", pending_ids, "PS1.1 was committed — must not be re-executed"
+        )
+        self.assertNotIn(
+            "PS1.2", pending_ids, "PS1.2 was committed — must not be re-executed"
+        )
+        self.assertIn(
+            "PS1.3", pending_ids, "PS1.3 has no commit — must still be pending"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

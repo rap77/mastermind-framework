@@ -593,6 +593,45 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertIn("⏱️ **Estimate**:", todo_text)
         self.assertIn("📊 **Avg/subtask**:", todo_text)
 
+    def test_update_todo_times_replaces_metrics_without_duplication(self) -> None:
+        """Repeated updates should keep a single metrics block per root task."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        runtime_state = {
+            "task_id": "PS1",
+            "plan_path": str(objective_dir / "tasks.md"),
+            "todo_path": str(objective_dir / "todo.md"),
+            "subtasks": {
+                "PS1.1": {"status": "completed", "duration_seconds": 30},
+                "PS1.2": {"status": "completed", "duration_seconds": 60},
+                "PS1.3": {"status": "pending", "duration_seconds": 0},
+            },
+        }
+        (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
+            json.dumps(runtime_state),
+            encoding="utf-8",
+        )
+
+        first = self.run_command(str(UPDATE_TODO_TIMES), "PS1")
+        second = self.run_command(str(UPDATE_TODO_TIMES), "PS1")
+        self.assertEqual(first.returncode, 0, msg=first.stderr)
+        self.assertEqual(second.returncode, 0, msg=second.stderr)
+
+        todo_text = (objective_dir / "todo.md").read_text(encoding="utf-8")
+        ps1_section = todo_text.split("- [ ] PS2:", 1)[0]
+        self.assertEqual(ps1_section.count("⏱️ **Estimate**:"), 1)
+        self.assertEqual(ps1_section.count("📊 **Avg/subtask**:"), 1)
+
     def test_reconcile_repairs_todo_and_handoff_from_runtime_truth(self) -> None:
         """Reconcile mode should restore todo/handoff from runtime state truth."""
         discover_result = self.run_command(
