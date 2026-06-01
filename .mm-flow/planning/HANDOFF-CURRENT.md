@@ -1,7 +1,7 @@
-# Handoff — context-projection
+# Handoff — mm-harness-runtime-entrypoint-and-adapters
 
 ## Current objective
-- `context-projection`
+- `mm-harness-runtime-entrypoint-and-adapters`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -15,5 +15,5 @@
 - Start with `T1` from `tasks.md`.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective context-projection`
+- `/mm:discover-contract-check --objective mm-harness-runtime-entrypoint-and-adapters`
 - Run targeted tests for touched files before handing off again

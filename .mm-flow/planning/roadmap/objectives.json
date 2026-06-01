@@ -80,10 +80,10 @@
     "slug": "context-projection",
     "name": "Context Projection",
     "summary": "Build model-ready context from structured project state instead of chat history.",
-    "status": "planned",
-    "ready_now": true,
+    "status": "done",
+    "ready_now": false,
     "priority_score": 72,
-    "recommended_next": true,
+    "recommended_next": false,
     "mvp": true,
     "dependencies": [
       "postgres-hybrid-data-model",
@@ -103,7 +103,7 @@
     "status": "planned",
     "ready_now": true,
     "priority_score": 70,
-    "recommended_next": false,
+    "recommended_next": true,
     "mvp": true,
     "dependencies": [
       "backend-service-boundary-for-agents"
