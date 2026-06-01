@@ -15,7 +15,7 @@
 - Claude and Codex differ in slash-command UX, so the entrypoint contract must be validated via shell/core execution, not assumed from one runtime.
 
 ## Exact next recommended task
-- `T2` from `tasks.md` — depends on T1.
+- `T3` from `tasks.md` — depends on T2.
 
 ## Validation commands
 - `python3 .mm-flow/commands/mm/discover-contract-check.py --objective mm-harness-runtime-entrypoint-and-adapters`

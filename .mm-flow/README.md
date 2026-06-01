@@ -24,6 +24,19 @@ Framework de orquestación de desarrollo lo más agnóstico posible al runtime d
 
 ## Commands Disponibles
 
+### Canonical neutral entrypoint
+
+- `./bin/mm discover ...`
+- `./bin/mm discover-contract-check --objective <slug>`
+- `./bin/mm activate-next-objective`
+- `./bin/mm complete-task <objective/task>`
+- `./bin/mm continue-task <objective/task>`
+- `./bin/mm archive-objective [--objective <slug>]`
+- `./bin/mm context-to-canonical ...`
+- `(planned) ./bin/mm objective-context-check --objective <slug-or-path>`
+
+### Claude compatibility layer
+
 - `/mm:complete-task <id>` — Ejecutar tasks con pipeline TDD
 - `/mm:complete-task <id> --continue` — Continuar desde checkpoint
 - `/mm:archive-objective <slug>` — Archivar objective completado

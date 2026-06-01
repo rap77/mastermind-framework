@@ -75,10 +75,10 @@ python3 -m unittest tests.unit.test_mm_complete_task_handler_regressions
 
 ### Acceptance Criteria
 
-- [ ] `mm` exists as a neutral entrypoint
-- [ ] `mm` dispatches to the core handlers for the agreed subcommands
-- [ ] Exit codes are preserved from the underlying handlers
-- [ ] Help output makes the neutral interface discoverable
+- [x] `mm` exists as a neutral entrypoint
+- [x] `mm` dispatches to the core handlers for the agreed subcommands
+- [x] Exit codes are preserved from the underlying handlers
+- [x] Help output makes the neutral interface discoverable
 
 ## T3: Align adapters and add cross-runtime smoke coverage
 

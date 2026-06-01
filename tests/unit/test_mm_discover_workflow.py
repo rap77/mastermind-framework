@@ -35,6 +35,7 @@ CHECKPOINT_GUARD = (
 VERIFY_CRITERIA_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "verify-criteria-handler.py"
 )
+BIN_MM = REPO_ROOT / "bin" / "mm"
 
 
 class DiscoverWorkflowTest(unittest.TestCase):
@@ -102,6 +103,27 @@ class DiscoverWorkflowTest(unittest.TestCase):
             capture_output=True,
             text=True,
             check=False,
+        )
+
+    def run_neutral_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
+        """Run the neutral `mm` entrypoint in the temporary workspace."""
+        self._link_framework_commands()
+        return subprocess.run(
+            ["python3", str(BIN_MM), *args],
+            cwd=self.temp_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def _link_framework_commands(self) -> None:
+        """Expose the shared MM command tree inside the temporary repo."""
+        commands_link = self.temp_dir / ".mm-flow" / "commands"
+        if commands_link.exists() or commands_link.is_symlink():
+            return
+        commands_link.parent.mkdir(parents=True, exist_ok=True)
+        commands_link.symlink_to(
+            REPO_ROOT / ".mm-flow" / "commands", target_is_directory=True
         )
 
     def test_roadmap_mode_materializes_outputs(self) -> None:
@@ -551,6 +573,26 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("Usage: mm-complete-task", result.stdout)
         self.assertNotIn("Starting task --HELP", result.stdout)
+
+    def test_neutral_cli_help_exits_cleanly(self) -> None:
+        """The neutral CLI should advertise the canonical shell entrypoint."""
+        result = self.run_neutral_cli("--help")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("Usage: mm <command> [args]", result.stdout)
+        self.assertIn("continue-task", result.stdout)
+
+    def test_neutral_cli_dispatches_complete_task_help(self) -> None:
+        """The neutral CLI should dispatch help requests to the core handler."""
+        result = self.run_neutral_cli("complete-task", "--help")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("Usage: mm-complete-task", result.stdout)
+
+    def test_neutral_cli_preserves_handler_exit_codes(self) -> None:
+        """Invalid args should preserve the underlying handler's non-zero exit code."""
+        direct = self.run_command(str(DISCOVER_HANDLER), "--not-a-real-flag")
+        via_cli = self.run_neutral_cli("discover", "--not-a-real-flag")
+        self.assertEqual(direct.returncode, 2)
+        self.assertEqual(via_cli.returncode, direct.returncode)
 
     def test_active_mm_flow_has_no_verify_criteria_handler_dependency(self) -> None:
         """The active complete-task flow should not depend on the legacy verify-criteria handler."""

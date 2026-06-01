@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Neutral MasterMind CLI entrypoint."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def _usage() -> str:
+    """Return top-level CLI usage text."""
+    return """Usage: mm <command> [args]\n\nNeutral MasterMind CLI (shell/Codex-friendly)\n\nCommands:\n  discover                 Dispatch to discover-handler.py\n  discover-contract-check  Dispatch to discover-contract-check.py\n  activate-next-objective  Dispatch to activate-next-objective-handler.py\n  complete-task            Dispatch to complete-task-handler.py\n  continue-task            Alias for complete-task <TASK_ID> --continue\n  archive-objective        Dispatch to archive-objective-handler.py\n  context-to-canonical     Dispatch to context-to-canonical-handler.py\n\nExamples:\n  mm discover --roadmap --existing\n  mm complete-task objective-slug/T2 --brief\n  mm continue-task objective-slug/T2\n  mm context-to-canonical --type objective --name \"Add OAuth login\"\n"""
+
+
+def _find_project_root() -> Path:
+    """Locate the current project root containing .mm-flow/commands/mm."""
+    candidates = [Path.cwd(), *Path.cwd().parents]
+    script_real = Path(__file__).resolve()
+    candidates.extend([script_real.parent, *script_real.parent.parents])
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if (candidate / ".mm-flow" / "commands" / "mm").is_dir():
+            return candidate
+    raise SystemExit(
+        "STATUS: FAILED\nCould not locate project root containing .mm-flow/commands/mm"
+    )
+
+
+def _dispatch(command: str, args: list[str]) -> int:
+    """Dispatch a neutral command to the corresponding core handler."""
+    root = _find_project_root()
+    commands_dir = root / ".mm-flow" / "commands" / "mm"
+    mapping = {
+        "discover": ["discover-handler.py"],
+        "discover-contract-check": ["discover-contract-check.py"],
+        "activate-next-objective": ["activate-next-objective-handler.py"],
+        "complete-task": ["complete-task-handler.py"],
+        "archive-objective": ["archive-objective-handler.py"],
+        "context-to-canonical": ["context-to-canonical-handler.py"],
+    }
+
+    if command == "continue-task":
+        if not args or args[0] in {"-h", "--help"}:
+            print("Usage: mm continue-task <TASK_ID> [--brief]", file=sys.stderr)
+            return 0 if args and args[0] in {"-h", "--help"} else 2
+        args = [args[0], "--continue", *args[1:]]
+        command = "complete-task"
+
+    handler_parts = mapping.get(command)
+    if handler_parts is None:
+        print(_usage(), file=sys.stderr)
+        print(f"Unknown command: {command}", file=sys.stderr)
+        return 2
+
+    handler = commands_dir.joinpath(*handler_parts)
+    completed = subprocess.run(
+        [sys.executable, str(handler), *args],
+        cwd=root,
+        env=os.environ.copy(),
+        check=False,
+    )
+    return completed.returncode
+
+
+def main(argv: list[str]) -> int:
+    """Run the neutral CLI."""
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(_usage())
+        return 0
+
+    return _dispatch(argv[0], argv[1:])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

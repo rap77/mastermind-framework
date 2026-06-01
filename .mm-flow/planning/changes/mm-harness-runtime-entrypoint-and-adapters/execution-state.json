@@ -37,35 +37,35 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
     },
     "T2": {
-      "status": "pending",
+      "status": "completed",
       "subtasks": {
         "T2.1": {
           "description": "Create the neutral CLI entrypoint and dispatch contract",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T19:00:31.196943",
+          "completed_at": "2026-06-01T19:00:31.291149",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T19:00:31.291149"
         },
         "T2.2": {
           "description": "Wire the supported subcommands to core handlers",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T19:00:31.449931",
+          "completed_at": "2026-06-01T19:00:31.544178",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T19:00:31.544178"
         },
         "T2.3": {
           "description": "Validate help/dispatch behavior and targeted tests",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T19:00:31.673924",
+          "completed_at": "2026-06-01T19:00:31.760282",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T19:00:31.760282"
         }
       },
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "2026-06-01T19:00:31.196943",
+      "completed_at": "2026-06-01T19:00:31.760282",
       "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
     },
@@ -103,6 +103,6 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-runtime-entrypoint-and-adapters/todo.md"
     }
   },
-  "updated_at": "2026-06-01T11:06:21.581829",
+  "updated_at": "2026-06-01T19:00:31.760282",
   "bootstrapped_from_artifacts": true
 }
