@@ -13,7 +13,6 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Import db_client for PostgreSQL integration
 # Graceful degradation: works even if asyncpg not installed
@@ -107,7 +106,7 @@ def check_rust_control_plane() -> bool:
         return False
 
 
-def check_provider_available(db: Optional[MasterMindDB]) -> bool:
+def check_provider_available(db: MasterMindDB | None) -> bool:
     """Check if at least one AI provider has available tokens.
 
     Args:
@@ -373,7 +372,7 @@ def main() -> None:
     target = Path(args.target).resolve() if args.target else Path.cwd()
 
     # Initialize DB client if available
-    db: Optional[MasterMindDB] = None
+    db: MasterMindDB | None = None
     if DB_CLIENT_AVAILABLE:
         db = MasterMindDB()
 

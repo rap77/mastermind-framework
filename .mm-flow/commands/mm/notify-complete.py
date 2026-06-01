@@ -12,7 +12,6 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 
 def play_linux_sound() -> bool:
@@ -202,8 +201,8 @@ def play_custom_audio_file(status: str = "complete") -> bool:
 
     # Check for custom audio files based on status
     # Formats: WAV (preferred, native), OGG, MP3 (fallback)
-    extensions: List[str] = [".wav", ".ogg", ".mp3"]
-    custom_locations: List[Path] = []
+    extensions: list[str] = [".wav", ".ogg", ".mp3"]
+    custom_locations: list[Path] = []
 
     for ext in extensions:
         custom_locations.extend(
@@ -295,7 +294,7 @@ def detect_environment() -> str:
     """Detect the current environment."""
     # Check if we're in WSL
     try:
-        with open("/proc/version", "r") as f:
+        with open("/proc/version") as f:
             if "microsoft" in f.read().lower() or "wsl" in f.read().lower():
                 return "wsl"
     except Exception:

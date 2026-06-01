@@ -20,7 +20,8 @@ Handler Python que valida ANTES de commitear: tests pasando (0 fallas), GGA hook
 
 ## Handler Execution
 
-Este comando ejecuta `safe-commit-handler.py` que implementa:
+Este comando ejecuta `safe_commit_handler.py` (también compatible con el alias
+`safe-commit-handler.py`) que implementa:
 
 1. **Detección de `--no-verify`** → Revierte commit + explicación detallada
 2. **Tests backend** → `cd apps/api && uv run pytest` (0 fallas toleradas)

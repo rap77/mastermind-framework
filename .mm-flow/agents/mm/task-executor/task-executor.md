@@ -182,6 +182,7 @@ Never batch-commit multiple subtasks. Each subtask = one commit = one `--mark-do
 | Tests fail after 2 fix iterations | Mark subtask `failed`, continue to next |
 | Code-reviewer issues remain after 2 fix cycles | Commit with `[unresolved: ...]`, mark done |
 | Permission error on any command | **STOP immediately** — do NOT retry, do NOT continue to next subtask. Emit `BLOCKED_PERMISSION` report and exit. |
+| Missing handler / wrapper / write-path error (`can't open file`, `No such file or directory`, read-only planning file) | **STOP immediately** — do NOT continue manually, do NOT edit planning files by hand. Emit `BLOCKED_FLOW` report and exit. |
 
 ### Permission Error Protocol
 
@@ -190,6 +191,35 @@ Permission denials are not transient — retrying wastes time and continuing to 
 1. Record the exact denied command
 2. Skip all remaining subtasks (do not mark them failed — they are blocked, not failed)
 3. Exit with the `BLOCKED_PERMISSION` output format below
+
+### Flow Error Protocol
+
+If any command that maintains execution state fails, including:
+- `python3 .claude/commands/mm/complete-task-handler.py --mark-in-progress ...`
+- `python3 .claude/commands/mm/complete-task-handler.py --mark-done ...`
+- `python3 .claude/commands/mm/update-todo-times.py ...`
+- `/mm:safe-commit`
+
+and the error looks like a broken adapter/runtime, for example:
+- `can't open file`
+- `No such file or directory`
+- missing `.claude/commands/mm/...`
+- read-only write failure on planning files
+
+then:
+
+1. STOP immediately
+2. Do not continue to the next subtask
+3. Do not manually edit `todo.md`, `HANDOFF-CURRENT.md`, `task-progress.json`, or `execution-state.json`
+4. Exit with:
+
+```
+BLOCKED_FLOW
+Reason: handler/adapter unavailable
+Failed command: <exact command>
+Observed error: <exact stderr line>
+Next action: repair mm-flow / Claude compatibility layer before resuming
+```
 
 ---
 
