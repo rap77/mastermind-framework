@@ -60,6 +60,38 @@ After installation:
 
 - generic runtime path: `.mm-flow/commands/mm/*.py`
 - Claude Code compatibility path: `.claude/commands/mm/*`
+- neutral shell/Codex entrypoint: `bin/mm`
+
+## Cross-runtime Usage
+
+### Shell / Codex
+
+Use the neutral entrypoint as the canonical interface:
+
+```bash
+./bin/mm discover --roadmap --existing
+./bin/mm complete-task mm-harness-runtime-entrypoint-and-adapters/T2 --brief
+./bin/mm continue-task mm-harness-runtime-entrypoint-and-adapters/T2
+```
+
+### Claude Code
+
+Claude can keep using slash commands as a thin adapter over the same core:
+
+```text
+/mm:discover --roadmap --existing
+/mm:complete-task mm-harness-runtime-entrypoint-and-adapters/T2 --brief
+/mm:continue-task mm-harness-runtime-entrypoint-and-adapters/T2
+```
+
+### Direct core fallback
+
+If a runtime has no adapter/CLI integration, invoke the handlers directly:
+
+```bash
+python3 .mm-flow/commands/mm/discover-handler.py --roadmap --existing
+python3 .mm-flow/commands/mm/complete-task-handler.py mm-harness-runtime-entrypoint-and-adapters/T2 --brief
+```
 
 ## Brain Integration
 

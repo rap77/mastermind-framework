@@ -222,27 +222,54 @@ def _remove_existing(path: Path) -> None:
 
 
 def install_symlinks(src_root: Path, dest: Path) -> None:
-    """Create symlinks in target project pointing to the framework.
+    """Create framework and adapter symlinks in the target project.
 
-    Three symlinks are created:
-      .claude/commands/mm  → FRAMEWORK/.mm-flow/commands/mm/
-      .claude/agents/mm    → FRAMEWORK/.mm-flow/agents/mm/
-      .claude/skills/mm    → FRAMEWORK/.mm-flow/skills/mm/
-
-    Any pre-existing path (file, dir, or symlink) at each destination is
-    removed before the symlink is created.
+    Shared framework paths are linked into `.mm-flow/` so source edits
+    propagate automatically, while planning state remains local to the target
+    project. Claude compatibility wrappers then point at those local shared
+    framework links, and `bin/mm` exposes the neutral shell/Codex entrypoint.
     """
-    links = [
+    framework_links = [
         (
-            src_root / ".mm-flow" / "commands" / "mm",
-            dest / ".claude" / "commands" / "mm",
+            src_root / ".mm-flow" / "commands",
+            dest / ".mm-flow" / "commands",
         ),
-        (src_root / ".mm-flow" / "agents" / "mm", dest / ".claude" / "agents" / "mm"),
-        (src_root / ".mm-flow" / "skills" / "mm", dest / ".claude" / "skills" / "mm"),
+        (src_root / ".mm-flow" / "agents", dest / ".mm-flow" / "agents"),
+        (src_root / ".mm-flow" / "skills", dest / ".mm-flow" / "skills"),
+        (src_root / ".mm-flow" / "config", dest / ".mm-flow" / "config"),
+        (src_root / ".mm-flow" / "assets", dest / ".mm-flow" / "assets"),
+        (src_root / "bin" / "mm", dest / "bin" / "mm"),
     ]
-    for src, link in links:
+    for src, link in framework_links:
         if not src.exists():
             print(f"WARNING: Framework source not found, skipping: {src}")
+            continue
+        link.parent.mkdir(parents=True, exist_ok=True)
+        _remove_existing(link)
+        link.symlink_to(src)
+        print(f"INFO: Symlinked {link.relative_to(dest)} → {src}")
+
+    (dest / ".mm-flow" / "planning" / "changes").mkdir(parents=True, exist_ok=True)
+    (dest / ".mm-flow" / "planning" / "archive").mkdir(parents=True, exist_ok=True)
+    (dest / ".mm-flow" / "planning" / "roadmap").mkdir(parents=True, exist_ok=True)
+
+    adapter_links = [
+        (
+            dest / ".mm-flow" / "commands" / "mm",
+            dest / ".claude" / "commands" / "mm",
+        ),
+        (
+            dest / ".mm-flow" / "agents" / "mm",
+            dest / ".claude" / "agents" / "mm",
+        ),
+        (
+            dest / ".mm-flow" / "skills" / "mm",
+            dest / ".claude" / "skills" / "mm",
+        ),
+    ]
+    for src, link in adapter_links:
+        if not src.exists():
+            print(f"WARNING: Adapter source not found, skipping: {src}")
             continue
         link.parent.mkdir(parents=True, exist_ok=True)
         _remove_existing(link)

@@ -112,7 +112,7 @@ python3 .claude/commands/mm/complete-task-handler.py --help
 
 ### Acceptance Criteria
 
-- [ ] Claude wrappers still work after the neutral CLI is introduced
-- [ ] Shell/Codex usage is documented explicitly
-- [ ] Basic cross-runtime smoke coverage exists
-- [ ] Handoff explains that the next harness objective is the context-intake/objective-context-check improvement
+- [x] Claude wrappers still work after the neutral CLI is introduced
+- [x] Shell/Codex usage is documented explicitly
+- [x] Basic cross-runtime smoke coverage exists
+- [x] Handoff explains that the next harness objective is the context-intake/objective-context-check improvement

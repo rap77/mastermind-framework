@@ -398,9 +398,21 @@ class DiscoverWorkflowTest(unittest.TestCase):
         commands_link = target / ".claude" / "commands" / "mm"
         agents_link = target / ".claude" / "agents" / "mm"
         skills_link = target / ".claude" / "skills" / "mm"
+        framework_commands = target / ".mm-flow" / "commands"
+        framework_agents = target / ".mm-flow" / "agents"
+        framework_skills = target / ".mm-flow" / "skills"
+        framework_config = target / ".mm-flow" / "config"
+        framework_assets = target / ".mm-flow" / "assets"
+        neutral_cli = target / "bin" / "mm"
         self.assertTrue(commands_link.is_symlink())
         self.assertTrue(agents_link.is_symlink())
         self.assertTrue(skills_link.is_symlink())
+        self.assertTrue(framework_commands.is_symlink())
+        self.assertTrue(framework_agents.is_symlink())
+        self.assertTrue(framework_skills.is_symlink())
+        self.assertTrue(framework_config.is_symlink())
+        self.assertTrue(framework_assets.is_symlink())
+        self.assertTrue(neutral_cli.is_symlink())
         self.assertEqual(
             commands_link.resolve(), REPO_ROOT / ".mm-flow" / "commands" / "mm"
         )
@@ -410,6 +422,14 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(
             skills_link.resolve(), REPO_ROOT / ".mm-flow" / "skills" / "mm"
         )
+        self.assertEqual(
+            framework_commands.resolve(), REPO_ROOT / ".mm-flow" / "commands"
+        )
+        self.assertEqual(framework_agents.resolve(), REPO_ROOT / ".mm-flow" / "agents")
+        self.assertEqual(framework_skills.resolve(), REPO_ROOT / ".mm-flow" / "skills")
+        self.assertEqual(framework_config.resolve(), REPO_ROOT / ".mm-flow" / "config")
+        self.assertEqual(framework_assets.resolve(), REPO_ROOT / ".mm-flow" / "assets")
+        self.assertEqual(neutral_cli.resolve(), REPO_ROOT / "bin" / "mm")
 
     def test_installed_project_can_run_context_to_canonical_via_symlink(self) -> None:
         """An installed project should be able to run context-to-canonical through .claude symlinks."""
@@ -455,6 +475,31 @@ class DiscoverWorkflowTest(unittest.TestCase):
             target / "docs" / "canonical" / "objective-specs" / "add-scheduler-api.md"
         )
         self.assertTrue(output_path.exists())
+
+    def test_installed_project_can_run_neutral_mm_cli(self) -> None:
+        """An installed project should expose the neutral `mm` CLI via bin/mm."""
+        target = self.temp_dir / "installed-project"
+        target.mkdir(parents=True, exist_ok=True)
+
+        init_result = self.run_command(
+            str(INIT_HANDLER),
+            "--target",
+            str(target),
+            "--skip-postgres-check",
+        )
+        self.assertEqual(
+            init_result.returncode, 0, msg=init_result.stdout + init_result.stderr
+        )
+
+        result = subprocess.run(
+            ["python3", str(target / "bin" / "mm"), "complete-task", "--help"],
+            cwd=target,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("Usage: mm-complete-task", result.stdout)
 
     def test_objective_mode_materializes_package_and_validates(self) -> None:
         """Objective mode should write the package and pass the objective validator."""

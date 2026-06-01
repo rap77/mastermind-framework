@@ -19,9 +19,11 @@
   - [x] T2.3: Validate help/dispatch behavior and targeted tests
   - depends_on: T1
   - validation: `python3 -m unittest tests.unit.test_mm_discover_workflow && python3 -m unittest tests.unit.test_mm_complete_task_handler_regressions && ./bin/mm --help`
-- [ ] T3: Align adapters and add cross-runtime smoke coverage
-  - [ ] T3.1: Verify Claude wrappers remain thin compatibility adapters
-  - [ ] T3.2: Add documentation/tests for shell-Codex-Claude usage and mention the planned `objective-context-check` step
-  - [ ] T3.3: Refresh handoff with the next harness objective and rerun final validation
+- [x] T3: Align adapters and add cross-runtime smoke coverage
+⏱️ **Estimate**: N/A | **Actual**: 0s | **Deviation**: — | **Progress**: 3/3 (100%)
+📊 **Avg/subtask**: 0s | **ETA**: done
+  - [x] T3.1: Verify Claude wrappers remain thin compatibility adapters
+  - [x] T3.2: Add documentation/tests for shell-Codex-Claude usage and mention the planned `objective-context-check` step
+  - [x] T3.3: Refresh handoff with the next harness objective and rerun final validation
   - depends_on: T2
   - validation: `python3 -m unittest tests.unit.test_mm_discover_workflow && python3 -m unittest tests.unit.test_mm_complete_task_handler_regressions && python3 .claude/commands/mm/complete-task-handler.py --help && ./bin/mm complete-task --help`
