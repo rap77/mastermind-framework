@@ -67,7 +67,7 @@ and records structured follow-up questions in the sidecar JSON report.
    → creates docs/canonical/objective-specs/add-x.md
 
 2. /mm:objective-context-check --objective add-x
-   → planned future gate: validates scope, gaps, evidence, and missing questions
+   → validates scope, gaps, evidence, and missing questions
 
 3. /mm:discover --roadmap --existing
    → reads the new spec (Tier 1 source), adds it to the roadmap
@@ -76,8 +76,8 @@ and records structured follow-up questions in the sidecar JSON report.
    → activates the objective for planning and execution
 ```
 
-> Note: `objective-context-check` is not implemented yet. It is the next planned
-> harness step between canonical generation and package materialization.
+`objective-context-check` is now the formal readiness gate between canonical
+generation and package materialization.
 
 ## Optional payload mode
 

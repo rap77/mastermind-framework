@@ -110,6 +110,6 @@ python3 .mm-flow/commands/mm/discover-contract-check.py --objective mm-harness-o
 
 ### Acceptance Criteria
 
-- [ ] Docs show the new `context-to-canonical -> objective-context-check -> discover` flow explicitly
-- [ ] Handoff points to the next harness gap after this gate
-- [ ] Final validation passes and another model could continue from artifacts alone
+- [x] Docs show the new `context-to-canonical -> objective-context-check -> discover` flow explicitly
+- [x] Handoff points to the next harness gap after this gate
+- [x] Final validation passes and another model could continue from artifacts alone

@@ -33,7 +33,7 @@ Framework de orquestación de desarrollo lo más agnóstico posible al runtime d
 - `./bin/mm continue-task <objective/task>`
 - `./bin/mm archive-objective [--objective <slug>]`
 - `./bin/mm context-to-canonical ...`
-- `(planned) ./bin/mm objective-context-check --objective <slug-or-path>`
+- `./bin/mm objective-context-check --objective <slug-or-path>`
 
 ### Claude compatibility layer
 
@@ -42,7 +42,7 @@ Framework de orquestación de desarrollo lo más agnóstico posible al runtime d
 - `/mm:archive-objective <slug>` — Archivar objective completado
 - `/mm:activate-next-objective` — Activar siguiente objective del roadmap
 - `/mm:context-to-canonical` — Convertir contexto real del proyecto en docs canónicos
-- `(planned) /mm:objective-context-check` — Validar/tightenear el objetivo canónico antes de `discover`
+- `/mm:objective-context-check` — Validar/tightenear el objetivo canónico antes de `discover`
 - `/mm:discover-contract-check --objective <slug>` — Validar planning contract
 - `/mm:safe-commit` — Commit con validación
 
@@ -71,8 +71,9 @@ Use the neutral entrypoint as the canonical interface:
 ```bash
 ./bin/mm discover --roadmap --existing
 ./bin/mm context-to-canonical --type objective --name "Add OAuth login" --interview
-./bin/mm complete-task mm-harness-runtime-entrypoint-and-adapters/T2 --brief
-./bin/mm continue-task mm-harness-runtime-entrypoint-and-adapters/T2
+./bin/mm objective-context-check --objective add-oauth-login
+./bin/mm complete-task mm-harness-objective-context-check/T2 --brief
+./bin/mm continue-task mm-harness-objective-context-check/T2
 ```
 
 ### Claude Code
@@ -81,8 +82,9 @@ Claude can keep using slash commands as a thin adapter over the same core:
 
 ```text
 /mm:discover --roadmap --existing
-/mm:complete-task mm-harness-runtime-entrypoint-and-adapters/T2 --brief
-/mm:continue-task mm-harness-runtime-entrypoint-and-adapters/T2
+/mm:objective-context-check --objective add-oauth-login
+/mm:complete-task mm-harness-objective-context-check/T2 --brief
+/mm:continue-task mm-harness-objective-context-check/T2
 ```
 
 ### Direct core fallback
@@ -92,7 +94,8 @@ If a runtime has no adapter/CLI integration, invoke the handlers directly:
 ```bash
 python3 .mm-flow/commands/mm/discover-handler.py --roadmap --existing
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Add OAuth login" --interview
-python3 .mm-flow/commands/mm/complete-task-handler.py mm-harness-runtime-entrypoint-and-adapters/T2 --brief
+python3 .mm-flow/commands/mm/objective-context-check-handler.py --objective add-oauth-login
+python3 .mm-flow/commands/mm/complete-task-handler.py mm-harness-objective-context-check/T2 --brief
 ```
 
 ## Brain Integration
@@ -112,15 +115,12 @@ Objetivo objetivo/feature nuevo (flujo target):
 
 ```text
 context-to-canonical
-→ objective-context-check   (planned new gate)
+→ objective-context-check
 → discover
 → discover-contract-check
 → complete-task
 → archive-objective
 ```
-
-Hoy `objective-context-check` todavía no está implementado como comando del core,
-pero ya queda incorporado como parte de la dirección del harness.
 
 Si un runtime soporta subagentes, puede usar los documentos de `agents/` como
 protocolos opcionales. Si no los soporta, los handlers siguen siendo ejecutables
