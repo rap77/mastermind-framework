@@ -104,6 +104,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Emit a payload for an external writer instead of writing the file directly",
     )
+    parser.add_argument(
+        "--interview",
+        action="store_true",
+        help="Emit structured follow-up questions when repository evidence is insufficient",
+    )
     return parser.parse_args()
 
 
@@ -272,8 +277,72 @@ def build_intake_contract(args: argparse.Namespace, target: Path) -> dict[str, o
         "target": str(target),
         "name": args.name,
         "intent": args.intent if args.type == "objective" else None,
+        "interview_requested": args.interview,
         "output_mode": "payload-only" if args.payload_only else "direct-write",
     }
+
+
+def build_interview_questions(
+    intake: dict[str, object], context: dict[str, object], gaps: list[str]
+) -> list[dict[str, str]]:
+    """Return structured interview questions for insufficient-context cases."""
+    doc_type = str(intake.get("doc_type", "project-adapter"))
+    intent = str(intake.get("intent") or "feature")
+    content = context.get("content", {})
+    assert isinstance(content, dict)
+
+    questions: list[dict[str, str]] = []
+    if doc_type == "objective":
+        if not content.get("docs_prd"):
+            questions.append(
+                {
+                    "id": "desired_behavior",
+                    "question": "What exact behavior or outcome should this objective produce?",
+                    "reason": "Repository evidence does not yet define the objective slice precisely.",
+                }
+            )
+        if intent == "bugfix":
+            questions.append(
+                {
+                    "id": "repro_steps",
+                    "question": "What are the minimal reproduction steps and the expected behavior?",
+                    "reason": "Bugfix objectives need repro evidence to avoid ambiguous scope.",
+                }
+            )
+        elif intent == "refactor":
+            questions.append(
+                {
+                    "id": "invariants",
+                    "question": "Which invariants must stay unchanged while refactoring?",
+                    "reason": "Refactor work needs explicit non-regression boundaries.",
+                }
+            )
+        else:
+            questions.append(
+                {
+                    "id": "out_of_scope",
+                    "question": "What is explicitly out of scope for this objective?",
+                    "reason": "Feature/capability work benefits from clear scope boundaries.",
+                }
+            )
+    elif gaps:
+        questions.append(
+            {
+                "id": "project_goal",
+                "question": "What is the primary goal this project adapter should capture?",
+                "reason": "Repository evidence is too sparse to infer a stable canonical summary.",
+            }
+        )
+
+    deduped: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
+    for question in questions:
+        qid = question["id"]
+        if qid in seen_ids:
+            continue
+        seen_ids.add(qid)
+        deduped.append(question)
+    return deduped
 
 
 def _first_sentence(*values: str) -> str:
@@ -545,6 +614,7 @@ def build_intake_report(payload: dict[str, object]) -> dict[str, object]:
             "Should objective-context-check request additional structured user input before discover?"
         )
 
+    questions_asked = build_interview_questions(intake, context, gaps)
     if gaps:
         confidence = "medium" if evidence else "low"
     else:
@@ -560,8 +630,9 @@ def build_intake_report(payload: dict[str, object]) -> dict[str, object]:
         "evidence": evidence,
         "assumptions": assumptions,
         "gaps_detected": gaps,
-        "questions_asked": [],
-        "questions_unanswered": questions_unanswered,
+        "questions_asked": questions_asked,
+        "questions_unanswered": [q["id"] for q in questions_asked]
+        + questions_unanswered,
         "confidence": confidence,
         "generated_files": [
             payload["output_path"],
@@ -657,9 +728,14 @@ def main() -> None:
         return
 
     output_file, report_file = write_document(payload)
+    report_data = json.loads(report_file.read_text(encoding="utf-8"))
     print("STATUS: PASSED")
     print(f"FILE: {output_file}")
     print(f"REPORT: {report_file}")
+    if report_data.get("questions_asked"):
+        print("INTERVIEW_REQUIRED: yes")
+    else:
+        print("INTERVIEW_REQUIRED: no")
     print(f"MODE: direct-write ({args.type})")
     print("NEXT_COMMAND: /mm:discover --roadmap --existing")
 

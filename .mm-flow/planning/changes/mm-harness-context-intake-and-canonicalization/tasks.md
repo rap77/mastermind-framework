@@ -114,7 +114,7 @@ python3 .mm-flow/commands/mm/discover-contract-check.py --objective mm-harness-c
 
 ### Acceptance Criteria
 
-- [ ] There is a structured interview/fallback path for insufficient-context cases
-- [ ] Docs explain how shell/Codex/Claude can use the improved intake layer
-- [ ] Handoff points clearly to the next harness objective around `objective-context-check`
-- [ ] Final validation passes with the tightened package and updated docs
+- [x] There is a structured interview/fallback path for insufficient-context cases
+- [x] Docs explain how shell/Codex/Claude can use the improved intake layer
+- [x] Handoff points clearly to the next harness objective around `objective-context-check`
+- [x] Final validation passes with the tightened package and updated docs

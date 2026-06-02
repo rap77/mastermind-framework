@@ -70,6 +70,7 @@ Use the neutral entrypoint as the canonical interface:
 
 ```bash
 ./bin/mm discover --roadmap --existing
+./bin/mm context-to-canonical --type objective --name "Add OAuth login" --interview
 ./bin/mm complete-task mm-harness-runtime-entrypoint-and-adapters/T2 --brief
 ./bin/mm continue-task mm-harness-runtime-entrypoint-and-adapters/T2
 ```
@@ -90,6 +91,7 @@ If a runtime has no adapter/CLI integration, invoke the handlers directly:
 
 ```bash
 python3 .mm-flow/commands/mm/discover-handler.py --roadmap --existing
+python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Add OAuth login" --interview
 python3 .mm-flow/commands/mm/complete-task-handler.py mm-harness-runtime-entrypoint-and-adapters/T2 --brief
 ```
 

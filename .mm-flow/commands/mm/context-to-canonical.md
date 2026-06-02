@@ -24,6 +24,7 @@ python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type project-adap
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Add OAuth login"
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Fix N+1 query in task list" --intent bugfix
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Migrate to Postgres" --intent capability
+python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Add OAuth login" --interview
 
 # Custom target / output
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --target /path/to/project --output /path/to/output.md
@@ -52,6 +53,12 @@ In direct-write mode it now emits:
   - `questions_unanswered`
   - `confidence`
   - `generated_files`
+
+If the repo context is insufficient, the handler also emits:
+
+- `INTERVIEW_REQUIRED: yes`
+
+and records structured follow-up questions in the sidecar JSON report.
 
 ## Full flow for new objectives
 
@@ -90,6 +97,10 @@ as the generic writing protocol.
 
 The payload also carries a normalized `intake` contract so downstream tools can
 distinguish user-stated intent from repo-derived evidence.
+
+If `--interview` is passed, the payload/report preserves that structured
+follow-up intent for another model or human operator to answer before
+materializing downstream work.
 
 ## What the agent produces
 

@@ -70,39 +70,39 @@
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md"
     },
     "T3": {
-      "status": "pending",
+      "status": "completed",
       "subtasks": {
         "T3.1": {
           "description": "Review requirements and design context for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T22:00:06.536010",
+          "completed_at": "2026-06-01T22:00:06.624586",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T22:00:06.624586"
         },
         "T3.2": {
           "description": "Implement T3 end-to-end",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T22:00:06.762327",
+          "completed_at": "2026-06-01T22:00:06.853899",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T22:00:06.853899"
         },
         "T3.3": {
           "description": "Run validation for T3",
-          "status": "pending",
-          "started_at": null,
-          "completed_at": null,
-          "duration_seconds": 0,
-          "updated_at": null
+          "status": "completed",
+          "started_at": "2026-06-01T22:00:06.977416",
+          "completed_at": "2026-06-01T22:00:07.060561",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T22:00:07.060561"
         }
       },
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "2026-06-01T22:00:06.536010",
+      "completed_at": "2026-06-01T22:00:07.060561",
       "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/tasks.md",
       "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md"
     }
   },
-  "updated_at": "2026-06-01T20:29:07.282993",
+  "updated_at": "2026-06-01T22:00:07.060561",
   "bootstrapped_from_artifacts": true
 }

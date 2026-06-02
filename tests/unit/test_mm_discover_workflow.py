@@ -425,6 +425,34 @@ class DiscoverWorkflowTest(unittest.TestCase):
             str(Path(payload["output_path"]).with_suffix(".json")),
         )
 
+    def test_context_to_canonical_report_emits_structured_interview_questions(
+        self,
+    ) -> None:
+        """Objective report should surface structured interview questions when context is sparse."""
+        target = self.temp_dir / "sparse-project"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "README.md").write_text("# Sparse Project\n", encoding="utf-8")
+
+        result = self.run_command(
+            str(CONTEXT_TO_CANONICAL_HANDLER),
+            "--type",
+            "objective",
+            "--target",
+            str(target),
+            "--name",
+            "Add OAuth Login",
+            "--interview",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("INTERVIEW_REQUIRED: yes", result.stdout)
+
+        report_path = (
+            target / "docs" / "canonical" / "objective-specs" / "add-oauth-login.json"
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertTrue(report["questions_asked"])
+        self.assertIn("desired_behavior", report["questions_unanswered"])
+
     def test_init_handler_symlinks_to_mm_flow_source(self) -> None:
         """init-handler should install symlinks pointing at .mm-flow sources, not .claude wrappers."""
         target = self.temp_dir / "installed-project"
