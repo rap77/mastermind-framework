@@ -11,7 +11,7 @@ from pathlib import Path
 
 def _usage() -> str:
     """Return top-level CLI usage text."""
-    return """Usage: mm <command> [args]\n\nNeutral MasterMind CLI (shell/Codex-friendly)\n\nCommands:\n  discover                 Dispatch to discover-handler.py\n  discover-contract-check  Dispatch to discover-contract-check.py\n  activate-next-objective  Dispatch to activate-next-objective-handler.py\n  complete-task            Dispatch to complete-task-handler.py\n  continue-task            Alias for complete-task <TASK_ID> --continue\n  archive-objective        Dispatch to archive-objective-handler.py\n  context-to-canonical     Dispatch to context-to-canonical-handler.py\n\nExamples:\n  mm discover --roadmap --existing\n  mm complete-task objective-slug/T2 --brief\n  mm continue-task objective-slug/T2\n  mm context-to-canonical --type objective --name \"Add OAuth login\"\n"""
+    return """Usage: mm <command> [args]\n\nNeutral MasterMind CLI (shell/Codex-friendly)\n\nCommands:\n  discover                 Dispatch to discover-handler.py\n  discover-contract-check  Dispatch to discover-contract-check.py\n  objective-context-check  Dispatch to objective-context-check-handler.py\n  activate-next-objective  Dispatch to activate-next-objective-handler.py\n  complete-task            Dispatch to complete-task-handler.py\n  continue-task            Alias for complete-task <TASK_ID> --continue\n  archive-objective        Dispatch to archive-objective-handler.py\n  context-to-canonical     Dispatch to context-to-canonical-handler.py\n\nExamples:\n  mm discover --roadmap --existing\n  mm objective-context-check --objective add-oauth-login\n  mm complete-task objective-slug/T2 --brief\n  mm continue-task objective-slug/T2\n  mm context-to-canonical --type objective --name \"Add OAuth login\"\n"""
 
 
 def _find_project_root() -> Path:
@@ -38,6 +38,7 @@ def _dispatch(command: str, args: list[str]) -> int:
     mapping = {
         "discover": ["discover-handler.py"],
         "discover-contract-check": ["discover-contract-check.py"],
+        "objective-context-check": ["objective-context-check-handler.py"],
         "activate-next-objective": ["activate-next-objective-handler.py"],
         "complete-task": ["complete-task-handler.py"],
         "archive-objective": ["archive-objective-handler.py"],

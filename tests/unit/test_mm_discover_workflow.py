@@ -27,6 +27,9 @@ ACTIVATE_NEXT_OBJECTIVE_HANDLER = (
 CONTEXT_TO_CANONICAL_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "context-to-canonical-handler.py"
 )
+OBJECTIVE_CONTEXT_CHECK_HANDLER = (
+    REPO_ROOT / ".claude" / "commands" / "mm" / "objective-context-check-handler.py"
+)
 INIT_HANDLER = REPO_ROOT / ".claude" / "commands" / "mm" / "init-handler.py"
 UPDATE_TODO_TIMES = REPO_ROOT / ".claude" / "commands" / "mm" / "update-todo-times.py"
 CHECKPOINT_GUARD = (
@@ -125,6 +128,29 @@ class DiscoverWorkflowTest(unittest.TestCase):
         commands_link.symlink_to(
             REPO_ROOT / ".mm-flow" / "commands", target_is_directory=True
         )
+
+    def _write_objective_canonical(
+        self,
+        slug: str,
+        report: dict[str, object],
+        *,
+        title: str = "Add OAuth Login",
+    ) -> Path:
+        """Create a canonical objective markdown/json pair in the temp repo."""
+        output_dir = self.temp_dir / "docs" / "canonical" / "objective-specs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        markdown_path = output_dir / f"{slug}.md"
+        markdown_path.write_text(
+            (
+                f"# Objective Spec: {title}\n\n"
+                f"<!-- mm:objective-spec | slug: {slug} | intent: feature | status: draft -->\n\n"
+                "## 1. Objective Identity\n"
+            ),
+            encoding="utf-8",
+        )
+        report_path = markdown_path.with_suffix(".json")
+        report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        return markdown_path
 
     def test_roadmap_mode_materializes_outputs(self) -> None:
         """Roadmap mode should write roadmap files and the current handoff."""
@@ -452,6 +478,92 @@ class DiscoverWorkflowTest(unittest.TestCase):
         report = json.loads(report_path.read_text(encoding="utf-8"))
         self.assertTrue(report["questions_asked"])
         self.assertIn("desired_behavior", report["questions_unanswered"])
+
+    def test_objective_context_check_passes_when_canonical_is_ready(self) -> None:
+        """The new gate should pass when the canonical markdown/report are ready."""
+        self._write_objective_canonical(
+            "add-oauth-login",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "add-oauth-login",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md", "CLAUDE.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        result = self.run_command(
+            str(OBJECTIVE_CONTEXT_CHECK_HANDLER),
+            "--objective",
+            "add-oauth-login",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+
+    def test_objective_context_check_fails_when_report_is_missing(self) -> None:
+        """The gate should fail deterministically when the sidecar report is missing."""
+        output_dir = self.temp_dir / "docs" / "canonical" / "objective-specs"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "add-oauth-login.md").write_text(
+            (
+                "# Objective Spec: Add OAuth Login\n\n"
+                "<!-- mm:objective-spec | slug: add-oauth-login | intent: feature | status: draft -->\n"
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(
+            str(OBJECTIVE_CONTEXT_CHECK_HANDLER),
+            "--objective",
+            "add-oauth-login",
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("report", result.stdout.lower())
+
+    def test_objective_context_check_needs_input_when_questions_remain(self) -> None:
+        """The gate should request input when structured interview questions remain unanswered."""
+        self._write_objective_canonical(
+            "add-oauth-login",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "add-oauth-login",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": ["README-only evidence"],
+                "questions_asked": [
+                    {
+                        "id": "desired_behavior",
+                        "question": "What exact behavior should this objective produce?",
+                        "reason": "Sparse context",
+                    }
+                ],
+                "questions_unanswered": ["desired_behavior"],
+                "confidence": "medium",
+                "generated_files": [],
+            },
+        )
+
+        result = self.run_command(
+            str(OBJECTIVE_CONTEXT_CHECK_HANDLER),
+            "--objective",
+            "add-oauth-login",
+        )
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: NEEDS_INPUT", result.stdout)
+        self.assertIn("desired_behavior", result.stdout)
 
     def test_init_handler_symlinks_to_mm_flow_source(self) -> None:
         """init-handler should install symlinks pointing at .mm-flow sources, not .claude wrappers."""
