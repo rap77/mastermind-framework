@@ -1,7 +1,7 @@
-# Handoff — mm-harness-runtime-entrypoint-and-adapters
+# Handoff — mm-harness-context-intake-and-canonicalization
 
 ## Current objective
-- `mm-harness-runtime-entrypoint-and-adapters`
+- `mm-harness-context-intake-and-canonicalization`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -15,5 +15,5 @@
 - Start with `T1` from `tasks.md`.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective mm-harness-runtime-entrypoint-and-adapters`
+- `/mm:discover-contract-check --objective mm-harness-context-intake-and-canonicalization`
 - Run targeted tests for touched files before handing off again
