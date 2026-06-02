@@ -1,0 +1,108 @@
+{
+  "objective_slug": "mm-harness-context-intake-and-canonicalization",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-06-01T19:43:43.896173",
+          "completed_at": "2026-06-01T19:43:43.968360",
+          "duration_seconds": 0.07,
+          "updated_at": "2026-06-01T19:43:43.968360"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-06-01T19:43:44.079632",
+          "completed_at": "2026-06-01T19:43:44.161931",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T19:43:44.161931"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-06-01T19:43:44.307272",
+          "completed_at": "2026-06-01T19:43:44.391045",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T19:43:44.391045"
+        }
+      },
+      "started_at": "2026-06-01T19:43:43.896173",
+      "completed_at": "2026-06-01T19:43:44.391045",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md"
+    },
+    "T2": {
+      "status": "pending",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-context-intake-and-canonicalization/todo.md"
+    }
+  },
+  "updated_at": "2026-06-01T19:43:44.391045",
+  "bootstrapped_from_artifacts": true
+}
