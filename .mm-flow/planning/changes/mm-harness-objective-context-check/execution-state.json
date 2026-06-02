@@ -1,0 +1,108 @@
+{
+  "objective_slug": "mm-harness-objective-context-check",
+  "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Review requirements and design context for T1",
+          "status": "completed",
+          "started_at": "2026-06-01T23:14:48.834838",
+          "completed_at": "2026-06-01T23:14:48.919842",
+          "duration_seconds": 0.09,
+          "updated_at": "2026-06-01T23:14:48.919842"
+        },
+        "T1.2": {
+          "description": "Implement T1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-06-01T23:14:49.043264",
+          "completed_at": "2026-06-01T23:14:49.141612",
+          "duration_seconds": 0.1,
+          "updated_at": "2026-06-01T23:14:49.141612"
+        },
+        "T1.3": {
+          "description": "Run validation for T1",
+          "status": "completed",
+          "started_at": "2026-06-01T23:14:49.282457",
+          "completed_at": "2026-06-01T23:14:49.363535",
+          "duration_seconds": 0.08,
+          "updated_at": "2026-06-01T23:14:49.363535"
+        }
+      },
+      "started_at": "2026-06-01T23:14:48.834838",
+      "completed_at": "2026-06-01T23:14:49.363535",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Review requirements and design context for T2",
+          "status": "completed",
+          "started_at": "2026-06-01T23:19:16.942028",
+          "completed_at": "2026-06-01T23:19:17.048002",
+          "duration_seconds": 0.11,
+          "updated_at": "2026-06-01T23:19:17.048002"
+        },
+        "T2.2": {
+          "description": "Implement T2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-06-01T23:19:17.237830",
+          "completed_at": "2026-06-01T23:19:17.336947",
+          "duration_seconds": 0.1,
+          "updated_at": "2026-06-01T23:19:17.336947"
+        },
+        "T2.3": {
+          "description": "Run validation for T2",
+          "status": "completed",
+          "started_at": "2026-06-01T23:19:17.521128",
+          "completed_at": "2026-06-01T23:19:17.646809",
+          "duration_seconds": 0.13,
+          "updated_at": "2026-06-01T23:19:17.646809"
+        }
+      },
+      "started_at": "2026-06-01T23:19:16.942028",
+      "completed_at": "2026-06-01T23:19:17.646809",
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/todo.md"
+    },
+    "T3": {
+      "status": "pending",
+      "subtasks": {
+        "T3.1": {
+          "description": "Review requirements and design context for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.2": {
+          "description": "Implement T3 end-to-end",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "T3.3": {
+          "description": "Run validation for T3",
+          "status": "pending",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.mm-flow/planning/changes/mm-harness-objective-context-check/todo.md"
+    }
+  },
+  "updated_at": "2026-06-01T23:19:17.646809",
+  "bootstrapped_from_artifacts": true
+}
