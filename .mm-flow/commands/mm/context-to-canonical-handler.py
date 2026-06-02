@@ -250,6 +250,11 @@ def determine_output(target: Path, doc_type: str, output_arg: str | None) -> Pat
     return out_dir / f"{spec['filename_prefix']}{slug}.md"
 
 
+def determine_report_output(output_path: Path) -> Path:
+    """Return the sidecar JSON report path for a generated canonical doc."""
+    return output_path.with_suffix(".json")
+
+
 def slugify(name: str) -> str:
     """Convert a human name into a filesystem-safe slug."""
     slug = name.strip().lower()
@@ -257,6 +262,18 @@ def slugify(name: str) -> str:
     while "--" in slug:
         slug = slug.replace("--", "-")
     return slug.strip("-")
+
+
+def build_intake_contract(args: argparse.Namespace, target: Path) -> dict[str, object]:
+    """Build the normalized structured intake contract for canonical generation."""
+    return {
+        "schema_version": 1,
+        "doc_type": args.type,
+        "target": str(target),
+        "name": args.name,
+        "intent": args.intent if args.type == "objective" else None,
+        "output_mode": "payload-only" if args.payload_only else "direct-write",
+    }
 
 
 def _first_sentence(*values: str) -> str:
@@ -499,10 +516,67 @@ def render_objective_spec(payload: dict[str, object]) -> str:
 """
 
 
-def write_document(payload: dict[str, object]) -> Path:
-    """Write the canonical document directly and return its output path."""
+def build_intake_report(payload: dict[str, object]) -> dict[str, object]:
+    """Build the machine-readable intake report for downstream tooling."""
+    context = payload["context"]
+    assert isinstance(context, dict)
+    content = context.get("content", {})
+    assert isinstance(content, dict)
+    files_found = context.get("files_found", [])
+    assert isinstance(files_found, list)
+    intake = payload["intake"]
+    assert isinstance(intake, dict)
+
+    evidence = [{"source": source, "kind": "repo"} for source in files_found]
+    assumptions: list[str] = []
+    gaps: list[str] = []
+    questions_unanswered: list[str] = []
+
+    if not content.get("readme"):
+        gaps.append("README.md missing or unreadable")
+    if intake.get("doc_type") == "objective" and not content.get("docs_prd"):
+        assumptions.append(
+            "Objective scope is inferred from repository context without dedicated PRD evidence"
+        )
+    if not content.get("claude_md"):
+        assumptions.append("Runtime/operator guidance is inferred without CLAUDE.md")
+    if intake.get("doc_type") == "objective":
+        questions_unanswered.append(
+            "Should objective-context-check request additional structured user input before discover?"
+        )
+
+    if gaps:
+        confidence = "medium" if evidence else "low"
+    else:
+        confidence = "high" if len(evidence) >= 3 else "medium"
+
+    report = {
+        "schema_version": 1,
+        "doc_type": intake.get("doc_type"),
+        "intent": intake.get("intent"),
+        "objective_slug": context.get("objective_slug"),
+        "project_name": context.get("project_name"),
+        "context_sources": files_found,
+        "evidence": evidence,
+        "assumptions": assumptions,
+        "gaps_detected": gaps,
+        "questions_asked": [],
+        "questions_unanswered": questions_unanswered,
+        "confidence": confidence,
+        "generated_files": [
+            payload["output_path"],
+            payload["report_output_path"],
+        ],
+    }
+    return report
+
+
+def write_document(payload: dict[str, object]) -> tuple[Path, Path]:
+    """Write the canonical document and sidecar report, returning both paths."""
     output_path = Path(str(payload["output_path"]))
+    report_output_path = Path(str(payload["report_output_path"]))
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    report_output_path.parent.mkdir(parents=True, exist_ok=True)
     doc_type = str(payload["doc_type"])
     if doc_type == "project-adapter":
         content = render_project_adapter(payload)
@@ -511,7 +585,11 @@ def write_document(payload: dict[str, object]) -> Path:
     else:
         raise ValueError(f"Unsupported doc_type: {doc_type}")
     output_path.write_text(content, encoding="utf-8")
-    return output_path
+    report_output_path.write_text(
+        json.dumps(build_intake_report(payload), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return output_path, report_output_path
 
 
 def main() -> None:
@@ -564,9 +642,11 @@ def main() -> None:
         "doc_type": args.type,
         "target": str(target),
         "output_path": str(output_path),
+        "report_output_path": str(determine_report_output(output_path)),
         "template_content": template_content,
         "example_content": example_content,
         "context": context,
+        "intake": build_intake_contract(args, target),
     }
 
     if args.payload_only:
@@ -576,9 +656,10 @@ def main() -> None:
         print(f"INFO: Ready to generate {args.type} canonical doc for: {target.name}")
         return
 
-    output_file = write_document(payload)
+    output_file, report_file = write_document(payload)
     print("STATUS: PASSED")
     print(f"FILE: {output_file}")
+    print(f"REPORT: {report_file}")
     print(f"MODE: direct-write ({args.type})")
     print("NEXT_COMMAND: /mm:discover --roadmap --existing")
 

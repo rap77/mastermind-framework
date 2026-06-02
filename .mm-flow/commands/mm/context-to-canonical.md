@@ -37,6 +37,22 @@ wrapper over the same handler.
 By default, the handler writes the document directly. This is the
 model-agnostic path and works the same from Claude Code, Codex, or any shell.
 
+In direct-write mode it now emits:
+
+- the canonical markdown document
+- a sidecar JSON intake report with:
+  - `schema_version`
+  - `doc_type`
+  - `intent`
+  - `context_sources`
+  - `evidence`
+  - `assumptions`
+  - `gaps_detected`
+  - `questions_asked`
+  - `questions_unanswered`
+  - `confidence`
+  - `generated_files`
+
 ## Full flow for new objectives
 
 ```
@@ -72,7 +88,11 @@ That mode emits:
 Any model runtime can then use `.mm-flow/agents/mm/canonical-writer/canonical-writer.md`
 as the generic writing protocol.
 
+The payload also carries a normalized `intake` contract so downstream tools can
+distinguish user-stated intent from repo-derived evidence.
+
 ## What the agent produces
 
 A populated canonical document at `docs/canonical/project-adapter/<project-slug>.md`
-(or the `--output` path) with every section filled from real project context.
+(or the `--output` path) with every section filled from real project context,
+plus a sibling `.json` intake report for downstream automation.

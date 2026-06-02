@@ -12,7 +12,7 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- `T2` from `tasks.md` — depends on T1.
+- `T3` from `tasks.md` — depends on T2.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective mm-harness-context-intake-and-canonicalization`

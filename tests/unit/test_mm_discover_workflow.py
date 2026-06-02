@@ -359,6 +359,13 @@ class DiscoverWorkflowTest(unittest.TestCase):
         content = output_path.read_text(encoding="utf-8")
         self.assertIn("# Project Adapter:", content)
         self.assertIn("## 10. Success Criteria", content)
+        report_path = output_path.with_suffix(".json")
+        self.assertTrue(report_path.exists())
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["doc_type"], "project-adapter")
+        self.assertIn("context_sources", report)
+        self.assertIn("confidence", report)
 
     def test_context_to_canonical_writes_objective_spec_directly(self) -> None:
         """context-to-canonical objective mode should write a discoverable canonical spec."""
@@ -382,6 +389,41 @@ class DiscoverWorkflowTest(unittest.TestCase):
         content = output_path.read_text(encoding="utf-8")
         self.assertIn("<!-- mm:objective-spec | slug: add-oauth-login", content)
         self.assertIn("## 5. Acceptance Criteria", content)
+        report = json.loads(
+            output_path.with_suffix(".json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(report["doc_type"], "objective")
+        self.assertEqual(report["intent"], "feature")
+        self.assertEqual(report["objective_slug"], "add-oauth-login")
+        self.assertIn("evidence", report)
+        self.assertIn("gaps_detected", report)
+
+    def test_context_to_canonical_payload_includes_normalized_intake_contract(
+        self,
+    ) -> None:
+        """Payload mode should expose the normalized intake contract for downstream tools."""
+        result = self.run_command(
+            str(CONTEXT_TO_CANONICAL_HANDLER),
+            "--type",
+            "objective",
+            "--target",
+            str(self.temp_dir),
+            "--name",
+            "Add OAuth Login",
+            "--payload-only",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        payload_line = next(
+            line for line in result.stdout.splitlines() if line.startswith("PAYLOAD:")
+        )
+        payload = json.loads(payload_line[len("PAYLOAD: ") :])
+        self.assertEqual(payload["intake"]["schema_version"], 1)
+        self.assertEqual(payload["intake"]["doc_type"], "objective")
+        self.assertEqual(payload["intake"]["intent"], "feature")
+        self.assertEqual(
+            payload["report_output_path"],
+            str(Path(payload["output_path"]).with_suffix(".json")),
+        )
 
     def test_init_handler_symlinks_to_mm_flow_source(self) -> None:
         """init-handler should install symlinks pointing at .mm-flow sources, not .claude wrappers."""

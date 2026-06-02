@@ -76,10 +76,10 @@ python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --
 
 ### Acceptance Criteria
 
-- [ ] `context-to-canonical` has a structured intake contract for objective work
-- [ ] Canonical generation emits a machine-readable report alongside markdown
-- [ ] The report distinguishes repo evidence, assumptions, gaps, and confidence
-- [ ] Validation proves the neutral/core path works without Claude-specific UX
+- [x] `context-to-canonical` has a structured intake contract for objective work
+- [x] Canonical generation emits a machine-readable report alongside markdown
+- [x] The report distinguishes repo evidence, assumptions, gaps, and confidence
+- [x] Validation proves the neutral/core path works without Claude-specific UX
 
 ## T3: Add interview fallback and continuity guidance
 
