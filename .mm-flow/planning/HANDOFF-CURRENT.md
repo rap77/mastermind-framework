@@ -1,7 +1,7 @@
-# Handoff — mm-harness-context-intake-and-canonicalization
+# Handoff — mm-harness-objective-context-check
 
 ## Current objective
-- `mm-harness-context-intake-and-canonicalization`
+- `mm-harness-objective-context-check`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -15,5 +15,5 @@
 - Start with `T1` from `tasks.md`.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective mm-harness-context-intake-and-canonicalization`
+- `/mm:discover-contract-check --objective mm-harness-objective-context-check`
 - Run targeted tests for touched files before handing off again
