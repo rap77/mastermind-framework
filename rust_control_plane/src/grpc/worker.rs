@@ -11,6 +11,7 @@ use tonic::transport::Channel;
 /// gRPC client for Python AI Worker
 ///
 /// Wraps the generated tonic client with connection management and error handling.
+#[derive(Clone)]
 pub struct AiWorkerClient {
     client: GrpcWorkerClient<Channel>,
 }
@@ -36,6 +37,13 @@ impl AiWorkerClient {
         let client = GrpcWorkerClient::new(channel);
 
         Ok(Self { client })
+    }
+
+    #[cfg(test)]
+    pub fn new_for_tests() -> Self {
+        let channel = Channel::from_static("http://127.0.0.1:50051").connect_lazy();
+        let client = GrpcWorkerClient::new(channel);
+        Self { client }
     }
 
     /// Process webhook via Python AI worker
@@ -95,5 +103,25 @@ mod tests {
         // This test verifies that client creation requires valid address
         // Actual connection tested in integration tests
         assert!(true, "Client type checks compile");
+    }
+
+    #[tokio::test]
+    async fn test_test_client_constructor_compiles() {
+        let _client = AiWorkerClient::new_for_tests();
+    }
+
+    #[tokio::test]
+    async fn test_process_webhook_returns_error_when_worker_is_unreachable() {
+        let client = AiWorkerClient::new_for_tests();
+
+        let result = client
+            .process_webhook(
+                "trace-test".to_string(),
+                "whatsapp".to_string(),
+                "{}".to_string(),
+            )
+            .await;
+
+        assert!(result.is_err());
     }
 }

@@ -27,13 +27,15 @@ mod queue;
 mod observability;
 mod dlq;
 mod proto;
-// mod grpc; // TODO: Fix gRPC module compilation - depends on crate::mastermind
+mod grpc;
+mod mastermind;
 
 use tracing::inject_trace_middleware;
+use crate::grpc::AiWorkerClient;
 
 use db::connect_pool;
 use auth::auth_middleware;
-use state::AppState;
+use state::{AiWorkerRuntimeMode, AppState};
 use websocket::WebSocketHub;
 use queue::WebhookQueue;
 use observability::LatencyTracker;
@@ -74,29 +76,16 @@ async fn main() -> Result<()> {
     let webhook_queue = Arc::new(WebhookQueue::new(1000));
     let latency_tracker = Arc::new(LatencyTracker::new());
 
+    let ai_worker_runtime = initialize_ai_worker_runtime().await;
+
     let state = AppState {
         pool: pool.clone(),
         jwt_secret: Arc::new(jwt_secret),
         websocket_hub,
         webhook_queue: webhook_queue.clone(),
         latency_tracker: latency_tracker.clone(),
+        ai_worker_runtime: ai_worker_runtime.clone(),
     };
-
-    // Initialize AI Worker gRPC client (fallible initialization pattern)
-    // TODO: Re-enable after fixing crate::mastermind import issue in src/grpc/worker.rs
-    // let ai_worker_addr = std::env::var("AI_WORKER_ADDR")
-    //     .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
-    // let ai_worker_client = match rust_control_plane::grpc::AiWorkerClient::new(&ai_worker_addr).await {
-    //     Ok(client) => {
-    //         ::tracing::info!("Connected to AI worker at {}", ai_worker_addr);
-    //         Some(Arc::new(client))
-    //     }
-    //     Err(e) => {
-    //         ::tracing::warn!("Failed to connect to AI worker at {}: {}. Continuing without AI processing.", ai_worker_addr, e);
-    //         None
-    //     }
-    // };
-    let ai_worker_client: Option<Arc<()>> = None; // Placeholder until gRPC module is fixed
 
     // Spawn webhook worker (fire-and-forget pattern)
     // Worker processes queued webhooks asynchronously
@@ -104,7 +93,7 @@ async fn main() -> Result<()> {
         let db = state.pool.clone();
         let (sender, receiver) = tokio::sync::mpsc::channel(1000);
         let latency_tracker = state.latency_tracker.clone();
-        queue::start_worker(db, receiver, sender, latency_tracker, ai_worker_client);
+        queue::start_worker(db, receiver, sender, latency_tracker, ai_worker_runtime);
     }
 
     // Public routes — no auth required
@@ -164,6 +153,39 @@ async fn main() -> Result<()> {
         .await?;
 
     Ok(())
+}
+
+async fn initialize_ai_worker_runtime() -> Arc<AiWorkerRuntimeMode> {
+    let ai_worker_mode = std::env::var("AI_WORKER_MODE")
+        .unwrap_or_else(|_| "grpc".to_string());
+
+    if ai_worker_mode.eq_ignore_ascii_case("disabled") {
+        ::tracing::info!("AI worker runtime explicitly disabled via AI_WORKER_MODE");
+        return Arc::new(AiWorkerRuntimeMode::disabled(
+            "AI_WORKER_MODE=disabled",
+        ));
+    }
+
+    let ai_worker_addr = std::env::var("AI_WORKER_ADDR")
+        .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+
+    match AiWorkerClient::new(&ai_worker_addr).await {
+        Ok(client) => {
+            ::tracing::info!("Connected to AI worker at {}", ai_worker_addr);
+            Arc::new(AiWorkerRuntimeMode::ready(ai_worker_addr, Arc::new(client)))
+        }
+        Err(error) => {
+            ::tracing::warn!(
+                "Failed to connect to AI worker at {}: {}. Continuing in degraded mode.",
+                ai_worker_addr,
+                error
+            );
+            Arc::new(AiWorkerRuntimeMode::unavailable(
+                ai_worker_addr,
+                error.to_string(),
+            ))
+        }
+    }
 }
 
 /// Connect to PostgreSQL with exponential backoff retry

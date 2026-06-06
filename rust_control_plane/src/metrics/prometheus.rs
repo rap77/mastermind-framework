@@ -111,16 +111,26 @@ pub async fn metrics_endpoint() -> Response {
 mod tests {
     use super::*;
 
+    fn initialize_metrics() {
+        let _ = &*HTTP_REQUESTS_TOTAL;
+        let _ = &*HTTP_REQUEST_DURATION;
+        let _ = &*WEBSOCKET_CONNECTIONS;
+        let _ = &*WEBHOOK_QUEUE_DEPTH_PERCENT;
+        let _ = &*WEBHOOK_QUEUE_CAPACITY;
+        let _ = &*WEBHOOK_QUEUE_REJECTION_TOTAL;
+        let _ = &*WEBHOOK_PENDING_TOTAL;
+    }
+
     #[test]
     fn test_metrics_registry() {
-        // Verify metrics are registered
+        initialize_metrics();
         let metrics = REGISTRY.gather();
         assert!(!metrics.is_empty());
     }
 
     #[test]
     fn test_http_request_metrics() {
-        // Record a request
+        initialize_metrics();
         record_http_request("GET", "/api/test", 0.123);
 
         // Verify counter incremented
@@ -135,6 +145,7 @@ mod tests {
 
     #[test]
     fn test_websocket_gauge() {
+        initialize_metrics();
         let initial = WEBSOCKET_CONNECTIONS.get();
 
         // Increment

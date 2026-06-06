@@ -342,13 +342,13 @@ fn extract_thread_id_from_headers(headers: &Value) -> Option<String> {
         let refs: Vec<&str> = references.split_whitespace().collect();
         if !refs.is_empty() {
             // Return the first (oldest) reference as thread ID
-            return Some(refs[0].to_string());
+            return Some(normalize_message_reference(refs[0]));
         }
     }
 
     // Fallback to In-Reply-To header
     if let Some(in_reply_to) = headers.get("in-reply-to").and_then(|v| v.as_str()) {
-        return Some(in_reply_to.to_string());
+        return Some(normalize_message_reference(in_reply_to));
     }
 
     None
@@ -360,16 +360,24 @@ fn extract_thread_id_postmark(payload: &Value) -> Result<String> {
     if let Some(references) = payload.get("References").and_then(|v| v.as_str()) {
         let refs: Vec<&str> = references.split_whitespace().collect();
         if !refs.is_empty() {
-            return Ok(refs[0].to_string());
+            return Ok(normalize_message_reference(refs[0]));
         }
     }
 
     // Try InReplyTo header
     if let Some(in_reply_to) = payload.get("InReplyTo").and_then(|v| v.as_str()) {
-        return Ok(in_reply_to.to_string());
+        return Ok(normalize_message_reference(in_reply_to));
     }
 
     Ok(String::new())
+}
+
+fn normalize_message_reference(reference: &str) -> String {
+    reference
+        .trim()
+        .trim_start_matches('<')
+        .trim_end_matches('>')
+        .to_string()
 }
 
 /// Check if payload is a valid email webhook
@@ -611,6 +619,14 @@ mod tests {
 
         let result = extract_thread_id(payload).unwrap();
         assert_eq!(result, Some("parent@example.com".to_string()));
+    }
+
+    #[test]
+    fn test_normalize_message_reference_trims_angle_brackets() {
+        assert_eq!(
+            normalize_message_reference(" <parent@example.com> "),
+            "parent@example.com"
+        );
     }
 
     #[test]

@@ -48,26 +48,31 @@ impl EventStore {
         &self,
         brain_id: Option<&str>,
         event_type: Option<BrainEventType>,
+        message_id: Option<&str>,
+        trace_id: Option<&str>,
         start_time: Option<DateTime<Utc>>,
         end_time: Option<DateTime<Utc>>,
         limit: usize,
     ) -> Result<Vec<BrainEvent>> {
-        let events = sqlx::query_as!(
-            BrainEvent,
-            "SELECT id, brain_id, event_type as \"event_type: BrainEventType\", payload, created_at
+        let events = sqlx::query_as::<_, BrainEvent>(
+            "SELECT id, brain_id, event_type, payload, created_at
              FROM activity_log
              WHERE ($1::text IS NULL OR brain_id = $1)
                AND ($2::text IS NULL OR event_type = $2)
-               AND ($3::timestamptz IS NULL OR created_at >= $3)
-               AND ($4::timestamptz IS NULL OR created_at <= $4)
+               AND ($3::text IS NULL OR payload->>'message_id' = $3)
+               AND ($4::text IS NULL OR payload->>'trace_id' = $4)
+               AND ($5::timestamptz IS NULL OR created_at >= $5)
+               AND ($6::timestamptz IS NULL OR created_at <= $6)
              ORDER BY created_at DESC
-             LIMIT $5",
-            brain_id,
-            event_type.map(|t| t.to_string()),
-            start_time,
-            end_time,
-            limit as i64,
+             LIMIT $7"
         )
+        .bind(brain_id)
+        .bind(event_type.map(|t| t.to_string()))
+        .bind(message_id)
+        .bind(trace_id)
+        .bind(start_time)
+        .bind(end_time)
+        .bind(limit as i64)
         .fetch_all(&self.pool)
         .await?;
 

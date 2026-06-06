@@ -9,15 +9,14 @@ async fn check_postgres(state: &AppState) -> Result<(), String> {
         .map_err(|e| format!("PostgreSQL: {}", e))
 }
 
-async fn check_grpc_python() -> Result<(), String> {
-    // TODO: Phase 16-07 will add actual gRPC health check
-    Ok(())
+async fn check_grpc_python_with_state(state: &AppState) -> Result<(), String> {
+    state.ai_worker_runtime.readiness_result()
 }
 
 pub async fn readiness_check(State(state): State<AppState>) -> impl IntoResponse {
     let checks = tokio::join!(
         check_postgres(&state),
-        check_grpc_python(),
+        check_grpc_python_with_state(&state),
     );
 
     let all_healthy = checks.0.is_ok() && checks.1.is_ok();
@@ -28,7 +27,11 @@ pub async fn readiness_check(State(state): State<AppState>) -> impl IntoResponse
         (StatusCode::SERVICE_UNAVAILABLE, Json(json!({
             "status": "not_ready",
             "postgres": format!("{:?}", checks.0),
-            "grpc_python": format!("{:?}", checks.1),
+            "grpc_python": {
+                "status": state.ai_worker_runtime.label(),
+                "reason": state.ai_worker_runtime.reason(),
+                "result": format!("{:?}", checks.1),
+            },
         })))
     }
 }

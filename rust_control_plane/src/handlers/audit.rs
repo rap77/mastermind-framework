@@ -10,6 +10,8 @@ use crate::state::AppState;
 pub struct ActivityLogQuery {
     pub brain_id: Option<String>,
     pub event_type: Option<String>,
+    pub message_id: Option<String>,
+    pub trace_id: Option<String>,
     pub start_time: Option<DateTime<Utc>>,
     pub end_time: Option<DateTime<Utc>>,
     pub limit: Option<usize>,
@@ -43,6 +45,8 @@ pub async fn get_activity_log(
     let events = store.read_events(
         params.brain_id.as_deref(),
         event_type,
+        params.message_id.as_deref(),
+        params.trace_id.as_deref(),
         params.start_time,
         params.end_time,
         params.limit.unwrap_or(100),
@@ -74,6 +78,8 @@ pub async fn get_brain_timeline(
         None,
         None,
         None,
+        None,
+        None,
         1000,
     )
     .await
@@ -84,3 +90,27 @@ pub async fn get_brain_timeline(
 
 // NOTE: replay_session endpoint DEFERRED to Phase 16 (Observability)
 // Reason: No current use case, adds complexity without user requirement
+
+#[cfg(test)]
+mod tests {
+    use super::ActivityLogQuery;
+
+    #[test]
+    fn activity_log_query_supports_ai_worker_filters() {
+        let query = ActivityLogQuery {
+            brain_id: Some("ai_worker".to_string()),
+            event_type: Some("brain_completed".to_string()),
+            message_id: Some("msg-123".to_string()),
+            trace_id: Some("trace-123".to_string()),
+            start_time: None,
+            end_time: None,
+            limit: Some(25),
+        };
+
+        assert_eq!(query.brain_id.as_deref(), Some("ai_worker"));
+        assert_eq!(query.event_type.as_deref(), Some("brain_completed"));
+        assert_eq!(query.message_id.as_deref(), Some("msg-123"));
+        assert_eq!(query.trace_id.as_deref(), Some("trace-123"));
+        assert_eq!(query.limit, Some(25));
+    }
+}

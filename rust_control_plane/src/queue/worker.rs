@@ -5,9 +5,10 @@
 //! Brain #7 Condition #6: DLQ Retry Backoff Strategy
 
 use crate::dlq::DeadLetterQueue;
-// use crate::grpc::AiWorkerClient; // TODO: Re-enable after fixing crate::mastermind import
 use crate::observability::LatencyTracker;
 use crate::queue::WebhookEvent;
+use crate::state::AiWorkerRuntimeMode;
+use chrono::Utc;
 use serde_json::Value;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -22,17 +23,71 @@ pub struct WebhookWorker {
     webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     dlq: DeadLetterQueue,
     latency_tracker: Arc<LatencyTracker>,
-    ai_worker_client: Option<Arc<()>>, // TODO: Change back to Arc<AiWorkerClient> after fixing gRPC
+    ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
 }
 
 impl WebhookWorker {
+    fn degraded_runtime_error(mode: &str, detail: &str) -> anyhow::Error {
+        anyhow::anyhow!("AI worker runtime {}: {}", mode, detail)
+    }
+
+    fn successful_ai_dispatch_message_status() -> &'static str {
+        "completed"
+    }
+
+    fn successful_ai_dispatch_delivery_status() -> Option<&'static str> {
+        None
+    }
+
+    fn ai_worker_audit_brain_id() -> &'static str {
+        "ai_worker"
+    }
+
+    fn ai_worker_success_event_type() -> &'static str {
+        "brain_completed"
+    }
+
+    fn ai_worker_failure_event_type() -> &'static str {
+        "brain_failed"
+    }
+
+    fn build_ai_worker_success_payload(
+        message_id: uuid::Uuid,
+        event: &WebhookEvent,
+        ai_response: &str,
+    ) -> Value {
+        serde_json::json!({
+            "message_id": message_id.to_string(),
+            "trace_id": event.trace_id,
+            "channel": event.channel,
+            "ai_response": ai_response,
+        })
+    }
+
+    fn build_ai_worker_failure_payload(
+        message_id: uuid::Uuid,
+        event: &WebhookEvent,
+        error: &str,
+        retry_count: i32,
+        terminal: bool,
+    ) -> Value {
+        serde_json::json!({
+            "message_id": message_id.to_string(),
+            "trace_id": event.trace_id,
+            "channel": event.channel,
+            "error": error,
+            "retry_count": retry_count,
+            "terminal": terminal,
+        })
+    }
+
     /// Create new webhook worker
     pub fn new(
         db: PgPool,
         webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
         webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
         latency_tracker: Arc<LatencyTracker>,
-        ai_worker_client: Option<Arc<()>>, // TODO: Change back to Option<Arc<AiWorkerClient>>
+        ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
     ) -> Self {
         let dlq = DeadLetterQueue::new(db.clone());
         Self {
@@ -41,7 +96,7 @@ impl WebhookWorker {
             webhook_sender,
             dlq,
             latency_tracker,
-            ai_worker_client,
+            ai_worker_runtime,
         }
     }
 
@@ -93,13 +148,13 @@ impl WebhookWorker {
 
         // Process webhook (send to AI worker via gRPC)
         match self.process_webhook_with_retry(&event, &external_id).await {
-            Ok(_) => {
+            Ok(ai_response) => {
                 // Record E2E latency AFTER actual AI processing (Brain #7 Condition #3)
                 if let Some(duration) = self.latency_tracker.record_latency(&event.trace_id, &event.channel) {
                     crate::metrics::record_e2e_latency(&event.channel, duration);
                 }
 
-                // Get message_id for delivery status tracking
+                // Get message_id for logging and any future delivery-state hooks.
                 let message_id: uuid::Uuid = sqlx::query_scalar(
                     "SELECT id FROM messages WHERE external_message_id = $1"
                 )
@@ -107,11 +162,17 @@ impl WebhookWorker {
                 .fetch_one(&self.db)
                 .await?;
 
-                // Update delivery status to 'sent'
-                self.update_delivery_status(message_id, "sent", None, None).await?;
+                self.record_successful_ai_worker_response(message_id, &event, &ai_response)
+                    .await?;
 
-                // Success: update status to 'completed'
-                sqlx::query("UPDATE messages SET status = 'completed' WHERE external_message_id = $1")
+                if let Some(delivery_status) = Self::successful_ai_dispatch_delivery_status() {
+                    self.update_delivery_status(message_id, delivery_status, None, None).await?;
+                }
+
+                // Success here means the AI worker accepted and processed the webhook.
+                // It does not imply an outbound provider delivery event already happened.
+                sqlx::query("UPDATE messages SET status = $1 WHERE external_message_id = $2")
+                    .bind(Self::successful_ai_dispatch_message_status())
                     .bind(&external_id)
                     .execute(&self.db)
                     .await?;
@@ -142,7 +203,7 @@ impl WebhookWorker {
         &mut self,
         event: &WebhookEvent,
         external_id: &str,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<String> {
         // Get current retry count from messages table
         let retry_count: i32 = sqlx::query_scalar(
             "SELECT COALESCE(retry_count, 0) FROM messages WHERE external_message_id = $1"
@@ -172,11 +233,7 @@ impl WebhookWorker {
                 .execute(&self.db)
                 .await?;
 
-            // TODO: Send to Python AI worker via gRPC
-            // For now, simulate success/failure
-            self.send_to_ai_worker(event).await?;
-
-            Ok(())
+            self.send_to_ai_worker(event).await
         } else {
             // retry_count >= 3: permanent failure
             Err(anyhow::anyhow!("Max retries exceeded"))
@@ -198,7 +255,17 @@ impl WebhookWorker {
         .fetch_one(&self.db)
         .await?;
 
+        let message_id: uuid::Uuid = sqlx::query_scalar(
+            "SELECT id FROM messages WHERE external_message_id = $1"
+        )
+        .bind(external_id)
+        .fetch_one(&self.db)
+        .await?;
+
         if retry_count < 3 {
+            self.record_failed_ai_worker_response(message_id, event, error, retry_count, false)
+                .await?;
+
             // Retry: increment retry_count and re-queue
             info!(
                 external_id = %external_id,
@@ -218,6 +285,9 @@ impl WebhookWorker {
                 .await
                 .map_err(|_| anyhow::anyhow!("Failed to re-queue webhook"))?;
         } else {
+            self.record_failed_ai_worker_response(message_id, event, error, retry_count, true)
+                .await?;
+
             // Move to DLQ
             warn!(
                 external_id = %external_id,
@@ -225,14 +295,6 @@ impl WebhookWorker {
                 error = %error,
                 "Webhook failed after 3 retries, moving to DLQ"
             );
-
-            // Get message_id for delivery status tracking
-            let message_id: uuid::Uuid = sqlx::query_scalar(
-                "SELECT id FROM messages WHERE external_message_id = $1"
-            )
-            .bind(external_id)
-            .fetch_one(&self.db)
-            .await?;
 
             // Update delivery status to 'failed'
             self.update_delivery_status(message_id, "failed", None, Some(error)).await?;
@@ -287,31 +349,132 @@ impl WebhookWorker {
         Ok(id)
     }
 
-    /// Send webhook to Python AI worker via gRPC
-    /// TODO: Re-enable after fixing crate::mastermind import in src/grpc/worker.rs
-    async fn send_to_ai_worker(&self, event: &WebhookEvent) -> anyhow::Result<()> {
-        // let client = self.ai_worker_client.as_ref()
-        //     .ok_or_else(|| anyhow::anyhow!("AI worker client not initialized"))?;
+    /// Send webhook to Python AI worker via gRPC.
+    ///
+    /// In the current slice the runtime seam is explicit, but dispatch stays fail-closed.
+    async fn send_to_ai_worker(&self, event: &WebhookEvent) -> anyhow::Result<String> {
+        match self.ai_worker_runtime.as_ref() {
+            AiWorkerRuntimeMode::Disabled { reason } => {
+                warn!(
+                    trace_id = %event.trace_id,
+                    channel = %event.channel,
+                    ai_worker_mode = %self.ai_worker_runtime.label(),
+                    ai_worker_reason = %reason,
+                    "AI worker processing disabled"
+                );
 
-        // let response = client.process_webhook(
-        //     event.trace_id.clone(),
-        //     event.channel.clone(),
-        //     event.payload.to_string(),
-        // ).await?;
+                Err(Self::degraded_runtime_error(
+                    self.ai_worker_runtime.label(),
+                    reason,
+                ))
+            }
+            AiWorkerRuntimeMode::Unavailable { addr, reason } => {
+                warn!(
+                    trace_id = %event.trace_id,
+                    channel = %event.channel,
+                    ai_worker_mode = %self.ai_worker_runtime.label(),
+                    ai_worker_addr = %addr,
+                    ai_worker_reason = %reason,
+                    "AI worker runtime unavailable; webhook dispatch remains disabled"
+                );
 
-        // info!(
-        //     trace_id = %event.trace_id,
-        //     channel = %event.channel,
-        //     ai_response = %response,
-        //     "AI worker processing successful"
-        // );
+                Err(Self::degraded_runtime_error(
+                    self.ai_worker_runtime.label(),
+                    &format!("{} ({})", reason, addr),
+                ))
+            }
+            AiWorkerRuntimeMode::Ready { addr, client } => {
+                let ai_response = client
+                    .process_webhook(
+                        event.trace_id.clone(),
+                        event.channel.clone(),
+                        event.payload.to_string(),
+                    )
+                    .await?;
 
-        // Placeholder: AI worker disabled until gRPC module is fixed
-        warn!(
-            trace_id = %event.trace_id,
-            channel = %event.channel,
-            "AI worker processing disabled - gRPC module needs fix"
-        );
+                info!(
+                    trace_id = %event.trace_id,
+                    channel = %event.channel,
+                    ai_worker_mode = %self.ai_worker_runtime.label(),
+                    ai_worker_addr = %addr,
+                    ai_response = %ai_response,
+                    "AI worker processing successful"
+                );
+
+                Ok(ai_response)
+            }
+        }
+    }
+
+    async fn record_successful_ai_worker_response(
+        &self,
+        message_id: uuid::Uuid,
+        event: &WebhookEvent,
+        ai_response: &str,
+    ) -> anyhow::Result<()> {
+        let already_recorded: bool = sqlx::query_scalar(
+            "SELECT EXISTS(
+                SELECT 1
+                FROM activity_log
+                WHERE brain_id = $1
+                  AND event_type = $2
+                  AND payload->>'message_id' = $3
+            )",
+        )
+        .bind(Self::ai_worker_audit_brain_id())
+        .bind(Self::ai_worker_success_event_type())
+        .bind(message_id.to_string())
+        .fetch_one(&self.db)
+        .await?;
+
+        if already_recorded {
+            return Ok(());
+        }
+
+        sqlx::query(
+            "INSERT INTO activity_log (id, brain_id, event_type, payload, created_at)
+             VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(uuid::Uuid::new_v4())
+        .bind(Self::ai_worker_audit_brain_id())
+        .bind(Self::ai_worker_success_event_type())
+        .bind(Self::build_ai_worker_success_payload(
+            message_id,
+            event,
+            ai_response,
+        ))
+        .bind(Utc::now())
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn record_failed_ai_worker_response(
+        &self,
+        message_id: uuid::Uuid,
+        event: &WebhookEvent,
+        error: &str,
+        retry_count: i32,
+        terminal: bool,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            "INSERT INTO activity_log (id, brain_id, event_type, payload, created_at)
+             VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(uuid::Uuid::new_v4())
+        .bind(Self::ai_worker_audit_brain_id())
+        .bind(Self::ai_worker_failure_event_type())
+        .bind(Self::build_ai_worker_failure_payload(
+            message_id,
+            event,
+            error,
+            retry_count,
+            terminal,
+        ))
+        .bind(Utc::now())
+        .execute(&self.db)
+        .await?;
 
         Ok(())
     }
@@ -348,10 +511,10 @@ pub fn start_worker(
     receiver: tokio::sync::mpsc::Receiver<WebhookEvent>,
     sender: tokio::sync::mpsc::Sender<WebhookEvent>,
     latency_tracker: Arc<LatencyTracker>,
-    ai_worker_client: Option<Arc<()>>, // TODO: Change back to Option<Arc<AiWorkerClient>>
+    ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
 ) {
     tokio::spawn(async move {
-        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker, ai_worker_client);
+        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker, ai_worker_runtime);
         worker.start().await;
     });
 }
@@ -359,6 +522,8 @@ pub fn start_worker(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::grpc::AiWorkerClient;
+    use crate::state::AiWorkerRuntimeMode;
 
     #[test]
     fn test_backoff_calculation() {
@@ -366,5 +531,91 @@ mod tests {
         assert_eq!(WebhookWorker::calculate_backoff(1).as_secs(), 5);
         assert_eq!(WebhookWorker::calculate_backoff(2).as_secs(), 30);
         assert_eq!(WebhookWorker::calculate_backoff(3).as_secs(), 30); // Cap at 30s
+    }
+
+    #[test]
+    fn test_ai_worker_runtime_disabled_reason_is_explicit() {
+        let runtime = AiWorkerRuntimeMode::disabled("gRPC module is intentionally disabled");
+
+        assert_eq!(runtime.label(), "disabled");
+        assert_eq!(runtime.reason(), "gRPC module is intentionally disabled");
+    }
+
+    #[test]
+    fn test_degraded_runtime_error_mentions_mode_and_detail() {
+        let error = WebhookWorker::degraded_runtime_error("disabled", "AI_WORKER_MODE=disabled");
+
+        assert_eq!(
+            error.to_string(),
+            "AI worker runtime disabled: AI_WORKER_MODE=disabled"
+        );
+    }
+
+    #[test]
+    fn test_successful_ai_dispatch_only_marks_processing_complete() {
+        assert_eq!(
+            WebhookWorker::successful_ai_dispatch_message_status(),
+            "completed"
+        );
+        assert_eq!(
+            WebhookWorker::successful_ai_dispatch_delivery_status(),
+            None
+        );
+    }
+
+    #[test]
+    fn test_ai_worker_success_payload_contains_minimum_audit_fields() {
+        let event = WebhookEvent {
+            channel: "whatsapp".to_string(),
+            payload: serde_json::json!({"message": "hello"}),
+            trace_id: "trace-123".to_string(),
+        };
+        let message_id = uuid::Uuid::nil();
+        let payload = WebhookWorker::build_ai_worker_success_payload(
+            message_id,
+            &event,
+            "drafted response",
+        );
+
+        assert_eq!(payload["message_id"], message_id.to_string());
+        assert_eq!(payload["trace_id"], "trace-123");
+        assert_eq!(payload["channel"], "whatsapp");
+        assert_eq!(payload["ai_response"], "drafted response");
+    }
+
+    #[test]
+    fn test_ai_worker_failure_payload_contains_retry_and_terminal_state() {
+        let event = WebhookEvent {
+            channel: "email".to_string(),
+            payload: serde_json::json!({"message": "hello"}),
+            trace_id: "trace-999".to_string(),
+        };
+        let message_id = uuid::Uuid::nil();
+        let payload = WebhookWorker::build_ai_worker_failure_payload(
+            message_id,
+            &event,
+            "worker unavailable",
+            2,
+            true,
+        );
+
+        assert_eq!(payload["message_id"], message_id.to_string());
+        assert_eq!(payload["trace_id"], "trace-999");
+        assert_eq!(payload["channel"], "email");
+        assert_eq!(payload["error"], "worker unavailable");
+        assert_eq!(payload["retry_count"], 2);
+        assert_eq!(payload["terminal"], true);
+    }
+
+    #[tokio::test]
+    async fn test_ai_worker_runtime_ready_mode_is_distinct() {
+        let runtime = AiWorkerRuntimeMode::ready(
+            "http://127.0.0.1:50051",
+            Arc::new(AiWorkerClient::new_for_tests()),
+        );
+
+        assert_eq!(runtime.label(), "ready");
+        assert_eq!(runtime.addr(), Some("http://127.0.0.1:50051"));
+        assert!(runtime.client().is_some());
     }
 }
