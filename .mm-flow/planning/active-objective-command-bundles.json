@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "bundles": [
+    {
+      "name": "activate-next-objective-default",
+      "parent_command": "activate-next-objective",
+      "delegated_commands": [
+        "discover --existing --objective"
+      ],
+      "reason": "activate-next-objective materializes the recommended objective by delegating package generation to discover."
+    }
+  ]
+}

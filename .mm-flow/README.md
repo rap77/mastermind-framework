@@ -69,9 +69,10 @@ After installation:
 Use the neutral entrypoint as the canonical interface:
 
 ```bash
-./bin/mm discover --roadmap --existing
 ./bin/mm context-to-canonical --type objective --name "Add OAuth login" --interview
 ./bin/mm objective-context-check --objective add-oauth-login
+./bin/mm discover --existing --objective add-oauth-login "Add OAuth login"
+./bin/mm discover --roadmap --existing
 ./bin/mm complete-task mm-harness-objective-context-check/T2 --brief
 ./bin/mm continue-task mm-harness-objective-context-check/T2
 ```
@@ -81,8 +82,10 @@ Use the neutral entrypoint as the canonical interface:
 Claude can keep using slash commands as a thin adapter over the same core:
 
 ```text
-/mm:discover --roadmap --existing
+/mm:context-to-canonical --type objective --name "Add OAuth login" --interview
 /mm:objective-context-check --objective add-oauth-login
+/mm:discover --existing --objective add-oauth-login "Add OAuth login"
+/mm:discover --roadmap --existing
 /mm:complete-task mm-harness-objective-context-check/T2 --brief
 /mm:continue-task mm-harness-objective-context-check/T2
 ```
@@ -92,11 +95,43 @@ Claude can keep using slash commands as a thin adapter over the same core:
 If a runtime has no adapter/CLI integration, invoke the handlers directly:
 
 ```bash
-python3 .mm-flow/commands/mm/discover-handler.py --roadmap --existing
 python3 .mm-flow/commands/mm/context-to-canonical-handler.py --type objective --name "Add OAuth login" --interview
 python3 .mm-flow/commands/mm/objective-context-check-handler.py --objective add-oauth-login
+python3 .mm-flow/commands/mm/discover-handler.py --existing --objective add-oauth-login "Add OAuth login"
+python3 .mm-flow/commands/mm/discover-handler.py --roadmap --existing
 python3 .mm-flow/commands/mm/complete-task-handler.py mm-harness-objective-context-check/T2 --brief
 ```
+
+`objective-context-check` now persists a lightweight
+`docs/canonical/objective-specs/<slug>.gate.json` artifact. If a matching
+canonical objective exists, `discover --existing --objective <slug>` will stop
+until that artifact exists and is `PASSED`.
+
+Roadmap generation now also surfaces gate-aware queue status in
+`.mm-flow/planning/roadmap/objectives.{md,json}`. If the recommended objective
+has a matching canonical objective whose gate is `NOT_RUN`, `NEEDS_INPUT`, or
+`FAILED`, `/mm:activate-next-objective` stops early with the exact next gate
+command instead of failing later inside discover.
+
+When multiple `ready_now` objectives exist, roadmap recommendation now prefers
+the highest-priority objective that is also gate-ready (`NO_CANONICAL` or
+`PASSED`). Gate-blocked objectives still appear in roadmap artifacts with their
+status; they are just not preferred when a directly activatable alternative
+exists.
+
+If **all** dependency-ready objectives are gate-blocked, the roadmap still
+surfaces one deterministic fallback recommendation, but marks it as blocked
+fallback guidance. `/mm:activate-next-objective` remains blocked until some
+candidate becomes gate-ready.
+
+Blocked fallback recommendations now also include explicit **unblock-priority
+reasoning** based on deterministic factors already available to the harness
+(currently priority score, downstream unlock count, and gate status).
+
+Objective packaging now defaults to **one active objective package at a time**.
+If a different directory already exists under `.mm-flow/planning/changes/`,
+`/mm:discover --existing --objective <slug>` blocks and tells the operator to
+resume, complete, or archive the active objective before opening another one.
 
 ## Brain Integration
 

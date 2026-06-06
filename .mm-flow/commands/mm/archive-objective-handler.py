@@ -40,7 +40,6 @@ REQUIRED_OBJECTIVE_FILES = (
     "tasks.md",
     "todo.md",
     "HANDOFF-CURRENT.md",
-    "execution-state.json",
 )
 
 
@@ -118,6 +117,15 @@ def required_files_present(objective_dir: Path) -> tuple[bool, list[str]]:
     return not missing, missing
 
 
+def todo_indicates_complete(objective_dir: Path) -> bool:
+    """Return whether todo.md shows no remaining unchecked task items."""
+    todo_path = objective_dir / "todo.md"
+    if not todo_path.exists():
+        return False
+    text = todo_path.read_text(encoding="utf-8")
+    return "- [ ] " not in text and "- [~] " not in text
+
+
 def runtime_allows_archive(objective: str) -> tuple[bool, str]:
     """Ensure the active runtime session is not still open for this objective."""
     runtime_state = load_runtime_state()
@@ -155,6 +163,8 @@ def is_completed(objective_dir: Path) -> tuple[bool, str]:
             or "objective package has no pending root tasks" in text
         ):
             return True, "handoff indicates objective complete"
+    if todo_indicates_complete(objective_dir):
+        return True, "todo.md shows all checklist items completed"
     return False, "objective completion could not be proven"
 
 

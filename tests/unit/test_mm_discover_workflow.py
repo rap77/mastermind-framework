@@ -38,6 +38,12 @@ CHECKPOINT_GUARD = (
 VERIFY_CRITERIA_HANDLER = (
     REPO_ROOT / ".claude" / "commands" / "mm" / "verify-criteria-handler.py"
 )
+RENDER_ACTIVE_OBJECTIVE_EXCEPTION = (
+    REPO_ROOT / ".mm-flow" / "commands" / "mm" / "render-active-objective-exception.py"
+)
+REPLACE_ACTIVE_OBJECTIVE_EXCEPTION = (
+    REPO_ROOT / ".mm-flow" / "commands" / "mm" / "replace-active-objective-exception.py"
+)
 BIN_MM = REPO_ROOT / "bin" / "mm"
 
 
@@ -151,6 +157,101 @@ class DiscoverWorkflowTest(unittest.TestCase):
         report_path = markdown_path.with_suffix(".json")
         report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         return markdown_path
+
+    def _write_gate_artifact(
+        self,
+        slug: str,
+        status: str,
+        *,
+        next_command: str | None = None,
+        issues: list[str] | None = None,
+    ) -> Path:
+        """Create a persisted gate-status artifact for a canonical objective."""
+        markdown_path = (
+            self.temp_dir / "docs" / "canonical" / "objective-specs" / f"{slug}.md"
+        )
+        gate_path = markdown_path.with_suffix(".gate.json")
+        payload: dict[str, object] = {
+            "schema_version": 1,
+            "objective_slug": slug,
+            "canonical_markdown": str(markdown_path),
+            "intake_report": str(markdown_path.with_suffix(".json")),
+            "status": status,
+            "next_command": next_command
+            or f"/mm:objective-context-check --objective {slug}",
+        }
+        if issues:
+            payload["issues"] = issues
+        gate_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        return gate_path
+
+    def _write_active_objective_exceptions_artifact(
+        self, payload: dict[str, object]
+    ) -> Path:
+        """Create the active-objective exceptions artifact in the temp repo."""
+        artifact_path = (
+            self.temp_dir / ".mm-flow" / "planning" / "active-objective-exceptions.json"
+        )
+        artifact_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return artifact_path
+
+    def _write_active_objective_command_bundles_artifact(
+        self, payload: dict[str, object]
+    ) -> Path:
+        """Create the active-objective command bundles artifact in the temp repo."""
+        artifact_path = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "active-objective-command-bundles.json"
+        )
+        artifact_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return artifact_path
+
+    def _write_temp_json_object(
+        self, filename: str, payload: dict[str, object]
+    ) -> Path:
+        """Write one JSON object file inside the temp workspace."""
+        path = self.temp_dir / filename
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        return path
+
+    def _write_default_named_bundle_artifact(self) -> Path:
+        """Create the default named bundle artifact used in delegation tests."""
+        return self._write_active_objective_command_bundles_artifact(
+            {
+                "version": 1,
+                "bundles": [
+                    {
+                        "name": "activate-next-objective-default",
+                        "parent_command": "activate-next-objective",
+                        "delegated_commands": ["discover --existing --objective"],
+                        "reason": "activate delegates materialization to discover.",
+                    }
+                ],
+            }
+        )
+
+    def _with_default_exception_expiry(
+        self,
+        payload: dict[str, object],
+        *,
+        expires_at_utc: str = "2099-12-31T23:59:59Z",
+    ) -> dict[str, object]:
+        """Fill missing machine expiry fields in test exception payloads."""
+        data = json.loads(json.dumps(payload))
+        exceptions = data.get("exceptions", [])
+        if isinstance(exceptions, list):
+            for entry in exceptions:
+                if isinstance(entry, dict) and "expires_at_utc" not in entry:
+                    entry["expires_at_utc"] = expires_at_utc
+        return data
 
     def test_roadmap_mode_materializes_outputs(self) -> None:
         """Roadmap mode should write roadmap files and the current handoff."""
@@ -367,6 +468,1682 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertTrue((objective_dir / "design.md").exists())
         self.assertTrue((objective_dir / "tasks.md").exists())
 
+    def test_activate_next_objective_blocks_when_exception_artifact_omits_command(
+        self,
+    ) -> None:
+        """activate-next-objective should keep the single-active block when not explicitly allowed."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "discover-only-pair",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Test exception that should not apply to activation.",
+                            "commands": ["discover --existing --objective"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn(active_slug, result.stdout)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+
+    def test_activate_next_objective_blocks_when_bundle_artifact_is_missing(
+        self,
+    ) -> None:
+        """activate-next-objective should fail closed when delegated bundle metadata is missing."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "activate-pair-no-bundle",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Missing bundle artifact should keep activation fail-closed.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("bundle metadata", result.stdout)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+
+    def test_activate_next_objective_blocks_when_bundle_artifact_is_invalid(
+        self,
+    ) -> None:
+        """activate-next-objective should fail closed when bundle metadata is invalid."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "activate-pair-invalid-bundle",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Invalid bundle artifact should keep activation fail-closed.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+        self._write_active_objective_command_bundles_artifact(
+            {
+                "version": 1,
+                "bundles": [
+                    {
+                        "name": "activate-next-objective-default",
+                        "parent_command": "activate-next-objective",
+                        "delegated_commands": [],
+                        "reason": "Invalid because delegated_commands is empty.",
+                    }
+                ],
+            }
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("bundle metadata", result.stdout)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+
+    def test_activate_next_objective_allows_valid_matching_active_exception(
+        self,
+    ) -> None:
+        """activate-next-objective should honor a valid matching multi-active exception."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "activate-pair",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Allow coordinated activation for these two objectives.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Archive either objective after the coordination window closes.",
+                        }
+                    ],
+                }
+            )
+        )
+        self._write_default_named_bundle_artifact()
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        self.assertIn("ACTIVE_OBJECTIVE_EXCEPTION: activate-pair", result.stdout)
+        self.assertIn(recommended_slug, result.stdout)
+        self.assertIn(active_slug, result.stdout)
+        self.assertIn("Allow coordinated activation", result.stdout)
+        self.assertIn("Expires when:", result.stdout)
+
+    def test_activate_next_objective_allows_named_bundle_reference_exception(
+        self,
+    ) -> None:
+        """activate-next-objective should resolve named bundle refs deterministically."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "activate-pair-bundle-ref",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Allow activation via named bundle ref.",
+                            "command_bundle_refs": ["activate-next-objective-default"],
+                            "expires_when": "Archive either objective after the coordination window closes.",
+                        }
+                    ],
+                }
+            )
+        )
+        self._write_default_named_bundle_artifact()
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        self.assertIn(
+            "ACTIVE_OBJECTIVE_EXCEPTION: activate-pair-bundle-ref", result.stdout
+        )
+
+    def test_activate_next_objective_blocks_on_unknown_named_bundle_reference(
+        self,
+    ) -> None:
+        """Unknown named bundle refs should fail closed."""
+        active_slug = "parallel-helper-objective"
+        (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
+            parents=True, exist_ok=True
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        recommended_slug = "backend-service-boundary-for-agents"
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": recommended_slug,
+                        "title": "Backend Service Boundary For Agents",
+                        "recommended_next": True,
+                    }
+                ],
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "activate-pair-unknown-bundle-ref",
+                            "objective_slugs": [
+                                recommended_slug,
+                                active_slug,
+                            ],
+                            "reason": "Unknown bundle ref should fail closed.",
+                            "command_bundle_refs": ["missing-bundle"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+        self._write_default_named_bundle_artifact()
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn(active_slug, result.stdout)
+
+    def test_render_active_objective_exception_fails_when_artifact_is_missing(
+        self,
+    ) -> None:
+        """Render helper should fail clearly when the exceptions artifact is absent."""
+        result = self.run_command(
+            str(RENDER_ACTIVE_OBJECTIVE_EXCEPTION), "--id", "missing-entry"
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Missing exception artifact", result.stdout)
+
+    def test_render_active_objective_exception_fails_for_unknown_id(self) -> None:
+        """Render helper should fail clearly when the id does not exist."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "known-entry",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Known entry for render tests.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — test window.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(
+            str(RENDER_ACTIVE_OBJECTIVE_EXCEPTION), "--id", "unknown-entry"
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Unknown exception id: unknown-entry", result.stdout)
+
+    def test_render_active_objective_exception_renders_existing_entry_by_id(
+        self,
+    ) -> None:
+        """Render helper should print the normalized existing entry without mutation."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "render-me",
+                            "objective_slugs": ["beta", "alpha", "alpha"],
+                            "reason": "Render the current entry.",
+                            "commands": [
+                                "activate-next-objective",
+                                "activate-next-objective",
+                            ],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — render window.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(
+            str(RENDER_ACTIVE_OBJECTIVE_EXCEPTION), "--id", "render-me"
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        rendered = json.loads(result.stdout.split("\n", 2)[2])
+        self.assertEqual(rendered["id"], "render-me")
+        self.assertEqual(rendered["objective_slugs"], ["alpha", "beta"])
+        self.assertEqual(rendered["commands"], ["activate-next-objective"])
+        self.assertEqual(rendered["expires_at_utc"], "2099-12-31T23:59:59Z")
+
+    def test_render_active_objective_exception_applies_narrow_overrides(
+        self,
+    ) -> None:
+        """Render helper should support narrow override-based updates before paste/replace."""
+        self._write_default_named_bundle_artifact()
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "update-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Old reason.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — old window.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(
+            str(RENDER_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "update-me",
+            "--objective-slug",
+            "alpha",
+            "--objective-slug",
+            "gamma",
+            "--reason",
+            "Updated reason.",
+            "--command-bundle-ref",
+            "activate-next-objective-default",
+            "--expires-at-utc",
+            "2099-11-30T12:00:00Z",
+            "--expires-context",
+            "updated window",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        rendered = json.loads(result.stdout.split("\n", 2)[2])
+        self.assertEqual(rendered["objective_slugs"], ["alpha", "gamma"])
+        self.assertEqual(rendered["reason"], "Updated reason.")
+        self.assertEqual(
+            rendered["command_bundle_refs"], ["activate-next-objective-default"]
+        )
+        self.assertEqual(rendered["commands"], ["activate-next-objective"])
+        self.assertEqual(rendered["expires_at_utc"], "2099-11-30T12:00:00Z")
+        self.assertEqual(
+            rendered["expires_when"],
+            "Expires at 2099-11-30T12:00:00Z — updated window",
+        )
+
+    def test_replace_active_objective_exception_fails_when_artifact_is_missing(
+        self,
+    ) -> None:
+        """Replace helper should fail clearly when the exceptions artifact is absent."""
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "missing-entry",
+                "objective_slugs": ["alpha", "beta"],
+                "reason": "Replacement object.",
+                "commands": ["activate-next-objective"],
+                "expires_at_utc": "2099-12-31T23:59:59Z",
+                "expires_when": "Expires at 2099-12-31T23:59:59Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "missing-entry",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Missing exception artifact", result.stdout)
+
+    def test_replace_active_objective_exception_fails_when_entry_file_is_missing(
+        self,
+    ) -> None:
+        """Replace helper should fail clearly when the replacement file is absent."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(self.temp_dir / "does-not-exist.json"),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Missing entry file", result.stdout)
+
+    def test_replace_active_objective_exception_fails_for_duplicate_id(
+        self,
+    ) -> None:
+        """Replace helper should fail closed when the target id is duplicated."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry A.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window A.",
+                        },
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "gamma"],
+                            "reason": "Original entry B.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window B.",
+                        },
+                    ],
+                }
+            )
+        )
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "replace-me",
+                "objective_slugs": ["alpha", "delta"],
+                "reason": "Replacement object.",
+                "commands": ["activate-next-objective"],
+                "expires_at_utc": "2099-12-31T23:59:59Z",
+                "expires_when": "Expires at 2099-12-31T23:59:59Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Duplicate exception id: replace-me", result.stdout)
+
+    def test_replace_active_objective_exception_fails_on_id_mismatch(
+        self,
+    ) -> None:
+        """Replace helper should reject replacement objects whose id mismatches --id."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        }
+                    ],
+                }
+            )
+        )
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "different-id",
+                "objective_slugs": ["alpha", "delta"],
+                "reason": "Replacement object.",
+                "commands": ["activate-next-objective"],
+                "expires_at_utc": "2099-12-31T23:59:59Z",
+                "expires_when": "Expires at 2099-12-31T23:59:59Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Replacement entry `id` must match --id", result.stdout)
+
+    def test_replace_active_objective_exception_replaces_exactly_one_entry_by_id(
+        self,
+    ) -> None:
+        """Replace helper should rewrite exactly one matching entry and preserve the rest."""
+        self._write_default_named_bundle_artifact()
+        artifact_path = self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        },
+                        {
+                            "id": "keep-me",
+                            "objective_slugs": ["beta", "gamma"],
+                            "reason": "Unchanged entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — keep window.",
+                        },
+                    ],
+                }
+            )
+        )
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "replace-me",
+                "objective_slugs": ["alpha", "delta"],
+                "reason": "Replacement object.",
+                "command_bundle_refs": ["activate-next-objective-default"],
+                "expires_at_utc": "2099-11-30T12:00:00Z",
+                "expires_when": "Expires at 2099-11-30T12:00:00Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        self.assertIn("validate-active-objective-exceptions.py", result.stdout)
+
+        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+        self.assertEqual(artifact["version"], 1)
+        self.assertEqual(len(artifact["exceptions"]), 2)
+        updated = next(
+            entry for entry in artifact["exceptions"] if entry["id"] == "replace-me"
+        )
+        untouched = next(
+            entry for entry in artifact["exceptions"] if entry["id"] == "keep-me"
+        )
+        self.assertEqual(updated["objective_slugs"], ["alpha", "delta"])
+        self.assertEqual(updated["reason"], "Replacement object.")
+        self.assertEqual(
+            updated["command_bundle_refs"], ["activate-next-objective-default"]
+        )
+        self.assertEqual(updated["commands"], [])
+        self.assertEqual(updated["expires_at_utc"], "2099-11-30T12:00:00Z")
+        self.assertEqual(untouched["reason"], "Unchanged entry.")
+
+    def test_replace_active_objective_exception_dry_run_fails_for_unknown_id(
+        self,
+    ) -> None:
+        """Dry-run should reuse the same fail-closed id checks as the write path."""
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "known-entry",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        }
+                    ],
+                }
+            )
+        )
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "unknown-entry",
+                "objective_slugs": ["alpha", "delta"],
+                "reason": "Replacement object.",
+                "commands": ["activate-next-objective"],
+                "expires_at_utc": "2099-12-31T23:59:59Z",
+                "expires_when": "Expires at 2099-12-31T23:59:59Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--dry-run",
+            "--id",
+            "unknown-entry",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn("Unknown exception id: unknown-entry", result.stdout)
+
+    def test_replace_active_objective_exception_dry_run_fails_for_invalid_replacement(
+        self,
+    ) -> None:
+        """Dry-run should reject invalid replacement objects without mutating the artifact."""
+        artifact_path = self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        }
+                    ],
+                }
+            )
+        )
+        before = artifact_path.read_text(encoding="utf-8")
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "replace-me",
+                "objective_slugs": ["alpha"],
+                "reason": "Invalid replacement object.",
+                "commands": ["activate-next-objective"],
+                "expires_at_utc": "2099-12-31T23:59:59Z",
+                "expires_when": "Expires at 2099-12-31T23:59:59Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--dry-run",
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: FAILED", result.stdout)
+        self.assertIn(
+            "Replacement entry is invalid after normalization.", result.stdout
+        )
+        self.assertEqual(artifact_path.read_text(encoding="utf-8"), before)
+
+    def test_replace_active_objective_exception_dry_run_previews_without_mutating(
+        self,
+    ) -> None:
+        """Dry-run should show current/replacement preview and leave the artifact untouched."""
+        self._write_default_named_bundle_artifact()
+        artifact_path = self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "replace-me",
+                            "objective_slugs": ["alpha", "beta"],
+                            "reason": "Original entry.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Expires at 2099-12-31T23:59:59Z — original window.",
+                        }
+                    ],
+                }
+            )
+        )
+        before = artifact_path.read_text(encoding="utf-8")
+        replacement_path = self._write_temp_json_object(
+            "replacement.json",
+            {
+                "id": "replace-me",
+                "objective_slugs": ["alpha", "delta"],
+                "reason": "Replacement object.",
+                "command_bundle_refs": ["activate-next-objective-default"],
+                "expires_at_utc": "2099-11-30T12:00:00Z",
+                "expires_when": "Expires at 2099-11-30T12:00:00Z — replacement window.",
+            },
+        )
+
+        result = self.run_command(
+            str(REPLACE_ACTIVE_OBJECTIVE_EXCEPTION),
+            "--dry-run",
+            "--id",
+            "replace-me",
+            "--entry-file",
+            str(replacement_path),
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: PASSED", result.stdout)
+        self.assertIn("DRY_RUN: true", result.stdout)
+        self.assertIn("CHANGED_FIELDS:", result.stdout)
+        self.assertIn('"reason": "Original entry."', result.stdout)
+        self.assertIn('"reason": "Replacement object."', result.stdout)
+        self.assertEqual(artifact_path.read_text(encoding="utf-8"), before)
+
+    def test_roadmap_surfaces_gate_status_for_recommended_objective(self) -> None:
+        """Roadmap outputs should expose gate status when the recommended objective has a canonical objective."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+        objectives = json.loads(
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
+        )
+        backend = next(
+            item
+            for item in objectives
+            if item["slug"] == "backend-service-boundary-for-agents"
+        )
+        self.assertEqual(backend["gate_status"], "NOT_RUN")
+        self.assertIn("gate_guidance", backend)
+        objectives_md = (
+            self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("not_run", objectives_md)
+
+    def test_roadmap_reranks_to_gate_ready_objective_when_higher_priority_one_is_blocked(
+        self,
+    ) -> None:
+        """Roadmap should recommend a gate-ready objective over a higher-priority candidate blocked by gate status."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+        objectives = json.loads(
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
+        )
+        recommended = next(item for item in objectives if item["recommended_next"])
+        self.assertEqual(recommended["slug"], "dashboard-realtime")
+
+    def test_activate_next_objective_uses_gate_ready_reranked_recommendation(
+        self,
+    ) -> None:
+        """Activation should follow the reranked gate-ready recommendation."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+        roadmap_result = self.run_command(
+            str(DISCOVER_HANDLER), "--roadmap", "--existing"
+        )
+        self.assertEqual(
+            roadmap_result.returncode,
+            0,
+            msg=roadmap_result.stdout + roadmap_result.stderr,
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("dashboard-realtime", result.stdout)
+
+    def test_roadmap_marks_blocked_fallback_when_all_ready_candidates_are_gate_blocked(
+        self,
+    ) -> None:
+        """Roadmap should still recommend one candidate when all ready candidates are gate-blocked, but mark it as a blocked fallback."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir / "docs" / "canonical" / "33-DASHBOARD-REALTIME-EVENTS.md"
+        ).write_text("# Dashboard Realtime Events\n", encoding="utf-8")
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        self._write_objective_canonical(
+            "dashboard-realtime",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "dashboard-realtime",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+        objectives = json.loads(
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
+        )
+        recommended = next(item for item in objectives if item["recommended_next"])
+        self.assertEqual(recommended["slug"], "backend-service-boundary-for-agents")
+        self.assertTrue(recommended["recommended_blocked_fallback"])
+        self.assertIn("unblock_priority_reason", recommended)
+        self.assertIn("highest priority", recommended["unblock_priority_reason"])
+        self.assertIn("gate status", recommended["unblock_priority_reason"])
+
+        handoff = (
+            self.temp_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "All dependency-ready objectives are currently gate-blocked", handoff
+        )
+        self.assertIn("Unblock priority reason", handoff)
+
+    def test_activate_next_objective_remains_blocked_on_blocked_fallback_recommendation(
+        self,
+    ) -> None:
+        """Activation should still block when roadmap falls back to a gate-blocked recommendation."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir / "docs" / "canonical" / "33-DASHBOARD-REALTIME-EVENTS.md"
+        ).write_text("# Dashboard Realtime Events\n", encoding="utf-8")
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        self._write_objective_canonical(
+            "dashboard-realtime",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "dashboard-realtime",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        roadmap_result = self.run_command(
+            str(DISCOVER_HANDLER), "--roadmap", "--existing"
+        )
+        self.assertEqual(
+            roadmap_result.returncode,
+            0,
+            msg=roadmap_result.stdout + roadmap_result.stderr,
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+
+    def test_activate_next_objective_blocks_when_recommended_gate_not_run(self) -> None:
+        """activate-next-objective should stop early when the recommended objective has not passed the gate yet."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        (
+            self.temp_dir / "docs" / "canonical" / "33-DASHBOARD-REALTIME-EVENTS.md"
+        ).unlink()
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        roadmap_result = self.run_command(
+            str(DISCOVER_HANDLER), "--roadmap", "--existing"
+        )
+        self.assertEqual(
+            roadmap_result.returncode,
+            0,
+            msg=roadmap_result.stdout + roadmap_result.stderr,
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertIn("GATE_STATUS: NOT_RUN", result.stdout)
+        self.assertIn(
+            "/mm:objective-context-check --objective backend-service-boundary-for-agents",
+            result.stdout,
+        )
+
+    def test_activate_next_objective_blocks_when_recommended_gate_needs_input(
+        self,
+    ) -> None:
+        """activate-next-objective should stop with actionable guidance when the recommended objective still needs input."""
+        archived_project_state_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_project_state_dir.mkdir(parents=True, exist_ok=True)
+        (archived_project_state_dir / "tasks.md").write_text(
+            "# Tasks — project-state-mvp\n\n## PS1: Realtime\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "todo.md").write_text(
+            "# Todo — project-state-mvp\n\n## Execution Checklist\n\n- [x] PS1: Realtime\n  - [x] PS1.1: Done\n",
+            encoding="utf-8",
+        )
+        (archived_project_state_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {"PS1": {"status": "completed", "subtasks": {}}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+        (
+            self.temp_dir / "docs" / "canonical" / "33-DASHBOARD-REALTIME-EVENTS.md"
+        ).unlink()
+        self._write_objective_canonical(
+            "backend-service-boundary-for-agents",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "backend-service-boundary-for-agents",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": ["README-only evidence"],
+                "questions_asked": [
+                    {
+                        "id": "desired_behavior",
+                        "question": "?",
+                        "reason": "Sparse context",
+                    }
+                ],
+                "questions_unanswered": ["desired_behavior"],
+                "confidence": "medium",
+                "generated_files": [],
+            },
+        )
+        self._write_gate_artifact(
+            "backend-service-boundary-for-agents",
+            "NEEDS_INPUT",
+            issues=["Outstanding questions: desired_behavior"],
+        )
+
+        roadmap_result = self.run_command(
+            str(DISCOVER_HANDLER), "--roadmap", "--existing"
+        )
+        self.assertEqual(
+            roadmap_result.returncode,
+            0,
+            msg=roadmap_result.stdout + roadmap_result.stderr,
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertIn("GATE_STATUS: NEEDS_INPUT", result.stdout)
+        self.assertIn("Answer the open questions", result.stdout)
+
+    def test_discover_objective_blocks_when_another_active_objective_exists(
+        self,
+    ) -> None:
+        """Discover should not materialize a second active objective package by default."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(second.returncode, 2, msg=second.stdout + second.stderr)
+        self.assertIn("STATUS: BLOCKED", second.stdout)
+        self.assertIn("project-state-mvp", second.stdout)
+        self.assertIn("complete/archive/resume", second.stdout)
+
+    def test_discover_objective_allows_refreshing_the_same_active_objective(
+        self,
+    ) -> None:
+        """Discover may refresh the existing active objective package when targeting the same slug."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        original_tasks = (objective_dir / "tasks.md").read_text(encoding="utf-8")
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(second.returncode, 0, msg=second.stdout + second.stderr)
+        self.assertIn("MODE: objective", second.stdout)
+        self.assertEqual(
+            original_tasks, (objective_dir / "tasks.md").read_text(encoding="utf-8")
+        )
+
+    def test_discover_objective_blocks_when_exception_artifact_omits_command(
+        self,
+    ) -> None:
+        """Discover should keep blocking when the exception does not list the discover command."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "allow-activate-only",
+                            "objective_slugs": [
+                                "artifact-versioning-and-lineage",
+                                "project-state-mvp",
+                            ],
+                            "reason": "Test exception that should not apply to discover.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(second.returncode, 2, msg=second.stdout + second.stderr)
+        self.assertIn("STATUS: BLOCKED", second.stdout)
+        self.assertIn("project-state-mvp", second.stdout)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", second.stdout)
+
+    def test_discover_objective_blocks_on_unsupported_delegated_scope(self) -> None:
+        """Discover should fail closed when the delegation marker is unsupported."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "allow-activate-only",
+                            "objective_slugs": [
+                                "artifact-versioning-and-lineage",
+                                "project-state-mvp",
+                            ],
+                            "reason": "Only the documented activate delegation may inherit this scope.",
+                            "commands": ["activate-next-objective"],
+                            "expires_when": "Remove after test.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--delegated-from",
+            "unknown-parent-command",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(second.returncode, 2, msg=second.stdout + second.stderr)
+        self.assertIn("STATUS: BLOCKED", second.stdout)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", second.stdout)
+
+    def test_discover_objective_allows_valid_matching_active_exception(self) -> None:
+        """Discover should honor a valid matching multi-active exception."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "allow-discover-pair",
+                            "objective_slugs": [
+                                "artifact-versioning-and-lineage",
+                                "project-state-mvp",
+                            ],
+                            "reason": "These two objective packages may coexist for coordinated harness work.",
+                            "commands": ["discover --existing --objective"],
+                            "expires_when": "Archive either objective after the coordination window closes.",
+                        }
+                    ],
+                }
+            )
+        )
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(second.returncode, 0, msg=second.stdout + second.stderr)
+        self.assertIn("ACTIVE_OBJECTIVE_EXCEPTION: allow-discover-pair", second.stdout)
+        self.assertIn(
+            "ALLOWED_OBJECTIVES: artifact-versioning-and-lineage, project-state-mvp",
+            second.stdout,
+        )
+        self.assertIn("These two objective packages may coexist", second.stdout)
+        self.assertIn("Expires when:", second.stdout)
+        self.assertTrue(
+            (
+                self.temp_dir
+                / ".mm-flow"
+                / "planning"
+                / "changes"
+                / "artifact-versioning-and-lineage"
+            ).exists()
+        )
+
+    def test_discover_objective_ignores_stale_bootstrapped_done_active_objective(
+        self,
+    ) -> None:
+        """Discover should ignore a bootstrapped ghost objective when roadmap already marks it done."""
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        objective_dir.mkdir(parents=True, exist_ok=True)
+        for name in (
+            "requirements.md",
+            "design.md",
+            "tasks.md",
+            "todo.md",
+            "HANDOFF-CURRENT.md",
+        ):
+            (objective_dir / name).write_text(f"# {name}\n", encoding="utf-8")
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "bootstrapped_from_artifacts": True,
+                    "tasks": {
+                        "PS1": {"status": "pending"},
+                        "PS2": {"status": "pending"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": "project-state-mvp",
+                        "status": "done",
+                        "ready_now": False,
+                        "recommended_next": False,
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "artifact-versioning-and-lineage",
+            "Artifact Versioning and Lineage",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+    def test_activate_next_objective_ignores_stale_bootstrapped_done_active_objective(
+        self,
+    ) -> None:
+        """Activation should ignore a bootstrapped ghost objective when roadmap already marks it done."""
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        objective_dir.mkdir(parents=True, exist_ok=True)
+        for name in (
+            "requirements.md",
+            "design.md",
+            "tasks.md",
+            "todo.md",
+            "HANDOFF-CURRENT.md",
+        ):
+            (objective_dir / name).write_text(f"# {name}\n", encoding="utf-8")
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "bootstrapped_from_artifacts": True,
+                    "tasks": {
+                        "PS1": {"status": "pending"},
+                        "PS2": {"status": "pending"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "slug": "project-state-mvp",
+                        "status": "done",
+                        "ready_now": False,
+                        "recommended_next": False,
+                    },
+                    {
+                        "slug": "backend-service-boundary-for-agents",
+                        "name": "Backend Service Boundary For Agents",
+                        "status": "planned",
+                        "ready_now": True,
+                        "recommended_next": True,
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+
     def test_context_to_canonical_writes_project_adapter_directly(self) -> None:
         """context-to-canonical should write a project-adapter doc without agent help."""
         result = self.run_command(
@@ -423,6 +2200,10 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(report["objective_slug"], "add-oauth-login")
         self.assertIn("evidence", report)
         self.assertIn("gaps_detected", report)
+        self.assertIn(
+            "NEXT_COMMAND: /mm:objective-context-check --objective add-oauth-login",
+            result.stdout,
+        )
 
     def test_context_to_canonical_payload_includes_normalized_intake_contract(
         self,
@@ -507,6 +2288,20 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("STATUS: PASSED", result.stdout)
+        gate_artifact = (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "objective-specs"
+            / "add-oauth-login.gate.json"
+        )
+        self.assertTrue(gate_artifact.exists())
+        gate_data = json.loads(gate_artifact.read_text(encoding="utf-8"))
+        self.assertEqual(gate_data["status"], "PASSED")
+        self.assertEqual(
+            gate_data["next_command"],
+            "/mm:discover --existing --objective add-oauth-login",
+        )
 
     def test_objective_context_check_fails_when_report_is_missing(self) -> None:
         """The gate should fail deterministically when the sidecar report is missing."""
@@ -564,6 +2359,121 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
         self.assertIn("STATUS: NEEDS_INPUT", result.stdout)
         self.assertIn("desired_behavior", result.stdout)
+
+    def test_discover_objective_blocks_when_gate_has_not_run(self) -> None:
+        """Discover should stop instead of bypassing the gate when a canonical objective exists but was not checked."""
+        self._write_objective_canonical(
+            "add-oauth-login",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "add-oauth-login",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "add-oauth-login",
+            "Add OAuth Login",
+        )
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertIn("GATE_STATUS: NOT_RUN", result.stdout)
+        self.assertIn(
+            "/mm:objective-context-check --objective add-oauth-login", result.stdout
+        )
+
+    def test_discover_objective_blocks_when_gate_needs_input(self) -> None:
+        """Discover should stop with actionable guidance when the gate still needs input."""
+        self._write_objective_canonical(
+            "add-oauth-login",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "add-oauth-login",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": ["README-only evidence"],
+                "questions_asked": [
+                    {
+                        "id": "desired_behavior",
+                        "question": "?",
+                        "reason": "Sparse context",
+                    }
+                ],
+                "questions_unanswered": ["desired_behavior"],
+                "confidence": "medium",
+                "generated_files": [],
+            },
+        )
+        self._write_gate_artifact(
+            "add-oauth-login",
+            "NEEDS_INPUT",
+            issues=["Outstanding questions: desired_behavior"],
+        )
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "add-oauth-login",
+            "Add OAuth Login",
+        )
+        self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
+        self.assertIn("STATUS: BLOCKED", result.stdout)
+        self.assertIn("GATE_STATUS: NEEDS_INPUT", result.stdout)
+        self.assertIn("Answer the open questions", result.stdout)
+
+    def test_discover_objective_allows_materialization_after_gate_passes(self) -> None:
+        """Discover should proceed once the canonical objective has a passing gate artifact."""
+        self._write_objective_canonical(
+            "add-oauth-login",
+            {
+                "schema_version": 1,
+                "doc_type": "objective",
+                "intent": "feature",
+                "objective_slug": "add-oauth-login",
+                "project_name": self.temp_dir.name,
+                "context_sources": ["README.md", "CLAUDE.md"],
+                "evidence": [{"source": "README.md", "kind": "repo"}],
+                "assumptions": [],
+                "gaps_detected": [],
+                "questions_asked": [],
+                "questions_unanswered": [],
+                "confidence": "high",
+                "generated_files": [],
+            },
+        )
+        self._write_gate_artifact(
+            "add-oauth-login",
+            "PASSED",
+            next_command="/mm:discover --existing --objective add-oauth-login",
+        )
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "add-oauth-login",
+            "Add OAuth Login",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("MODE: objective", result.stdout)
 
     def test_init_handler_symlinks_to_mm_flow_source(self) -> None:
         """init-handler should install symlinks pointing at .mm-flow sources, not .claude wrappers."""
@@ -1264,6 +3174,30 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(first.returncode, 0, msg=first.stderr)
+        first_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        (first_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "objective_slug": "project-state-mvp",
+                    "tasks": {
+                        "PS1": {"status": "completed"},
+                        "PS2": {"status": "completed"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        archive_result = self.run_command(
+            str(ARCHIVE_OBJECTIVE_HANDLER), "--objective", "project-state-mvp"
+        )
+        self.assertEqual(
+            archive_result.returncode,
+            0,
+            msg=archive_result.stdout + archive_result.stderr,
+        )
+
         second = self.run_command(
             str(DISCOVER_HANDLER),
             "--existing",
@@ -1273,9 +3207,6 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(second.returncode, 0, msg=second.stderr)
 
-        first_dir = (
-            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
-        )
         runtime_state = {
             "task_id": "PS1",
             "objective_slug": "project-state-mvp",
@@ -1384,6 +3315,48 @@ class DiscoverWorkflowTest(unittest.TestCase):
             msg=archive_result.stdout + archive_result.stderr,
         )
         self.assertIn("project-state-mvp", archive_result.stdout)
+
+    def test_archive_objective_allows_completed_todo_without_execution_state(
+        self,
+    ) -> None:
+        """archive-objective should accept a fully completed package even when execution-state.json was never created."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        todo_path = objective_dir / "todo.md"
+        todo_text = todo_path.read_text(encoding="utf-8")
+        todo_text = todo_text.replace("- [ ] PS1:", "- [x] PS1:")
+        todo_text = todo_text.replace("- [ ] PS1.1:", "- [x] PS1.1:")
+        todo_text = todo_text.replace("- [ ] PS1.2:", "- [x] PS1.2:")
+        todo_text = todo_text.replace("- [ ] PS1.3:", "- [x] PS1.3:")
+        todo_text = todo_text.replace("- [ ] PS2:", "- [x] PS2:")
+        todo_text = todo_text.replace("- [ ] PS2.1:", "- [x] PS2.1:")
+        todo_text = todo_text.replace("- [ ] PS2.2:", "- [x] PS2.2:")
+        todo_text = todo_text.replace("- [ ] PS2.3:", "- [x] PS2.3:")
+        todo_path.write_text(todo_text, encoding="utf-8")
+        (objective_dir / "HANDOFF-CURRENT.md").write_text(
+            "# Handoff — project-state-mvp\n\n## Current objective\n- `project-state-mvp` — **COMPLETE**\n",
+            encoding="utf-8",
+        )
+
+        archive_result = self.run_command(
+            str(ARCHIVE_OBJECTIVE_HANDLER), "--objective", "project-state-mvp"
+        )
+        self.assertEqual(
+            archive_result.returncode,
+            0,
+            msg=archive_result.stdout + archive_result.stderr,
+        )
+        self.assertIn("archive-safe", archive_result.stdout)
 
     def test_archive_objective_blocks_when_runtime_task_is_incomplete(self) -> None:
         """archive-objective should fail if runtime state still shows an incomplete task for the objective."""

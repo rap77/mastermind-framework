@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
+from typing import Any
 
 PROJECT_ROOT = Path.cwd()
 OBJECTIVE_SPECS_DIR = PROJECT_ROOT / "docs" / "canonical" / "objective-specs"
@@ -56,6 +57,11 @@ def load_report(report_path: Path) -> dict[str, object]:
     return json.loads(report_path.read_text(encoding="utf-8"))
 
 
+def gate_status_path(markdown_path: Path) -> Path:
+    """Return the persisted gate-status artifact path for a canonical objective."""
+    return markdown_path.with_suffix(".gate.json")
+
+
 def validate_report_shape(report: dict[str, object]) -> list[str]:
     """Return missing or malformed report contract issues."""
     issues: list[str] = []
@@ -65,6 +71,38 @@ def validate_report_shape(report: dict[str, object]) -> list[str]:
     if report.get("doc_type") != "objective":
         issues.append("Report doc_type must be 'objective'")
     return issues
+
+
+def build_next_command(markdown_path: Path, status: str) -> str:
+    """Return the next recommended command for a gate outcome."""
+    objective_slug = markdown_path.stem
+    if status == "PASSED":
+        return f"/mm:discover --existing --objective {objective_slug}"
+    return f"/mm:objective-context-check --objective {objective_slug}"
+
+
+def write_gate_status(
+    markdown_path: Path,
+    report_path: Path,
+    status: str,
+    *,
+    issues: list[str] | None = None,
+) -> None:
+    """Persist a deterministic gate-status artifact next to the canonical objective."""
+    artifact: dict[str, Any] = {
+        "schema_version": 1,
+        "objective_slug": markdown_path.stem,
+        "canonical_markdown": str(markdown_path),
+        "intake_report": str(report_path),
+        "status": status,
+        "next_command": build_next_command(markdown_path, status),
+    }
+    if issues:
+        artifact["issues"] = issues
+    gate_status_path(markdown_path).write_text(
+        json.dumps(artifact, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main() -> int:
@@ -85,6 +123,8 @@ def main() -> int:
     if not report_path.exists():
         issues.append(f"Canonical intake report missing: {report_path}")
     if issues:
+        if markdown_path.exists():
+            write_gate_status(markdown_path, report_path, "FAILED", issues=issues)
         print("STATUS: FAILED")
         for issue in issues:
             print(f"- {issue}")
@@ -92,6 +132,12 @@ def main() -> int:
 
     markdown_text = markdown_path.read_text(encoding="utf-8")
     if "<!-- mm:objective-spec" not in markdown_text:
+        write_gate_status(
+            markdown_path,
+            report_path,
+            "FAILED",
+            issues=["Canonical markdown is missing the mm:objective-spec marker"],
+        )
         print("STATUS: FAILED")
         print("- Canonical markdown is missing the mm:objective-spec marker")
         return 1
@@ -99,12 +145,19 @@ def main() -> int:
     try:
         report = load_report(report_path)
     except json.JSONDecodeError as exc:
+        write_gate_status(
+            markdown_path,
+            report_path,
+            "FAILED",
+            issues=[f"Canonical intake report is invalid JSON: {exc}"],
+        )
         print("STATUS: FAILED")
         print(f"- Canonical intake report is invalid JSON: {exc}")
         return 1
 
     issues.extend(validate_report_shape(report))
     if issues:
+        write_gate_status(markdown_path, report_path, "FAILED", issues=issues)
         print("STATUS: FAILED")
         for issue in issues:
             print(f"- {issue}")
@@ -118,6 +171,14 @@ def main() -> int:
     print(f"REPORT: {report_path}")
 
     if questions_unanswered:
+        write_gate_status(
+            markdown_path,
+            report_path,
+            "NEEDS_INPUT",
+            issues=[
+                f"Outstanding questions: {', '.join(str(q) for q in questions_unanswered)}"
+            ],
+        )
         print("STATUS: NEEDS_INPUT")
         print(
             f"- Outstanding questions: {', '.join(str(q) for q in questions_unanswered)}"
@@ -127,11 +188,12 @@ def main() -> int:
         print("- Next: answer the interview questions before running discover")
         return 2
 
+    write_gate_status(markdown_path, report_path, "PASSED")
     print("STATUS: PASSED")
     print(f"- Confidence: {confidence}")
     if gaps_detected:
         print(f"- Non-blocking gaps: {', '.join(str(g) for g in gaps_detected)}")
-    print("- Next: /mm:discover --roadmap --existing")
+    print(f"- Next: {build_next_command(markdown_path, 'PASSED')}")
     return 0
 
 

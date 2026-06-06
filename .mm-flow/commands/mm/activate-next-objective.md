@@ -21,7 +21,9 @@ without manually repeating its slug.
 1. Reads `.planning/roadmap/objectives.json`
 2. Finds the entry with `recommended_next = true`
 3. Fails if another objective package is still active under `.planning/changes/`
-4. Materializes the objective package automatically
+4. If the recommended objective has a matching canonical objective, checks its
+   persisted gate status
+5. Materializes the objective package automatically only when activation is gate-ready
 
 ## Output
 
@@ -67,5 +69,8 @@ b. Reply with exactly:
 No extra questions. No offers to read more files. Stop there.
 
 **`STATUS: FAILED` — other reason** → explain the specific error and stop.
+
+**`STATUS: BLOCKED`** → explain the gate status and give the exact next gate
+command from the handler output. Do not pretend activation succeeded.
 
 3. Never ask clarifying questions after parsing the handler output. Always close with the next command.

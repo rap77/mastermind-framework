@@ -11,6 +11,7 @@ Supports:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -67,6 +68,11 @@ def parse_args() -> argparse.Namespace:
         "--quick",
         action="store_true",
         help="Generate a lighter objective package (shortcut for objective-scoped fast planning)",
+    )
+    parser.add_argument(
+        "--delegated-from",
+        default=None,
+        help=argparse.SUPPRESS,
     )
     return parser.parse_args()
 
@@ -262,6 +268,41 @@ def read_text(path: Path) -> str:
 def ensure_directory(path: Path) -> None:
     """Create a directory and its parents when missing."""
     path.mkdir(parents=True, exist_ok=True)
+
+
+def load_active_objective_helpers():
+    """Load shared active-objective helpers from the sibling module file."""
+    module_path = Path(__file__).with_name("active-objective-state.py")
+    spec = importlib.util.spec_from_file_location(
+        "mm_active_objective_state", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load active-objective helpers from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_gate_status_helpers():
+    """Load shared gate-status helpers from the sibling module file."""
+    module_path = Path(__file__).with_name("objective-gate-status.py")
+    spec = importlib.util.spec_from_file_location(
+        "mm_objective_gate_status", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load gate-status helpers from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_GATE_STATUS_HELPERS = load_gate_status_helpers()
+infer_objective_gate_status = _GATE_STATUS_HELPERS.infer_objective_gate_status
+_ACTIVE_OBJECTIVE_HELPERS = load_active_objective_helpers()
+active_objective_dirs = _ACTIVE_OBJECTIVE_HELPERS.active_objective_dirs
+find_active_objective_exception = (
+    _ACTIVE_OBJECTIVE_HELPERS.find_active_objective_exception
+)
 
 
 def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
@@ -586,8 +627,27 @@ def count_unlocks(slug: str, objectives: list[ObjectiveCandidate]) -> int:
     return sum(1 for objective in objectives if slug in objective.dependencies)
 
 
-def choose_recommended_next(
+def unblock_priority_reason(
+    objective: ObjectiveCandidate,
     objectives: list[ObjectiveCandidate],
+    gate_status: str,
+) -> str:
+    """Return deterministic reasoning for why a blocked objective should be unblocked first."""
+    unlocks = count_unlocks(objective.slug, objectives)
+    return (
+        f"highest priority among blocked ready candidates "
+        f"(priority={objective.priority_score}, unlocks={unlocks}, gate status={gate_status})"
+    )
+
+
+def is_activation_ready_objective(root_dir: Path, objective_slug: str) -> bool:
+    """Return whether an objective is activation-ready from the gate perspective."""
+    gate_status, _, _ = infer_objective_gate_status(root_dir, objective_slug)
+    return gate_status in {"NO_CANONICAL", "PASSED"}
+
+
+def choose_recommended_next(
+    objectives: list[ObjectiveCandidate], root_dir: Path
 ) -> ObjectiveCandidate | None:
     """Choose the deterministic next objective to activate."""
     active = [objective for objective in objectives if objective.status == "active"]
@@ -606,8 +666,15 @@ def choose_recommended_next(
     if not ready:
         return None
 
+    gate_ready = [
+        objective
+        for objective in ready
+        if is_activation_ready_objective(root_dir, objective.slug)
+    ]
+    candidate_pool = gate_ready or ready
+
     return sorted(
-        ready,
+        candidate_pool,
         key=lambda item: (
             -item.priority_score,
             -count_unlocks(item.slug, objectives),
@@ -690,7 +757,11 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
     roadmap_dir = Path(str(payload["roadmap_dir"]))
     ensure_directory(roadmap_dir)
     objectives = build_roadmap_candidates(root_dir)
-    recommended_next = choose_recommended_next(objectives)
+    recommended_next = choose_recommended_next(objectives, root_dir)
+    recommended_blocked_fallback = (
+        recommended_next is not None
+        and not is_activation_ready_objective(root_dir, recommended_next.slug)
+    )
     active_objectives = [obj for obj in objectives if obj.status == "active"]
     done_objectives = [obj for obj in objectives if obj.status == "done"]
     pending_objectives = [
@@ -710,8 +781,16 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
         "",
         f"- `{recommended_next.slug}`" if recommended_next else "- `none`",
         (
-            f"- Why: ready now, highest deterministic priority ({recommended_next.priority_score}), "
-            f"unlocks {count_unlocks(recommended_next.slug, objectives)} downstream objective(s)."
+            (
+                f"- Why: all dependency-ready objectives are currently gate-blocked; "
+                f"`{recommended_next.slug}` remains the highest deterministic fallback "
+                f"({recommended_next.priority_score}) until one candidate becomes gate-ready."
+            )
+            if recommended_blocked_fallback
+            else (
+                f"- Why: ready now, highest deterministic priority ({recommended_next.priority_score}), "
+                f"unlocks {count_unlocks(recommended_next.slug, objectives)} downstream objective(s)."
+            )
         )
         if recommended_next
         else "- Why: no ready objective could be derived from current dependencies.",
@@ -722,8 +801,8 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
         f"- Planned/blocked: {len(pending_objectives)}",
         f"- Done: {len(done_objectives)}",
         "",
-        "| Rank | Objective | Status | Ready Now | Priority | Recommended | MVP | Dependencies | Why it matters | Evidence |",
-        "|---:|---|---|---|---:|---|---|---|---|---|",
+        "| Rank | Objective | Status | Ready Now | Gate | Priority | Recommended | MVP | Dependencies | Why it matters | Evidence |",
+        "|---:|---|---|---|---|---:|---|---|---|---|---|",
     ]
     objective_payload: list[dict[str, object]] = []
     display_order = sorted(
@@ -747,11 +826,19 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
             ", ".join(objective.evidence_sources) if objective.evidence_sources else "—"
         )
         ready_now = compute_ready_now(objective, objectives)
+        gate_status, gate_guidance, gate_artifact = infer_objective_gate_status(
+            root_dir, objective.slug
+        )
         recommended = (
             recommended_next is not None and objective.slug == recommended_next.slug
         )
+        blocked_reason = (
+            unblock_priority_reason(objective, objectives, gate_status)
+            if recommended and recommended_blocked_fallback
+            else ""
+        )
         lines.append(
-            f"| {index} | `{objective.slug}` | {objective.status} | {'yes' if ready_now else 'no'} | {objective.priority_score} | {'yes' if recommended else 'no'} | {'yes' if objective.mvp else 'no'} | {deps} | {objective.why_it_matters} | {evidence} |"
+            f"| {index} | `{objective.slug}` | {objective.status} | {'yes' if ready_now else 'no'} | {gate_status.lower() if gate_status != 'NO_CANONICAL' else 'n/a'} | {objective.priority_score} | {'yes' if recommended else 'no'} | {'yes' if objective.mvp else 'no'} | {deps} | {objective.why_it_matters} | {evidence} |"
         )
         objective_payload.append(
             {
@@ -768,6 +855,12 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
                 "dependencies": objective.dependencies,
                 "why_it_matters": objective.why_it_matters,
                 "evidence_sources": objective.evidence_sources,
+                "gate_status": gate_status,
+                "gate_guidance": gate_guidance,
+                "gate_artifact": gate_artifact,
+                "recommended_blocked_fallback": recommended
+                and recommended_blocked_fallback,
+                "unblock_priority_reason": blocked_reason,
             }
         )
     objectives_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -799,6 +892,9 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
     current_handoff_path = root_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md"
     if objectives:
         next_objective = recommended_next or display_order[0]
+        next_gate_status, next_gate_guidance, _ = infer_objective_gate_status(
+            root_dir, next_objective.slug
+        )
         handoff_text = "\n".join(
             [
                 f"# Handoff — {next_objective.name}",
@@ -809,16 +905,45 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
                 "## Decisions already made",
                 "- Roadmap is derived from explicit intent, planning state, decision history, and implementation reality.",
                 "- Only one objective package should be actively expanded at a time unless parallel tracks are explicitly justified.",
+                *(
+                    [
+                        "- All dependency-ready objectives are currently gate-blocked, so the roadmap is surfacing the least-bad fallback recommendation instead of a directly activatable one."
+                    ]
+                    if recommended_blocked_fallback
+                    else []
+                ),
+                *(
+                    [
+                        f"- Unblock priority reason: {unblock_priority_reason(next_objective, objectives, next_gate_status)}"
+                    ]
+                    if recommended_blocked_fallback
+                    else []
+                ),
                 "",
                 "## Blockers / risks",
                 "- Roadmap is heuristic and should be refined when new canonical docs or handoffs appear.",
                 "- Legacy global discovery files still coexist with the target per-objective package model.",
+                *(
+                    [
+                        f"- Gate status for recommended objective: {next_gate_status}",
+                        f"- {next_gate_guidance}",
+                    ]
+                    if next_gate_status != "NO_CANONICAL"
+                    else []
+                ),
                 "",
                 "## Exact next recommended task",
-                f'- Run `/mm:discover --existing --objective {next_objective.slug} "{next_objective.name}"` to generate the active objective package.',
-                (
-                    f"- This objective is ready now and carries priority score {next_objective.priority_score}."
+                *(
+                    [
+                        f"- Run `/mm:objective-context-check --objective {next_objective.slug}` before activating this objective.",
+                        f'- After the gate passes, run `/mm:discover --existing --objective {next_objective.slug} "{next_objective.name}"` to generate the active objective package.',
+                    ]
+                    if next_gate_status not in {"NO_CANONICAL", "PASSED"}
+                    else [
+                        f'- Run `/mm:discover --existing --objective {next_objective.slug} "{next_objective.name}"` to generate the active objective package.'
+                    ]
                 ),
+                f"- This objective is ready now and carries priority score {next_objective.priority_score}.",
                 "",
                 "## Validation commands",
                 f"- `/mm:discover-contract-check --objective {next_objective.slug}`",
@@ -1548,6 +1673,46 @@ def main() -> None:
             return
 
         if args.objective:
+            active_dirs = active_objective_dirs(root_dir)
+            conflicting_dirs = [
+                path for path in active_dirs if path.name != args.objective
+            ]
+            if conflicting_dirs:
+                matched_exception = find_active_objective_exception(
+                    root_dir,
+                    {path.name for path in active_dirs},
+                    args.objective,
+                    "discover --existing --objective",
+                    args.delegated_from,
+                )
+                if matched_exception is None:
+                    print("STATUS: BLOCKED")
+                    print(
+                        f"- Active objective package already exists: {conflicting_dirs[0].relative_to(root_dir)}"
+                    )
+                    print(
+                        "- Resolve the active objective first (complete/archive/resume) before opening a different objective package."
+                    )
+                    sys.exit(2)
+                allowed_slugs = ", ".join(
+                    str(slug) for slug in matched_exception.get("objective_slugs", [])
+                )
+                print(f"ACTIVE_OBJECTIVE_EXCEPTION: {matched_exception.get('id', '')}")
+                print(f"ALLOWED_OBJECTIVES: {allowed_slugs}")
+                print(f"- {matched_exception.get('reason', '')}")
+                print(f"- Expires when: {matched_exception.get('expires_when', '')}")
+
+            gate_status, gate_guidance, gate_artifact = infer_objective_gate_status(
+                root_dir, args.objective
+            )
+            if gate_status != "NO_CANONICAL" and gate_status != "PASSED":
+                print("STATUS: BLOCKED")
+                print(f"GATE_STATUS: {gate_status}")
+                if gate_artifact:
+                    print(f"GATE_ARTIFACT: {gate_artifact}")
+                print(f"- {gate_guidance}")
+                sys.exit(2)
+
             payload = generate_objective_payload(
                 args.objective,
                 args.idea,

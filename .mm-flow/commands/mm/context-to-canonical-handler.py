@@ -260,6 +260,16 @@ def determine_report_output(output_path: Path) -> Path:
     return output_path.with_suffix(".json")
 
 
+def determine_next_command(doc_type: str, context: dict[str, object]) -> str:
+    """Return the next recommended command after writing a canonical doc."""
+    if doc_type == "objective":
+        objective_slug = str(context.get("objective_slug", "")).strip()
+        if objective_slug:
+            return f"/mm:objective-context-check --objective {objective_slug}"
+        return "/mm:objective-context-check --path <canonical-objective-path>"
+    return "/mm:discover --roadmap --existing"
+
+
 def slugify(name: str) -> str:
     """Convert a human name into a filesystem-safe slug."""
     slug = name.strip().lower()
@@ -737,7 +747,7 @@ def main() -> None:
     else:
         print("INTERVIEW_REQUIRED: no")
     print(f"MODE: direct-write ({args.type})")
-    print("NEXT_COMMAND: /mm:discover --roadmap --existing")
+    print(f"NEXT_COMMAND: {determine_next_command(args.type, context)}")
 
 
 if __name__ == "__main__":

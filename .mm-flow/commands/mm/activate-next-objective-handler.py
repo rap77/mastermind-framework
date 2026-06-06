@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 from argparse import ArgumentParser, Namespace
@@ -33,6 +34,43 @@ CHANGES_DIR = PLANNING_DIR / "changes"
 ARCHIVE_DIR = PLANNING_DIR / "archive"
 COMMANDS_DIR = Path(__file__).resolve().parent
 DISCOVER_HANDLER = COMMANDS_DIR / "discover-handler.py"
+
+
+def load_gate_status_helpers():
+    """Load shared gate-status helpers from the sibling module file."""
+    module_path = COMMANDS_DIR / "objective-gate-status.py"
+    spec = importlib.util.spec_from_file_location(
+        "mm_objective_gate_status", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load gate-status helpers from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_GATE_STATUS_HELPERS = load_gate_status_helpers()
+infer_objective_gate_status = _GATE_STATUS_HELPERS.infer_objective_gate_status
+
+
+def load_active_objective_helpers():
+    """Load shared active-objective helpers from the sibling module file."""
+    module_path = COMMANDS_DIR / "active-objective-state.py"
+    spec = importlib.util.spec_from_file_location(
+        "mm_active_objective_state", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load active-objective helpers from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_ACTIVE_OBJECTIVE_HELPERS = load_active_objective_helpers()
+active_objective_dirs = _ACTIVE_OBJECTIVE_HELPERS.active_objective_dirs
+find_active_objective_exception = (
+    _ACTIVE_OBJECTIVE_HELPERS.find_active_objective_exception
+)
 
 
 def parse_args() -> Namespace:
@@ -86,13 +124,6 @@ def get_recommended_next(
     return None
 
 
-def active_objective_dirs() -> list[Path]:
-    """Return active objective package directories."""
-    if not CHANGES_DIR.exists():
-        return []
-    return [path for path in CHANGES_DIR.iterdir() if path.is_dir()]
-
-
 def run_discover_for_objective(
     slug: str, name: str, quick: bool
 ) -> subprocess.CompletedProcess[str]:
@@ -101,12 +132,14 @@ def run_discover_for_objective(
         "python3",
         str(DISCOVER_HANDLER),
         "--existing",
+        "--delegated-from",
+        "activate-next-objective",
         "--objective",
         slug,
         name,
     ]
     if quick:
-        cmd.insert(5, "--quick")
+        cmd.insert(7, "--quick")
     return subprocess.run(
         cmd,
         cwd=ROOT,
@@ -119,17 +152,6 @@ def run_discover_for_objective(
 def main() -> int:
     """Activate the next recommended roadmap objective."""
     args = parse_args()
-
-    active_dirs = active_objective_dirs()
-    if active_dirs:
-        print("STATUS: FAILED")
-        print(
-            f"- Active objective package already exists: {active_dirs[0].relative_to(ROOT)}"
-        )
-        print(
-            "- Archive or complete the current active objective before activating the next one."
-        )
-        return 1
 
     try:
         roadmap = load_roadmap()
@@ -152,6 +174,57 @@ def main() -> int:
         or recommended.get("name")
         or slug.replace("-", " ").title()
     )
+    active_dirs = active_objective_dirs(ROOT)
+    if active_dirs:
+        active_slugs = {path.name for path in active_dirs}
+        matched_exception = find_active_objective_exception(
+            ROOT,
+            active_slugs,
+            slug,
+            "activate-next-objective",
+        )
+        if matched_exception is None:
+            print("STATUS: FAILED")
+            print(
+                f"- Active objective package already exists: {active_dirs[0].relative_to(ROOT)}"
+            )
+            print(
+                "- Archive or complete the current active objective before activating the next one."
+            )
+            return 1
+        delegated_exception = find_active_objective_exception(
+            ROOT,
+            active_slugs,
+            slug,
+            "discover --existing --objective",
+            "activate-next-objective",
+        )
+        if delegated_exception is None:
+            print("STATUS: FAILED")
+            print(
+                "- Matched active-objective exception does not authorize the delegated discover materialization path via bundle metadata."
+            )
+            print(
+                "- Add valid bundle metadata for `activate-next-objective` -> `discover --existing --objective`, or run discover directly with explicit discover scope."
+            )
+            return 1
+        allowed_slugs = ", ".join(
+            str(item) for item in matched_exception.get("objective_slugs", [])
+        )
+        print(f"ACTIVE_OBJECTIVE_EXCEPTION: {matched_exception.get('id', '')}")
+        print(f"ALLOWED_OBJECTIVES: {allowed_slugs}")
+        print(f"- {matched_exception.get('reason', '')}")
+        print(f"- Expires when: {matched_exception.get('expires_when', '')}")
+
+    gate_status, gate_guidance, gate_artifact = infer_objective_gate_status(ROOT, slug)
+    if gate_status != "NO_CANONICAL" and gate_status != "PASSED":
+        print("STATUS: BLOCKED")
+        print(f"- Recommended objective `{slug}` is not activation-ready.")
+        print(f"GATE_STATUS: {gate_status}")
+        if gate_artifact:
+            print(f"GATE_ARTIFACT: {gate_artifact}")
+        print(f"- {gate_guidance}")
+        return 2
 
     result = run_discover_for_objective(slug, name, args.quick)
     if result.returncode != 0:
