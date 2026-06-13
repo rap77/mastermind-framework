@@ -1,12 +1,106 @@
 [
   {
     "rank": 1,
+    "stable_id": "project-state-mvp",
+    "slug": "project-state-mvp",
+    "name": "Project State Mvp",
+    "summary": "Planning package present in .mm-flow/planning/changes/project-state-mvp.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 40,
+    "recommended_next": true,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/changes/project-state-mvp"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 2,
+    "stable_id": "backend-service-boundary-for-agents",
+    "slug": "backend-service-boundary-for-agents",
+    "name": "Backend Service Boundary For Agents",
+    "summary": "Models interact through semantic services instead of direct database access.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 95,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 3,
+    "stable_id": "postgres-hybrid-data-model",
+    "slug": "postgres-hybrid-data-model",
+    "name": "Postgres Hybrid Data Model",
+    "summary": "Relational core + JSONB + vector memory for project state and retrieval.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 92,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 4,
+    "stable_id": "engineering-doctrine-layer",
+    "slug": "engineering-doctrine-layer",
+    "name": "Engineering Doctrine Layer",
+    "summary": "Persistent methodology, architecture rules, and phase gates for agents and humans.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 86,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 5,
     "stable_id": "token-cost-quality-telemetry",
     "slug": "token-cost-quality-telemetry",
     "name": "Token Cost and Quality Telemetry",
     "summary": "Track token usage, cost, and output quality trends by project and task.",
-    "status": "done",
-    "ready_now": false,
+    "status": "planned",
+    "ready_now": true,
     "priority_score": 84,
     "recommended_next": false,
     "mvp": true,
@@ -16,16 +110,21 @@
     "why_it_matters": "Captured in canonical implementation docs.",
     "evidence_sources": [
       "docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 2,
+    "rank": 6,
     "stable_id": "collaboration-rbac",
     "slug": "collaboration-rbac",
     "name": "Collaboration and RBAC",
     "summary": "Human + agent participation model with explicit roles and permissions.",
-    "status": "done",
-    "ready_now": false,
+    "status": "planned",
+    "ready_now": true,
     "priority_score": 82,
     "recommended_next": false,
     "mvp": true,
@@ -35,16 +134,21 @@
     "why_it_matters": "Captured in canonical implementation docs.",
     "evidence_sources": [
       "docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 3,
+    "rank": 7,
     "stable_id": "dashboard-realtime",
     "slug": "dashboard-realtime",
     "name": "Dashboard Realtime",
     "summary": "Realtime events and live visibility for project operations.",
-    "status": "done",
-    "ready_now": false,
+    "status": "planned",
+    "ready_now": true,
     "priority_score": 78,
     "recommended_next": false,
     "mvp": true,
@@ -54,32 +158,92 @@
     "why_it_matters": "Captured in canonical implementation docs.",
     "evidence_sources": [
       "docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 4,
+    "rank": 8,
+    "stable_id": "artifact-versioning-and-lineage",
+    "slug": "artifact-versioning-and-lineage",
+    "name": "Artifact Versioning and Lineage",
+    "summary": "Preserve causality between specs, tasks, decisions, and implementation state.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Captured in canonical implementation docs.",
+    "evidence_sources": [
+      "docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 9,
     "stable_id": "window-scheduler",
     "slug": "window-scheduler",
     "name": "Window Scheduler",
-    "summary": "Subscription-window-aware backend switching, checkpointing, and morning reports.",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/window-scheduler.",
     "status": "done",
     "ready_now": false,
     "priority_score": 76,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Captured in canonical implementation docs.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md",
-      "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md"
-    ]
+      ".mm-flow/planning/archive/objectives/window-scheduler",
+      "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md",
+      "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 5,
+    "rank": 10,
+    "stable_id": "context-window-management",
+    "slug": "context-window-management",
+    "name": "Context Window Management",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/context-window-management.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 74,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "window-scheduler"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/context-window-management",
+      "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 11,
     "stable_id": "context-projection",
     "slug": "context-projection",
     "name": "Context Projection",
-    "summary": "Build model-ready context from structured project state instead of chat history.",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/context-projection.",
     "status": "done",
     "ready_now": false,
     "priority_score": 72,
@@ -89,17 +253,23 @@
       "postgres-hybrid-data-model",
       "project-state-mvp"
     ],
-    "why_it_matters": "Captured in canonical implementation docs.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/context-projection",
       "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 6,
+    "rank": 12,
     "stable_id": "rust-control-plane-hardening",
     "slug": "rust-control-plane-hardening",
     "name": "Rust Control Plane Hardening",
-    "summary": "Stabilize and harden the canonical Rust control plane before further expansion.",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane-hardening.",
     "status": "done",
     "ready_now": false,
     "priority_score": 70,
@@ -108,315 +278,920 @@
     "dependencies": [
       "backend-service-boundary-for-agents"
     ],
-    "why_it_matters": "Captured in canonical implementation docs.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/rust-control-plane-hardening",
       "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 7,
+    "rank": 13,
     "stable_id": "rust-control-plane",
     "slug": "rust-control-plane",
     "name": "Rust Control Plane",
-    "summary": "State management, auth, and event sourcing migrated to Rust with PostgreSQL",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane.",
     "status": "done",
     "ready_now": false,
     "priority_score": 68,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
+      ".mm-flow/planning/archive/objectives/rust-control-plane"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 8,
+    "rank": 14,
     "stable_id": "observability-real-time-hub",
     "slug": "observability-real-time-hub",
-    "name": "Observability + Real-time Hub",
-    "summary": "Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Observability Real Time Hub",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/observability-real-time-hub.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 66,
-    "recommended_next": true,
+    "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
+      ".mm-flow/planning/archive/objectives/observability-real-time-hub"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 9,
+    "rank": 15,
     "stable_id": "knowledge-distillation",
     "slug": "knowledge-distillation",
     "name": "Knowledge Distillation",
-    "summary": "Brains learn from every interaction and accumulate expertise over time",
-    "status": "planned",
-    "ready_now": true,
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-distillation.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 62,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
+      ".mm-flow/planning/archive/objectives/knowledge-distillation"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 10,
+    "rank": 16,
     "stable_id": "knowledge-ingestion-manual",
     "slug": "knowledge-ingestion-manual",
-    "name": "Knowledge Ingestion (Manual)",
-    "summary": "Cargar el corpus de conocimiento en cada brain's vector store.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Knowledge Ingestion Manual",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-ingestion-manual.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 60,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
+      ".mm-flow/planning/archive/objectives/knowledge-ingestion-manual"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 11,
+    "rank": 17,
     "stable_id": "multi-channel-gateway",
     "slug": "multi-channel-gateway",
-    "name": "Multi-channel Gateway",
-    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Multi Channel Gateway",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/multi-channel-gateway.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 58,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
+      ".mm-flow/planning/archive/objectives/multi-channel-gateway"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 12,
+    "rank": 18,
     "stable_id": "pgvector-schema-langsmith-foundation-paralelo",
     "slug": "pgvector-schema-langsmith-foundation-paralelo",
-    "name": "pgvector Schema + LangSmith Foundation (paralelo)",
-    "summary": "Embeddings table, vector index, asyncpg utilities, LangSmith instrumentation — todo en una fase paralela. pgvector ya live.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Pgvector Schema Langsmith Foundation Paralelo",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/pgvector-schema-langsmith-foundation-paralelo.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 56,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
+      ".mm-flow/planning/archive/objectives/pgvector-schema-langsmith-foundation-paralelo"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 13,
+    "rank": 19,
     "stable_id": "task-time-and-estimation",
     "slug": "task-time-and-estimation",
-    "name": "Task Time and Estimation",
-    "summary": "Track effort, ETA, and estimation quality over time.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Task Time And Estimation",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/task-time-and-estimation.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 55,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [
       "project-state-mvp"
     ],
-    "why_it_matters": "Captured in canonical implementation docs.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/task-time-and-estimation",
       "docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 14,
+    "rank": 20,
     "stable_id": "rag-evaluation-gate",
     "slug": "rag-evaluation-gate",
-    "name": "RAG Evaluation Gate",
-    "summary": "Validar que el RAG mejora calidad antes de escalar a los 7 brains.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Rag Evaluation Gate",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rag-evaluation-gate.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 54,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
+      ".mm-flow/planning/archive/objectives/rag-evaluation-gate"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 15,
+    "rank": 21,
     "stable_id": "rag-pilot-brain-1-only",
     "slug": "rag-pilot-brain-1-only",
-    "name": "RAG Pilot — Brain #1 Only",
-    "summary": "Un solo brain con RAG funcional, recuperando contexto de sus dos colecciones antes de responder.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Rag Pilot Brain 1 Only",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rag-pilot-brain-1-only.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 53,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
+      ".mm-flow/planning/archive/objectives/rag-pilot-brain-1-only"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 16,
+    "rank": 22,
     "stable_id": "rag-scale-out-brains-2-7",
     "slug": "rag-scale-out-brains-2-7",
-    "name": "RAG Scale-Out — Brains 2–7",
-    "summary": "Extender RAG a los 6 brains restantes, usando el mismo patrón validado en Brain #1.",
-    "status": "planned",
-    "ready_now": true,
+    "name": "Rag Scale Out Brains 2 7",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rag-scale-out-brains-2-7.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 52,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
+      ".mm-flow/planning/archive/objectives/rag-scale-out-brains-2-7"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 17,
+    "rank": 23,
     "stable_id": "vertical-slice",
     "slug": "vertical-slice",
     "name": "Vertical Slice",
-    "summary": "Validate 3-service architecture works end-to-end before committing to full Rust build",
-    "status": "planned",
-    "ready_now": true,
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/vertical-slice.",
+    "status": "done",
+    "ready_now": false,
     "priority_score": 50,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
-  },
-  {
-    "rank": 18,
-    "stable_id": "context-window-management",
-    "slug": "context-window-management",
-    "name": "Context Window Management",
-    "summary": "Manage context-fit, packing, and compression across model backends.",
-    "status": "planned",
-    "ready_now": false,
-    "priority_score": 74,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "window-scheduler"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
-    ]
-  },
-  {
-    "rank": 19,
-    "stable_id": "backend-service-boundary-for-agents",
-    "slug": "backend-service-boundary-for-agents",
-    "name": "Backend Service Boundary For Agents",
-    "summary": "Planning package present in .planning/archive/objectives/backend-service-boundary-for-agents.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 95,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
     "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/archive/objectives/backend-service-boundary-for-agents",
-      "docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
-    ]
-  },
-  {
-    "rank": 20,
-    "stable_id": "postgres-hybrid-data-model",
-    "slug": "postgres-hybrid-data-model",
-    "name": "Postgres Hybrid Data Model",
-    "summary": "Planning package present in .planning/archive/objectives/postgres-hybrid-data-model.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 92,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
+      ".mm-flow/planning/archive/objectives/vertical-slice"
     ],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".planning/archive/objectives/postgres-hybrid-data-model",
-      "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
-    ]
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 21,
-    "stable_id": "engineering-doctrine-layer",
-    "slug": "engineering-doctrine-layer",
-    "name": "Engineering Doctrine Layer",
-    "summary": "Planning package present in .planning/archive/objectives/engineering-doctrine-layer.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 86,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".planning/archive/objectives/engineering-doctrine-layer",
-      "docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md"
-    ]
-  },
-  {
-    "rank": 22,
-    "stable_id": "project-state-mvp",
-    "slug": "project-state-mvp",
-    "name": "Project State Mvp",
-    "summary": "Continue the MasterMind `project_state` MVP thin slice across API + web without losing architectural coherence.",
+    "rank": 24,
+    "stable_id": "mastermind-cli",
+    "slug": "mastermind-cli",
+    "name": "Mastermind Cli",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mastermind-cli.",
     "status": "done",
     "ready_now": false,
     "priority_score": 40,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
-    "why_it_matters": "Historical handoff merged into the canonical objective alias.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/HANDOFF-PROJECT-STATE-2026-05-24.md",
-      ".planning/archive/objectives/project-state-mvp"
-    ]
+      ".mm-flow/planning/archive/objectives/mastermind-cli"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 23,
-    "stable_id": "artifact-versioning-and-lineage",
-    "slug": "artifact-versioning-and-lineage",
-    "name": "Artifact Versioning And Lineage",
-    "summary": "Planning package present in .planning/archive/objectives/artifact-versioning-and-lineage.",
+    "rank": 25,
+    "stable_id": "mm-flow-cli",
+    "slug": "mm-flow-cli",
+    "name": "Mm Flow Cli",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-flow-cli.",
     "status": "done",
     "ready_now": false,
     "priority_score": 40,
     "recommended_next": false,
     "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
+    "dependencies": [],
     "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".planning/archive/objectives/artifact-versioning-and-lineage",
-      "docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md"
-    ]
+      ".mm-flow/planning/archive/objectives/mm-flow-cli"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 26,
+    "stable_id": "mm-harness-active-objective-coordination",
+    "slug": "mm-harness-active-objective-coordination",
+    "name": "Mm Harness Active Objective Coordination",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-active-objective-coordination.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-active-objective-coordination"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 27,
+    "stable_id": "mm-harness-context-intake-and-canonicalization",
+    "slug": "mm-harness-context-intake-and-canonicalization",
+    "name": "Mm Harness Context Intake And Canonicalization",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-context-intake-and-canonicalization.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-context-intake-and-canonicalization"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 28,
+    "stable_id": "mm-harness-exception-authoring-drift-reduction",
+    "slug": "mm-harness-exception-authoring-drift-reduction",
+    "name": "Mm Harness Exception Authoring Drift Reduction",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-authoring-drift-reduction.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-authoring-drift-reduction"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 29,
+    "stable_id": "mm-harness-exception-authoring-workflow",
+    "slug": "mm-harness-exception-authoring-workflow",
+    "name": "Mm Harness Exception Authoring Workflow",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-authoring-workflow.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-authoring-workflow"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 30,
+    "stable_id": "mm-harness-exception-command-bundle-metadata",
+    "slug": "mm-harness-exception-command-bundle-metadata",
+    "name": "Mm Harness Exception Command Bundle Metadata",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-command-bundle-metadata.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-command-bundle-metadata"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 31,
+    "stable_id": "mm-harness-exception-delegated-command-scopes",
+    "slug": "mm-harness-exception-delegated-command-scopes",
+    "name": "Mm Harness Exception Delegated Command Scopes",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-delegated-command-scopes.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-delegated-command-scopes"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 32,
+    "stable_id": "mm-harness-exception-expiration-metadata",
+    "slug": "mm-harness-exception-expiration-metadata",
+    "name": "Mm Harness Exception Expiration Metadata",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-expiration-metadata.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-expiration-metadata"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 33,
+    "stable_id": "mm-harness-exception-named-bundle-references",
+    "slug": "mm-harness-exception-named-bundle-references",
+    "name": "Mm Harness Exception Named Bundle References",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-named-bundle-references.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-named-bundle-references"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 34,
+    "stable_id": "mm-harness-exception-replace-preview",
+    "slug": "mm-harness-exception-replace-preview",
+    "name": "Mm Harness Exception Replace Preview",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-replace-preview.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-replace-preview"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 35,
+    "stable_id": "mm-harness-exception-replace-workflow",
+    "slug": "mm-harness-exception-replace-workflow",
+    "name": "Mm Harness Exception Replace Workflow",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-replace-workflow.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-replace-workflow"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 36,
+    "stable_id": "mm-harness-exception-update-workflow",
+    "slug": "mm-harness-exception-update-workflow",
+    "name": "Mm Harness Exception Update Workflow",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-exception-update-workflow.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-exception-update-workflow"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 37,
+    "stable_id": "mm-harness-gap-archive-auto-sync",
+    "slug": "mm-harness-gap-archive-auto-sync",
+    "name": "Mm Harness Gap Archive Auto Sync",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-archive-auto-sync.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-archive-auto-sync"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 38,
+    "stable_id": "mm-harness-gap-dedupe-and-priority",
+    "slug": "mm-harness-gap-dedupe-and-priority",
+    "name": "Mm Harness Gap Dedupe And Priority",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-dedupe-and-priority.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-dedupe-and-priority"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 39,
+    "stable_id": "mm-harness-gap-discover-auto-sync",
+    "slug": "mm-harness-gap-discover-auto-sync",
+    "name": "Mm Harness Gap Discover Auto Sync",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-discover-auto-sync.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-discover-auto-sync"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 40,
+    "stable_id": "mm-harness-gap-objective-lifecycle-sync",
+    "slug": "mm-harness-gap-objective-lifecycle-sync",
+    "name": "Mm Harness Gap Objective Lifecycle Sync",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-objective-lifecycle-sync.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-objective-lifecycle-sync"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 41,
+    "stable_id": "mm-harness-gap-promotion-assistant",
+    "slug": "mm-harness-gap-promotion-assistant",
+    "name": "Mm Harness Gap Promotion Assistant",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-promotion-assistant.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-promotion-assistant"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 42,
+    "stable_id": "mm-harness-gap-registry-and-promotion",
+    "slug": "mm-harness-gap-registry-and-promotion",
+    "name": "Mm Harness Gap Registry And Promotion",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-registry-and-promotion.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-registry-and-promotion"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 43,
+    "stable_id": "mm-harness-gap-registry-ui",
+    "slug": "mm-harness-gap-registry-ui",
+    "name": "Mm Harness Gap Registry Ui",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-registry-ui.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-registry-ui"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 44,
+    "stable_id": "mm-harness-gap-registry-ui-triage",
+    "slug": "mm-harness-gap-registry-ui-triage",
+    "name": "Mm Harness Gap Registry Ui Triage",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gap-registry-ui-triage.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gap-registry-ui-triage"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 45,
+    "stable_id": "mm-harness-gate-aware-roadmap-reranking",
+    "slug": "mm-harness-gate-aware-roadmap-reranking",
+    "name": "Mm Harness Gate Aware Roadmap Reranking",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gate-aware-roadmap-reranking.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gate-aware-roadmap-reranking"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 46,
+    "stable_id": "mm-harness-gate-blocked-roadmap-fallback",
+    "slug": "mm-harness-gate-blocked-roadmap-fallback",
+    "name": "Mm Harness Gate Blocked Roadmap Fallback",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-gate-blocked-roadmap-fallback.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-gate-blocked-roadmap-fallback"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 47,
+    "stable_id": "mm-harness-lifecycle-gate-integration",
+    "slug": "mm-harness-lifecycle-gate-integration",
+    "name": "Mm Harness Lifecycle Gate Integration",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-lifecycle-gate-integration.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-lifecycle-gate-integration"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 48,
+    "stable_id": "mm-harness-multi-active-exception-metadata",
+    "slug": "mm-harness-multi-active-exception-metadata",
+    "name": "Mm Harness Multi Active Exception Metadata",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-multi-active-exception-metadata.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-multi-active-exception-metadata"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 49,
+    "stable_id": "mm-harness-multi-active-exception-runtime-recognition",
+    "slug": "mm-harness-multi-active-exception-runtime-recognition",
+    "name": "Mm Harness Multi Active Exception Runtime Recognition",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-multi-active-exception-runtime-recognition.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-multi-active-exception-runtime-recognition"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 50,
+    "stable_id": "mm-harness-objective-context-check",
+    "slug": "mm-harness-objective-context-check",
+    "name": "Mm Harness Objective Context Check",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-objective-context-check.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-objective-context-check"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 51,
+    "stable_id": "mm-harness-roadmap-activation-gate-awareness",
+    "slug": "mm-harness-roadmap-activation-gate-awareness",
+    "name": "Mm Harness Roadmap Activation Gate Awareness",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-roadmap-activation-gate-awareness.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-roadmap-activation-gate-awareness"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 52,
+    "stable_id": "mm-harness-runtime-entrypoint-and-adapters",
+    "slug": "mm-harness-runtime-entrypoint-and-adapters",
+    "name": "Mm Harness Runtime Entrypoint And Adapters",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-runtime-entrypoint-and-adapters.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-runtime-entrypoint-and-adapters"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 53,
+    "stable_id": "mm-harness-unblock-priority-heuristics",
+    "slug": "mm-harness-unblock-priority-heuristics",
+    "name": "Mm Harness Unblock Priority Heuristics",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/mm-harness-unblock-priority-heuristics.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/mm-harness-unblock-priority-heuristics"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   }
 ]

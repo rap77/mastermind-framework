@@ -1,11 +1,19 @@
-# Handoff — no active objective
+# Handoff — project-state-mvp
 
-## Last archived
-- `rust-control-plane` — archived at 2026-06-05T23:04:49
+## Current objective
+- `project-state-mvp`
 
-## Next recommended objective
-- `observability-real-time-hub` — Observability + Real-time Hub
-- Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring
+## Decisions already made
+- Use a per-objective planning package instead of relying on a single root planning surface forever.
+- Another model should be able to resume from artifacts, not from chat memory alone.
 
-## Next command
-- `/mm:activate-next-objective`
+## Blockers / risks
+- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
+- Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
+
+## Exact next recommended task
+- `PS1` from `tasks.md` — depends on None.
+
+## Validation commands
+- `/mm:discover-contract-check --objective project-state-mvp`
+- Run targeted tests for touched files before handing off again

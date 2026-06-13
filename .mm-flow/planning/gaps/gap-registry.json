@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "gaps": [
+    {
+      "id": "gap-0001",
+      "title": "Gap registry dedupe and prioritization",
+      "status": "resolved",
+      "detected_from": "mm-harness-gap-registry-and-promotion",
+      "objective_slug": "mm-harness-gap-registry-and-promotion",
+      "evidence": [
+        "Phase 1 persists and promotes gaps, but does not deduplicate repeated gap entries across archived objectives.",
+        "Phase 1 does not help choose which open gap should become the next objective."
+      ],
+      "impact": "high",
+      "urgency": "medium",
+      "suggested_followup": "mm-harness-gap-dedupe-and-priority",
+      "promotion_readiness": "ready",
+      "promoted_objective_slug": "mm-harness-gap-dedupe-and-priority",
+      "created_at_utc": "2026-06-08T16:49:04.490442Z",
+      "updated_at_utc": "2026-06-08T21:40:16.028406Z"
+    }
+  ]
+}
