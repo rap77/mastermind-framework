@@ -3401,6 +3401,131 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertNotEqual(archive_result.returncode, 0)
         self.assertIn("runtime task PS1 is still incomplete", archive_result.stdout)
 
+    def test_archive_objective_auto_syncs_matching_gap_registry_entry(self) -> None:
+        """archive-objective should resolve a matching gap entry after a successful archive."""
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        todo_path = objective_dir / "todo.md"
+        todo_text = todo_path.read_text(encoding="utf-8")
+        todo_text = todo_text.replace("- [ ] PS1:", "- [x] PS1:")
+        todo_text = todo_text.replace("- [ ] PS1.1:", "- [x] PS1.1:")
+        todo_text = todo_text.replace("- [ ] PS1.2:", "- [x] PS1.2:")
+        todo_text = todo_text.replace("- [ ] PS1.3:", "- [x] PS1.3:")
+        todo_text = todo_text.replace("- [ ] PS2:", "- [x] PS2:")
+        todo_text = todo_text.replace("- [ ] PS2.1:", "- [x] PS2.1:")
+        todo_text = todo_text.replace("- [ ] PS2.2:", "- [x] PS2.2:")
+        todo_text = todo_text.replace("- [ ] PS2.3:", "- [x] PS2.3:")
+        todo_path.write_text(todo_text, encoding="utf-8")
+        (objective_dir / "HANDOFF-CURRENT.md").write_text(
+            "# Handoff — project-state-mvp\n\n## Current objective\n- `project-state-mvp` — **COMPLETE**\n",
+            encoding="utf-8",
+        )
+        gap_registry_path = (
+            self.temp_dir / ".mm-flow" / "planning" / "gaps" / "gap-registry.json"
+        )
+        gap_registry_path.parent.mkdir(parents=True, exist_ok=True)
+        gap_registry_path.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "gaps": [
+                        {
+                            "id": "gap-1234",
+                            "title": "Project state follow-up",
+                            "status": "open",
+                            "detected_from": "some-objective",
+                            "objective_slug": "some-objective",
+                            "evidence": ["follow-up became a real objective"],
+                            "impact": "medium",
+                            "urgency": "medium",
+                            "suggested_followup": "project-state-mvp",
+                            "promotion_readiness": "ready",
+                            "promoted_objective_slug": None,
+                            "created_at_utc": "2026-06-08T00:00:00Z",
+                            "updated_at_utc": "2026-06-08T00:00:00Z",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        archive_result = self.run_command(
+            str(ARCHIVE_OBJECTIVE_HANDLER), "--objective", "project-state-mvp"
+        )
+        self.assertEqual(
+            archive_result.returncode,
+            0,
+            msg=archive_result.stdout + archive_result.stderr,
+        )
+        self.assertIn("Gap registry sync", archive_result.stdout)
+
+        registry = json.loads(gap_registry_path.read_text(encoding="utf-8"))
+        entry = registry["gaps"][0]
+        self.assertEqual(entry["status"], "resolved")
+        self.assertEqual(entry["promoted_objective_slug"], "project-state-mvp")
+
+    def test_discover_objective_auto_syncs_matching_gap_registry_entry(self) -> None:
+        """discover objective mode should promote a matching gap entry after package creation."""
+        gap_registry_path = (
+            self.temp_dir / ".mm-flow" / "planning" / "gaps" / "gap-registry.json"
+        )
+        gap_registry_path.parent.mkdir(parents=True, exist_ok=True)
+        gap_registry_path.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "gaps": [
+                        {
+                            "id": "gap-1234",
+                            "title": "Project state follow-up",
+                            "status": "open",
+                            "detected_from": "some-objective",
+                            "objective_slug": "some-objective",
+                            "evidence": ["follow-up became a real objective"],
+                            "impact": "medium",
+                            "urgency": "medium",
+                            "suggested_followup": "project-state-mvp",
+                            "promotion_readiness": "ready",
+                            "promoted_objective_slug": None,
+                            "created_at_utc": "2026-06-08T00:00:00Z",
+                            "updated_at_utc": "2026-06-08T00:00:00Z",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        discover_result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "project-state-mvp",
+            "Project State MVP",
+        )
+        self.assertEqual(
+            discover_result.returncode,
+            0,
+            msg=discover_result.stdout + discover_result.stderr,
+        )
+        self.assertIn("GAP_REGISTRY_SYNC", discover_result.stdout)
+
+        registry = json.loads(gap_registry_path.read_text(encoding="utf-8"))
+        entry = registry["gaps"][0]
+        self.assertEqual(entry["status"], "promoted")
+        self.assertEqual(entry["promoted_objective_slug"], "project-state-mvp")
+
     def test_checkpoint_guard_blocks_code_commit_without_execution_state_advance(
         self,
     ) -> None:

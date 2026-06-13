@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
@@ -41,6 +42,17 @@ REQUIRED_OBJECTIVE_FILES = (
     "todo.md",
     "HANDOFF-CURRENT.md",
 )
+
+
+def gap_registry_helper_path() -> Path | None:
+    """Resolve the gap registry helper path for the current runtime context."""
+    project_local = ROOT / ".mm-flow" / "commands" / "mm" / "gap-registry.py"
+    if project_local.exists():
+        return project_local
+    sibling = Path(__file__).resolve().parent / "gap-registry.py"
+    if sibling.exists():
+        return sibling
+    return None
 
 
 def parse_args() -> Namespace:
@@ -321,6 +333,33 @@ def write_completion_summary(
     summary_path.write_text(summary, encoding="utf-8")
 
 
+def sync_gap_registry_for_archived_objective(objective: str) -> tuple[bool, str]:
+    """Best-effort sync of the gap registry after a successful archive."""
+    helper_path = gap_registry_helper_path()
+    if helper_path is None:
+        return False, "gap registry helper not found"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(helper_path),
+            "sync-objective",
+            "--objective-slug",
+            objective,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    output = (result.stdout or "").strip()
+    if result.returncode == 0:
+        return True, output or f"Synchronized gap registry for {objective}"
+    if f"No gap found for suggested_followup: {objective}" in output:
+        return False, f"No matching gap registry entry for {objective}"
+    return False, output or f"Gap registry sync failed for {objective}"
+
+
 def main() -> int:
     """Archive a completed objective package."""
     args = parse_args()
@@ -359,6 +398,11 @@ def main() -> int:
     mark_objective_done_in_roadmap(objective)
     update_global_handoff(objective)
     print(f"- Archived to: {archive_dir}")
+    sync_ok, sync_message = sync_gap_registry_for_archived_objective(objective)
+    if sync_ok:
+        print(f"- Gap registry sync: {sync_message}")
+    else:
+        print(f"- Gap registry sync info: {sync_message}")
 
     next_obj = find_next_objective()
     if next_obj:

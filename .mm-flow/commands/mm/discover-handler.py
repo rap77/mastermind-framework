@@ -1453,6 +1453,47 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
     return written_paths
 
 
+def gap_registry_helper_path(root_dir: Path) -> Path | None:
+    """Resolve the gap registry helper path for the current runtime context."""
+    project_local = root_dir / ".mm-flow" / "commands" / "mm" / "gap-registry.py"
+    if project_local.exists():
+        return project_local
+    sibling = Path(__file__).resolve().parent / "gap-registry.py"
+    if sibling.exists():
+        return sibling
+    return None
+
+
+def sync_gap_registry_for_discovered_objective(
+    root_dir: Path, objective_slug: str
+) -> tuple[bool, str]:
+    """Best-effort sync of the gap registry after objective package creation."""
+    helper_path = gap_registry_helper_path(root_dir)
+    if helper_path is None:
+        return False, "gap registry helper not found"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(helper_path),
+            "sync-objective",
+            "--objective-slug",
+            objective_slug,
+        ],
+        cwd=root_dir,
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    output = (result.stdout or "").strip()
+    if result.returncode == 0:
+        return True, output or f"Synchronized gap registry for {objective_slug}"
+    if f"No gap found for suggested_followup: {objective_slug}" in output:
+        return False, f"No matching gap registry entry for {objective_slug}"
+    return False, output or f"Gap registry sync failed for {objective_slug}"
+
+
 def read_context_files(root_dir: Path) -> dict[str, object]:
     """Read coarse context signals for existing projects."""
     context: dict[str, object] = {
@@ -1722,6 +1763,9 @@ def main() -> None:
                 root_dir,
             )
             written_paths = write_objective_package(root_dir, payload)
+            sync_ok, sync_message = sync_gap_registry_for_discovered_objective(
+                root_dir, str(payload["objective_slug"])
+            )
             print("MODE: objective")
             print("TASK: objective-packager")
             print(f"PAYLOAD: {json.dumps(payload, indent=2)}")
@@ -1729,6 +1773,10 @@ def main() -> None:
             print(
                 f"WRITTEN: {json.dumps([str(path) for path in written_paths], indent=2)}"
             )
+            if sync_ok:
+                print(f"GAP_REGISTRY_SYNC: {sync_message}")
+            else:
+                print(f"GAP_REGISTRY_SYNC_INFO: {sync_message}")
             print()
             print(f"INFO: Preparing objective package for: {args.objective}")
             print(f"INFO: Target directory: {payload['target_dir']}")

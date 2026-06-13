@@ -66,6 +66,33 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
             check=False,
         )
 
+    def _write_active_objective_exceptions_artifact(
+        self, payload: dict[str, object]
+    ) -> Path:
+        path = (
+            self.temp_dir / ".mm-flow" / "planning" / "active-objective-exceptions.json"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        return path
+
+    def _with_default_exception_expiry(
+        self, payload: dict[str, object]
+    ) -> dict[str, object]:
+        exceptions = payload.get("exceptions", [])
+        if not isinstance(exceptions, list):
+            return payload
+        normalized: list[dict[str, object]] = []
+        for entry in exceptions:
+            if not isinstance(entry, dict):
+                continue
+            enriched = dict(entry)
+            enriched.setdefault("expires_at_utc", "2099-01-01T00:00:00Z")
+            normalized.append(enriched)
+        updated = dict(payload)
+        updated["exceptions"] = normalized
+        return updated
+
     def _materialize_project_state_objective(self) -> Path:
         result = self.run_command(
             str(DISCOVER_HANDLER),
@@ -333,6 +360,25 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
     ) -> None:
         """Bare `T1` must fail clearly when more than one active objective defines it."""
         self._materialize_generic_objective("alpha-objective", "Alpha Objective")
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "allow-alpha-beta-discover",
+                            "objective_slugs": [
+                                "alpha-objective",
+                                "beta-objective",
+                            ],
+                            "reason": "Allow coordinated regression coverage for two active objectives.",
+                            "commands": ["discover --existing --objective"],
+                            "expires_when": "Remove after regression test completes.",
+                        }
+                    ],
+                }
+            )
+        )
         self._materialize_generic_objective("beta-objective", "Beta Objective")
 
         result = self.run_command(str(COMPLETE_TASK_HANDLER), "--brief", "T1")
@@ -343,6 +389,25 @@ class CompleteTaskHandlerRegressionTest(unittest.TestCase):
     def test_brief_accepts_explicit_objective_scoped_task_ref(self) -> None:
         """Objective-scoped task refs should work when multiple active objectives exist."""
         self._materialize_generic_objective("alpha-objective", "Alpha Objective")
+        self._write_active_objective_exceptions_artifact(
+            self._with_default_exception_expiry(
+                {
+                    "version": 1,
+                    "exceptions": [
+                        {
+                            "id": "allow-alpha-beta-discover",
+                            "objective_slugs": [
+                                "alpha-objective",
+                                "beta-objective",
+                            ],
+                            "reason": "Allow coordinated regression coverage for two active objectives.",
+                            "commands": ["discover --existing --objective"],
+                            "expires_when": "Remove after regression test completes.",
+                        }
+                    ],
+                }
+            )
+        )
         self._materialize_generic_objective("beta-objective", "Beta Objective")
 
         result = self.run_command(
