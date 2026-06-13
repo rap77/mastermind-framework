@@ -31,18 +31,30 @@ Brain #5/#6 guidance:
 """
 
 import asyncio
+import hashlib
+import json
 import logging
 import os
 import time
 import uuid
+from datetime import datetime, timezone
+from typing import Any, Mapping
 
 import asyncpg
 import httpx
+from sqlalchemy.orm import Session
 
 from mastermind_cli.experience.logger import ExperienceLogger
 from mastermind_cli.orchestrator import brain_router as _brain_router
 from mastermind_cli.orchestrator.brain7_evaluator import evaluate_session
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
+from mastermind_cli.project_state.database.session import (
+    get_session_factory,
+    initialize_database,
+)
+from mastermind_cli.project_state.repositories.artifacts import ArtifactRepository
+from mastermind_cli.project_state.models.task import Task
+from mastermind_cli.project_state.models.task_run import TaskRun
 from mastermind_cli.orchestrator.stateless_coordinator import (
     create_stateless_coordinator,
 )
@@ -60,6 +72,95 @@ _DEFAULT_DATABASE_URL = os.getenv(
 _RUST_CONTROL_PLANE_URL = os.environ.get(
     "RUST_CONTROL_PLANE_URL", "http://localhost:3001"
 )
+
+
+def _project_state_db_url_from_path(db_path: str) -> str:
+    """Resolve the transitional project_state database URL from the legacy DB path."""
+    if db_path == ":memory:":
+        return "sqlite:///:memory:"
+    return f"sqlite:///{db_path}.project_state"
+
+
+def _update_project_state_status(
+    db_path: str,
+    task_id: str,
+    status: str,
+    *,
+    mark_run_finished: bool,
+) -> None:
+    """Mirror task/run status to project_state during the migration window."""
+    database_url = _project_state_db_url_from_path(db_path)
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+    with session_factory() as session:
+        _apply_project_state_status(
+            session=session,
+            task_id=task_id,
+            status=status,
+            timestamp=now,
+            mark_run_finished=mark_run_finished,
+        )
+        session.commit()
+
+
+def _apply_project_state_status(
+    *,
+    session: Session,
+    task_id: str,
+    status: str,
+    timestamp: datetime,
+    mark_run_finished: bool,
+) -> None:
+    """Apply a status update to transitional project_state task/run records."""
+    task = session.get(Task, task_id)
+    if task is not None:
+        task.status = status
+        task.updated_at = timestamp
+
+    run = session.get(TaskRun, task_id)
+    if run is not None:
+        run.status = status
+        if mark_run_finished:
+            run.ended_at = timestamp
+
+
+def _persist_execution_output_artifact(
+    db_path: str,
+    *,
+    run_id: str,
+    task_id: str,
+    brain_outputs: Mapping[str, Any],
+) -> None:
+    """Persist a transitional canonical execution output bundle artifact."""
+    database_url = _project_state_db_url_from_path(db_path)
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    created_at = datetime.now(timezone.utc)
+    metadata_json: dict[str, object] = {
+        "run_id": run_id,
+        "task_id": task_id,
+        "format_version": 1,
+        "brain_outputs": brain_outputs,
+    }
+    content_hash = hashlib.sha256(
+        json.dumps(metadata_json, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    with session_factory() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            return
+        repo = ArtifactRepository(session)
+        repo.create_version(
+            version_id=str(uuid.uuid4()),
+            artifact_id=f"execution-output:{run_id}",
+            project_id=task.project_id,
+            artifact_type="execution_output_bundle",
+            version=1,
+            content_hash=content_hash,
+            created_at=created_at,
+            metadata_json=metadata_json,
+        )
 
 
 class _PassthroughMCPClient:
@@ -160,6 +261,15 @@ async def run_brain_task(
             ["running", task_id],
         )
         await db.conn.commit()
+    try:
+        _update_project_state_status(
+            db_path,
+            task_id,
+            "running",
+            mark_run_finished=False,
+        )
+    except Exception:
+        pass
 
     detector = FlowDetector()
     flow_type = flow if flow else detector.detect(brief)
@@ -192,7 +302,7 @@ async def run_brain_task(
             from mastermind_cli.rag.context_builder import RAGContextBuilder
 
             for bid in results:
-                if bid == "brain-01-product-strategy":
+                if bid in {"brain-01-product", "brain-01-product-strategy"}:
                     ctx = await RAGContextBuilder(pg_conn).build(bid, brief)
                     rag_context_per_brain[bid] = ctx != ""
                 else:
@@ -259,6 +369,28 @@ async def run_brain_task(
                 ["completed", task_id],
             )
             await db.conn.commit()
+        try:
+            _update_project_state_status(
+                db_path,
+                task_id,
+                "completed",
+                mark_run_finished=True,
+            )
+        except Exception:
+            pass
+        try:
+            canonical_outputs = {
+                brain_id: (output.model_dump() if hasattr(output, "model_dump") else {})
+                for brain_id, output in results.items()
+            }
+            _persist_execution_output_artifact(
+                db_path,
+                run_id=task_id,
+                task_id=task_id,
+                brain_outputs=canonical_outputs,
+            )
+        except Exception:
+            pass
 
         # C3.06: POST session_evaluated event to Rust control plane (outside DB ctx)
         await _post_session_evaluated_event(
@@ -326,6 +458,15 @@ async def run_brain_task(
                 await db.conn.commit()
         except Exception:
             pass  # DB write on shutdown — best-effort only
+        try:
+            _update_project_state_status(
+                db_path,
+                task_id,
+                "failed",
+                mark_run_finished=True,
+            )
+        except Exception:
+            pass
     finally:
         # Phase 21: always close the asyncpg RAG connection (if opened)
         if pg_conn is not None:

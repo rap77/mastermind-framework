@@ -35,6 +35,7 @@ from mastermind_cli.api.routes.project_overview import router as project_overvie
 from mastermind_cli.api.routes.project_participants import (
     router as project_participants_router,
 )
+from mastermind_cli.project_state.database.session import initialize_database
 from mastermind_cli.state.database import DatabaseConnection
 
 # gRPC server (Phase 18: gap-closure)
@@ -148,6 +149,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         redoc_url="/redoc",
         lifespan=lifespan,
     )
+    initialize_database(_resolve_project_state_db_url(db_path))
 
     # Register rate limiter (Brain #7 gap B — prevent bcrypt DoS via x-api-key spam)
     app.state.limiter = keys_limiter

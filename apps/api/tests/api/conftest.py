@@ -24,8 +24,8 @@ from __future__ import annotations
 
 # pyright: reportMissingImports=false
 
-import asyncio
 import os
+import sqlite3
 from pathlib import Path
 
 import bcrypt
@@ -34,6 +34,7 @@ import pytest_asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
+from pytest import MonkeyPatch
 
 # Set JWT_SECRET BEFORE importing create_app (jwt_handler reads it at import time)
 os.environ["JWT_SECRET"] = "test_secret_for_unit_tests_only"
@@ -41,7 +42,7 @@ os.environ["JWT_SECRET"] = "test_secret_for_unit_tests_only"
 from mastermind_cli.api.app import create_app
 from mastermind_cli.api.dependencies import get_db_path
 from mastermind_cli.api.routes.auth import create_access_token, create_refresh_token
-from mastermind_cli.state.database import DatabaseConnection
+from mastermind_cli.project_state.database.session import dispose_engines
 
 TEST_USER_ID = "test-user-id-001"
 TEST_USER_ID_B = "test-user-id-002"
@@ -57,22 +58,86 @@ TEST_PASSWORD_HASH_B = bcrypt.hashpw(
 
 
 def _run_setup(path: str) -> None:
-    async def setup() -> None:
-        async with DatabaseConnection(path) as db:
-            await db.create_task_schema()
-            await db.create_auth_schema()
-            await db.create_audit_trail_schema()
-            await db.conn.execute(
-                "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
-                [TEST_USER_ID, TEST_USERNAME, TEST_PASSWORD_HASH],
-            )
-            await db.conn.execute(
-                "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
-                [TEST_USER_ID_B, TEST_USERNAME_B, TEST_PASSWORD_HASH_B],
-            )
-            await db.conn.commit()
+    with sqlite3.connect(path) as conn:
+        conn.executescript("""
+            PRAGMA journal_mode=WAL;
 
-    asyncio.run(setup())
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                brain_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                progress TEXT,
+                result TEXT,
+                error TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS executions (
+                id TEXT PRIMARY KEY,
+                flow_config TEXT NOT NULL,
+                brief TEXT NOT NULL,
+                created_at TIMESTAMP,
+                status TEXT,
+                user_id TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_status ON tasks(status);
+            CREATE INDEX IF NOT EXISTS idx_brain_id ON tasks(brain_id);
+
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                refresh_token_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                rotation_count INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                key_hash TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                method TEXT NOT NULL,
+                request_hash TEXT,
+                response_status INTEGER NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token_hash ON sessions(refresh_token_hash);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+            CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+            CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id, timestamp DESC);
+        """)
+        conn.execute(
+            "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
+            (TEST_USER_ID, TEST_USERNAME, TEST_PASSWORD_HASH),
+        )
+        conn.execute(
+            "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
+            (TEST_USER_ID_B, TEST_USERNAME_B, TEST_PASSWORD_HASH_B),
+        )
+        conn.commit()
 
 
 @pytest.fixture
@@ -93,7 +158,8 @@ def app(db_path: str) -> FastAPI:
         return db_path
 
     application.dependency_overrides[get_db_path] = _override_db_path
-    return application
+    yield application
+    dispose_engines()
 
 
 @pytest_asyncio.fixture
@@ -103,6 +169,79 @@ async def client(app: FastAPI) -> AsyncClient:
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:
         yield c
+
+
+@pytest.fixture(autouse=True)
+def stub_background_brain_task(monkeypatch: MonkeyPatch) -> None:
+    """Prevent API tests from running real background orchestration tasks."""
+
+    async def _noop_run_brain_task(
+        task_id: str,
+        brief: str,
+        flow: str | None,
+        db_path: str,
+    ) -> None:
+        """No-op replacement for run_brain_task during API tests."""
+        del task_id, brief, flow, db_path
+
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.tasks.run_brain_task",
+        _noop_run_brain_task,
+    )
+
+
+@pytest.fixture(autouse=True)
+def stub_tasks_database_connection(monkeypatch: MonkeyPatch) -> None:
+    """Replace task route aiosqlite usage with a sqlite3-backed async shim."""
+
+    class _Cursor:
+        def __init__(self, cursor: sqlite3.Cursor):
+            self._cursor = cursor
+
+        async def fetchone(self):
+            """Return one row from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchone()
+
+        async def fetchall(self):
+            """Return all rows from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchall()
+
+    class _Conn:
+        def __init__(self, connection: sqlite3.Connection):
+            self._connection = connection
+
+        async def execute(self, sql: str, params=None):
+            """Execute SQL and expose an async-compatible cursor API."""
+            return _Cursor(self._connection.execute(sql, params or []))
+
+        async def commit(self):
+            """Commit the underlying sqlite3 transaction."""
+            self._connection.commit()
+
+    class _FakeDatabaseConnection:
+        def __init__(self, db_path: str = ":memory:"):
+            self.db_path = db_path
+            self._connection: sqlite3.Connection | None = None
+
+        @property
+        def conn(self) -> _Conn:
+            assert self._connection is not None
+            return _Conn(self._connection)
+
+        async def __aenter__(self):
+            self._connection = sqlite3.connect(self.db_path)
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            del exc_type, exc, tb
+            assert self._connection is not None
+            self._connection.close()
+            self._connection = None
+
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.tasks.DatabaseConnection",
+        _FakeDatabaseConnection,
+    )
 
 
 @pytest.fixture

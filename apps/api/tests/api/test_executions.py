@@ -3,9 +3,22 @@
 Requirements: UI-06, BE-02
 """
 
+from __future__ import annotations
+
 import json
+from datetime import datetime, timezone
 
 import pytest
+
+from mastermind_cli.project_state.database.session import (
+    dispose_engines,
+    get_session_factory,
+    initialize_database,
+)
+from mastermind_cli.project_state.models.project import Project
+from mastermind_cli.project_state.models.task import Task
+from mastermind_cli.project_state.models.task_run import TaskRun
+from tests.api.conftest import TEST_USER_ID
 
 
 @pytest.mark.asyncio
@@ -21,6 +34,37 @@ async def test_create_task(client, auth_headers):
     assert "task_id" in data
     assert data["status"] == "pending"
     assert "created_at" in data
+
+
+@pytest.mark.asyncio
+async def test_create_task_persists_project_state_task_and_run(
+    client, auth_headers, db_path
+):
+    """POST /api/tasks writes the transitional project_state task and run records."""
+    response = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Persist me in project_state"},
+    )
+    assert response.status_code == 201
+    task_id = response.json()["task_id"]
+
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        task = session.get(Task, task_id)
+        run = session.get(TaskRun, task_id)
+
+    assert task is not None
+    assert task.project_id == f"user-tasks:{TEST_USER_ID}"
+    assert task.status == "pending"
+    assert task.metadata_json["brief"] == "Persist me in project_state"
+
+    assert run is not None
+    assert run.project_id == f"user-tasks:{TEST_USER_ID}"
+    assert run.task_id == task_id
+    assert run.status == "pending"
 
 
 @pytest.mark.asyncio
@@ -54,6 +98,55 @@ async def test_list_tasks(client, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_list_tasks_reads_project_state_records_only(
+    client, auth_headers, db_path
+):
+    """GET /api/tasks lists records from project_state even without legacy executions."""
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                name="User task workspace",
+                status="active",
+                adapter_id="legacy-tasks",
+                metadata_json={"user_id": TEST_USER_ID},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id="ps-task-001",
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                title="Project state task",
+                status="pending",
+                priority="normal",
+                owner_type="user",
+                owner_id=TEST_USER_ID,
+                metadata_json={"brief": "Project state only task"},
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    response = await client.get("/api/tasks", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total"] == 1
+    assert data["tasks"][0]["id"] == "ps-task-001"
+    assert data["tasks"][0]["brief"] == "Project state only task"
+
+
+@pytest.mark.asyncio
 async def test_get_task(client, auth_headers):
     """GET /api/tasks/{id} returns task; 404 for unknown."""
     create = await client.post(
@@ -72,6 +165,56 @@ async def test_get_task(client, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_get_task_reads_project_state_record_only(client, auth_headers, db_path):
+    """GET /api/tasks/{id} reads from project_state even without legacy executions."""
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                name="User task workspace",
+                status="active",
+                adapter_id="legacy-tasks",
+                metadata_json={"user_id": TEST_USER_ID},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id="ps-task-get-001",
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                title="Project state get task",
+                status="pending",
+                priority="normal",
+                owner_type="user",
+                owner_id=TEST_USER_ID,
+                metadata_json={
+                    "brief": "Project state only get",
+                    "flow_config": '{"mode":"ps-only"}',
+                },
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    response = await client.get("/api/tasks/ps-task-get-001", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "ps-task-get-001"
+    assert data["brief"] == "Project state only get"
+    assert data["status"] == "pending"
+    assert data["flow_config"] == '{"mode":"ps-only"}'
+
+
+@pytest.mark.asyncio
 async def test_cancel_task(client, auth_headers):
     """DELETE /api/tasks/{id} cancels task."""
     create = await client.post(
@@ -85,6 +228,33 @@ async def test_cancel_task(client, auth_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["task_id"] == task_id
+
+
+@pytest.mark.asyncio
+async def test_cancel_task_updates_project_state_status(client, auth_headers, db_path):
+    """DELETE /api/tasks/{id} updates project_state task status."""
+    create = await client.post(
+        "/api/tasks",
+        headers=auth_headers,
+        json={"brief": "Task to cancel in project_state"},
+    )
+    task_id = create.json()["task_id"]
+
+    response = await client.delete(f"/api/tasks/{task_id}", headers=auth_headers)
+    assert response.status_code == 200
+
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        task = session.get(Task, task_id)
+        run = session.get(TaskRun, task_id)
+
+    assert task is not None
+    assert task.status == "cancelled"
+    assert run is not None
+    assert run.status == "cancelled"
+    assert run.ended_at is not None
 
 
 @pytest.mark.asyncio
@@ -191,9 +361,7 @@ class TestTaskGraphBE02:
         self, client, auth_headers, db_path
     ):
         """Edge objects serialize with 'source' and 'target' keys — React Flow compatible."""
-        import sqlite3
-
-        # Create task then patch flow_config directly in test DB
+        # Create task then patch canonical project_state flow_config
         create = await client.post(
             "/api/tasks",
             headers=auth_headers,
@@ -202,7 +370,6 @@ class TestTaskGraphBE02:
         assert create.status_code == 201
         task_id = create.json()["task_id"]
 
-        # Patch flow_config into the DB record using the fixture-provided db_path
         flow_config = {
             "nodes": {
                 "brain-01": [],
@@ -212,13 +379,18 @@ class TestTaskGraphBE02:
                 "brain-02": ["brain-01"],
             },
         }
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "UPDATE executions SET flow_config = ? WHERE id = ?",
-            [json.dumps(flow_config), task_id],
-        )
-        conn.commit()
-        conn.close()
+        database_url = f"sqlite:///{db_path}.project_state"
+        dispose_engines()
+        session_factory = get_session_factory(database_url)
+        with session_factory() as session:
+            task = session.get(Task, task_id)
+            assert task is not None
+            task.metadata_json = {
+                **task.metadata_json,
+                "flow_config": json.dumps(flow_config),
+            }
+            session.add(task)
+            session.commit()
 
         response = await client.get(f"/api/tasks/{task_id}/graph", headers=auth_headers)
         assert response.status_code == 200
@@ -236,6 +408,69 @@ class TestTaskGraphBE02:
         # Must NOT have old 'from'/'to' field names
         assert "from" not in edge
         assert "to" not in edge
+
+    @pytest.mark.asyncio
+    async def test_graph_reads_project_state_flow_config_only(
+        self, client, auth_headers, db_path
+    ):
+        """GET /api/tasks/{id}/graph can render from project_state without legacy executions flow_config."""
+        database_url = f"sqlite:///{db_path}.project_state"
+        dispose_engines()
+        initialize_database(database_url)
+        session_factory = get_session_factory(database_url)
+        now = datetime.now(timezone.utc)
+        with session_factory() as session:
+            session.add(
+                Project(
+                    project_id=f"user-tasks:{TEST_USER_ID}",
+                    name="User task workspace",
+                    status="active",
+                    adapter_id="legacy-tasks",
+                    metadata_json={"user_id": TEST_USER_ID},
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            session.add(
+                Task(
+                    task_id="ps-graph-001",
+                    project_id=f"user-tasks:{TEST_USER_ID}",
+                    title="Project state graph task",
+                    status="running",
+                    priority="normal",
+                    owner_type="user",
+                    owner_id=TEST_USER_ID,
+                    metadata_json={
+                        "brief": "Project state graph brief",
+                        "flow_config": json.dumps(
+                            {
+                                "nodes": {
+                                    "brain-01": [],
+                                    "brain-02": ["brain-01"],
+                                },
+                                "edges": {
+                                    "brain-02": ["brain-01"],
+                                },
+                            }
+                        ),
+                    },
+                    constraints={},
+                    completion_criteria={},
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            session.commit()
+
+        response = await client.get(
+            "/api/tasks/ps-graph-001/graph", headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["nodes"]) == 2
+        assert len(data["edges"]) == 1
+        assert data["edges"][0]["source"] == "brain-01"
+        assert data["edges"][0]["target"] == "brain-02"
 
     @pytest.mark.asyncio
     async def test_graph_returns_404_for_unknown_task(self, client, auth_headers):
