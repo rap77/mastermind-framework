@@ -13,6 +13,7 @@ High-value criteria (Brain #7 conditions):
 Plan 14-02 Task 1: Create distillation service with high-value detection.
 """
 
+from collections.abc import Callable
 from typing import Optional
 
 from pydantic import BaseModel
@@ -50,9 +51,25 @@ class KnowledgeDistillationService:
     FastAPI BackgroundTasks to avoid blocking user responses.
     """
 
-    def __init__(self, db_path: str = "mastermind.db"):
+    def __init__(
+        self,
+        db_path: str = "mastermind.db",
+        logger: Optional[ExperienceLogger] = None,
+        extractor_factory: Optional[
+            Callable[[ExperienceLogger], TemplateExtractor]
+        ] = None,
+    ):
+        """Initialize the distillation service.
+
+        Args:
+            db_path: Backing database path for the default logger.
+            logger: Optional injected logger for tests or alternate storage backends.
+            extractor_factory: Optional factory for building template extractors.
+        """
         self.db_path = db_path
         self._db: Optional[DatabaseConnection] = None
+        self._logger = logger
+        self._extractor_factory = extractor_factory or TemplateExtractor
 
     async def _get_db(self) -> DatabaseConnection:
         """Lazy database connection."""
@@ -60,6 +77,14 @@ class KnowledgeDistillationService:
             self._db = DatabaseConnection(self.db_path)
             await self._db.connect()
         return self._db
+
+    async def _get_logger(self) -> ExperienceLogger:
+        """Return the configured experience logger."""
+        if self._logger is not None:
+            return self._logger
+        db = await self._get_db()
+        self._logger = ExperienceLogger(db)
+        return self._logger
 
     def _is_high_value_session(self, task: DistillationTask) -> bool:
         """Determine if session warrants Brain #7 evaluation.
@@ -106,8 +131,7 @@ class KnowledgeDistillationService:
         if not self._is_high_value_session(task):
             return  # Skip evaluation for low-value sessions
 
-        db = await self._get_db()
-        logger = ExperienceLogger(db)
+        logger = await self._get_logger()
 
         # Fetch recent experience records for this session
         brain_id = task.brain_ids[0] if task.brain_ids else "brain-01-product"
@@ -117,7 +141,7 @@ class KnowledgeDistillationService:
         )
 
         # Extract templates from high-quality records
-        extractor = TemplateExtractor(logger)
+        extractor = self._extractor_factory(logger)
         templates_extracted = 0
 
         for record in records:
