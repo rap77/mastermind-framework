@@ -3,15 +3,33 @@
 Requirements: SV-01 (Strategy Vault — execution history list)
 """
 
+from __future__ import annotations
+
+import sqlite3
 import uuid
 from datetime import datetime, timedelta
 
 import pytest
 
-from mastermind_cli.state.database import DatabaseConnection
+from mastermind_cli.project_state.database.session import (
+    dispose_engines,
+    get_session_factory,
+    initialize_database,
+)
+from mastermind_cli.project_state.models.project import Project
+from mastermind_cli.project_state.models.task import Task
+from mastermind_cli.project_state.models.task_run import TaskRun
+from tests.api.conftest import TEST_USER_ID
 
 
-async def _insert_execution(
+@pytest.fixture(autouse=True)
+def cleanup_project_state_engines() -> None:
+    """Dispose cached SQLAlchemy engines after each test."""
+    yield
+    dispose_engines()
+
+
+def _insert_execution(
     db_path: str,
     task_id: str,
     brief: str,
@@ -21,17 +39,96 @@ async def _insert_execution(
     """Helper: insert an execution_history record for tests."""
     exec_id = str(uuid.uuid4())
     ts = (created_at or datetime.utcnow()).isoformat()
-    async with DatabaseConnection(db_path) as db:
-        await db.create_execution_history_schema()
-        await db.conn.execute(
+    with sqlite3.connect(db_path) as connection:
+        connection.executescript("""
+            CREATE TABLE IF NOT EXISTS execution_history (
+                id TEXT PRIMARY KEY,
+                task_id TEXT UNIQUE NOT NULL,
+                brief TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'running',
+                duration_ms INTEGER NOT NULL DEFAULT 0,
+                brain_count INTEGER NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                milestones_json TEXT NOT NULL DEFAULT '[]',
+                brain_outputs_json TEXT NOT NULL DEFAULT '{}',
+                graph_snapshot_json TEXT NOT NULL DEFAULT '{}'
+            );
+            CREATE INDEX IF NOT EXISTS idx_execution_history_task_id
+            ON execution_history(task_id);
+            CREATE INDEX IF NOT EXISTS idx_execution_history_created_at
+            ON execution_history(created_at DESC);
+        """)
+        connection.execute(
             """INSERT INTO execution_history
                (id, task_id, brief, status, duration_ms, brain_count,
                 created_at, milestones_json, brain_outputs_json, graph_snapshot_json)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [exec_id, task_id, brief[:200], status, 1000, 3, ts, "[]", "{}", "{}"],
+            (exec_id, task_id, brief[:200], status, 1000, 3, ts, "[]", "{}", "{}"),
         )
-        await db.conn.commit()
+        connection.commit()
     return exec_id
+
+
+def _insert_project_state_run(
+    db_path: str,
+    *,
+    run_id: str,
+    task_id: str,
+    brief: str,
+    status: str = "completed",
+    started_at: datetime | None = None,
+    ended_at: datetime | None = None,
+) -> None:
+    """Helper: insert canonical project_state task/run records for history tests."""
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    ts = started_at or datetime.utcnow()
+    with session_factory() as session:
+        project = session.get(Project, f"user-tasks:{TEST_USER_ID}")
+        if project is None:
+            session.add(
+                Project(
+                    project_id=f"user-tasks:{TEST_USER_ID}",
+                    name="User task workspace",
+                    status="active",
+                    adapter_id="legacy-tasks",
+                    metadata_json={"user_id": TEST_USER_ID},
+                    created_at=ts,
+                    updated_at=ts,
+                )
+            )
+        session.add(
+            Task(
+                task_id=task_id,
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                title=brief[:500],
+                status=status,
+                priority="normal",
+                owner_type="user",
+                owner_id=TEST_USER_ID,
+                metadata_json={"brief": brief, "flow_config": "{}"},
+                constraints={},
+                completion_criteria={},
+                created_at=ts,
+                updated_at=ended_at or ts,
+            )
+        )
+        session.add(
+            TaskRun(
+                run_id=run_id,
+                project_id=f"user-tasks:{TEST_USER_ID}",
+                task_id=task_id,
+                actor_type="user",
+                actor_id=TEST_USER_ID,
+                status=status,
+                started_at=ts,
+                ended_at=ended_at,
+                metadata_json={},
+            )
+        )
+        session.commit()
 
 
 @pytest.mark.asyncio
@@ -58,7 +155,7 @@ async def test_get_executions_history_pagination(client, auth_headers, db_path) 
     # Insert 12 executions with different timestamps
     for i in range(12):
         ts = datetime(2026, 3, 1, 12, 0, 0) + timedelta(minutes=i)
-        await _insert_execution(
+        _insert_execution(
             db_path,
             task_id=f"task-{i:03d}",
             brief=f"Brief {i}",
@@ -80,7 +177,7 @@ async def test_get_executions_history_cursor_pagination(
     """Cursor pagination: second page returns the next batch of results."""
     for i in range(8):
         ts = datetime(2026, 3, 1, 12, 0, 0) + timedelta(minutes=i)
-        await _insert_execution(
+        _insert_execution(
             db_path,
             task_id=f"task-cursor-{i:03d}",
             brief=f"Brief cursor {i}",
@@ -117,7 +214,7 @@ async def test_get_executions_history_sort_order_newest(
     """Default sort is 'newest' (descending created_at)."""
     base_ts = datetime(2026, 3, 1, 12, 0, 0)
     for i in range(3):
-        await _insert_execution(
+        _insert_execution(
             db_path,
             task_id=f"task-sort-{i}",
             brief=f"Sort test {i}",
@@ -143,7 +240,7 @@ async def test_get_executions_history_sort_oldest(
     """sort=oldest returns ascending order."""
     base_ts = datetime(2026, 3, 1, 12, 0, 0)
     for i in range(3):
-        await _insert_execution(
+        _insert_execution(
             db_path,
             task_id=f"task-oldest-{i}",
             brief=f"Oldest test {i}",
@@ -166,7 +263,7 @@ async def test_get_executions_history_cursor_invalid(
     client, auth_headers, db_path
 ) -> None:
     """Invalid cursor → graceful reset to beginning (no 500 error)."""
-    await _insert_execution(db_path, task_id="task-inv", brief="Invalid cursor test")
+    _insert_execution(db_path, task_id="task-inv", brief="Invalid cursor test")
 
     response = await client.get(
         "/api/executions/history?cursor=INVALID_CURSOR_DATA", headers=auth_headers
@@ -192,7 +289,7 @@ async def test_get_executions_history_response_shape(
     client, auth_headers, db_path
 ) -> None:
     """Response has correct field shapes for ExecutionSummary items."""
-    await _insert_execution(
+    _insert_execution(
         db_path,
         task_id="task-shape",
         brief="Shape test brief",
@@ -214,3 +311,84 @@ async def test_get_executions_history_response_shape(
     assert "duration_ms" in exec_item
     assert "brain_count" in exec_item
     assert "created_at" in exec_item
+
+
+@pytest.mark.asyncio
+async def test_get_executions_history_reads_project_state_runs_first(
+    client, auth_headers, db_path
+) -> None:
+    """Canonical task runs should back the history list before legacy fallback."""
+    started = datetime(2026, 6, 1, 12, 0, 0)
+    ended = started + timedelta(seconds=4)
+    _insert_project_state_run(
+        db_path,
+        run_id="run-canonical-001",
+        task_id="task-canonical-001",
+        brief="Canonical execution brief",
+        status="completed",
+        started_at=started,
+        ended_at=ended,
+    )
+
+    response = await client.get("/api/executions/history?limit=5", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["executions"]) == 1
+    item = data["executions"][0]
+    assert item["id"] == "run-canonical-001"
+    assert item["task_id"] == "task-canonical-001"
+    assert item["brief"] == "Canonical execution brief"
+    assert item["brain_count"] == 1
+    assert item["duration_ms"] == 4000
+
+
+@pytest.mark.asyncio
+async def test_get_executions_history_derives_brain_count_from_output_artifact(
+    client, auth_headers, db_path
+) -> None:
+    """History summary derives brain_count from canonical output artifacts when available."""
+    from mastermind_cli.project_state.repositories.artifacts import ArtifactRepository
+
+    started = datetime(2026, 6, 1, 12, 0, 0)
+    ended = started + timedelta(seconds=4)
+    _insert_project_state_run(
+        db_path,
+        run_id="run-canonical-002",
+        task_id="task-canonical-002",
+        brief="Canonical execution with two brains",
+        status="completed",
+        started_at=started,
+        ended_at=ended,
+    )
+
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        ArtifactRepository(session).create_version(
+            version_id="version-run-canonical-002",
+            artifact_id="execution-output:run-canonical-002",
+            project_id=f"user-tasks:{TEST_USER_ID}",
+            artifact_type="execution_output_bundle",
+            version=1,
+            content_hash="hash-run-canonical-002",
+            created_at=ended,
+            metadata_json={
+                "run_id": "run-canonical-002",
+                "task_id": "task-canonical-002",
+                "format_version": 1,
+                "brain_outputs": {
+                    "brain-01": {"brain_id": "brain-01", "status": "complete"},
+                    "brain-04": {"brain_id": "brain-04", "status": "complete"},
+                },
+            },
+        )
+
+    response = await client.get("/api/executions/history?limit=5", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    item = next(
+        entry for entry in data["executions"] if entry["id"] == "run-canonical-002"
+    )
+    assert item["brain_count"] == 2
