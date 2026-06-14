@@ -132,7 +132,6 @@ class TestAnalyticsServiceSystemHealth:
         assert metrics.rejection_rate == 0.2
 
     @pytest.mark.asyncio
-    @pytest.mark.asyncio
     async def test_get_system_health_filters_expired_records(
         self, analytics_service: AnalyticsService, async_db: DatabaseConnection
     ):
@@ -163,6 +162,106 @@ class TestAnalyticsServiceSystemHealth:
 
         # Should only count non-expired records (0 in this case, no sample_records fixture)
         assert metrics.record_count == 0
+
+    @pytest.mark.asyncio
+    async def test_get_system_health_ignores_malformed_custom_metadata(
+        self, analytics_service: AnalyticsService, async_db: DatabaseConnection
+    ):
+        """Test get_system_health() ignores invalid custom_metadata payloads."""
+        await async_db.create_experience_schema()
+        now = datetime.utcnow()
+
+        await async_db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "record-valid-health",
+                "brain-001",
+                "hash-valid-health",
+                "Valid output",
+                now.isoformat(),
+                100,
+                "completed",
+                '{"quality_score": 0.8}',
+                None,
+            ),
+        )
+        await async_db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "record-invalid-health",
+                "brain-001",
+                "hash-invalid-health",
+                "Invalid output",
+                now.isoformat(),
+                200,
+                "rejected",
+                "not-json",
+                None,
+            ),
+        )
+        await async_db.conn.commit()
+
+        metrics = await analytics_service.get_system_health()
+
+        assert metrics.record_count == 2
+        assert metrics.avg_quality_score == 0.8
+        assert metrics.rejection_rate == 0.5
+
+
+class TestAnalyticsServiceOutcomeMetrics:
+    """Test outcome metrics calculation."""
+
+    @pytest.mark.asyncio
+    async def test_get_outcome_metrics_ignores_malformed_custom_metadata(
+        self, analytics_service: AnalyticsService, async_db: DatabaseConnection
+    ):
+        """Test get_outcome_metrics() ignores invalid custom_metadata payloads."""
+        await async_db.create_experience_schema()
+        now = datetime.utcnow()
+
+        await async_db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "record-valid-outcome",
+                "brain-001",
+                "hash-valid-outcome",
+                "Valid output",
+                now.isoformat(),
+                100,
+                "completed",
+                '{"quality_score": 0.8}',
+                None,
+            ),
+        )
+        await async_db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "record-invalid-outcome",
+                "brain-001",
+                "hash-invalid-outcome",
+                "Invalid output",
+                now.isoformat(),
+                200,
+                "completed",
+                "not-json",
+                None,
+            ),
+        )
+        await async_db.conn.commit()
+
+        metrics = await analytics_service.get_outcome_metrics()
+
+        assert metrics.delta_velocity == 150.0
+        assert metrics.knowledge_yield == 0.0
+        assert metrics.planning_accuracy == 0.8
 
 
 class TestAnalyticsServiceTemplates:
