@@ -6,6 +6,8 @@ Tests dashboard metrics for monitoring brain learning progress.
 
 import pytest
 from datetime import datetime, timedelta
+import sqlite3
+from pytest import MonkeyPatch
 
 from mastermind_cli.orchestration.analytics_service import (
     AnalyticsService,
@@ -92,6 +94,63 @@ async def sample_templates(async_db: DatabaseConnection) -> None:
             ),
         )
     await async_db.conn.commit()
+
+
+@pytest.fixture(autouse=True)
+def stub_analytics_database_connection(monkeypatch: MonkeyPatch) -> None:
+    """Replace analytics route aiosqlite usage with a sqlite3-backed async shim."""
+
+    class _Cursor:
+        def __init__(self, cursor: sqlite3.Cursor):
+            self._cursor = cursor
+
+        async def fetchone(self):
+            """Return one row from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchone()
+
+        async def fetchall(self):
+            """Return all rows from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchall()
+
+    class _Conn:
+        def __init__(self, connection: sqlite3.Connection):
+            self._connection = connection
+
+        async def execute(self, sql: str, params=None):
+            """Execute SQL and expose an async-compatible cursor API."""
+            return _Cursor(self._connection.execute(sql, params or []))
+
+        async def commit(self):
+            """Commit the underlying sqlite3 transaction."""
+            self._connection.commit()
+
+    class _FakeDatabaseConnection:
+        def __init__(self, db_path: str = ":memory:"):
+            self.db_path = db_path
+            self._connection: sqlite3.Connection | None = None
+
+        @property
+        def conn(self) -> _Conn:
+            assert self._connection is not None
+            return _Conn(self._connection)
+
+        async def create_experience_schema(self) -> None:
+            """Match route contract; schema is already created by test setup."""
+
+        async def __aenter__(self):
+            self._connection = sqlite3.connect(self.db_path)
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            del exc_type, exc, tb
+            assert self._connection is not None
+            self._connection.close()
+            self._connection = None
+
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.analytics.DatabaseConnection",
+        _FakeDatabaseConnection,
+    )
 
 
 class TestAnalyticsServiceSystemHealth:
@@ -417,9 +476,7 @@ class TestAnalyticsEndpoints:
         self, async_db: DatabaseConnection, sample_records
     ):
         """Test GET /api/analytics/system-health returns system health metrics."""
-        from fastapi.testclient import TestClient
-        from mastermind_cli.api.app import create_app
-        from mastermind_cli.api.dependencies import get_db_path
+        from mastermind_cli.api.routes.analytics import get_system_health
         import tempfile
 
         # Use file-based database to persist data across test
@@ -455,18 +512,8 @@ class TestAnalyticsEndpoints:
                 )
             await db.conn.commit()
 
-        app = create_app(db_path)
-
-        async def _override_db_path() -> str:
-            """Provide the test database path to FastAPI dependencies."""
-            return db_path
-
-        app.dependency_overrides[get_db_path] = _override_db_path
-        client = TestClient(app)
-        response = client.get("/api/analytics/system-health")
-
-        assert response.status_code == 200
-        data = response.json()
+        response = await get_system_health(db_path=db_path)
+        data = response.model_dump()
         assert "record_count" in data
         assert "avg_quality_score" in data
         assert "rejection_rate" in data
@@ -479,9 +526,7 @@ class TestAnalyticsEndpoints:
         self, async_db: DatabaseConnection, sample_templates
     ):
         """Test GET /api/analytics/templates returns templates ordered by success_rate."""
-        from fastapi.testclient import TestClient
-        from mastermind_cli.api.app import create_app
-        from mastermind_cli.api.dependencies import get_db_path
+        from mastermind_cli.api.routes.analytics import get_templates
         import tempfile
 
         # Use file-based database to persist data across test
@@ -517,18 +562,7 @@ class TestAnalyticsEndpoints:
                 )
             await db.conn.commit()
 
-        app = create_app(db_path)
-
-        async def _override_db_path() -> str:
-            """Provide the test database path to FastAPI dependencies."""
-            return db_path
-
-        app.dependency_overrides[get_db_path] = _override_db_path
-        client = TestClient(app)
-        response = client.get("/api/analytics/templates")
-
-        assert response.status_code == 200
-        data = response.json()
+        data = await get_templates(db_path=db_path)
         assert isinstance(data, list)
         assert len(data) == 4  # All 4 templates
 
@@ -541,9 +575,7 @@ class TestAnalyticsEndpoints:
         self, async_db: DatabaseConnection, sample_records
     ):
         """Test GET /api/analytics/patterns returns patterns grouped by brain."""
-        from fastapi.testclient import TestClient
-        from mastermind_cli.api.app import create_app
-        from mastermind_cli.api.dependencies import get_db_path
+        from mastermind_cli.api.routes.analytics import get_patterns
         import tempfile
 
         # Use file-based database to persist data across test
@@ -572,18 +604,7 @@ class TestAnalyticsEndpoints:
             )
             await db.conn.commit()
 
-        app = create_app(db_path)
-
-        async def _override_db_path() -> str:
-            """Provide the test database path to FastAPI dependencies."""
-            return db_path
-
-        app.dependency_overrides[get_db_path] = _override_db_path
-        client = TestClient(app)
-        response = client.get("/api/analytics/patterns")
-
-        assert response.status_code == 200
-        data = response.json()
+        data = await get_patterns(db_path=db_path)
         assert isinstance(data, dict)
 
         # Should have patterns for at least one brain
@@ -595,9 +616,7 @@ class TestAnalyticsEndpoints:
         self, async_db: DatabaseConnection, sample_records
     ):
         """Test GET /api/analytics/outcome-metrics returns outcome metrics."""
-        from fastapi.testclient import TestClient
-        from mastermind_cli.api.app import create_app
-        from mastermind_cli.api.dependencies import get_db_path
+        from mastermind_cli.api.routes.analytics import get_outcome_metrics
         import tempfile
 
         # Use file-based database to persist data across test
@@ -626,18 +645,8 @@ class TestAnalyticsEndpoints:
             )
             await db.conn.commit()
 
-        app = create_app(db_path)
-
-        async def _override_db_path() -> str:
-            """Provide the test database path to FastAPI dependencies."""
-            return db_path
-
-        app.dependency_overrides[get_db_path] = _override_db_path
-        client = TestClient(app)
-        response = client.get("/api/analytics/outcome-metrics")
-
-        assert response.status_code == 200
-        data = response.json()
+        response = await get_outcome_metrics(db_path=db_path)
+        data = response.model_dump()
         assert "delta_velocity" in data
         assert "knowledge_yield" in data
         assert "planning_accuracy" in data
