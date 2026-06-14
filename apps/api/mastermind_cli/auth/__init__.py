@@ -1,10 +1,5 @@
-"""
-MasterMind Framework - Authentication Module.
+"""MasterMind authentication package."""
 
-This module provides API key and JWT authentication for both CLI and Web UI.
-"""
-
-from .api_keys import APIKey, validate_api_key, get_current_api_key
 from .jwt_handler import (
     JWTTokenData,
     TokenResponse,
@@ -18,10 +13,6 @@ from .jwt_handler import (
 )
 
 __all__ = [
-    # API Key Auth
-    "APIKey",
-    "validate_api_key",
-    "get_current_api_key",
     # JWT Auth
     "JWTTokenData",
     "TokenResponse",

@@ -50,7 +50,7 @@ async def test_concurrent_task_creation(client, auth_headers, auth_headers_b):
 
 @pytest.mark.asyncio
 async def test_api_key_isolation(client, auth_headers, auth_headers_b):
-    """API key is scoped to its owner."""
+    """Standard API key is scoped to its owner."""
     # Create task as user B
     task_b = await client.post(
         "/api/tasks", headers=auth_headers_b, json={"brief": "B only"}
@@ -59,9 +59,10 @@ async def test_api_key_isolation(client, auth_headers, auth_headers_b):
 
     # User A creates API key
     key_resp = await client.post(
-        "/api/auth/api-keys", headers=auth_headers, json={"name": "scoped"}
+        "/api/keys", headers=auth_headers, json={"name": "scoped"}
     )
-    api_key = key_resp.json()["key"]
+    assert key_resp.status_code == 201
+    api_key = key_resp.json()["full_key"]
 
     # API key of A cannot access B's task
     response = await client.get(

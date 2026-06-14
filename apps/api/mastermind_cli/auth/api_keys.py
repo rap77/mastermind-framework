@@ -1,12 +1,13 @@
-"""
-API Key Authentication System for MasterMind Framework.
+"""Legacy SHA256 API-key authentication helpers.
 
-Supports two authentication modes:
-1. CLI: Environment variable (MM_API_KEY)
-2. Web UI: SQLite database with X-API-Key header
+This module preserves the older API-key flow used by some CLI/runtime paths:
 
-This is a simplified auth system suitable for v2.0.
-Future v3.0 will add OAuth2/JWT refresh token rotation.
+1. CLI: `MM_API_KEY` environment variable
+2. Legacy SQLite storage with SHA256 key lookup
+
+It is intentionally separate from the current route-level API-key flow
+implemented in `api/routes/keys.py`, which uses the `mmsk_` show-once format,
+prefix/suffix metadata, and bcrypt verification.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ _HASH_ALGORITHM: Final = "sha256"
 # ===== MODELS =====
 
 
-class APIKey(BaseModel):
+class LegacyAPIKey(BaseModel):
     """
     API Key model for authentication.
 
@@ -77,14 +78,14 @@ class APIKey(BaseModel):
         return v
 
 
-class APIKeyCreate(BaseModel):
+class LegacyAPIKeyCreate(BaseModel):
     """Input model for creating a new API key."""
 
     owner: str = Field(..., min_length=1, max_length=100)
     scopes: list[str] = Field(default=["read", "write"])
 
 
-class APIKeyResponse(BaseModel):
+class LegacyAPIKeyResponse(BaseModel):
     """Response model for API key creation (excludes the actual key)."""
 
     key_prefix: str = Field(..., description="First 8 chars of key for identification")
@@ -98,7 +99,7 @@ class APIKeyResponse(BaseModel):
 # ===== KEY GENERATION =====
 
 
-def generate_api_key() -> str:
+def generate_legacy_api_key() -> str:
     """
     Generate a new API key.
 
@@ -109,7 +110,7 @@ def generate_api_key() -> str:
     return f"{_KEY_PREFIX}{random_part}"
 
 
-def hash_api_key(key: str) -> str:
+def hash_legacy_api_key(key: str) -> str:
     """
     Hash an API key using SHA256.
 
@@ -125,7 +126,7 @@ def hash_api_key(key: str) -> str:
 # ===== VALIDATION =====
 
 
-def validate_api_key(api_key: str) -> APIKey | None:
+def validate_legacy_api_key(api_key: str) -> LegacyAPIKey | None:
     """
     Validate an API key against environment variable or database.
 
@@ -137,19 +138,19 @@ def validate_api_key(api_key: str) -> APIKey | None:
         api_key: The API key to validate
 
     Returns:
-        APIKey object if valid, None otherwise
+        LegacyAPIKey object if valid, None otherwise
 
     Note:
         This is a synchronous wrapper. Database calls will fail if called
-        from async context. Use validate_api_key_async for async contexts.
+        from async context. Use validate_legacy_api_key_async for async contexts.
     """
     # 1. Check environment variable (CLI mode)
     env_key = os.getenv("MM_API_KEY")
     if env_key and api_key == env_key:
         try:
-            return APIKey(
+            return LegacyAPIKey(
                 key=api_key,
-                key_hash=hash_api_key(api_key),
+                key_hash=hash_legacy_api_key(api_key),
                 owner="cli-user",
                 created_at=datetime.now(timezone.utc).isoformat(),
                 is_active=True,
@@ -159,26 +160,26 @@ def validate_api_key(api_key: str) -> APIKey | None:
             return None
 
     # 2. Check SQLite database (Web UI mode) - synchronous version
-    # For async contexts, use validate_api_key_async instead
+    # For async contexts, use validate_legacy_api_key_async instead
     return None  # Database validation not supported in sync mode
 
 
-async def validate_api_key_async(api_key: str) -> APIKey | None:
+async def validate_legacy_api_key_async(api_key: str) -> LegacyAPIKey | None:
     """
-    Async version of validate_api_key for database lookups.
+    Async version of validate_legacy_api_key for database lookups.
 
     Args:
         api_key: The API key to validate
 
     Returns:
-        APIKey object if valid, None otherwise
+        LegacyAPIKey object if valid, None otherwise
     """
     # 1. Check environment variable first (CLI mode)
     env_key = os.getenv("MM_API_KEY")
     if env_key and api_key == env_key:
-        return APIKey(
+        return LegacyAPIKey(
             key=api_key,
-            key_hash=hash_api_key(api_key),
+            key_hash=hash_legacy_api_key(api_key),
             owner="cli-user",
             created_at=datetime.now(timezone.utc).isoformat(),
             is_active=True,
@@ -190,10 +191,10 @@ async def validate_api_key_async(api_key: str) -> APIKey | None:
         from mastermind_cli.state.database import get_db
 
         db = get_db()
-        key_data = await db.get_api_key(hash_api_key(api_key))
+        key_data = await db.get_api_key(hash_legacy_api_key(api_key))
 
         if key_data:
-            return APIKey(**key_data)
+            return LegacyAPIKey(**key_data)
     except Exception:
         # Database not available or error
         pass
@@ -201,7 +202,7 @@ async def validate_api_key_async(api_key: str) -> APIKey | None:
     return None
 
 
-async def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
+async def validate_legacy_api_key_hash(api_key_hash: str) -> LegacyAPIKey | None:
     """
     Validate an API key by its hash (for database queries).
 
@@ -209,7 +210,7 @@ async def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
         api_key_hash: SHA256 hash of the API key
 
     Returns:
-        APIKey object if valid, None otherwise
+        LegacyAPIKey object if valid, None otherwise
     """
     try:
         from mastermind_cli.state.database import get_db
@@ -218,7 +219,7 @@ async def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
         key_data = await db.get_api_key(api_key_hash)
 
         if key_data:
-            return APIKey(**key_data)
+            return LegacyAPIKey(**key_data)
     except Exception:
         pass
 
@@ -228,7 +229,9 @@ async def validate_api_key_hash(api_key_hash: str) -> APIKey | None:
 # ===== KEY MANAGEMENT =====
 
 
-async def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse]:
+async def create_legacy_api_key(
+    create_data: LegacyAPIKeyCreate,
+) -> tuple[str, LegacyAPIKeyResponse]:
     """
     Create a new API key and store it in the database.
 
@@ -238,10 +241,10 @@ async def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse
     Returns:
         Tuple of (full_key, response_without_key)
     """
-    key = generate_api_key()
-    key_hash = hash_api_key(key)
+    key = generate_legacy_api_key()
+    key_hash = hash_legacy_api_key(key)
 
-    api_key = APIKey(
+    api_key = LegacyAPIKey(
         key=key,
         key_hash=key_hash,
         owner=create_data.owner,
@@ -260,7 +263,7 @@ async def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse
         # Database not available - still return the key
         pass
 
-    response = APIKeyResponse(
+    response = LegacyAPIKeyResponse(
         key_prefix=key[:8],
         key_hash=key_hash,
         owner=api_key.owner,
@@ -272,7 +275,7 @@ async def create_api_key(create_data: APIKeyCreate) -> tuple[str, APIKeyResponse
     return key, response
 
 
-async def revoke_api_key(key_hash: str) -> bool:
+async def revoke_legacy_api_key(key_hash: str) -> bool:
     """
     Revoke an API key by setting is_active=False.
 
@@ -291,7 +294,7 @@ async def revoke_api_key(key_hash: str) -> bool:
         return False
 
 
-async def list_api_keys(owner: str | None = None) -> list[APIKeyResponse]:
+async def list_legacy_api_keys(owner: str | None = None) -> list[LegacyAPIKeyResponse]:
     """
     List all API keys, optionally filtered by owner.
 
@@ -308,7 +311,7 @@ async def list_api_keys(owner: str | None = None) -> list[APIKeyResponse]:
         keys_data = await db.list_api_keys(owner=owner)
 
         return [
-            APIKeyResponse(
+            LegacyAPIKeyResponse(
                 key_prefix=data["key"][:8] if "key" in data else data["key_hash"][:8],
                 key_hash=data["key_hash"],
                 owner=data["owner"],
@@ -327,23 +330,23 @@ async def list_api_keys(owner: str | None = None) -> list[APIKeyResponse]:
 try:
     from fastapi import Header, HTTPException, status
 
-    async def get_current_api_key(
+    async def get_current_legacy_api_key(
         x_api_key: str = Header(
             ..., alias="X-API-Key", description="API key for authentication"
         ),
-    ) -> APIKey:
+    ) -> LegacyAPIKey:
         """
         FastAPI dependency for API key validation.
 
         Usage:
             @app.get("/protected")
-            async def protected_endpoint(api_key: APIKey = Depends(get_current_api_key)):
+            async def protected_endpoint(api_key: LegacyAPIKey = Depends(get_current_legacy_api_key)):
                 return {"message": f"Hello {api_key.owner}"}
 
         Raises:
             HTTPException: 401 if key is invalid
         """
-        validated = validate_api_key(x_api_key)
+        validated = validate_legacy_api_key(x_api_key)
 
         if not validated:
             raise HTTPException(
@@ -362,13 +365,31 @@ try:
 
     # Export for FastAPI use
     __all__ = [
-        "APIKey",
-        "APIKeyCreate",
-        "APIKeyResponse",
-        "validate_api_key",
-        "get_current_api_key",
+        "LegacyAPIKey",
+        "LegacyAPIKeyCreate",
+        "LegacyAPIKeyResponse",
+        "validate_legacy_api_key",
+        "get_current_legacy_api_key",
     ]
 
 except ImportError:
     # FastAPI not installed - skip dependency
-    __all__ = ["APIKey", "APIKeyCreate", "APIKeyResponse", "validate_api_key"]
+    __all__ = [
+        "LegacyAPIKey",
+        "LegacyAPIKeyCreate",
+        "LegacyAPIKeyResponse",
+        "validate_legacy_api_key",
+    ]
+
+
+__all__.extend(
+    [
+        "generate_legacy_api_key",
+        "hash_legacy_api_key",
+        "validate_legacy_api_key_async",
+        "validate_legacy_api_key_hash",
+        "create_legacy_api_key",
+        "revoke_legacy_api_key",
+        "list_legacy_api_keys",
+    ]
+)

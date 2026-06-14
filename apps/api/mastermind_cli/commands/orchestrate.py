@@ -21,9 +21,36 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
     CoordinatorConfig,
 )
 from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
-from mastermind_cli.auth.api_keys import validate_api_key
 from mastermind_cli.brain_registry import BrainRegistry
 from pydantic import BaseModel, ValidationError
+
+
+def validate_api_key(api_key: str, db_path: str) -> str | None:
+    """Validate a CLI API key against the canonical `/api/keys` store."""
+    from mastermind_cli.api.routes.keys import validate_api_key_v2
+
+    return asyncio.run(validate_api_key_v2(api_key, db_path))
+
+
+def execute_flow_sync(
+    coordinator: StatelessCoordinator,
+    brief_model: Brief,
+    brain_ids: list[str],
+    parallel_mode: bool,
+) -> dict[str, BaseModel]:
+    """Execute the orchestration flow from synchronous CLI code."""
+
+    async def _execute() -> dict[str, BaseModel]:
+        if parallel_mode:
+            return await coordinator.execute_flow(brief_model, brain_ids)
+
+        seq_results: dict[str, BaseModel] = {}
+        for brain_id in brain_ids:
+            brain_results = await coordinator.execute_flow(brief_model, [brain_id])
+            seq_results.update(brain_results)
+        return seq_results
+
+    return asyncio.run(_execute())
 
 
 @click.group()
@@ -98,16 +125,17 @@ def run(
         click.echo("❌ Error: MM_API_KEY environment variable not set", err=True)
         click.echo("\nSet your API key:", err=True)
         click.echo("  export MM_API_KEY='your-api-key-here'", err=True)
-        click.echo("\nGenerate a new key:", err=True)
-        click.echo("  mm auth create-key", err=True)
+        click.echo("\nCreate a new key via the standard /api/keys flow.", err=True)
         raise click.Abort()
 
     # Validate API key
-    validated_key = validate_api_key(api_key)
-    if not validated_key:
+    db_path = os.getenv("MM_DB_PATH", "mastermind.db")
+    validated_user_id = validate_api_key(api_key, db_path)
+    if validated_user_id is None:
         click.echo("❌ Error: Invalid API key", err=True)
-        click.echo("\nYour MM_API_KEY is not valid. Generate a new key:", err=True)
-        click.echo("  mm auth create-key", err=True)
+        click.echo(
+            "\nYour MM_API_KEY is not valid in the standard /api/keys flow.", err=True
+        )
         raise click.Abort()
 
     # ========================================================================
@@ -191,7 +219,7 @@ def run(
         click.echo(f"🧠 Brains: {', '.join(brain_ids)}")
         click.echo(f"🔌 MCP: {'enabled' if use_mcp else 'disabled (mock mode)'}")
         click.echo(f"⚡ Parallel: {'enabled' if parallel else 'disabled (sequential)'}")
-        click.echo(f"👤 Auth: {validated_key.owner}")
+        click.echo(f"👤 Auth: {validated_user_id}")
         click.echo("")
 
     if dry_run:
@@ -204,21 +232,13 @@ def run(
         click.echo("ℹ️  Dry run complete. Use without --dry-run to execute.")
         return
 
-    # ========================================================================
-    # 7. EXECUTE FLOW (async - run in event loop)
-    # ========================================================================
-    async def _execute(parallel_mode: bool) -> dict[str, BaseModel]:
-        if parallel_mode:
-            return await coordinator.execute_flow(brief_model, brain_ids)
-        # Sequential: run each brain independently (one at a time)
-        seq_results: dict[str, BaseModel] = {}
-        for brain_id in brain_ids:
-            brain_results = await coordinator.execute_flow(brief_model, [brain_id])
-            seq_results.update(brain_results)
-        return seq_results
-
     try:
-        results = asyncio.run(_execute(parallel))
+        results = execute_flow_sync(
+            coordinator=coordinator,
+            brief_model=brief_model,
+            brain_ids=brain_ids,
+            parallel_mode=parallel,
+        )
 
         # ====================================================================
         # 8. DISPLAY RESULTS

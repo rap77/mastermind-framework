@@ -150,4 +150,4 @@ def mock_api_key_headers() -> Dict[str, str]:
 
     TODO: Implement after Plan 01 Task 1 - Return valid API key in Authorization header.
     """
-    return {"Authorization": "Bearer mm_test1234567890abcdef"}
+    return {"Authorization": "Bearer mmsk_test1234567890abcdef"}

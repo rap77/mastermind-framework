@@ -11,7 +11,7 @@ Requirements: UI-02, UI-03, UI-07
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import cast
+import warnings
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -23,11 +23,8 @@ from mastermind_cli.types.auth import (
     LoginRequest,
     RefreshRequest,
     TokenResponse,
-    APIKeyCreate,
-    APIKeyResponse,
     verify_password,
     hash_token,
-    generate_api_key,
 )
 from mastermind_cli.state.database import DatabaseConnection
 
@@ -38,35 +35,64 @@ router = APIRouter()
 jwt_scheme = HTTPBearer()
 api_key_scheme = HTTPBearer()
 
-# JWT configuration
-SECRET_KEY = os.environ.get("MM_SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRY_MINUTES = 30
-REFRESH_TOKEN_EXPIRY_HOURS = 24
+_DEFAULT_JWT_SECRET = "your-secret-key-change-in-production"
+
+
+def _int_env(name: str, default: int) -> int:
+    """Read an integer environment variable with fallback."""
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        return int(raw_value)
+    except ValueError:
+        return default
+
+
+def _jwt_secret() -> str:
+    """Return the configured JWT secret."""
+    secret = (
+        os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET") or _DEFAULT_JWT_SECRET
+    )
+    if secret == _DEFAULT_JWT_SECRET:
+        warnings.warn(
+            "Using default JWT secret. Set MM_SECRET_KEY or JWT_SECRET in production!",
+            stacklevel=2,
+        )
+    return str(secret)
+
+
+def _jwt_algorithm() -> str:
+    """Return the configured JWT algorithm."""
+    return str(os.getenv("MM_JWT_ALGORITHM", "HS256"))
 
 
 def create_access_token(user_id: str) -> str:
     """Create JWT access token."""
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRY_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=_int_env("MM_ACCESS_TOKEN_EXPIRY_MINUTES", 30)
+    )
     payload = {
         "sub": user_id,
         "exp": expire,
         "type": "access",
         "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, _jwt_secret(), algorithm=_jwt_algorithm())
 
 
 def create_refresh_token(user_id: str) -> str:
     """Create JWT refresh token."""
-    expire = datetime.now(timezone.utc) + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS)
+    expire = datetime.now(timezone.utc) + timedelta(
+        hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)
+    )
     payload = {
         "sub": user_id,
         "exp": expire,
         "type": "refresh",
         "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, _jwt_secret(), algorithm=_jwt_algorithm())
 
 
 async def get_current_user(
@@ -76,13 +102,13 @@ async def get_current_user(
     """Extract user_id from JWT access token."""
     try:
         payload = jwt.decode(
-            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
+            credentials.credentials, _jwt_secret(), algorithms=[_jwt_algorithm()]
         )
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         request.state.user_id = user_id
-        return cast(str, user_id)
+        return str(user_id)
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -94,19 +120,16 @@ async def get_current_user_from_api_key(
 ) -> str:
     """Extract user_id from API key."""
     token = credentials.credentials
-    if not token.startswith("mm_"):
+    if not token.startswith("mmsk_"):
         raise HTTPException(status_code=401, detail="Invalid API key format")
 
-    async with DatabaseConnection(db_path) as db:
-        cursor = await db.conn.execute(
-            "SELECT user_id FROM api_keys WHERE key_hash = ?",
-            [hash_token(token)],
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            raise HTTPException(status_code=401, detail="Invalid API key")
-        request.state.user_id = row[0]
-        return cast(str, row[0])
+    from mastermind_cli.api.routes.keys import validate_api_key_v2
+
+    user_id = await validate_api_key_v2(token, db_path)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    request.state.user_id = user_id
+    return user_id
 
 
 async def get_current_user_any(
@@ -119,9 +142,9 @@ async def get_current_user_any(
 
     # Try JWT first
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _jwt_secret(), algorithms=[_jwt_algorithm()])
         if payload.get("type") == "access":
-            user_id = cast(str, payload.get("sub"))
+            user_id = str(payload.get("sub"))
             request.state.user_id = user_id
             return user_id
     except JWTError:
@@ -135,24 +158,6 @@ async def get_current_user_any(
         if mmsk_user_id is not None:
             request.state.user_id = mmsk_user_id
             return mmsk_user_id
-
-    # Try legacy API key (mm_ prefix — api_keys table, SHA-256)
-    if token.startswith("mm_"):
-        async with DatabaseConnection(db_path) as db:
-            cursor = await db.conn.execute(
-                "SELECT user_id FROM api_keys WHERE key_hash = ?",
-                [hash_token(token)],
-            )
-            row = await cursor.fetchone()
-            if row:
-                # Update last_used
-                await db.conn.execute(
-                    "UPDATE api_keys SET last_used = ? WHERE key_hash = ?",
-                    [datetime.now(timezone.utc), hash_token(token)],
-                )
-                await db.conn.commit()
-                request.state.user_id = row[0]
-                return cast(str, row[0])
 
     raise HTTPException(status_code=401, detail="Invalid authentication")
 
@@ -200,7 +205,7 @@ async def login(
                 hash_token(refresh_token),
                 datetime.now(timezone.utc),
                 datetime.now(timezone.utc)
-                + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
+                + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
             ],
         )
         await db.conn.commit()
@@ -221,7 +226,7 @@ async def login(
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=ACCESS_TOKEN_EXPIRY_MINUTES * 60,
+            max_age=_int_env("MM_ACCESS_TOKEN_EXPIRY_MINUTES", 30) * 60,
         )
 
         response.set_cookie(
@@ -230,7 +235,7 @@ async def login(
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=REFRESH_TOKEN_EXPIRY_HOURS * 3600,
+            max_age=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24) * 3600,
         )
 
         return response
@@ -248,7 +253,9 @@ async def refresh(
     Replay attacks fail because old token hash no longer exists.
     """
     try:
-        payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            request.refresh_token, _jwt_secret(), algorithms=[_jwt_algorithm()]
+        )
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -287,7 +294,7 @@ async def refresh(
                 hash_token(new_refresh_token),
                 datetime.now(timezone.utc),
                 datetime.now(timezone.utc)
-                + timedelta(hours=REFRESH_TOKEN_EXPIRY_HOURS),
+                + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
                 rotation_count + 1,
             ],
         )
@@ -299,83 +306,6 @@ async def refresh(
             access_token=new_access_token,
             refresh_token=new_refresh_token,
         )
-
-
-@router.post("/api-keys", response_model=APIKeyResponse)
-async def create_api_key(
-    request: APIKeyCreate,
-    user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
-) -> APIKeyResponse:
-    """Create API key for CLI access (UI-07 requirement).
-
-    Key is returned only ONCE (on creation).
-    Key format: mm_ + 32 hex chars
-    Key is hashed with SHA256 before storage.
-    """
-    api_key_id = str(uuid.uuid4())
-    plaintext_key = generate_api_key()
-
-    async with DatabaseConnection(db_path) as db:
-        await db.conn.execute(
-            """INSERT INTO api_keys (id, user_id, key_hash, name, created_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            [
-                api_key_id,
-                user_id,
-                hash_token(plaintext_key),
-                request.name,
-                datetime.now(timezone.utc),
-            ],
-        )
-        await db.conn.commit()
-
-    return APIKeyResponse(
-        id=api_key_id,
-        name=request.name,
-        key=plaintext_key,
-        created_at=datetime.now(timezone.utc),
-    )
-
-
-@router.get("/api-keys")
-async def list_api_keys(
-    user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
-) -> dict[str, list[dict[str, object]]]:
-    """List user's API keys."""
-    async with DatabaseConnection(db_path) as db:
-        cursor = await db.conn.execute(
-            """SELECT id, name, created_at, last_used FROM api_keys
-               WHERE user_id = ?
-               ORDER BY created_at DESC""",
-            [user_id],
-        )
-        rows = await cursor.fetchall()
-
-    return {
-        "api_keys": [
-            {"id": row[0], "name": row[1], "created_at": row[2], "last_used": row[3]}
-            for row in rows
-        ]
-    }
-
-
-@router.delete("/api-keys/{api_key_id}")
-async def revoke_api_key(
-    api_key_id: str,
-    user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
-) -> dict[str, str]:
-    """Revoke API key."""
-    async with DatabaseConnection(db_path) as db:
-        await db.conn.execute(
-            "DELETE FROM api_keys WHERE id = ? AND user_id = ?",
-            [api_key_id, user_id],
-        )
-        await db.conn.commit()
-
-    return {"message": "API key revoked"}
 
 
 @router.post("/logout")
@@ -412,7 +342,7 @@ async def verify_token_endpoint(
 
     # Verify token using same library that generated it (python-jose)
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _jwt_secret(), algorithms=[_jwt_algorithm()])
         user_id = payload.get("sub")
         if user_id is None:
             return {"valid": False, "user_id": None}

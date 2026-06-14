@@ -12,16 +12,33 @@ import time
 import uuid
 from collections import deque
 from typing import Any
+import warnings
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
+from starlette.websockets import WebSocketState
 
 from mastermind_cli.api.dependencies import get_db_path
-from mastermind_cli.state.database import DatabaseConnection
 
-# JWT config — must match auth.py
-SECRET_KEY = os.environ.get("MM_SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
+_DEFAULT_JWT_SECRET = "your-secret-key-change-in-production"
+
+
+def _jwt_secret() -> str:
+    """Return the configured JWT secret."""
+    secret = (
+        os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET") or _DEFAULT_JWT_SECRET
+    )
+    if secret == _DEFAULT_JWT_SECRET:
+        warnings.warn(
+            "Using default JWT secret. Set MM_SECRET_KEY or JWT_SECRET in production!",
+            stacklevel=2,
+        )
+    return str(secret)
+
+
+def _jwt_algorithm() -> str:
+    """Return the configured JWT algorithm."""
+    return str(os.getenv("MM_JWT_ALGORITHM", "HS256"))
 
 
 class ThrottledBroadcaster:
@@ -72,7 +89,6 @@ class WebSocketManager:
 
     async def connect(self, websocket: WebSocket, task_id: str, user_id: str) -> None:
         """Register WebSocket connection."""
-        await websocket.accept()
         if task_id not in self.connections:
             self.connections[task_id] = set()
             self.buffers[task_id] = deque(maxlen=100)  # Ghost Mode buffer
@@ -138,27 +154,20 @@ async def websocket_endpoint(
     Query params:
         token: JWT access token OR API key
     """
+    await websocket.accept()
+
     # Validate token
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _jwt_secret(), algorithms=[_jwt_algorithm()])
         user_id = payload.get("sub")
+        if user_id is None:
+            await websocket.close(code=1008)
+            return
     except JWTError:
-        # Try API key
-        if token.startswith("mm_"):
-            async with DatabaseConnection(db_path) as db:
-                from mastermind_cli.types.auth import hash_token
+        from mastermind_cli.api.routes.keys import validate_api_key_v2
 
-                cursor = await db.conn.execute(
-                    "SELECT user_id FROM api_keys WHERE key_hash = ?",
-                    [hash_token(token)],
-                )
-                row = await cursor.fetchone()
-                if row:
-                    user_id = row[0]
-                else:
-                    await websocket.close(code=1008)
-                    return
-        else:
+        user_id = await validate_api_key_v2(token, db_path)
+        if user_id is None:
             await websocket.close(code=1008)
             return
 
@@ -166,7 +175,13 @@ async def websocket_endpoint(
 
     try:
         while True:
-            # Receive messages (ignore for now, client->server not needed)
-            await websocket.receive_text()
+            if (
+                websocket.client_state is not WebSocketState.CONNECTED
+                or websocket.application_state is not WebSocketState.CONNECTED
+            ):
+                break
+            await asyncio.sleep(0.05)
     except WebSocketDisconnect:
+        manager.disconnect(websocket, task_id)
+    finally:
         manager.disconnect(websocket, task_id)

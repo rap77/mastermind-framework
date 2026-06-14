@@ -49,8 +49,8 @@ class TestAPIKeyValidation:
     def test_valid_api_key_proceeds(self, mock_validate):
         """Test that valid API key allows execution."""
         mock_validate.return_value = Mock(owner="test-user")
-        with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
-            mock_async.return_value = {}
+        with patch("mastermind_cli.commands.orchestrate.execute_flow_sync") as mock_run:
+            mock_run.return_value = {}
             runner = CliRunner()
             with patch.dict(os.environ, {"MM_API_KEY": "valid-key"}):
                 # This should not fail on auth
@@ -69,8 +69,10 @@ class TestBriefParsing:
         runner = CliRunner()
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
-                mock_async.return_value = {}
+            with patch(
+                "mastermind_cli.commands.orchestrate.execute_flow_sync"
+            ) as mock_run:
+                mock_run.return_value = {}
                 result = runner.invoke(
                     orchestrate, ["run", "Build a CRM for small businesses"]
                 )
@@ -88,8 +90,10 @@ class TestBriefParsing:
         brief_file.write_text("Build a project management tool for software teams")
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
-                mock_async.return_value = {}
+            with patch(
+                "mastermind_cli.commands.orchestrate.execute_flow_sync"
+            ) as mock_run:
+                mock_run.return_value = {}
                 result = runner.invoke(orchestrate, ["run", "--file", str(brief_file)])
                 # Brief was read and parsed successfully
                 assert result.exit_code == 0 or "Error:" not in result.output
@@ -167,9 +171,9 @@ class TestOutputFormatting:
     @patch("mastermind_cli.commands.orchestrate.validate_api_key")
     @patch("mastermind_cli.commands.orchestrate.MCPIntegration")
     @patch("mastermind_cli.commands.orchestrate.StatelessCoordinator")
-    @patch("mastermind_cli.commands.orchestrate.asyncio.run")
+    @patch("mastermind_cli.commands.orchestrate.execute_flow_sync")
     def test_results_displayed_correctly(
-        self, mock_async, mock_coord_class, mock_mcp, mock_validate, tmp_path
+        self, mock_execute, mock_coord_class, mock_mcp, mock_validate, tmp_path
     ):
         """Test that execution results are displayed correctly."""
         mock_validate.return_value = Mock(owner="test-user")
@@ -192,7 +196,7 @@ class TestOutputFormatting:
         mock_coord_instance = Mock()
         mock_coord_instance.execute_flow = Mock(return_value=mock_outputs)
         mock_coord_class.return_value = mock_coord_instance
-        mock_async.return_value = mock_outputs
+        mock_execute.return_value = mock_outputs
 
         runner = CliRunner()
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
@@ -211,9 +215,9 @@ class TestOutputFormatting:
     @patch("mastermind_cli.commands.orchestrate.validate_api_key")
     @patch("mastermind_cli.commands.orchestrate.MCPIntegration")
     @patch("mastermind_cli.commands.orchestrate.StatelessCoordinator")
-    @patch("mastermind_cli.commands.orchestrate.asyncio.run")
+    @patch("mastermind_cli.commands.orchestrate.execute_flow_sync")
     def test_output_saved_to_file(
-        self, mock_async, mock_coord_class, mock_mcp, mock_validate, tmp_path
+        self, mock_execute, mock_coord_class, mock_mcp, mock_validate, tmp_path
     ):
         """Test that output can be saved to file."""
         mock_validate.return_value = Mock(owner="test-user")
@@ -234,7 +238,7 @@ class TestOutputFormatting:
         mock_coord_instance = Mock()
         mock_coord_instance.execute_flow = Mock(return_value=mock_outputs)
         mock_coord_class.return_value = mock_coord_instance
-        mock_async.return_value = mock_outputs
+        mock_execute.return_value = mock_outputs
 
         output_file = tmp_path / "output.json"
         runner = CliRunner()
@@ -268,13 +272,13 @@ class TestErrorHandling:
     @patch("mastermind_cli.commands.orchestrate.validate_api_key")
     @patch("mastermind_cli.commands.orchestrate.MCPIntegration")
     @patch("mastermind_cli.commands.orchestrate.StatelessCoordinator")
-    @patch("mastermind_cli.commands.orchestrate.asyncio.run")
+    @patch("mastermind_cli.commands.orchestrate.execute_flow_sync")
     def test_value_error_caught_and_displayed(
-        self, mock_async, mock_coord_class, mock_mcp, mock_validate
+        self, mock_execute, mock_coord_class, mock_mcp, mock_validate
     ):
         """Test that ValueError during execution is caught and displayed."""
         mock_validate.return_value = Mock(owner="test-user")
-        mock_async.side_effect = ValueError("Brain not found: brain-99")
+        mock_execute.side_effect = ValueError("Brain not found: brain-99")
 
         runner = CliRunner()
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
@@ -285,13 +289,13 @@ class TestErrorHandling:
     @patch("mastermind_cli.commands.orchestrate.validate_api_key")
     @patch("mastermind_cli.commands.orchestrate.MCPIntegration")
     @patch("mastermind_cli.commands.orchestrate.StatelessCoordinator")
-    @patch("mastermind_cli.commands.orchestrate.asyncio.run")
+    @patch("mastermind_cli.commands.orchestrate.execute_flow_sync")
     def test_generic_exception_caught(
-        self, mock_async, mock_coord_class, mock_mcp, mock_validate
+        self, mock_execute, mock_coord_class, mock_mcp, mock_validate
     ):
         """Test that generic exceptions are caught."""
         mock_validate.return_value = Mock(owner="test-user")
-        mock_async.side_effect = RuntimeError("Unexpected error")
+        mock_execute.side_effect = RuntimeError("Unexpected error")
 
         runner = CliRunner()
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
@@ -314,9 +318,10 @@ class TestVerboseMode:
         runner = CliRunner()
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            # Mock asyncio.run to return empty results (simulating successful execution)
-            with patch("mastermind_cli.commands.orchestrate.asyncio.run") as mock_async:
-                mock_async.return_value = {}
+            with patch(
+                "mastermind_cli.commands.orchestrate.execute_flow_sync"
+            ) as mock_run:
+                mock_run.return_value = {}
                 result = runner.invoke(
                     orchestrate,
                     ["run", "--verbose", "This is a valid test brief for verbose mode"],

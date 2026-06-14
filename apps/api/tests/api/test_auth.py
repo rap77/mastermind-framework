@@ -109,27 +109,28 @@ async def test_expired_token_rejected(client):
 
 @pytest.mark.asyncio
 async def test_api_key_creation(client, auth_headers):
-    """Authenticated user can create API key with mm_ prefix."""
+    """Authenticated user can create a standard mmsk_ API key."""
     response = await client.post(
-        "/api/auth/api-keys",
+        "/api/keys",
         headers=auth_headers,
         json={"name": "test-key"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
-    assert data["key"].startswith("mm_")
-    assert data["name"] == "test-key"
+    assert data["full_key"].startswith("mmsk_")
+    assert data["message"].startswith("Save this key")
 
 
 @pytest.mark.asyncio
 async def test_api_key_authentication(client, auth_headers):
-    """API key can authenticate on protected endpoints."""
+    """Standard API key can authenticate on protected endpoints."""
     create_resp = await client.post(
-        "/api/auth/api-keys",
+        "/api/keys",
         headers=auth_headers,
         json={"name": "cli-key"},
     )
-    api_key = create_resp.json()["key"]
+    assert create_resp.status_code == 201
+    api_key = create_resp.json()["full_key"]
 
     response = await client.get(
         "/api/tasks",
@@ -139,8 +140,18 @@ async def test_api_key_authentication(client, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_legacy_api_key_format_rejected(client):
+    """Legacy mm_ API-key format is rejected by runtime auth."""
+    response = await client.get(
+        "/api/tasks",
+        headers={"Authorization": "Bearer mm_test1234567890abcdef"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_api_key_isolation(client, auth_headers, auth_headers_b):
-    """User A's API key cannot access User B's tasks."""
+    """User A's standard API key cannot access User B's tasks."""
     # Create task as user B
     task_resp = await client.post(
         "/api/tasks",
@@ -151,11 +162,12 @@ async def test_api_key_isolation(client, auth_headers, auth_headers_b):
 
     # User A creates an API key
     key_resp = await client.post(
-        "/api/auth/api-keys",
+        "/api/keys",
         headers=auth_headers,
         json={"name": "a-key"},
     )
-    api_key_a = key_resp.json()["key"]
+    assert key_resp.status_code == 201
+    api_key_a = key_resp.json()["full_key"]
 
     # User A tries to access user B's task — must get 404
     response = await client.get(
@@ -170,6 +182,17 @@ async def test_logout(client, auth_headers):
     """Logout returns 200."""
     response = await client.post("/api/auth/logout", headers=auth_headers)
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_legacy_auth_api_key_endpoint_removed(client, auth_headers):
+    """Legacy /api/auth/api-keys endpoint is no longer exposed."""
+    response = await client.post(
+        "/api/auth/api-keys",
+        headers=auth_headers,
+        json={"name": "legacy"},
+    )
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio

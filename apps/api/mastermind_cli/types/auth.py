@@ -11,6 +11,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 import bcrypt
 
+from mastermind_cli.types.pydantic import StrictRequestModel
+
 
 class User(BaseModel):
     """User account information."""
@@ -21,7 +23,7 @@ class User(BaseModel):
     created_at: datetime
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(StrictRequestModel):
     """Login request payload."""
 
     username: str = Field(..., min_length=1, max_length=100)
@@ -39,7 +41,25 @@ class TokenResponse(BaseModel):
     )
 
 
-class RefreshRequest(BaseModel):
+class JWTTokenData(BaseModel):
+    """Decoded JWT payload data."""
+
+    sub: str = Field(..., description="User ID or email")
+    tenants: list[str] = Field(..., description="List of tenant IDs user can access")
+    exp: datetime | None = Field(default=None, description="Expiration time")
+    iat: datetime | None = Field(default=None, description="Issued at time")
+
+
+class TenantValidationResult(BaseModel):
+    """Result of validating tenant access against a JWT payload."""
+
+    is_valid: bool
+    tenant_id: str | None = None
+    user_id: str | None = None
+    error: str | None = None
+
+
+class RefreshRequest(StrictRequestModel):
     """Refresh token request."""
 
     refresh_token: str
@@ -67,7 +87,7 @@ class APIKey(BaseModel):
     last_used: Optional[datetime] = None
 
 
-class APIKeyCreate(BaseModel):
+class APIKeyCreate(StrictRequestModel):
     """API key creation request."""
 
     name: str = Field(..., min_length=1, max_length=100)
@@ -78,7 +98,7 @@ class APIKeyResponse(BaseModel):
 
     id: str
     name: str
-    key: str = Field(..., description="Plaintext API key (mm_ + 32 hex chars)")
+    key: str = Field(..., description="Plaintext API key (mmsk_ + 32 hex chars)")
     created_at: datetime
 
 
@@ -115,12 +135,3 @@ def hash_token(token: str) -> str:
     import hashlib
 
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def generate_api_key() -> str:
-    """Generate secure API key with format: mm_ + 32 hex chars."""
-    import secrets
-
-    random_bytes = secrets.token_bytes(16)
-    hex_part = random_bytes.hex()
-    return f"mm_{hex_part}"

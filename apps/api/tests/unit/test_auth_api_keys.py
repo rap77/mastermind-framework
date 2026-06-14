@@ -16,14 +16,14 @@ from unittest.mock import Mock, AsyncMock, patch
 import pytest
 
 from mastermind_cli.auth.api_keys import (
-    APIKey,
-    APIKeyCreate,
-    generate_api_key,
-    hash_api_key,
-    validate_api_key,
-    create_api_key,
-    revoke_api_key,
-    list_api_keys,
+    LegacyAPIKey,
+    LegacyAPIKeyCreate,
+    generate_legacy_api_key,
+    hash_legacy_api_key,
+    validate_legacy_api_key,
+    create_legacy_api_key,
+    revoke_legacy_api_key,
+    list_legacy_api_keys,
     _KEY_PREFIX,
     _KEY_LENGTH,
 )
@@ -37,9 +37,9 @@ class TestAPIKeyModel:
     def test_valid_api_key(self):
         """Test creating a valid API key."""
         key = f"{_KEY_PREFIX}{'a' * _KEY_LENGTH}"
-        api_key = APIKey(
+        api_key = LegacyAPIKey(
             key=key,
-            key_hash=hash_api_key(key),
+            key_hash=hash_legacy_api_key(key),
             owner="test-user",
             created_at=datetime.now(timezone.utc).isoformat(),
             is_active=True,
@@ -55,7 +55,7 @@ class TestAPIKeyModel:
         # Use a key that passes min_length but fails prefix validation
         long_key_without_prefix = "a" * 40
         with pytest.raises(ValidationError) as exc_info:
-            APIKey(
+            LegacyAPIKey(
                 key=long_key_without_prefix,
                 key_hash="a" * 64,
                 owner="test-user",
@@ -67,7 +67,7 @@ class TestAPIKeyModel:
     def test_invalid_key_format_wrong_length(self):
         """Test API key with wrong length fails validation."""
         with pytest.raises(ValidationError) as exc_info:
-            APIKey(
+            LegacyAPIKey(
                 key=f"{_KEY_PREFIX}short",
                 key_hash="a" * 64,
                 owner="test-user",
@@ -77,7 +77,7 @@ class TestAPIKeyModel:
     def test_invalid_hash_format_not_hex(self):
         """Test non-hex hash fails validation."""
         with pytest.raises(ValidationError) as exc_info:
-            APIKey(
+            LegacyAPIKey(
                 key=f"{_KEY_PREFIX}{'a' * _KEY_LENGTH}",
                 key_hash="z" * 64,  # 'z' is not valid hex
                 owner="test-user",
@@ -88,7 +88,7 @@ class TestAPIKeyModel:
     def test_invalid_hash_format_wrong_length(self):
         """Test hash with wrong length fails validation."""
         with pytest.raises(ValidationError) as exc_info:
-            APIKey(
+            LegacyAPIKey(
                 key=f"{_KEY_PREFIX}{'a' * _KEY_LENGTH}",
                 key_hash="a" * 32,  # Wrong length
                 owner="test-user",
@@ -101,27 +101,27 @@ class TestKeyGeneration:
 
     def test_generate_api_key_format(self):
         """Test generated key has correct format."""
-        key = generate_api_key()
+        key = generate_legacy_api_key()
         assert key.startswith(_KEY_PREFIX)
         assert len(key) == len(_KEY_PREFIX) + _KEY_LENGTH
 
     def test_generate_api_keys_are_unique(self):
         """Test generated keys are unique."""
-        keys = [generate_api_key() for _ in range(100)]
+        keys = [generate_legacy_api_key() for _ in range(100)]
         assert len(set(keys)) == 100  # All unique
 
     def test_hash_api_key_consistent(self):
         """Test hashing is consistent."""
         key = "test_key_value"
-        hash1 = hash_api_key(key)
-        hash2 = hash_api_key(key)
+        hash1 = hash_legacy_api_key(key)
+        hash2 = hash_legacy_api_key(key)
         assert hash1 == hash2
         assert len(hash1) == 64  # SHA256 = 64 hex chars
 
     def test_hash_api_keys_differ(self):
         """Test different keys produce different hashes."""
-        hash1 = hash_api_key("key_one")
-        hash2 = hash_api_key("key_two")
+        hash1 = hash_legacy_api_key("key_one")
+        hash2 = hash_legacy_api_key("key_two")
         assert hash1 != hash2
 
 
@@ -130,10 +130,10 @@ class TestCLIValidation:
 
     def test_validate_with_env_var(self):
         """Test validation works with MM_API_KEY environment variable."""
-        test_key = generate_api_key()
+        test_key = generate_legacy_api_key()
 
         with patch.dict(os.environ, {"MM_API_KEY": test_key}):
-            result = validate_api_key(test_key)
+            result = validate_legacy_api_key(test_key)
             assert result is not None
             assert result.key == test_key
             assert result.owner == "cli-user"
@@ -141,17 +141,17 @@ class TestCLIValidation:
 
     def test_validate_fails_with_wrong_env_var(self):
         """Test validation fails when key doesn't match env var."""
-        env_key = generate_api_key()
-        test_key = generate_api_key()
+        env_key = generate_legacy_api_key()
+        test_key = generate_legacy_api_key()
 
         with patch.dict(os.environ, {"MM_API_KEY": env_key}):
-            result = validate_api_key(test_key)
+            result = validate_legacy_api_key(test_key)
             assert result is None
 
     def test_validate_fails_without_env_var(self):
         """Test validation fails when no env var is set."""
         with patch.dict(os.environ, {}, clear=True):
-            result = validate_api_key("any_key")
+            result = validate_legacy_api_key("any_key")
             assert result is None
 
 
@@ -161,8 +161,8 @@ class TestDatabaseValidation:
     @pytest.mark.asyncio
     async def test_validate_with_database(self):
         """Test validation works with database lookup."""
-        test_key = generate_api_key()
-        test_hash = hash_api_key(test_key)
+        test_key = generate_legacy_api_key()
+        test_hash = hash_legacy_api_key(test_key)
 
         # Mock database - return data that matches APIKey model
         mock_db = Mock()
@@ -179,9 +179,9 @@ class TestDatabaseValidation:
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
             # Use async version for database validation
-            from mastermind_cli.auth.api_keys import validate_api_key_async
+            from mastermind_cli.auth.api_keys import validate_legacy_api_key_async
 
-            result = await validate_api_key_async(test_key)
+            result = await validate_legacy_api_key_async(test_key)
             assert result is not None
             assert result.key == test_key
             assert result.owner == "db-user"
@@ -189,7 +189,7 @@ class TestDatabaseValidation:
     @pytest.mark.asyncio
     async def test_validate_fails_not_in_database(self):
         """Test validation fails when key not in database."""
-        test_key = generate_api_key()
+        test_key = generate_legacy_api_key()
 
         # Mock database returning None
         mock_db = Mock()
@@ -197,9 +197,9 @@ class TestDatabaseValidation:
 
         with patch.dict(os.environ, {}, clear=True):
             with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-                from mastermind_cli.auth.api_keys import validate_api_key_async
+                from mastermind_cli.auth.api_keys import validate_legacy_api_key_async
 
-                result = await validate_api_key_async(test_key)
+                result = await validate_legacy_api_key_async(test_key)
                 assert result is None
 
 
@@ -210,13 +210,13 @@ class TestKeyManagement:
     @pytest.mark.asyncio
     async def test_create_api_key(self):
         """Test creating a new API key."""
-        create_data = APIKeyCreate(owner="test-user", scopes=["read"])
+        create_data = LegacyAPIKeyCreate(owner="test-user", scopes=["read"])
 
         mock_db = Mock()
         mock_db.save_api_key = AsyncMock(return_value=True)
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            full_key, response = await create_api_key(create_data)
+            full_key, response = await create_legacy_api_key(create_data)
 
             # Check key format
             assert full_key.startswith(_KEY_PREFIX)
@@ -234,13 +234,13 @@ class TestKeyManagement:
     @pytest.mark.asyncio
     async def test_revoke_api_key(self):
         """Test revoking an API key."""
-        test_hash = hash_api_key("test_key")
+        test_hash = hash_legacy_api_key("test_key")
 
         mock_db = Mock()
         mock_db.revoke_api_key = AsyncMock(return_value=True)
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            result = await revoke_api_key(test_hash)
+            result = await revoke_legacy_api_key(test_hash)
             assert result is True
             mock_db.revoke_api_key.assert_called_once_with(test_hash)
 
@@ -251,15 +251,15 @@ class TestKeyManagement:
         mock_db.revoke_api_key = AsyncMock(return_value=False)
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            result = await revoke_api_key("nonexistent_hash")
+            result = await revoke_legacy_api_key("nonexistent_hash")
             assert result is False
 
     @pytest.mark.asyncio
     async def test_list_api_keys(self):
         """Test listing API keys."""
         # Generate valid keys to avoid validation errors
-        key1 = generate_api_key()
-        key2 = generate_api_key()
+        key1 = generate_legacy_api_key()
+        key2 = generate_legacy_api_key()
 
         mock_keys = [
             {
@@ -284,7 +284,7 @@ class TestKeyManagement:
         mock_db.list_api_keys = AsyncMock(return_value=mock_keys)
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            result = await list_api_keys()
+            result = await list_legacy_api_keys()
 
             assert len(result) == 2
             assert result[0].owner == "user1"
@@ -299,7 +299,7 @@ class TestKeyManagement:
         mock_db.list_api_keys = AsyncMock(return_value=[])
 
         with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-            await list_api_keys(owner="user1")
+            await list_legacy_api_keys(owner="user1")
             mock_db.list_api_keys.assert_called_once_with(owner="user1")
 
 
@@ -309,9 +309,9 @@ class TestFastAPIIntegration:
     def test_get_current_api_key_function_exists(self):
         """Test FastAPI dependency function is available."""
         try:
-            from mastermind_cli.auth.api_keys import get_current_api_key
+            from mastermind_cli.auth.api_keys import get_current_legacy_api_key
 
-            assert get_current_api_key is not None
+            assert get_current_legacy_api_key is not None
         except ImportError:
             pytest.skip("FastAPI not installed")
 
@@ -320,28 +320,28 @@ class TestFastAPIIntegration:
         """Test FastAPI dependency with valid key."""
         try:
             from fastapi import Header  # noqa: F401
-            from mastermind_cli.auth.api_keys import get_current_api_key  # noqa: F401
+            from mastermind_cli.auth.api_keys import get_current_legacy_api_key  # noqa: F401
         except ImportError:
             pytest.skip("FastAPI not installed")
             return
 
-        test_key = generate_api_key()
+        test_key = generate_legacy_api_key()
 
         with patch.dict(os.environ, {"MM_API_KEY": test_key}):
             # Mock the Header dependency
             with patch("mastermind_cli.auth.api_keys.Header", return_value=test_key):
                 with patch(
-                    "mastermind_cli.auth.api_keys.validate_api_key",
-                    return_value=APIKey(
+                    "mastermind_cli.auth.api_keys.validate_legacy_api_key",
+                    return_value=LegacyAPIKey(
                         key=test_key,
-                        key_hash=hash_api_key(test_key),
+                        key_hash=hash_legacy_api_key(test_key),
                         owner="test-user",
                         is_active=True,
                         scopes=["read"],
                     ),
                 ):
                     # This would normally be called by FastAPI
-                    result = validate_api_key(test_key)
+                    result = validate_legacy_api_key(test_key)
                     assert result is not None
 
     @pytest.mark.asyncio
@@ -349,15 +349,18 @@ class TestFastAPIIntegration:
         """Test FastAPI dependency with invalid key raises 401."""
         try:
             from fastapi import HTTPException  # noqa: F401
-            from mastermind_cli.auth.api_keys import get_current_api_key  # noqa: F401
+            from mastermind_cli.auth.api_keys import get_current_legacy_api_key  # noqa: F401
         except ImportError:
             pytest.skip("FastAPI not installed")
             return
 
         # Mock validate returning None
-        with patch("mastermind_cli.auth.api_keys.validate_api_key", return_value=None):
+        with patch(
+            "mastermind_cli.auth.api_keys.validate_legacy_api_key",
+            return_value=None,
+        ):
             # In real FastAPI, this would raise HTTPException
-            result = validate_api_key("invalid_key")
+            result = validate_legacy_api_key("invalid_key")
             assert result is None
 
 
@@ -367,7 +370,7 @@ class TestEdgeCases:
     def test_empty_key_fails_validation(self):
         """Test empty key fails validation."""
         with pytest.raises(ValidationError):
-            APIKey(
+            LegacyAPIKey(
                 key="",
                 key_hash="a" * 64,
                 owner="test-user",
@@ -376,7 +379,7 @@ class TestEdgeCases:
     def test_whitespace_only_key_fails_validation(self):
         """Test whitespace-only key fails validation."""
         with pytest.raises(ValidationError):
-            APIKey(
+            LegacyAPIKey(
                 key="   ",
                 key_hash="a" * 64,
                 owner="test-user",
@@ -384,10 +387,10 @@ class TestEdgeCases:
 
     def test_unicode_in_owner(self):
         """Test unicode characters work in owner field."""
-        key = generate_api_key()
-        api_key = APIKey(
+        key = generate_legacy_api_key()
+        api_key = LegacyAPIKey(
             key=key,
-            key_hash=hash_api_key(key),
+            key_hash=hash_legacy_api_key(key),
             owner="用户-user-🚀",
             is_active=True,
         )
@@ -401,6 +404,6 @@ class TestEdgeCases:
 
         with patch.dict(os.environ, {}, clear=True):
             with patch("mastermind_cli.state.database.get_db", return_value=mock_db):
-                result = validate_api_key("any_key")
+                result = validate_legacy_api_key("any_key")
                 # Should return None, not crash
                 assert result is None
