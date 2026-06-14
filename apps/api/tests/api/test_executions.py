@@ -258,24 +258,6 @@ async def test_cancel_task_updates_project_state_status(client, auth_headers, db
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
-async def test_export_json(client, auth_headers):
-    """Export JSON — frontend feature, no backend endpoint."""
-
-
-@pytest.mark.asyncio
-@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
-async def test_export_yaml(client, auth_headers):
-    """Export YAML — frontend feature, no backend endpoint."""
-
-
-@pytest.mark.asyncio
-@pytest.mark.skip(reason="Export is a frontend-only feature — no backend API endpoint")
-async def test_export_markdown(client, auth_headers):
-    """Export Markdown — frontend feature, no backend endpoint."""
-
-
-@pytest.mark.asyncio
 async def test_session_isolation(client, auth_headers, auth_headers_b):
     """User A cannot access User B's tasks."""
     # Create task as user B
