@@ -443,6 +443,44 @@ class TestTemplateRetrieval:
 
         await db.close()
 
+    @pytest.mark.asyncio
+    async def test_get_templates_for_brain_ignores_malformed_template_data(self):
+        """Test malformed template_data falls back to an empty template payload."""
+        from mastermind_cli.experience.template_extractor import TemplateExtractor
+
+        db = DatabaseConnection(":memory:")
+        await db.connect()
+        await db.create_experience_schema()
+
+        logger = ExperienceLogger(db)
+        extractor = TemplateExtractor(logger)
+
+        await db.conn.execute(
+            """INSERT INTO knowledge_templates
+               (id, brain_id, template_name, template_data, success_rate, usage_count, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                "tmpl-invalid-json",
+                "brain-01-product",
+                "Template Invalid",
+                "not-json",
+                0.9,
+                0,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        await db.conn.commit()
+
+        templates = await extractor.get_templates_for_brain(
+            "brain-01-product", limit=10
+        )
+
+        assert len(templates) == 1
+        assert templates[0]["template_name"] == "Template Invalid"
+        assert templates[0]["template_data"] == {}
+
+        await db.close()
+
 
 class TestDistillationIntegration:
     """Test KnowledgeDistillationService integration with template extraction."""

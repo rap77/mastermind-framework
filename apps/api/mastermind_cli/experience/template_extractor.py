@@ -3,12 +3,13 @@
 Plan 14-03: Template storage + extraction system for reusable patterns.
 """
 
-from typing import Optional, Dict, Any
-from mastermind_cli.experience.models import ExperienceRecord
-from mastermind_cli.experience.logger import ExperienceLogger
-import uuid
 import json
+import uuid
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+from mastermind_cli.experience.logger import ExperienceLogger
+from mastermind_cli.experience.models import ExperienceRecord
 
 
 class TemplateExtractor:
@@ -141,7 +142,16 @@ class TemplateExtractor:
         Returns templates ordered by success_rate DESC (best first).
         """
         cursor = await self.logger.db.conn.execute(
-            """SELECT * FROM knowledge_templates
+            """SELECT
+                 id,
+                 brain_id,
+                 template_name,
+                 template_data,
+                 success_rate,
+                 usage_count,
+                 created_at,
+                 last_used_at
+               FROM knowledge_templates
                WHERE brain_id = ?
                  AND success_rate >= ?
                ORDER BY success_rate DESC, usage_count DESC
@@ -157,7 +167,7 @@ class TemplateExtractor:
                     "id": row[0],
                     "brain_id": row[1],
                     "template_name": row[2],
-                    "template_data": json.loads(row[3]),
+                    "template_data": self._parse_template_data(row[3]),
                     "success_rate": row[4],
                     "usage_count": row[5],
                     "created_at": row[6],
@@ -166,3 +176,15 @@ class TemplateExtractor:
             )
 
         return templates
+
+    @staticmethod
+    def _parse_template_data(template_data: Any) -> Dict[str, Any]:
+        if isinstance(template_data, dict):
+            return template_data
+        if not template_data:
+            return {}
+        try:
+            parsed = json.loads(template_data)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
