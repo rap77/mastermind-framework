@@ -50,10 +50,11 @@ async def get_brain_experiences(
     async with DatabaseConnection(db_path) as db:
         await db.create_experience_schema()
         logger = ExperienceLogger(db)
-        records = await logger.get_recent_by_brain(brain_id, limit=limit + offset)
-
-    # Apply offset in Python — get_recent_by_brain uses LIMIT only
-    paged = records[offset : offset + limit]
+        records = await logger.get_recent_by_brain(
+            brain_id,
+            limit=limit,
+            offset=offset,
+        )
 
     return [
         {
@@ -64,5 +65,5 @@ async def get_brain_experiences(
             "output_json": r.output_json,
             "custom_metadata": r.custom_metadata,
         }
-        for r in paged
+        for r in records
     ]

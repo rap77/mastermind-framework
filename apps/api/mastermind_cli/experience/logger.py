@@ -5,13 +5,14 @@ This module provides async logger for experience records with automatic PII reda
 before persistence to SQLite database.
 """
 
+from datetime import datetime, timedelta, timezone
+import json
+from typing import Any, Dict, List, Optional, Sequence
+
+from mastermind_cli.state.database import DatabaseConnection
+
 from .models import ExperienceRecord
 from .redaction import redact_for_storage
-from mastermind_cli.state.database import DatabaseConnection
-from typing import List, Optional, Dict, Any
-import aiosqlite
-import json
-from datetime import datetime, timedelta, timezone
 
 
 # Whitelist of allowed metadata keys for search_by_metadata (prevents SQL injection)
@@ -154,7 +155,11 @@ class ExperienceLogger:
         return None
 
     async def get_recent_by_brain(
-        self, brain_id: str, limit: int = 100, min_quality_score: float = 1.0
+        self,
+        brain_id: str,
+        limit: int = 100,
+        min_quality_score: float = 1.0,
+        offset: int = 0,
     ) -> List[ExperienceRecord]:
         """Get last N records for a brain, filtered by quality score and status.
 
@@ -162,6 +167,7 @@ class ExperienceLogger:
             brain_id: Brain ID to filter by
             limit: Maximum number of records to return (default: 100)
             min_quality_score: Minimum quality score threshold (default: 1.0)
+            offset: Number of records to skip for pagination (default: 0)
 
         Returns:
             List of ExperienceRecord objects, ordered by timestamp DESC
@@ -174,8 +180,8 @@ class ExperienceLogger:
                  AND status != 'rejected'
                  AND (expires_at IS NULL OR expires_at > datetime('now'))
                ORDER BY timestamp DESC
-               LIMIT ?""",
-            (brain_id, min_quality_score, limit),
+               LIMIT ? OFFSET ?""",
+            (brain_id, min_quality_score, limit, offset),
         )
         rows = await cursor.fetchall()
         return [self._row_to_record(row) for row in rows]
@@ -243,11 +249,11 @@ class ExperienceLogger:
 
         return [self._row_to_record(row) for row in rows]
 
-    def _row_to_record(self, row: aiosqlite.Row) -> ExperienceRecord:
-        """Convert SQLite row to ExperienceRecord.
+    def _row_to_record(self, row: Sequence[Any]) -> ExperienceRecord:
+        """Convert a database row to ExperienceRecord.
 
         Args:
-            row: SQLite row from experience_records table
+            row: Ordered database row from experience_records table
 
         Returns:
             ExperienceRecord instance
@@ -284,7 +290,7 @@ async def log_execution(
     status: str,
     parent_brain_id: Optional[str] = None,
     trace_context_id: Optional[str] = None,
-    custom_metadata: Dict[str, Any] = {},
+    custom_metadata: Dict[str, Any] | None = None,
 ) -> str:
     """Convenience function for logging execution.
 
