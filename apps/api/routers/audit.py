@@ -283,7 +283,7 @@ async def _ensure_audit_schema(db: DatabaseConnection) -> None:
             project_id TEXT NOT NULL,
             phase_num INTEGER,
             brain_id INTEGER NOT NULL,
-            feedback TEXT NOT NULL,
+            feedback_text TEXT NOT NULL,
             confidence_score REAL DEFAULT 0.5,
             feedback_type TEXT,
             impact_level TEXT,
@@ -603,7 +603,7 @@ async def get_phase_details(
 
         # Get brain feedback
         cursor = await db.conn.execute(
-            """SELECT brain_id, feedback, confidence_score, feedback_type, impact_level
+            """SELECT brain_id, feedback_text, confidence_score, feedback_type, impact_level
                FROM brain_feedback
                WHERE project_id = ? AND phase_num = ?
                ORDER BY confidence_score DESC""",

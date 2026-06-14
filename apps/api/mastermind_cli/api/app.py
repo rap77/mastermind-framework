@@ -1,15 +1,13 @@
-"""FastAPI application factory with CORS, audit middleware, and route registration.
+"""FastAPI application factory with CORS and route registration.
 
 This module creates and configures the FastAPI application for the MasterMind Framework.
 
 Requirements: UI-01, UI-07
 """
 
-import hashlib
 import os
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator, Optional
 
@@ -187,65 +185,6 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         set_trace_id(trace_id)
         response = await call_next(request)
         response.headers["X-Trace-ID"] = trace_id
-        return response
-
-    # Register audit middleware (UI-07 requirement)
-    @app.middleware("http")
-    async def audit_middleware(request: Request, call_next: Any) -> Any:
-        """Log all POST/PUT/DELETE requests to audit_log table."""
-        # Capture request body for mutations BEFORE call_next (body is a stream)
-        request_body = None
-        request_hash = None
-        if request.method in ["POST", "PUT", "DELETE"]:
-            request_body = await request.body()
-            cached_body = request_body
-
-            async def receive() -> dict[str, Any]:
-                """Replay the buffered request body to downstream handlers."""
-                return {
-                    "type": "http.request",
-                    "body": cached_body,
-                    "more_body": False,
-                }
-
-            request = Request(request.scope, receive)
-
-        response = await call_next(request)
-
-        # Extract user_id AFTER call_next (auth dependency sets request.state.user_id)
-        user_id = getattr(request.state, "user_id", None)
-
-        # Write audit log for mutations
-        if request.method in ["POST", "PUT", "DELETE"] and user_id:
-            is_project_state_path = str(request.url.path).startswith("/api/projects")
-            if not is_project_state_path:
-                # project_state write-side has native activity/audit logging through
-                # the project_state domain (checkpoints, decisions, task status updates
-                # are recorded and surfaced via /activity and /events endpoints).
-                # Only write to the legacy SQLite audit_log for non-project_state routes.
-                request_hash = (
-                    hashlib.sha256(request_body).hexdigest()[:16]
-                    if request_body
-                    else None
-                )
-
-                async with DatabaseConnection(db_path) as db:
-                    await db.conn.execute(
-                        """INSERT INTO audit_log
-                           (id, user_id, endpoint, method, request_hash, response_status, timestamp)
-                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                        [
-                            str(uuid.uuid4()),
-                            user_id,
-                            str(request.url.path),
-                            request.method,
-                            request_hash,
-                            response.status_code,
-                            datetime.now(timezone.utc),
-                        ],
-                    )
-                    await db.conn.commit()
-
         return response
 
     # Health check endpoints
