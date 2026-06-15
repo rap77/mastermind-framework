@@ -381,3 +381,43 @@ class TestMalformedMetadataRecovery:
         assert record.custom_metadata == {}
 
         await db.close()
+
+    async def test_search_by_metadata_ignores_invalid_json_rows(self):
+        """Malformed metadata rows should not crash metadata searches."""
+        db = DatabaseConnection(":memory:")
+        await db.connect()
+        await db.create_experience_schema()
+
+        await db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)""",
+            (
+                "record-invalid-search",
+                "brain-001",
+                "hash-invalid-search",
+                '{"result":"ok"}',
+                1000,
+                "success",
+                "not-json",
+                None,
+            ),
+        )
+        await db.conn.commit()
+
+        logger = ExperienceLogger(db)
+        await logger.log_execution(
+            brain_id="brain-001",
+            input_json={"task": "valid"},
+            output_json={"result": "good"},
+            duration_ms=1000,
+            status="success",
+            custom_metadata={"category": "product"},
+        )
+
+        records = await logger.search_by_metadata("category", "product")
+
+        assert len(records) == 1
+        assert records[0].custom_metadata["category"] == "product"
+
+        await db.close()

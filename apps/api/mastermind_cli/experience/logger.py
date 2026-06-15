@@ -238,23 +238,16 @@ class ExperienceLogger:
                 f"Allowed keys: {', '.join(sorted(ALLOWED_METADATA_KEYS))}"
             )
 
-        # Try numeric comparison first, then string comparison
-        # This handles cases where value is passed as string but stored as number in JSON
         cursor = await self.db.conn.execute(
-            f"SELECT * FROM experience_records WHERE json_extract(custom_metadata, '$.{key}') = CAST(? AS REAL)",
-            (str(value),),
+            "SELECT * FROM experience_records ORDER BY timestamp ASC"
         )
         rows = await cursor.fetchall()
-
-        # If no results with numeric comparison, try string comparison
-        if not rows:
-            cursor = await self.db.conn.execute(
-                f"SELECT * FROM experience_records WHERE json_extract(custom_metadata, '$.{key}') = ?",
-                (str(value),),
-            )
-            rows = await cursor.fetchall()
-
-        return [self._row_to_record(row) for row in rows]
+        matching_records: List[ExperienceRecord] = []
+        for row in rows:
+            record = self._row_to_record(row)
+            if self._metadata_matches(record.custom_metadata.get(key), value):
+                matching_records.append(record)
+        return matching_records
 
     def _row_to_record(self, row: Sequence[Any]) -> ExperienceRecord:
         """Convert a database row to ExperienceRecord.
@@ -319,6 +312,19 @@ class ExperienceLogger:
         else:
             expires_at_dt = expires_at_dt.astimezone(timezone.utc)
         return expires_at_dt > datetime.now(timezone.utc)
+
+    @staticmethod
+    def _metadata_matches(metadata_value: Any, expected_value: Any) -> bool:
+        if metadata_value == expected_value:
+            return True
+        if metadata_value is None:
+            return False
+        if str(metadata_value) == str(expected_value):
+            return True
+        try:
+            return float(metadata_value) == float(expected_value)
+        except (TypeError, ValueError):
+            return False
 
 
 # Convenience function for logging
