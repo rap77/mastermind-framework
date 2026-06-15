@@ -4,6 +4,9 @@ Analytics API endpoints for dashboard metrics.
 Exposes system health and outcome metrics for monitoring brain learning progress.
 """
 
+from collections.abc import AsyncGenerator
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, Depends
 
 from mastermind_cli.api.dependencies import get_db_path
@@ -13,14 +16,22 @@ from mastermind_cli.orchestration.analytics_service import (
     SystemHealthMetrics,
 )
 from mastermind_cli.state.database import DatabaseConnection
-from typing import Dict, List, Any, Optional
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
+async def get_analytics_service(
+    db_path: str = Depends(get_db_path),
+) -> AsyncGenerator[AnalyticsService, None]:
+    """Provide an AnalyticsService for route handlers."""
+    async with DatabaseConnection(db_path) as db:
+        await db.create_experience_schema()
+        yield AnalyticsService(db)
+
+
 @router.get("/system-health", response_model=SystemHealthMetrics)
 async def get_system_health(
-    db_path: str = Depends(get_db_path),
+    service: AnalyticsService = Depends(get_analytics_service),
 ) -> SystemHealthMetrics:
     """Get system health metrics for dashboard monitoring.
 
@@ -32,10 +43,7 @@ async def get_system_health(
         - p90_latency_ms: P90 retrieval latency (ceiling detection)
         - t1_trend: T1 over last 7 days (learning validation)
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_experience_schema()
-        service = AnalyticsService(db)
-        return await service.get_system_health()
+    return await service.get_system_health()
 
 
 @router.get("/templates")
@@ -43,7 +51,7 @@ async def get_templates(
     brain_id: Optional[str] = None,
     limit: int = 20,
     min_success_rate: float = 0.5,
-    db_path: str = Depends(get_db_path),
+    service: AnalyticsService = Depends(get_analytics_service),
 ) -> List[Dict[str, Any]]:
     """Get templates with success rate tracking.
 
@@ -55,17 +63,14 @@ async def get_templates(
     Returns:
         Templates ordered by success_rate DESC (best first)
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_experience_schema()
-        service = AnalyticsService(db)
-        return await service.get_templates(brain_id, limit, min_success_rate)
+    return await service.get_templates(brain_id, limit, min_success_rate)
 
 
 @router.get("/patterns")
 async def get_patterns(
     brain_id: Optional[str] = None,
     limit: int = 10,
-    db_path: str = Depends(get_db_path),
+    service: AnalyticsService = Depends(get_analytics_service),
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Get recurring patterns per brain.
 
@@ -79,15 +84,12 @@ async def get_patterns(
     Returns:
         Dict mapping brain_id → list of patterns with frequency + avg_quality
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_experience_schema()
-        service = AnalyticsService(db)
-        return await service.get_patterns(brain_id, limit)
+    return await service.get_patterns(brain_id, limit)
 
 
 @router.get("/outcome-metrics", response_model=OutcomeMetrics)
 async def get_outcome_metrics(
-    db_path: str = Depends(get_db_path),
+    service: AnalyticsService = Depends(get_analytics_service),
 ) -> OutcomeMetrics:
     """Get outcome metrics for learning validation.
 
@@ -96,7 +98,4 @@ async def get_outcome_metrics(
         - knowledge_yield: Template reuse rate (templates / total_records)
         - planning_accuracy: Avg quality_score across all records
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_experience_schema()
-        service = AnalyticsService(db)
-        return await service.get_outcome_metrics()
+    return await service.get_outcome_metrics()

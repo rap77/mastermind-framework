@@ -477,6 +477,7 @@ class TestAnalyticsEndpoints:
     ):
         """Test GET /api/analytics/system-health returns system health metrics."""
         from mastermind_cli.api.routes.analytics import get_system_health
+        from mastermind_cli.orchestration.analytics_service import AnalyticsService
         import tempfile
 
         # Use file-based database to persist data across test
@@ -512,7 +513,9 @@ class TestAnalyticsEndpoints:
                 )
             await db.conn.commit()
 
-        response = await get_system_health(db_path=db_path)
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            response = await get_system_health(service=AnalyticsService(db))
         data = response.model_dump()
         assert "record_count" in data
         assert "avg_quality_score" in data
@@ -527,6 +530,7 @@ class TestAnalyticsEndpoints:
     ):
         """Test GET /api/analytics/templates returns templates ordered by success_rate."""
         from mastermind_cli.api.routes.analytics import get_templates
+        from mastermind_cli.orchestration.analytics_service import AnalyticsService
         import tempfile
 
         # Use file-based database to persist data across test
@@ -562,7 +566,9 @@ class TestAnalyticsEndpoints:
                 )
             await db.conn.commit()
 
-        data = await get_templates(db_path=db_path)
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            data = await get_templates(service=AnalyticsService(db))
         assert isinstance(data, list)
         assert len(data) == 4  # All 4 templates
 
@@ -576,6 +582,7 @@ class TestAnalyticsEndpoints:
     ):
         """Test GET /api/analytics/patterns returns patterns grouped by brain."""
         from mastermind_cli.api.routes.analytics import get_patterns
+        from mastermind_cli.orchestration.analytics_service import AnalyticsService
         import tempfile
 
         # Use file-based database to persist data across test
@@ -604,7 +611,9 @@ class TestAnalyticsEndpoints:
             )
             await db.conn.commit()
 
-        data = await get_patterns(db_path=db_path)
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            data = await get_patterns(service=AnalyticsService(db))
         assert isinstance(data, dict)
 
         # Should have patterns for at least one brain
@@ -617,6 +626,7 @@ class TestAnalyticsEndpoints:
     ):
         """Test GET /api/analytics/outcome-metrics returns outcome metrics."""
         from mastermind_cli.api.routes.analytics import get_outcome_metrics
+        from mastermind_cli.orchestration.analytics_service import AnalyticsService
         import tempfile
 
         # Use file-based database to persist data across test
@@ -645,7 +655,9 @@ class TestAnalyticsEndpoints:
             )
             await db.conn.commit()
 
-        response = await get_outcome_metrics(db_path=db_path)
+        async with DatabaseConnection(db_path) as db:
+            await db.create_experience_schema()
+            response = await get_outcome_metrics(service=AnalyticsService(db))
         data = response.model_dump()
         assert "delta_velocity" in data
         assert "knowledge_yield" in data
