@@ -15,6 +15,7 @@ import asyncio
 import json
 import os
 import sys
+from typing import Any, Optional
 
 # Allow running from repo root or from apps/api/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -29,11 +30,30 @@ def _get_db_path() -> str:
     return path
 
 
-async def _cmd_query(args: argparse.Namespace) -> None:
+def _parse_json_arg(raw: str, flag_name: str) -> dict[str, Any]:
+    """Parse a CLI JSON argument or raise SystemExit with a stable error payload."""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(json.dumps({"error": f"Invalid {flag_name} JSON: {e}"}))
+        raise SystemExit(1) from e
+    if not isinstance(parsed, dict):
+        print(json.dumps({"error": f"Invalid {flag_name} JSON: expected object"}))
+        raise SystemExit(1)
+    return parsed
+
+
+async def _cmd_query(
+    args: argparse.Namespace,
+    logger: Optional[ExperienceLogger] = None,
+) -> None:
     """Query recent experience records for a brain."""
-    async with DatabaseConnection(_get_db_path()) as db:
-        await db.create_experience_schema()
-        logger = ExperienceLogger(db)
+    if logger is None:
+        async with DatabaseConnection(_get_db_path()) as db:
+            await db.create_experience_schema()
+            logger = ExperienceLogger(db)
+            records = await logger.get_recent_by_brain(args.brain_id, limit=args.limit)
+    else:
         records = await logger.get_recent_by_brain(args.brain_id, limit=args.limit)
 
     output = [
@@ -50,31 +70,29 @@ async def _cmd_query(args: argparse.Namespace) -> None:
     print(json.dumps(output, indent=2, ensure_ascii=False, default=str))
 
 
-async def _cmd_log(args: argparse.Namespace) -> None:
+async def _cmd_log(
+    args: argparse.Namespace,
+    logger: Optional[ExperienceLogger] = None,
+) -> None:
     """Log an experience record for a brain."""
-    try:
-        input_data = json.loads(args.input)
-    except json.JSONDecodeError as e:
-        print(json.dumps({"error": f"Invalid --input JSON: {e}"}))
-        sys.exit(1)
+    input_data = _parse_json_arg(args.input, "--input")
+    output_data = _parse_json_arg(args.output, "--output")
+    metadata = _parse_json_arg(args.metadata, "--metadata") if args.metadata else {}
 
-    try:
-        output_data = json.loads(args.output)
-    except json.JSONDecodeError as e:
-        print(json.dumps({"error": f"Invalid --output JSON: {e}"}))
-        sys.exit(1)
-
-    metadata: dict[str, object] = {}
-    if args.metadata:
-        try:
-            metadata = json.loads(args.metadata)
-        except json.JSONDecodeError as e:
-            print(json.dumps({"error": f"Invalid --metadata JSON: {e}"}))
-            sys.exit(1)
-
-    async with DatabaseConnection(_get_db_path()) as db:
-        await db.create_experience_schema()
-        logger = ExperienceLogger(db)
+    if logger is None:
+        async with DatabaseConnection(_get_db_path()) as db:
+            await db.create_experience_schema()
+            logger = ExperienceLogger(db)
+            record_id = await logger.log_execution(
+                brain_id=args.brain_id,
+                input_json=input_data,
+                output_json=output_data,
+                duration_ms=args.duration_ms,
+                status=args.status,
+                trace_context_id=args.trace_id or None,
+                custom_metadata=metadata,
+            )
+    else:
         record_id = await logger.log_execution(
             brain_id=args.brain_id,
             input_json=input_data,
