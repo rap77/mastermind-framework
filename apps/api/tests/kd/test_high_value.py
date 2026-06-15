@@ -129,6 +129,24 @@ class TestDistillationServiceDependencies:
         assert fake_logger.logged_execution["brain_id"] == "brain-07-growth"
         assert fake_logger.logged_execution["output_json"]["templates_extracted"] == 1
 
+    @pytest.mark.asyncio
+    async def test_close_is_noop_for_injected_logger(self):
+        """close() should be safe when no internal DatabaseConnection was created."""
+
+        class _FakeLogger:
+            async def get_recent_by_brain(self, brain_id: str, limit: int = 10):
+                del brain_id, limit
+                return []
+
+            async def log_execution(self, **kwargs):
+                del kwargs
+
+        service = KnowledgeDistillationService(logger=_FakeLogger())
+
+        await service.close()
+
+        assert service._db is None
+
     def test_returns_true_when_planning_score_delta_nonzero(self):
         """Test 3: High-value when planning_score_delta != 0."""
         service = KnowledgeDistillationService(db_path=":memory:")

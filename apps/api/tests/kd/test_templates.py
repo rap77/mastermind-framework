@@ -533,6 +533,7 @@ class TestDistillationIntegration:
             )
 
             await service.trigger_evaluation_and_distillation(task)
+            await service.close()
 
             # Verify template was extracted
             extractor = TemplateExtractor(logger)

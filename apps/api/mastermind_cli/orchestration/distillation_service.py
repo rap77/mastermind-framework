@@ -78,6 +78,12 @@ class KnowledgeDistillationService:
             await self._db.connect()
         return self._db
 
+    async def close(self) -> None:
+        """Close any lazily created database connection."""
+        if self._db is not None:
+            await self._db.close()
+            self._db = None
+
     async def _get_logger(self) -> ExperienceLogger:
         """Return the configured experience logger."""
         if self._logger is not None:
