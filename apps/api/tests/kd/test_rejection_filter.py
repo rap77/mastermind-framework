@@ -305,3 +305,79 @@ class TestRejectionFilter:
             assert record.custom_metadata.get("quality_score", 0) >= 2.0
 
         await db.close()
+
+    async def test_get_recent_ignores_malformed_custom_metadata(self):
+        """Malformed metadata should not break retrieval and should be filtered out."""
+        db = DatabaseConnection(":memory:")
+        await db.connect()
+        await db.create_experience_schema()
+
+        logger = ExperienceLogger(db)
+
+        await db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)""",
+            (
+                "record-invalid-metadata",
+                "brain-001",
+                "hash-invalid",
+                '{"result":"bad"}',
+                1000,
+                "success",
+                "not-json",
+                None,
+            ),
+        )
+
+        valid_id = await logger.log_execution(
+            brain_id="brain-001",
+            input_json={"task": "valid"},
+            output_json={"result": "good"},
+            duration_ms=1000,
+            status="success",
+            quality_score=2.0,
+        )
+
+        records = await logger.get_recent_by_brain(brain_id="brain-001", limit=100)
+
+        assert len(records) == 1
+        assert records[0].id == valid_id
+
+        await db.close()
+
+
+@pytest.mark.asyncio
+class TestMalformedMetadataRecovery:
+    """Test recovery from malformed stored metadata."""
+
+    async def test_get_by_id_returns_empty_metadata_for_invalid_json(self):
+        """Invalid custom_metadata should degrade to an empty metadata dict."""
+        db = DatabaseConnection(":memory:")
+        await db.connect()
+        await db.create_experience_schema()
+
+        await db.conn.execute(
+            """INSERT INTO experience_records
+               (id, brain_id, input_hash, output_json, timestamp, duration_ms, status, custom_metadata, expires_at)
+               VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)""",
+            (
+                "record-invalid-json",
+                "brain-001",
+                "hash-invalid-json",
+                '{"result":"ok"}',
+                1000,
+                "success",
+                "not-json",
+                None,
+            ),
+        )
+        await db.conn.commit()
+
+        logger = ExperienceLogger(db)
+        record = await logger.get_by_id("record-invalid-json")
+
+        assert record is not None
+        assert record.custom_metadata == {}
+
+        await db.close()

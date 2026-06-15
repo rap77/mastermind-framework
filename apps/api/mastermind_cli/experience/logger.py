@@ -176,15 +176,22 @@ class ExperienceLogger:
         cursor = await self.db.conn.execute(
             """SELECT * FROM experience_records
                WHERE brain_id = ?
-                 AND json_extract(custom_metadata, '$.quality_score') >= ?
-                 AND status != 'rejected'
-                 AND (expires_at IS NULL OR expires_at > datetime('now'))
-               ORDER BY timestamp DESC
-               LIMIT ? OFFSET ?""",
-            (brain_id, min_quality_score, limit, offset),
+               ORDER BY timestamp DESC""",
+            (brain_id,),
         )
         rows = await cursor.fetchall()
-        return [self._row_to_record(row) for row in rows]
+        records: List[ExperienceRecord] = []
+        for row in rows:
+            record = self._row_to_record(row)
+            if record.status == "rejected":
+                continue
+            if self._quality_score(record.custom_metadata) < min_quality_score:
+                continue
+            if not self._is_active(record.custom_metadata.get("expires_at")):
+                continue
+            records.append(record)
+
+        return records[offset : offset + limit]
 
     async def search_by_trace_context(
         self, trace_context_id: str
@@ -258,8 +265,7 @@ class ExperienceLogger:
         Returns:
             ExperienceRecord instance
         """
-        # Parse custom_metadata
-        custom_metadata = json.loads(row[10])
+        custom_metadata = self._parse_metadata(row[10])
 
         # Merge expires_at from column into custom_metadata if present
         if len(row) > 11 and row[11] is not None:
@@ -278,6 +284,41 @@ class ExperienceLogger:
             trace_context_id=row[9],
             custom_metadata=custom_metadata,
         )
+
+    @staticmethod
+    def _parse_metadata(raw_metadata: Any) -> Dict[str, Any]:
+        if isinstance(raw_metadata, dict):
+            return dict(raw_metadata)
+        if not raw_metadata:
+            return {}
+        try:
+            parsed = json.loads(raw_metadata)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+
+    @staticmethod
+    def _quality_score(custom_metadata: Dict[str, Any]) -> float:
+        raw_score = custom_metadata.get("quality_score", 0.0)
+        try:
+            return float(raw_score)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @staticmethod
+    def _is_active(expires_at: Any) -> bool:
+        if not expires_at or not isinstance(expires_at, str):
+            return True
+        normalized = expires_at.replace("Z", "+00:00")
+        try:
+            expires_at_dt = datetime.fromisoformat(normalized)
+        except ValueError:
+            return True
+        if expires_at_dt.tzinfo is None:
+            expires_at_dt = expires_at_dt.replace(tzinfo=timezone.utc)
+        else:
+            expires_at_dt = expires_at_dt.astimezone(timezone.utc)
+        return expires_at_dt > datetime.now(timezone.utc)
 
 
 # Convenience function for logging
