@@ -10,6 +10,7 @@ Endpoints:
     GET /api/experiences/{brain_id}  - Recent experience records for a brain
 """
 
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -25,13 +26,22 @@ _DEFAULT_LIMIT = 10
 _MAX_LIMIT = 100
 
 
+async def get_experience_logger(
+    db_path: str = Depends(get_db_path),
+) -> AsyncGenerator[ExperienceLogger, None]:
+    """Provide an ExperienceLogger for route handlers."""
+    async with DatabaseConnection(db_path) as db:
+        await db.create_experience_schema()
+        yield ExperienceLogger(db)
+
+
 @router.get("/{brain_id}")
 async def get_brain_experiences(
     brain_id: str,
     limit: int = Query(default=_DEFAULT_LIMIT, ge=1, le=_MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
     user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
+    logger: ExperienceLogger = Depends(get_experience_logger),
 ) -> list[dict[str, Any]]:
     """Get recent experience records for a brain.
 
@@ -47,14 +57,11 @@ async def get_brain_experiences(
         List of experience record dicts, ordered newest first.
         Empty list if brain has no records.
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_experience_schema()
-        logger = ExperienceLogger(db)
-        records = await logger.get_recent_by_brain(
-            brain_id,
-            limit=limit,
-            offset=offset,
-        )
+    records = await logger.get_recent_by_brain(
+        brain_id,
+        limit=limit,
+        offset=offset,
+    )
 
     return [
         {
