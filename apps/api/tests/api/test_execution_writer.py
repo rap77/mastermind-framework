@@ -250,3 +250,63 @@ async def test_write_execution_linked_to_task(db_path: str) -> None:
 
     assert row is not None
     assert row[0] == "task-linked-001"
+
+
+@pytest.mark.asyncio
+async def test_write_execution_accepts_injected_db_factory() -> None:
+    """write_execution() can build its DB connection through an injected factory."""
+    factory_calls: list[str] = []
+
+    class _FakeCursor:
+        rowcount = 1
+
+    class _FakeConn:
+        def __init__(self) -> None:
+            self.execute_calls: list[tuple[str, list[object]]] = []
+            self.committed = False
+
+        async def execute(self, sql: str, params: list[object]) -> _FakeCursor:
+            self.execute_calls.append((sql, params))
+            return _FakeCursor()
+
+        async def commit(self) -> None:
+            self.committed = True
+
+    class _FakeDB:
+        def __init__(self, path: str) -> None:
+            self.path = path
+            self.conn = _FakeConn()
+            self.schema_created = False
+
+        async def create_execution_history_schema(self) -> None:
+            self.schema_created = True
+
+        async def __aenter__(self) -> "_FakeDB":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            del exc_type, exc, tb
+
+    fake_dbs: list[_FakeDB] = []
+
+    def _db_factory(path: str) -> _FakeDB:
+        factory_calls.append(path)
+        db = _FakeDB(path)
+        fake_dbs.append(db)
+        return db
+
+    exec_id = await write_execution(
+        task_id="task-factory-001",
+        brief="Factory test",
+        brain_outputs={},
+        graph_snapshot={},
+        db_path="writer-test.db",
+        db_factory=_db_factory,
+    )
+
+    assert exec_id is not None
+    assert factory_calls == ["writer-test.db"]
+    assert len(fake_dbs) == 1
+    assert fake_dbs[0].schema_created is True
+    assert fake_dbs[0].conn.committed is True
+    assert len(fake_dbs[0].conn.execute_calls) == 1

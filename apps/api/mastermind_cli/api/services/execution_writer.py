@@ -15,6 +15,7 @@ Requirements: SV-01, SV-02
 import json
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -125,6 +126,7 @@ async def write_execution(
     db_path: str,
     duration_ms: int = 0,
     status: str = "success",
+    db_factory: Callable[[str], DatabaseConnection] | None = None,
 ) -> str | None:
     """Persist execution data to execution_history table.
 
@@ -143,6 +145,8 @@ async def write_execution(
         db_path: SQLite database path
         duration_ms: Total execution duration in milliseconds
         status: "success", "error", or "running"
+        db_factory: Optional factory for building the backing database
+            connection during tests or storage transitions.
 
     Returns:
         Created execution UUID, or None if write failed or was skipped
@@ -151,9 +155,10 @@ async def write_execution(
     exec_id = str(uuid.uuid4())
     brain_count = len(brain_outputs) if brain_outputs else 1
     milestones = _compute_milestones(brain_outputs)
+    connection_factory = db_factory or DatabaseConnection
 
     try:
-        async with DatabaseConnection(db_path) as db:
+        async with connection_factory(db_path) as db:
             await db.create_execution_history_schema()
 
             # INSERT OR IGNORE: first writer wins, subsequent silently skip
