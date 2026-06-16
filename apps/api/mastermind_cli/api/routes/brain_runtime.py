@@ -9,6 +9,7 @@ Phase 13-03 Task 1: Python gRPC server (BrainRuntimeServicer)
 
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -108,9 +109,18 @@ class BrainRuntimeServicer:
     Reuses existing Python orchestration (FlowDetector, task_runner).
     """
 
-    def __init__(self) -> None:
-        """Initialize the servicer."""
+    def __init__(
+        self,
+        db_factory: Callable[[str], DatabaseConnection] | None = None,
+    ) -> None:
+        """Initialize the servicer.
+
+        Args:
+            db_factory: Optional factory for building legacy task database
+                connections during tests or storage transitions.
+        """
         self.flow_detector = FlowDetector()
+        self._db_factory = db_factory or DatabaseConnection
 
     async def DispatchTask(
         self,
@@ -149,7 +159,7 @@ class BrainRuntimeServicer:
             if db_dir:
                 os.makedirs(db_dir, exist_ok=True)
 
-        async with DatabaseConnection(db_path) as db:
+        async with self._db_factory(db_path) as db:
             # Ensure schema exists
             await db.create_task_schema()
 

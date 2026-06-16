@@ -10,20 +10,24 @@ import pytest
 import sqlite3
 import time
 from datetime import datetime
+from collections.abc import Iterator
 from pathlib import Path
 
 from mastermind_cli.project_state.database.session import dispose_engines
 
 
 @pytest.fixture(autouse=True)
-def cleanup_project_state_engines() -> None:
+def cleanup_project_state_engines() -> Iterator[None]:
     """Dispose cached SQLAlchemy engines after each test."""
     yield
     dispose_engines()
 
 
 @pytest.fixture(autouse=True)
-def isolated_brain_runtime_db(tmp_path, monkeypatch):
+def isolated_brain_runtime_db(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[None]:
     """Run BrainRuntime integration tests against an isolated sqlite3-backed shim."""
 
     db_path = str(tmp_path / "brain_runtime.db")
@@ -96,6 +100,7 @@ def isolated_brain_runtime_db(tmp_path, monkeypatch):
         "mastermind_cli.api.routes.brain_runtime.DatabaseConnection",
         _FakeDatabaseConnection,
     )
+    yield
 
 
 # These imports will work once we create the gRPC server
@@ -107,7 +112,7 @@ class TestBrainRuntimeGrpcServer:
     """Test suite for BrainRuntime gRPC server."""
 
     @pytest.mark.asyncio
-    async def test_grpc_server_starts_on_port_50051(self):
+    async def test_grpc_server_starts_on_port_50051(self) -> None:
         """Test 1: gRPC server starts on port 50051."""
         # For VS, we verify the servicer can be instantiated
         # Full gRPC server startup test in Phase 15
@@ -121,7 +126,7 @@ class TestBrainRuntimeGrpcServer:
             pytest.fail(f"gRPC server instantiation failed: {e}")
 
     @pytest.mark.asyncio
-    async def test_dispatch_task_accepts_request_and_returns_task_id(self):
+    async def test_dispatch_task_accepts_request_and_returns_task_id(self) -> None:
         """Test 2: DispatchTask RPC accepts request and returns task_id."""
         from mastermind_cli.proto import DispatchTaskRequest
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
@@ -150,7 +155,7 @@ class TestBrainRuntimeGrpcServer:
             pytest.fail(f"DispatchTask failed: {e}")
 
     @pytest.mark.asyncio
-    async def test_flow_detector_called_from_grpc_handler(self):
+    async def test_flow_detector_called_from_grpc_handler(self) -> None:
         """Test 3: FlowDetector.auto_detect() called from gRPC handler."""
         from mastermind_cli.proto import DispatchTaskRequest
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
@@ -169,7 +174,7 @@ class TestBrainRuntimeGrpcServer:
         assert response.task_id, "Auto-detect should work and return task_id"
 
     @pytest.mark.asyncio
-    async def test_execution_record_created_in_sqlite(self):
+    async def test_execution_record_created_in_sqlite(self) -> None:
         """Test 4: Execution record created in SQLite."""
         from mastermind_cli.proto import DispatchTaskRequest
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
@@ -200,7 +205,7 @@ class TestBrainRuntimeGrpcServer:
         assert row[5] == "test-user-sqlite", "user_id should match (row[5])"
 
     @pytest.mark.asyncio
-    async def test_response_includes_accepted_at_unix_ms_timestamp(self):
+    async def test_response_includes_accepted_at_unix_ms_timestamp(self) -> None:
         """Test 5: Response includes accepted_at_unix_ms timestamp."""
         from mastermind_cli.proto import DispatchTaskRequest
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
@@ -234,7 +239,7 @@ class TestBrainRuntimeGrpcServer:
             pytest.fail(f"Timestamp validation failed: {e}")
 
     @pytest.mark.asyncio
-    async def test_dispatch_task_persists_project_state_records(self):
+    async def test_dispatch_task_persists_project_state_records(self) -> None:
         """DispatchTask also creates transitional project_state task/run records."""
         from mastermind_cli.proto import DispatchTaskRequest
         from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
@@ -271,3 +276,66 @@ class TestBrainRuntimeGrpcServer:
         assert run is not None
         assert run.project_id == "user-tasks:test-user-project-state"
         assert run.status == "pending"
+
+    @pytest.mark.asyncio
+    async def test_dispatch_task_accepts_injected_db_factory(self) -> None:
+        """DispatchTask can build its DB connection through an injected factory."""
+        from mastermind_cli.proto import DispatchTaskRequest
+        from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
+
+        factory_calls: list[str] = []
+
+        class _Cursor:
+            async def fetchone(self):
+                return None
+
+        class _Conn:
+            def __init__(self) -> None:
+                self.execute_calls: list[tuple[str, list[object]]] = []
+                self.committed = False
+
+            async def execute(self, sql: str, params=None):
+                self.execute_calls.append((sql, list(params or [])))
+                return _Cursor()
+
+            async def commit(self):
+                self.committed = True
+
+        class _FakeDB:
+            def __init__(self, db_path: str) -> None:
+                self.db_path = db_path
+                self.conn = _Conn()
+                self.schema_created = False
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                del exc_type, exc, tb
+
+            async def create_task_schema(self):
+                self.schema_created = True
+
+        fake_dbs: list[_FakeDB] = []
+
+        def _db_factory(db_path: str) -> _FakeDB:
+            factory_calls.append(db_path)
+            db = _FakeDB(db_path)
+            fake_dbs.append(db)
+            return db
+
+        request = DispatchTaskRequest(
+            brief="Factory-injected dispatch",
+            user_id="test-user-factory",
+            flow="validation_only",
+        )
+
+        servicer = BrainRuntimeServicer(db_factory=_db_factory)
+        response = await servicer.DispatchTask(request, None)
+
+        assert response.task_id
+        assert len(factory_calls) == 1
+        assert len(fake_dbs) == 1
+        assert fake_dbs[0].schema_created is True
+        assert fake_dbs[0].conn.committed is True
+        assert len(fake_dbs[0].conn.execute_calls) == 1
