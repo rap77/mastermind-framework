@@ -58,6 +58,7 @@ class KnowledgeDistillationService:
         extractor_factory: Optional[
             Callable[[ExperienceLogger], TemplateExtractor]
         ] = None,
+        db_factory: Optional[Callable[[str], DatabaseConnection]] = None,
     ):
         """Initialize the distillation service.
 
@@ -65,16 +66,18 @@ class KnowledgeDistillationService:
             db_path: Backing database path for the default logger.
             logger: Optional injected logger for tests or alternate storage backends.
             extractor_factory: Optional factory for building template extractors.
+            db_factory: Optional factory for building database connections.
         """
         self.db_path = db_path
         self._db: Optional[DatabaseConnection] = None
         self._logger = logger
         self._extractor_factory = extractor_factory or TemplateExtractor
+        self._db_factory = db_factory or DatabaseConnection
 
     async def _get_db(self) -> DatabaseConnection:
         """Lazy database connection."""
         if self._db is None:
-            self._db = DatabaseConnection(self.db_path)
+            self._db = self._db_factory(self.db_path)
             await self._db.connect()
         return self._db
 

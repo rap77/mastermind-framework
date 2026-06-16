@@ -147,6 +147,53 @@ class TestDistillationServiceDependencies:
 
         assert service._db is None
 
+    @pytest.mark.asyncio
+    async def test_get_logger_uses_injected_db_factory(self):
+        """Default logger path should build its database connection through db_factory."""
+
+        class _FakeDB:
+            def __init__(self, db_path: str) -> None:
+                self.db_path = db_path
+                self.connected = False
+
+            async def connect(self) -> None:
+                self.connected = True
+
+            async def close(self) -> None:
+                self.connected = False
+
+        fake_dbs: list[_FakeDB] = []
+
+        def _db_factory(db_path: str) -> _FakeDB:
+            db = _FakeDB(db_path)
+            fake_dbs.append(db)
+            return db
+
+        class _FakeLogger:
+            def __init__(self, db) -> None:
+                self.db = db
+
+        service = KnowledgeDistillationService(
+            db_path="distillation-test.db",
+            db_factory=_db_factory,
+        )
+
+        from unittest.mock import patch
+
+        with patch(
+            "mastermind_cli.orchestration.distillation_service.ExperienceLogger",
+            side_effect=lambda db: _FakeLogger(db),
+        ):
+            logger = await service._get_logger()
+
+        assert len(fake_dbs) == 1
+        assert fake_dbs[0].db_path == "distillation-test.db"
+        assert fake_dbs[0].connected is True
+        assert logger.db is fake_dbs[0]
+
+        await service.close()
+        assert fake_dbs[0].connected is False
+
     def test_returns_true_when_planning_score_delta_nonzero(self):
         """Test 3: High-value when planning_score_delta != 0."""
         service = KnowledgeDistillationService(db_path=":memory:")
