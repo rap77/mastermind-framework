@@ -528,6 +528,49 @@ def test_run_brain_task_writes_experience_record(db_with_task, task_id):
     assert count >= 1
 
 
+def test_run_brain_task_accepts_injected_experience_logger_factory(
+    db_with_task, task_id
+):
+    """run_brain_task() can use an injected logger seam instead of ExperienceLogger."""
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {"result": "logged"}
+    fake_logger = AsyncMock()
+    factory_calls: list[object] = []
+
+    def logger_factory(db):
+        factory_calls.append(db)
+        return fake_logger
+
+    with (
+        patch(
+            "mastermind_cli.api.services.task_runner.create_stateless_coordinator"
+        ) as MockCoord,
+        patch(
+            "mastermind_cli.api.services.task_runner.ExperienceLogger",
+            side_effect=AssertionError("ExperienceLogger should not be constructed"),
+        ),
+    ):
+        instance = MockCoord.return_value
+        instance.execute_flow = AsyncMock(
+            return_value={"brain-01-product": mock_output}
+        )
+
+        from mastermind_cli.api.services.task_runner import run_brain_task
+
+        asyncio.run(
+            run_brain_task(
+                task_id=task_id,
+                brief="Test brief input",
+                flow="validation_only",
+                db_path=db_with_task,
+                experience_logger_factory=logger_factory,
+            )
+        )
+
+    assert len(factory_calls) == 1
+    assert fake_logger.log_execution.await_count == 1
+
+
 def test_run_brain_task_persists_canonical_execution_output_artifact(
     db_with_task, task_id
 ):

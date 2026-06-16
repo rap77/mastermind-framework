@@ -37,8 +37,9 @@ import logging
 import os
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 
 import asyncpg
 import httpx
@@ -74,11 +75,41 @@ _RUST_CONTROL_PLANE_URL = os.environ.get(
 )
 
 
+class _ExecutionLogger(Protocol):
+    """Minimal protocol for experience logging during task execution."""
+
+    async def log_execution(
+        self,
+        *,
+        brain_id: str,
+        input_json: dict[str, object],
+        output_json: dict[str, object],
+        duration_ms: int,
+        status: str,
+        trace_context_id: str | None = None,
+        quality_score: float | None = None,
+        custom_metadata: dict[str, object] | None = None,
+    ) -> object: ...
+
+
+ExperienceLoggerFactory = Callable[[DatabaseConnection], _ExecutionLogger]
+
+
 def _project_state_db_url_from_path(db_path: str) -> str:
     """Resolve the transitional project_state database URL from the legacy DB path."""
     if db_path == ":memory:":
         return "sqlite:///:memory:"
     return f"sqlite:///{db_path}.project_state"
+
+
+def _build_experience_logger(
+    db: DatabaseConnection,
+    factory: ExperienceLoggerFactory | None,
+) -> _ExecutionLogger:
+    """Build an execution logger, allowing tests to inject a seam."""
+    if factory is not None:
+        return factory(db)
+    return ExperienceLogger(db)
 
 
 def _update_project_state_status(
@@ -239,6 +270,8 @@ async def run_brain_task(
     brief: str,
     flow: str | None,
     db_path: str,
+    *,
+    experience_logger_factory: ExperienceLoggerFactory | None = None,
 ) -> None:
     """Execute brain orchestration and persist results.
 
@@ -254,6 +287,8 @@ async def run_brain_task(
         brief: Raw user brief text
         flow: Flow type name (e.g. 'validation_only') or None for auto-detect
         db_path: SQLite database path (use MM_DB_PATH env var)
+        experience_logger_factory: Optional seam for injecting an execution logger
+            during tests or storage transitions.
     """
     async with DatabaseConnection(db_path) as db:
         await db.conn.execute(
@@ -314,7 +349,7 @@ async def run_brain_task(
         eval_scores: dict[str, float] = {}
         async with DatabaseConnection(db_path) as db:
             await db.create_experience_schema()
-            logger = ExperienceLogger(db)
+            logger = _build_experience_logger(db, experience_logger_factory)
             for brain_id, output in results.items():
                 output_dict = (
                     output.model_dump() if hasattr(output, "model_dump") else {}
@@ -426,7 +461,10 @@ async def run_brain_task(
 
                 # Log experience for routed brain
                 async with DatabaseConnection(db_path) as db:
-                    routed_logger = ExperienceLogger(db)
+                    routed_logger = _build_experience_logger(
+                        db,
+                        experience_logger_factory,
+                    )
                     for rid, rout in routed_results.items():
                         await routed_logger.log_execution(
                             brain_id=rid,
