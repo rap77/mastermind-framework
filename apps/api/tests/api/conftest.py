@@ -244,6 +244,82 @@ def stub_tasks_database_connection(monkeypatch: MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def stub_keys_database_connection(monkeypatch: MonkeyPatch) -> None:
+    """Replace key route aiosqlite usage with a sqlite3-backed async shim."""
+
+    class _Cursor:
+        def __init__(self, cursor: sqlite3.Cursor):
+            self._cursor = cursor
+
+        async def fetchone(self):
+            """Return one row from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchone()
+
+        async def fetchall(self):
+            """Return all rows from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchall()
+
+    class _Conn:
+        def __init__(self, connection: sqlite3.Connection):
+            self._connection = connection
+
+        async def execute(self, sql: str, params=None):
+            """Execute SQL and expose an async-compatible cursor API."""
+            return _Cursor(self._connection.execute(sql, params or []))
+
+        async def commit(self):
+            """Commit the underlying sqlite3 transaction."""
+            self._connection.commit()
+
+    class _FakeDatabaseConnection:
+        def __init__(self, db_path: str = ":memory:"):
+            self.db_path = db_path
+            self._connection: sqlite3.Connection | None = None
+
+        @property
+        def conn(self) -> _Conn:
+            assert self._connection is not None
+            return _Conn(self._connection)
+
+        async def __aenter__(self):
+            self._connection = sqlite3.connect(self.db_path)
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            del exc_type, exc, tb
+            assert self._connection is not None
+            self._connection.close()
+            self._connection = None
+
+        async def create_api_keys_v2_schema(self):
+            """Create the API-key schema expected by the keys routes."""
+            assert self._connection is not None
+            self._connection.executescript("""
+                CREATE TABLE IF NOT EXISTS api_keys_v2 (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    key_hash TEXT NOT NULL,
+                    prefix TEXT NOT NULL,
+                    suffix TEXT NOT NULL,
+                    name TEXT,
+                    created_at TEXT NOT NULL,
+                    last_used_at TEXT,
+                    revoked_at TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_api_keys_v2_user_id
+                    ON api_keys_v2(user_id, created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_api_keys_v2_prefix
+                    ON api_keys_v2(prefix);
+            """)
+            self._connection.commit()
+
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.keys.DatabaseConnection",
+        _FakeDatabaseConnection,
+    )
+
+
 @pytest.fixture
 def sync_client(app: FastAPI) -> TestClient:
     """Synchronous HTTP client (TestClient wrapper)."""

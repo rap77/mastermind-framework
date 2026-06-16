@@ -10,6 +10,8 @@ Requirements: ER-02
 
 import pytest
 
+from mastermind_cli.api.routes.keys import validate_api_key_v2
+
 
 @pytest.mark.asyncio
 async def test_create_key_success(client, auth_headers) -> None:
@@ -184,3 +186,61 @@ async def test_revoke_key_twice_returns_404(client, auth_headers) -> None:
     # Second revoke → 404 (key is gone from active list)
     second_revoke = await client.delete(f"/api/keys/{key_id}", headers=auth_headers)
     assert second_revoke.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_validate_api_key_v2_accepts_injected_db_factory() -> None:
+    """API key validation can build its DB connection through an injected factory."""
+    raw_key = "mmsk_12345678deadbeefdeadbeefdeadbeef"
+    factory_calls: list[str] = []
+
+    class _Cursor:
+        async def fetchone(self):
+            return ("key-id", "user-123", "stored-hash")
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.execute_calls: list[tuple[str, list[object]]] = []
+            self.committed = False
+
+        async def execute(self, sql: str, params=None):
+            self.execute_calls.append((sql, list(params or [])))
+            return _Cursor()
+
+        async def commit(self):
+            self.committed = True
+
+    class _FakeDB:
+        def __init__(self, db_path: str) -> None:
+            self.db_path = db_path
+            self.conn = _Conn()
+            self.schema_created = False
+
+        async def create_api_keys_v2_schema(self) -> None:
+            self.schema_created = True
+
+        async def __aenter__(self) -> "_FakeDB":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            del exc_type, exc, tb
+
+    fake_dbs: list[_FakeDB] = []
+
+    def _db_factory(db_path: str) -> _FakeDB:
+        factory_calls.append(db_path)
+        db = _FakeDB(db_path)
+        fake_dbs.append(db)
+        return db
+
+    result = await validate_api_key_v2(
+        raw_key=raw_key,
+        db_path="keys-test.db",
+        db_factory=_db_factory,
+    )
+
+    assert result is None  # bcrypt verification still fails for the fake row
+    assert factory_calls == ["keys-test.db"]
+    assert len(fake_dbs) == 1
+    assert fake_dbs[0].schema_created is True
+    assert len(fake_dbs[0].conn.execute_calls) == 1

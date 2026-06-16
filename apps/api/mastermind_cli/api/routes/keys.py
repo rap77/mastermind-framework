@@ -25,6 +25,7 @@ Requirements: ER-02
 
 import secrets
 import uuid
+from collections.abc import AsyncIterator, Callable
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -46,6 +47,15 @@ _limiter = Limiter(key_func=get_remote_address)
 _KEY_PREFIX = "mmsk_"
 _KEY_HEX_LENGTH = 32  # 32 hex chars = 128-bit key
 _BCRYPT_ROUNDS = 12  # Standard production rounds
+
+
+async def get_api_keys_db(
+    db_path: str = Depends(get_db_path),
+) -> AsyncIterator[DatabaseConnection]:
+    """Yield an API-keys database connection with the schema ready."""
+    async with DatabaseConnection(db_path) as db:
+        await db.create_api_keys_v2_schema()
+        yield db
 
 
 def _generate_key() -> str:
@@ -132,7 +142,7 @@ class APIKeyListResponse(BaseModel):
 @router.get("", response_model=APIKeyListResponse)
 async def list_keys(
     user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_api_keys_db),
 ) -> APIKeyListResponse:
     """List active (non-revoked) API keys for the current user.
 
@@ -142,17 +152,14 @@ async def list_keys(
     Returns:
         APIKeyListResponse with list of APIKeyMasked
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_api_keys_v2_schema()
-
-        cursor = await db.conn.execute(
-            """SELECT id, prefix, suffix, name, created_at, last_used_at
-               FROM api_keys_v2
-               WHERE user_id = ? AND revoked_at IS NULL
-               ORDER BY created_at DESC""",
-            [user_id],
-        )
-        rows = await cursor.fetchall()
+    cursor = await db.conn.execute(
+        """SELECT id, prefix, suffix, name, created_at, last_used_at
+           FROM api_keys_v2
+           WHERE user_id = ? AND revoked_at IS NULL
+           ORDER BY created_at DESC""",
+        [user_id],
+    )
+    rows = await cursor.fetchall()
 
     keys = [
         APIKeyMasked(
@@ -175,7 +182,7 @@ async def create_key(
     request: Request,
     request_body: CreateKeyRequest,
     user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_api_keys_db),
 ) -> CreateKeyResponse:
     """Create a new API key.
 
@@ -198,24 +205,21 @@ async def create_key(
     prefix = full_key[:13]  # "mmsk_" + 8 hex
     suffix = full_key[-4:]  # last 4 hex
 
-    async with DatabaseConnection(db_path) as db:
-        await db.create_api_keys_v2_schema()
-
-        await db.conn.execute(
-            """INSERT INTO api_keys_v2
-               (id, user_id, key_hash, prefix, suffix, name, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            [
-                key_id,
-                user_id,
-                key_hash,
-                prefix,
-                suffix,
-                request_body.name,
-                datetime.now(timezone.utc).isoformat(),
-            ],
-        )
-        await db.conn.commit()
+    await db.conn.execute(
+        """INSERT INTO api_keys_v2
+           (id, user_id, key_hash, prefix, suffix, name, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        [
+            key_id,
+            user_id,
+            key_hash,
+            prefix,
+            suffix,
+            request_body.name,
+            datetime.now(timezone.utc).isoformat(),
+        ],
+    )
+    await db.conn.commit()
 
     return CreateKeyResponse(
         id=key_id,
@@ -230,7 +234,7 @@ async def create_key(
 async def revoke_key(
     key_id: str,
     user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_api_keys_db),
 ) -> RevokeKeyResponse:
     """Revoke (soft-delete) an API key immediately.
 
@@ -245,28 +249,25 @@ async def revoke_key(
         403: Key belongs to another user
         401: JWT missing/invalid
     """
-    async with DatabaseConnection(db_path) as db:
-        await db.create_api_keys_v2_schema()
+    # Check key exists and belongs to user
+    cursor = await db.conn.execute(
+        "SELECT id, user_id FROM api_keys_v2 WHERE id = ? AND revoked_at IS NULL",
+        [key_id],
+    )
+    row = await cursor.fetchone()
 
-        # Check key exists and belongs to user
-        cursor = await db.conn.execute(
-            "SELECT id, user_id FROM api_keys_v2 WHERE id = ? AND revoked_at IS NULL",
-            [key_id],
-        )
-        row = await cursor.fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="API key not found")
 
-        if row is None:
-            raise HTTPException(status_code=404, detail="API key not found")
+    if row[1] != user_id:
+        raise HTTPException(status_code=403, detail="Access denied to this API key")
 
-        if row[1] != user_id:
-            raise HTTPException(status_code=403, detail="Access denied to this API key")
-
-        # Soft-delete: set revoked_at
-        await db.conn.execute(
-            "UPDATE api_keys_v2 SET revoked_at = ? WHERE id = ?",
-            [datetime.now(timezone.utc).isoformat(), key_id],
-        )
-        await db.conn.commit()
+    # Soft-delete: set revoked_at
+    await db.conn.execute(
+        "UPDATE api_keys_v2 SET revoked_at = ? WHERE id = ?",
+        [datetime.now(timezone.utc).isoformat(), key_id],
+    )
+    await db.conn.commit()
 
     return RevokeKeyResponse(status="revoked", id=key_id)
 
@@ -274,6 +275,7 @@ async def revoke_key(
 async def validate_api_key_v2(
     raw_key: str,
     db_path: str,
+    db_factory: Callable[[str], DatabaseConnection] | None = None,
 ) -> str | None:
     """Validate an API key and return the user_id if valid.
 
@@ -283,6 +285,8 @@ async def validate_api_key_v2(
     Args:
         raw_key: The plaintext API key (mmsk_ prefixed)
         db_path: SQLite database path
+        db_factory: Optional factory for building the backing database
+            connection during tests or storage transitions.
 
     Returns:
         user_id if valid, None if invalid/revoked
@@ -291,8 +295,9 @@ async def validate_api_key_v2(
         return None
 
     prefix = raw_key[:13]
+    connection_factory = db_factory or DatabaseConnection
 
-    async with DatabaseConnection(db_path) as db:
+    async with connection_factory(db_path) as db:
         await db.create_api_keys_v2_schema()
 
         # O(1) candidate lookup by prefix
