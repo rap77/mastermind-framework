@@ -320,6 +320,56 @@ def stub_keys_database_connection(monkeypatch: MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def stub_auth_database_connection(monkeypatch: MonkeyPatch) -> None:
+    """Replace auth route aiosqlite usage with a sqlite3-backed async shim."""
+
+    class _Cursor:
+        def __init__(self, cursor: sqlite3.Cursor):
+            self._cursor = cursor
+
+        async def fetchone(self):
+            """Return one row from the wrapped sqlite3 cursor."""
+            return self._cursor.fetchone()
+
+    class _Conn:
+        def __init__(self, connection: sqlite3.Connection):
+            self._connection = connection
+
+        async def execute(self, sql: str, params=None):
+            """Execute SQL and expose an async-compatible cursor API."""
+            return _Cursor(self._connection.execute(sql, params or []))
+
+        async def commit(self):
+            """Commit the underlying sqlite3 transaction."""
+            self._connection.commit()
+
+    class _FakeDatabaseConnection:
+        def __init__(self, db_path: str = ":memory:"):
+            self.db_path = db_path
+            self._connection: sqlite3.Connection | None = None
+
+        @property
+        def conn(self) -> _Conn:
+            assert self._connection is not None
+            return _Conn(self._connection)
+
+        async def __aenter__(self):
+            self._connection = sqlite3.connect(self.db_path)
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            del exc_type, exc, tb
+            assert self._connection is not None
+            self._connection.close()
+            self._connection = None
+
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.auth.DatabaseConnection",
+        _FakeDatabaseConnection,
+    )
+
+
 @pytest.fixture
 def sync_client(app: FastAPI) -> TestClient:
     """Synchronous HTTP client (TestClient wrapper)."""

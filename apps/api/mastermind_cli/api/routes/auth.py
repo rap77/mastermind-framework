@@ -10,8 +10,8 @@ Requirements: UI-02, UI-03, UI-07
 
 import os
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime, timedelta, timezone
-import warnings
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -35,7 +35,13 @@ router = APIRouter()
 jwt_scheme = HTTPBearer()
 api_key_scheme = HTTPBearer()
 
-_DEFAULT_JWT_SECRET = "your-secret-key-change-in-production"
+
+async def get_auth_db(
+    db_path: str = Depends(get_db_path),
+) -> AsyncIterator[DatabaseConnection]:
+    """Yield an auth database connection for route handlers."""
+    async with DatabaseConnection(db_path) as db:
+        yield db
 
 
 def _int_env(name: str, default: int) -> int:
@@ -51,14 +57,9 @@ def _int_env(name: str, default: int) -> int:
 
 def _jwt_secret() -> str:
     """Return the configured JWT secret."""
-    secret = (
-        os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET") or _DEFAULT_JWT_SECRET
-    )
-    if secret == _DEFAULT_JWT_SECRET:
-        warnings.warn(
-            "Using default JWT secret. Set MM_SECRET_KEY or JWT_SECRET in production!",
-            stacklevel=2,
-        )
+    secret = os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET")
+    if not secret:
+        raise RuntimeError("MM_SECRET_KEY or JWT_SECRET must be set")
     return str(secret)
 
 
@@ -168,7 +169,7 @@ async def get_current_user_any(
 @router.post("/login")
 async def login(
     request: LoginRequest,
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_auth_db),
 ) -> JSONResponse:
     """Authenticate user and return JWT tokens.
 
@@ -177,74 +178,73 @@ async def login(
 
     Cookies: Sets httpOnly cookies for access_token and refresh_token.
     """
-    async with DatabaseConnection(db_path) as db:
-        # Look up user by username
-        cursor = await db.conn.execute(
-            "SELECT id, password_hash FROM users WHERE username = ?",
-            [request.username],
-        )
-        user = await cursor.fetchone()
+    # Look up user by username
+    cursor = await db.conn.execute(
+        "SELECT id, password_hash FROM users WHERE username = ?",
+        [request.username],
+    )
+    user = await cursor.fetchone()
 
-        if user is None or not verify_password(request.password, user[1]):
-            raise HTTPException(status_code=401, detail="Invalid username or password")
+    if user is None or not verify_password(request.password, user[1]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        user_id = user[0]
+    user_id = user[0]
 
-        # Generate tokens
-        access_token = create_access_token(user_id)
-        refresh_token = create_refresh_token(user_id)
+    # Generate tokens
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
 
-        # Create session with refresh_token_hash (for rotation)
-        session_id = str(uuid.uuid4())
-        await db.conn.execute(
-            """INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            [
-                session_id,
-                user_id,
-                hash_token(refresh_token),
-                datetime.now(timezone.utc),
-                datetime.now(timezone.utc)
-                + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
-            ],
-        )
-        await db.conn.commit()
+    # Create session with refresh_token_hash (for rotation)
+    session_id = str(uuid.uuid4())
+    await db.conn.execute(
+        """INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at)
+           VALUES (?, ?, ?, ?, ?)""",
+        [
+            session_id,
+            user_id,
+            hash_token(refresh_token),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc)
+            + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
+        ],
+    )
+    await db.conn.commit()
 
-        # Create response with JSONResponse
-        token_response = TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-        )
+    # Create response with JSONResponse
+    token_response = TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
 
-        # Build Response and set cookies individually
-        response = JSONResponse(content=token_response.model_dump())
+    # Build Response and set cookies individually
+    response = JSONResponse(content=token_response.model_dump())
 
-        # Set httpOnly cookies (browser sends them automatically)
-        response.set_cookie(
-            "access_token",
-            access_token,
-            httponly=True,
-            secure=False,
-            samesite="lax",
-            max_age=_int_env("MM_ACCESS_TOKEN_EXPIRY_MINUTES", 30) * 60,
-        )
+    # Set httpOnly cookies (browser sends them automatically)
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=_int_env("MM_ACCESS_TOKEN_EXPIRY_MINUTES", 30) * 60,
+    )
 
-        response.set_cookie(
-            "refresh_token",
-            refresh_token,
-            httponly=True,
-            secure=False,
-            samesite="lax",
-            max_age=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24) * 3600,
-        )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24) * 3600,
+    )
 
-        return response
+    return response
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(
     request: RefreshRequest,
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_auth_db),
 ) -> TokenResponse:
     """Exchange refresh token for new tokens WITH ROTATION.
 
@@ -262,63 +262,59 @@ async def refresh(
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    async with DatabaseConnection(db_path) as db:
-        # Look up session by refresh_token_hash
-        cursor = await db.conn.execute(
-            "SELECT id, rotation_count FROM sessions WHERE user_id = ? AND refresh_token_hash = ?",
-            [user_id, hash_token(request.refresh_token)],
-        )
-        session = await cursor.fetchone()
+    # Look up session by refresh_token_hash
+    cursor = await db.conn.execute(
+        "SELECT id, rotation_count FROM sessions WHERE user_id = ? AND refresh_token_hash = ?",
+        [user_id, hash_token(request.refresh_token)],
+    )
+    session = await cursor.fetchone()
 
-        if session is None:
-            raise HTTPException(
-                status_code=401, detail="Invalid or revoked refresh token"
-            )
+    if session is None:
+        raise HTTPException(status_code=401, detail="Invalid or revoked refresh token")
 
-        session_id, rotation_count = session
+    session_id, rotation_count = session
 
-        # ROTATION: Delete old session (revoke old refresh_token)
-        await db.conn.execute("DELETE FROM sessions WHERE id = ?", [session_id])
+    # ROTATION: Delete old session (revoke old refresh_token)
+    await db.conn.execute("DELETE FROM sessions WHERE id = ?", [session_id])
 
-        # Generate NEW refresh token (invalidate old one)
-        new_refresh_token = create_refresh_token(user_id)
-        new_session_id = str(uuid.uuid4())
+    # Generate NEW refresh token (invalidate old one)
+    new_refresh_token = create_refresh_token(user_id)
+    new_session_id = str(uuid.uuid4())
 
-        # Create new session
-        await db.conn.execute(
-            """INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at, rotation_count)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            [
-                new_session_id,
-                user_id,
-                hash_token(new_refresh_token),
-                datetime.now(timezone.utc),
-                datetime.now(timezone.utc)
-                + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
-                rotation_count + 1,
-            ],
-        )
-        await db.conn.commit()
+    # Create new session
+    await db.conn.execute(
+        """INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at, rotation_count)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        [
+            new_session_id,
+            user_id,
+            hash_token(new_refresh_token),
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc)
+            + timedelta(hours=_int_env("MM_REFRESH_TOKEN_EXPIRY_HOURS", 24)),
+            rotation_count + 1,
+        ],
+    )
+    await db.conn.commit()
 
-        # Return new access token AND new refresh token
-        new_access_token = create_access_token(user_id)
-        return TokenResponse(
-            access_token=new_access_token,
-            refresh_token=new_refresh_token,
-        )
+    # Return new access token AND new refresh token
+    new_access_token = create_access_token(user_id)
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+    )
 
 
 @router.post("/logout")
 async def logout(
     user_id: str = Depends(get_current_user_any),
-    db_path: str = Depends(get_db_path),
+    db: DatabaseConnection = Depends(get_auth_db),
 ) -> dict[str, str]:
     """Revoke refresh token (logout)."""
     # Note: In production, accept refresh_token in request body to revoke specific session
     # For now, revoke all sessions for user
-    async with DatabaseConnection(db_path) as db:
-        await db.conn.execute("DELETE FROM sessions WHERE user_id = ?", [user_id])
-        await db.conn.commit()
+    await db.conn.execute("DELETE FROM sessions WHERE user_id = ?", [user_id])
+    await db.conn.commit()
 
     return {"message": "Logged out"}
 
