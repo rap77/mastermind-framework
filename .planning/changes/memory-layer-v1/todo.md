@@ -4,4 +4,4 @@
 - [x] ML2 — Add EngramMemoryStore adapter
 - [x] ML3 — Implement PostgresMemoryStore minimum viable
 - [x] ML4 — Migrate first surfaces to MemoryService
-- [ ] ML5 — Close Phase 1–2 slice
+- [x] ML5 — Close Phase 1–2 slice
