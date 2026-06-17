@@ -10,6 +10,17 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from mastermind_cli.memory_layer.service import MemoryService
+
+
+def _payload_tags(value: object) -> list[str]:
+    """Normalize payload tags into a list of strings."""
+    if not isinstance(value, list):
+        return []
+    return [str(tag) for tag in value if tag is not None]
 
 
 @dataclass
@@ -73,11 +84,94 @@ class ErrorTracker:
         decision_type = "error_pattern" if is_pattern else "error_resolution"
         return decision_type, is_pattern
 
+    async def record_error_memory(
+        self,
+        memory_service: "MemoryService",
+        subtask_id: str,
+        root_cause: str,
+        error_message: str,
+        solution_applied: str = "pending",
+        confidence: float = 0.7,
+        project_id: str | None = None,
+    ) -> tuple[str, bool]:
+        """Record an error and persist the resulting learning through MemoryService.
+
+        Args:
+            memory_service: First-party memory application service.
+            subtask_id: The subtask that failed.
+            root_cause: Normalized root cause category.
+            error_message: Full error message or summary.
+            solution_applied: Resolution taken for the error.
+            confidence: Confidence in the resolution.
+            project_id: Optional project identifier for project-scoped memory.
+
+        Returns:
+            Tuple of ``(decision_type, is_pattern)`` matching ``record_error``.
+        """
+        decision_type, is_pattern = self.record_error(
+            subtask_id=subtask_id,
+            root_cause=root_cause,
+            error_message=error_message,
+            solution_applied=solution_applied,
+            confidence=confidence,
+        )
+
+        if is_pattern:
+            payload = self.get_pattern_decision_payload(
+                root_cause=root_cause,
+                project_id=project_id,
+            )
+            await memory_service.record_learning(
+                title=str(payload["title"]),
+                content=str(payload["rationale"]),
+                project_id=project_id,
+                memory_type="pattern",
+                visibility="project",
+                source_kind="error_tracker",
+                source_ref=f"error_pattern:{root_cause}",
+                tags=_payload_tags(payload["tags"]),
+                metadata={
+                    "decision_type": payload["decision_type"],
+                    "chosen_option": payload["chosen_option"],
+                    "confidence": payload["confidence"],
+                    "impact_level": payload["impact_level"],
+                    "made_by": payload["made_by"],
+                },
+            )
+            return decision_type, is_pattern
+
+        payload = self.get_resolution_decision_payload(
+            subtask_id=subtask_id,
+            root_cause=root_cause,
+            error_message=error_message,
+            solution_applied=solution_applied,
+            confidence=confidence,
+            project_id=project_id,
+        )
+        await memory_service.record_learning(
+            title=str(payload["title"]),
+            content=str(payload["rationale"]),
+            project_id=project_id,
+            memory_type="fix",
+            visibility="project",
+            source_kind="error_tracker",
+            source_ref=f"error_resolution:{subtask_id}:{root_cause}",
+            tags=_payload_tags(payload["tags"]),
+            metadata={
+                "decision_type": payload["decision_type"],
+                "chosen_option": payload["chosen_option"],
+                "confidence": payload["confidence"],
+                "impact_level": payload["impact_level"],
+                "made_by": payload["made_by"],
+            },
+        )
+        return decision_type, is_pattern
+
     def get_pattern_decision_payload(
         self,
         root_cause: str,
         project_id: str | None = None,
-    ) -> dict[str, object]:
+    ) -> dict[str, Any]:
         """Build the decision payload for a recurring error pattern.
 
         Args:
@@ -118,7 +212,7 @@ class ErrorTracker:
         solution_applied: str,
         confidence: float = 0.7,
         project_id: str | None = None,
-    ) -> dict[str, object]:
+    ) -> dict[str, Any]:
         """Build the decision payload for a single error resolution.
 
         Args:

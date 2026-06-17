@@ -131,6 +131,38 @@ class TestExecutePhaseStart:
         # execution_id must be a valid UUID
         uuid.UUID(state["execution_id"])
 
+    def test_start_records_backend_preference_in_memory_service(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--start should persist the selected backend as an operational preference."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
+            tmp_path / ".mm-flow" / "runtime-state.json",
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_preference.assert_awaited_once_with(
+            key="preferred_backend",
+            value={"backend_id": "claude"},
+            scope="project",
+            project_id="proj-001",
+        )
+
 
 class TestExecutePhaseComplete:
     def test_complete_updates_db_row(
@@ -227,6 +259,72 @@ class TestExecutePhaseComplete:
         state = json.loads(runtime_path.read_text())
         assert state["brain_state"] == "IDLE"
         assert state["current_moment"] == "COMPLETED"
+
+    def test_complete_records_session_summary_in_memory_service(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--complete should persist a session summary through MemoryService."""
+        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
+        )
+
+        exec_id = str(uuid.uuid4())
+        runtime_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_path.write_text(
+            json.dumps(
+                {
+                    "execution_id": exec_id,
+                    "phase": 19,
+                    "current_moment": "EXECUTION_WAVE",
+                    "active_brain": 0,
+                    "brain_state": "ACTIVE",
+                    "backend": "claude",
+                    "updated_at": "2026-04-14T00:00:00",
+                }
+            )
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "execute-phase",
+                    "--phase",
+                    "19",
+                    "--complete",
+                    "--commit",
+                    "abc123",
+                    "--tokens",
+                    "500",
+                    "--summary",
+                    "Execution complete",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_session_summary.assert_awaited_once_with(
+            session_id=exec_id,
+            summary="Execution complete",
+            project_id="proj-001",
+            metadata={
+                "phase": 19,
+                "git_commit_hash": "abc123",
+                "tokens_consumed": 500,
+                "invocation_method": "mm:execute-phase",
+            },
+        )
 
 
 class TestMutuallyExclusiveFlags:

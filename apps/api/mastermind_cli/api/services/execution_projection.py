@@ -17,6 +17,7 @@ from mastermind_cli.api.models.execution import (
     ExecutionSummary,
     SnapshotMilestone,
 )
+from mastermind_cli.types.status import ExecutionStatus
 from mastermind_cli.project_state.database.session import get_session_factory
 from mastermind_cli.project_state.models.artifact import ArtifactVersion
 from mastermind_cli.project_state.models.checkpoint import Checkpoint
@@ -88,7 +89,11 @@ def _row_to_summary(row: tuple[Any, ...]) -> ExecutionSummary:
         id=row[0],
         task_id=row[1],
         brief=str(row[2])[:200],
-        status=row[3] if row[3] in {"success", "error", "running"} else "running",
+        status=(
+            ExecutionStatus(str(row[3]))
+            if row[3] in {"success", "error", "running"}
+            else ExecutionStatus.RUNNING
+        ),
         duration_ms=int(row[4]) if row[4] else 0,
         brain_count=int(row[5]) if row[5] else 1,
         created_at=created_at,
@@ -108,7 +113,11 @@ def _row_to_execution(row: tuple[Any, ...]) -> Execution:
         id=row[0],
         task_id=row[1],
         brief=str(row[2])[:200],
-        status=row[3] if row[3] in {"success", "error", "running"} else "running",
+        status=(
+            ExecutionStatus(str(row[3]))
+            if row[3] in {"success", "error", "running"}
+            else ExecutionStatus.RUNNING
+        ),
         duration_ms=int(row[4]) if row[4] else 0,
         brain_count=max(1, int(row[5]) if row[5] else 1),
         created_at=created_at,
@@ -118,15 +127,15 @@ def _row_to_execution(row: tuple[Any, ...]) -> Execution:
     )
 
 
-def _normalize_execution_status(status: str) -> str:
+def _normalize_execution_status(status: str) -> ExecutionStatus:
     """Map transitional task/run statuses to the execution API contract."""
     if status in {"success", "error", "running"}:
-        return status
+        return ExecutionStatus(status)
     if status == "completed":
-        return "success"
+        return ExecutionStatus.SUCCESS
     if status == "failed":
-        return "error"
-    return "running"
+        return ExecutionStatus.ERROR
+    return ExecutionStatus.RUNNING
 
 
 def _read_canonical_brain_outputs(

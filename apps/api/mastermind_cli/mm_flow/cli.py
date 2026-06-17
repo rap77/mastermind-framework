@@ -19,9 +19,16 @@ from pathlib import Path
 import asyncpg
 import click
 
+from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.memory_layer.store_postgres import PostgresMemoryStore
 from mastermind_cli.mm_flow.config_loader import RuntimeState
 
 RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
+
+
+def _build_memory_service(database_url: str) -> MemoryService:
+    """Build the first-party memory service for MM-Flow persistence."""
+    return MemoryService(PostgresMemoryStore(database_url))
 
 
 def _write_runtime_state(
@@ -128,6 +135,15 @@ def execute_phase(
                 _write_runtime_state(
                     execution_id, phase, "EXECUTION_WAVE", 0, "ACTIVE", backend
                 )
+                project_id = os.environ.get("MM_MEMORY_PROJECT_ID")
+                if project_id:
+                    memory_service = _build_memory_service(postgres_url)
+                    await memory_service.record_preference(
+                        key="preferred_backend",
+                        value={"backend_id": backend},
+                        scope="project",
+                        project_id=project_id,
+                    )
                 click.echo(f"execution_id:{execution_id}")
 
             elif complete:
@@ -148,6 +164,19 @@ def execute_phase(
                         tokens,
                         summary,
                     )
+                    if summary:
+                        memory_service = _build_memory_service(postgres_url)
+                        await memory_service.record_session_summary(
+                            session_id=execution_id,
+                            summary=summary,
+                            project_id=os.environ.get("MM_MEMORY_PROJECT_ID"),
+                            metadata={
+                                "phase": phase,
+                                "git_commit_hash": commit,
+                                "tokens_consumed": tokens,
+                                "invocation_method": "mm:execute-phase",
+                            },
+                        )
                 backend = os.environ.get("MM_FLOW_BACKEND", "claude")
                 _write_runtime_state(
                     execution_id or "", phase, "COMPLETED", 0, "IDLE", backend

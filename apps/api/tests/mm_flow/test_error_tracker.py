@@ -5,6 +5,8 @@ TDD approach:
 - C3.25/C3.26: same root_cause >= 2 times → decision_type='error_pattern'
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
 import sys
 from pathlib import Path
@@ -251,3 +253,79 @@ class TestErrorTrackerIntegration:
             ), f"Missing required field in pattern payload: {field_name}"
 
         assert pattern_payload["decision_type"] == "error_pattern"
+
+    @pytest.mark.asyncio
+    async def test_record_error_memory_persists_fix_learning_on_first_occurrence(
+        self,
+    ) -> None:
+        """First occurrence should persist a fix-style memory item."""
+        tracker = ErrorTracker()
+        memory_service = AsyncMock()
+
+        decision_type, is_pattern = await tracker.record_error_memory(
+            memory_service=memory_service,
+            subtask_id="C3.15",
+            root_cause="import_error",
+            error_message="ModuleNotFoundError: No module named httpx",
+            solution_applied="uv add httpx",
+            project_id="proj-001",
+        )
+
+        assert decision_type == "error_resolution"
+        assert is_pattern is False
+        memory_service.record_learning.assert_awaited_once_with(
+            title="Error in C3.15: import_error",
+            content="ModuleNotFoundError: No module named httpx",
+            project_id="proj-001",
+            memory_type="fix",
+            visibility="project",
+            source_kind="error_tracker",
+            source_ref="error_resolution:C3.15:import_error",
+            tags=["error_resolution", "import_error", "C3.15"],
+            metadata={
+                "decision_type": "error_resolution",
+                "chosen_option": "uv add httpx",
+                "confidence": 0.7,
+                "impact_level": "low",
+                "made_by": "task-executor",
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_record_error_memory_persists_pattern_learning_on_second_occurrence(
+        self,
+    ) -> None:
+        """Recurring root causes should persist a pattern-style memory item."""
+        tracker = ErrorTracker()
+        memory_service = AsyncMock()
+
+        await tracker.record_error_memory(
+            memory_service=memory_service,
+            subtask_id="C3.01",
+            root_cause="db_error",
+            error_message="connection refused",
+            solution_applied="retry with backoff",
+            project_id="proj-001",
+        )
+        memory_service.reset_mock()
+
+        decision_type, is_pattern = await tracker.record_error_memory(
+            memory_service=memory_service,
+            subtask_id="C3.02",
+            root_cause="db_error",
+            error_message="connection reset",
+            solution_applied="retry with backoff",
+            project_id="proj-001",
+        )
+
+        assert decision_type == "error_pattern"
+        assert is_pattern is True
+        memory_service.record_learning.assert_awaited_once()
+        kwargs = memory_service.record_learning.await_args.kwargs
+        assert kwargs["memory_type"] == "pattern"
+        assert kwargs["title"] == "Recurring error pattern: db_error"
+        assert kwargs["project_id"] == "proj-001"
+        assert kwargs["source_kind"] == "error_tracker"
+        assert kwargs["source_ref"] == "error_pattern:db_error"
+        assert "tech-debt" in kwargs["tags"]
+        assert kwargs["metadata"]["decision_type"] == "error_pattern"
