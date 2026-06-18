@@ -76,3 +76,18 @@ class MemoryContextBundle(BaseModel):
         default_factory=dict,
         description="Scopes applied while building this context.",
     )
+
+
+class MemoryIndexPayload(BaseModel):
+    """Canonical payload prepared for semantic indexing."""
+
+    memory_id: str = Field(..., description="Unique memory identifier.")
+    memory_type: str = Field(..., min_length=1, description="Semantic memory type.")
+    title: str = Field(..., min_length=1, description="Memory item title.")
+    content: str = Field(..., min_length=1, description="Memory item content.")
+    tags: list[str] = Field(default_factory=list, description="Search tags.")
+    project_id: str | None = Field(None, description="Optional related project ID.")
+    brain_id: str | None = Field(None, description="Optional related brain ID.")
+    niche: str | None = Field(None, description="Optional niche classification.")
+    source_ref: str | None = Field(None, description="Origin reference identifier.")
+    embedding_text: str = Field(..., min_length=1, description="Text to embed.")

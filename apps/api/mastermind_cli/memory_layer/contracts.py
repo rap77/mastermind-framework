@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .models import MemoryItem, MemorySearchResult
+from .models import MemoryIndexPayload, MemoryItem, MemorySearchResult
 
 
 @runtime_checkable
@@ -49,3 +49,32 @@ class MemoryStore(Protocol):
         project_id: str | None = None,
     ) -> None:
         """Persist an operational preference in the selected scope."""
+
+
+@runtime_checkable
+class VectorSearchProvider(Protocol):
+    """Contract for optional vector candidate providers."""
+
+    async def search(
+        self,
+        query: str,
+        scope: dict[str, str | None] | None = None,
+        limit: int = 10,
+    ) -> list[str]:
+        """Return ranked candidate memory IDs for the provided query."""
+
+
+@runtime_checkable
+class MemoryIndexProvider(Protocol):
+    """Contract for optional vector indexers over canonical memory items."""
+
+    async def upsert(self, payload: MemoryIndexPayload) -> None:
+        """Insert or refresh the vector index entry for a memory item."""
+
+
+@runtime_checkable
+class EmbeddingProvider(Protocol):
+    """Contract for optional embedding generators."""
+
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Return one embedding vector per input text."""

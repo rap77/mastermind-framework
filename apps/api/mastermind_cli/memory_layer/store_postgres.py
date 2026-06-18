@@ -15,7 +15,15 @@ from mastermind_cli.project_state.database.session import (
     get_session_factory,
 )
 
+from .contracts import MemoryIndexProvider, VectorSearchProvider
+from .embeddings import build_memory_index_payload
+from .indexing import NoopMemoryIndexProvider
 from .models import MemoryItem, MemorySearchResult
+from .vector import (
+    CallableVectorSearchProvider,
+    NoopVectorSearchProvider,
+    VectorSearchCallable,
+)
 
 JsonValue: TypeAlias = dict[str, Any] | list[Any] | str | int | float | bool | None
 
@@ -103,11 +111,23 @@ class MemorySessionRecord(Base):
 class PostgresMemoryStore:
     """First-party memory store backed by the framework SQL database."""
 
-    def __init__(self, database_url: str) -> None:
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        vector_search: VectorSearchCallable | None = None,
+        vector_provider: VectorSearchProvider | None = None,
+        index_provider: MemoryIndexProvider | None = None,
+    ) -> None:
         """Create a store bound to the provided database URL."""
         self._database_url = database_url
         self._session_factory = get_session_factory(database_url)
         self._schema_ready = False
+        self._vector_provider = self._build_vector_provider(
+            vector_search=vector_search,
+            vector_provider=vector_provider,
+        )
+        self._index_provider = index_provider or NoopMemoryIndexProvider()
 
     async def save_item(self, item: MemoryItem) -> MemoryItem:
         """Persist a memory item and return the stored canonical shape."""
@@ -151,7 +171,9 @@ class PostgresMemoryStore:
             session.commit()
             session.refresh(record)
 
-        return self._to_memory_item(record)
+        saved_item = self._to_memory_item(record)
+        await self._index_provider.upsert(build_memory_index_payload(saved_item))
+        return saved_item
 
     async def get_item(self, memory_id: str) -> MemoryItem | None:
         """Fetch a single memory item by identifier."""
@@ -169,26 +191,43 @@ class PostgresMemoryStore:
         """Run a simple lexical search over memory items with optional scoping."""
         self._ensure_schema()
         normalized_query = query.strip()
+        query_terms = self._query_terms(normalized_query)
         with self._session_factory() as session:
             statement = select(MemoryItemRecord)
             statement = self._apply_scope(statement, scope)
 
             if normalized_query:
-                like_query = f"%{normalized_query.lower()}%"
-                statement = statement.where(
-                    or_(
-                        func.lower(MemoryItemRecord.title).like(like_query),
-                        func.lower(MemoryItemRecord.content).like(like_query),
+                predicates = []
+                for term in query_terms or [normalized_query.lower()]:
+                    like_query = f"%{term}%"
+                    predicates.append(
+                        func.lower(MemoryItemRecord.title).like(like_query)
                     )
-                )
+                    predicates.append(
+                        func.lower(MemoryItemRecord.content).like(like_query)
+                    )
+                statement = statement.where(or_(*predicates))
 
             rows = list(
-                session.scalars(
-                    statement.order_by(MemoryItemRecord.created_at.desc()).limit(limit)
-                )
+                session.scalars(statement.limit(limit * 5 if limit > 0 else 10))
             )
 
-        return [self._to_search_result(row, normalized_query) for row in rows]
+        ranked_rows = self._rank_lexical_rows(rows, normalized_query)
+        vector_rows = await self._load_vector_rows(
+            normalized_query,
+            scope=scope,
+            limit=limit,
+        )
+
+        if ranked_rows:
+            return self._fuse_search_results(
+                ranked_rows,
+                vector_rows,
+                query=normalized_query,
+                limit=limit,
+            )
+
+        return self._vector_only_results(vector_rows[:limit])
 
     async def list_recent(
         self,
@@ -324,8 +363,7 @@ class PostgresMemoryStore:
     ) -> MemorySearchResult:
         """Build a basic lexical search result from a relational record."""
         lowered_query = query.lower()
-        haystack = f"{record.title} {record.content}".lower()
-        score = 1.0 if lowered_query and lowered_query in haystack else 0.5
+        score = self._lexical_score(record, lowered_query)
         snippet = record.content[:240]
         why_matched = "lexical:title_or_content" if lowered_query else "recent"
         return MemorySearchResult(
@@ -339,6 +377,61 @@ class PostgresMemoryStore:
             why_matched=why_matched,
             source_ref=record.source_ref,
         )
+
+    def _rank_lexical_rows(
+        self,
+        rows: list[MemoryItemRecord],
+        query: str,
+    ) -> list[MemoryItemRecord]:
+        """Rank lexical rows deterministically with title hits ahead of content hits."""
+        return sorted(
+            rows,
+            key=lambda row: (
+                self._lexical_score(row, query),
+                self._ensure_utc(row.created_at),
+            ),
+            reverse=True,
+        )
+
+    def _lexical_score(self, record: MemoryItemRecord, query: str) -> float:
+        """Return a simple lexical score prioritizing title matches."""
+        query_terms = self._query_terms(query)
+        if not query_terms:
+            return 0.0
+
+        title = record.title.lower()
+        content = record.content.lower()
+        score = 0.0
+
+        for term in query_terms:
+            if term in title:
+                score += 2.0
+            if term in content:
+                score += 1.0
+
+        return score
+
+    def _query_terms(self, query: str) -> list[str]:
+        """Split a query into normalized lexical terms for baseline retrieval."""
+        return [term for term in query.lower().split() if term]
+
+    def _record_matches_scope(
+        self,
+        record: MemoryItemRecord,
+        scope: dict[str, str | None] | None,
+    ) -> bool:
+        """Check whether a loaded record still satisfies the requested scope."""
+        if not scope:
+            return True
+        if scope.get("project_id") and record.project_id != scope["project_id"]:
+            return False
+        if scope.get("brain_id") and record.brain_id != scope["brain_id"]:
+            return False
+        if scope.get("niche") and record.niche != scope["niche"]:
+            return False
+        if scope.get("memory_type") and record.memory_type != scope["memory_type"]:
+            return False
+        return True
 
     def _ensure_utc(self, value: datetime) -> datetime:
         """Return a timezone-aware UTC datetime for persisted timestamps."""
@@ -355,6 +448,127 @@ class PostgresMemoryStore:
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
         return str(value)
+
+    def _build_vector_provider(
+        self,
+        *,
+        vector_search: VectorSearchCallable | None,
+        vector_provider: VectorSearchProvider | None,
+    ) -> VectorSearchProvider:
+        """Resolve the optional vector provider with backward compatibility."""
+        if vector_provider is not None:
+            return vector_provider
+        if vector_search is not None:
+            return CallableVectorSearchProvider(vector_search)
+        return NoopVectorSearchProvider()
+
+    async def _load_vector_rows(
+        self,
+        query: str,
+        *,
+        scope: dict[str, str | None] | None,
+        limit: int,
+    ) -> list[MemoryItemRecord]:
+        """Load vector candidates through the optional seam."""
+        if not query:
+            return []
+
+        memory_ids = await self._vector_provider.search(query, scope, limit)
+        if not memory_ids:
+            return []
+
+        with self._session_factory() as session:
+            rows = [
+                row
+                for memory_id in memory_ids
+                if (row := session.get(MemoryItemRecord, memory_id)) is not None
+                and self._record_matches_scope(row, scope)
+            ]
+
+        return rows[:limit]
+
+    def _vector_only_results(
+        self,
+        rows: list[MemoryItemRecord],
+    ) -> list[MemorySearchResult]:
+        """Convert vector-only rows into fallback search results."""
+        return [
+            MemorySearchResult(
+                memory_id=row.memory_id,
+                title=row.title,
+                snippet=row.content[:240],
+                score=0.75,
+                memory_type=row.memory_type,
+                project_id=row.project_id,
+                brain_id=row.brain_id,
+                why_matched="vector:fallback",
+                source_ref=row.source_ref,
+            )
+            for row in rows
+        ]
+
+    def _fuse_search_results(
+        self,
+        lexical_rows: list[MemoryItemRecord],
+        vector_rows: list[MemoryItemRecord],
+        *,
+        query: str,
+        limit: int,
+    ) -> list[MemorySearchResult]:
+        """Combine lexical and vector candidates with a simple additive fusion."""
+        vector_rank = {
+            row.memory_id: index for index, row in enumerate(vector_rows, start=1)
+        }
+        candidates: dict[str, MemoryItemRecord] = {
+            row.memory_id: row for row in lexical_rows
+        }
+        for row in vector_rows:
+            candidates.setdefault(row.memory_id, row)
+
+        fused = sorted(
+            candidates.values(),
+            key=lambda row: (
+                self._lexical_score(row, query)
+                + (
+                    0.75 / vector_rank[row.memory_id]
+                    if row.memory_id in vector_rank
+                    else 0.0
+                ),
+                self._ensure_utc(row.created_at),
+            ),
+            reverse=True,
+        )
+
+        results: list[MemorySearchResult] = []
+        for row in fused[:limit]:
+            lexical_score = self._lexical_score(row, query)
+            vector_bonus = (
+                0.75 / vector_rank[row.memory_id]
+                if row.memory_id in vector_rank
+                else 0.0
+            )
+            if lexical_score > 0 and vector_bonus > 0:
+                why_matched = "fusion:lexical+vector"
+            elif lexical_score > 0:
+                why_matched = "lexical:title_or_content"
+            else:
+                why_matched = "vector:fusion"
+
+            results.append(
+                MemorySearchResult(
+                    memory_id=row.memory_id,
+                    title=row.title,
+                    snippet=row.content[:240],
+                    score=lexical_score + vector_bonus,
+                    memory_type=row.memory_type,
+                    project_id=row.project_id,
+                    brain_id=row.brain_id,
+                    why_matched=why_matched,
+                    source_ref=row.source_ref,
+                )
+            )
+
+        return results
 
 
 __all__ = [

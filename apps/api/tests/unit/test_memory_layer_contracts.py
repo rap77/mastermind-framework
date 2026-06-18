@@ -7,9 +7,14 @@ from datetime import datetime, timezone
 import pytest
 from typing_extensions import assert_type
 
-from mastermind_cli.memory_layer.contracts import MemoryStore
+from mastermind_cli.memory_layer.contracts import (
+    EmbeddingProvider,
+    MemoryIndexProvider,
+    MemoryStore,
+)
 from mastermind_cli.memory_layer.models import (
     MemoryContextBundle,
+    MemoryIndexPayload,
     MemoryItem,
     MemorySearchResult,
 )
@@ -185,6 +190,32 @@ class TestMemoryStoreProtocol:
     def test_memory_store_type_aliases_are_stable(self) -> None:
         """The protocol should preserve stable return types for implementers."""
         assert_type(MemoryStore.save_item, object)
+
+
+def test_memory_index_provider_is_runtime_checkable_protocol() -> None:
+    """MemoryIndexProvider should be declared as a runtime-checkable protocol."""
+
+    class DummyIndexProvider:
+        """Protocol-shaped in-memory indexer used only for tests."""
+
+        async def upsert(self, payload: MemoryIndexPayload) -> None:
+            del payload
+
+    dummy = DummyIndexProvider()
+    assert isinstance(dummy, MemoryIndexProvider)
+
+
+def test_embedding_provider_is_runtime_checkable_protocol() -> None:
+    """EmbeddingProvider should be declared as a runtime-checkable protocol."""
+
+    class DummyEmbeddingProvider:
+        """Protocol-shaped embedding provider used only for tests."""
+
+        async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+            return [[float(len(text))] for text in texts]
+
+    dummy = DummyEmbeddingProvider()
+    assert isinstance(dummy, EmbeddingProvider)
 
 
 def test_memory_item_timestamps_are_timezone_aware() -> None:
