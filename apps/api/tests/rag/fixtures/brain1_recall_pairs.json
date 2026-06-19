@@ -1,0 +1,46 @@
+{
+  "brain_id": "brain-01-product-strategy",
+  "collection": "domain_knowledge",
+  "pairs": [
+    {
+      "query": "empowered teams autonomy compared with feature teams",
+      "relevant_chunk_refs": ["FUENTE-001", "FUENTE-007"]
+    },
+    {
+      "query": "continuous discovery weekly customer interviews",
+      "relevant_chunk_refs": ["FUENTE-002", "FUENTE-009"]
+    },
+    {
+      "query": "opportunity solution tree outcome opportunities solutions assumption tests",
+      "relevant_chunk_refs": ["FUENTE-002"]
+    },
+    {
+      "query": "build trap outputs versus outcomes in product teams",
+      "relevant_chunk_refs": ["FUENTE-003", "FUENTE-010"]
+    },
+    {
+      "query": "product kata next obstacle experiment toward outcome",
+      "relevant_chunk_refs": ["FUENTE-003"]
+    },
+    {
+      "query": "minimum viable product validated learning experiments",
+      "relevant_chunk_refs": ["FUENTE-004"]
+    },
+    {
+      "query": "okrs objectives and key results measure what matters",
+      "relevant_chunk_refs": ["FUENTE-005"]
+    },
+    {
+      "query": "systems thinking feedback loops delays and leverage points",
+      "relevant_chunk_refs": ["FUENTE-006"]
+    },
+    {
+      "query": "four risks of product discovery value usability feasibility viability",
+      "relevant_chunk_refs": ["FUENTE-001"]
+    },
+    {
+      "query": "product trio pm designer tech lead discovery",
+      "relevant_chunk_refs": ["FUENTE-002"]
+    }
+  ]
+}

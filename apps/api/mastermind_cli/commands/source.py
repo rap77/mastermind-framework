@@ -1,5 +1,6 @@
 """Source commands for MasterMind CLI."""
 
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ from rich.panel import Panel
 from ..utils.yaml import read_yaml_frontmatter, update_yaml_metadata
 from ..utils.git import git_commit
 from ..utils.validation import validate_brain_sources, find_sources_by_id
+from ..rag.manual_ingestion import build_domain_knowledge_preview
 
 from ..utils.console import get_console as console
 
@@ -19,7 +21,12 @@ def get_project_root() -> Path:
     """Get the MasterMind project root directory."""
     current = Path.cwd()
     # Look for markers of project root
-    markers = ["CLAUDE.md", "docs/design/00-PRD-MasterMind-Framework.md"]
+    markers = [
+        ".git",
+        ".planning",
+        "CLAUDE.md",
+        "docs/design/00-PRD-MasterMind-Framework.md",
+    ]
     for parent in [current] + list(current.parents):
         for marker in markers:
             if (parent / marker).exists():
@@ -50,7 +57,7 @@ def source() -> None:
 @click.option("--author", required=True, help="Author name")
 @click.option(
     "--type",
-    type=click.Choice(["book", "video", "article", "course", "documentation"]),
+    type=click.Choice(["book", "video", "article", "podcast"]),
     default="book",
 )
 @click.option("--year", type=int, required=True)
@@ -90,9 +97,10 @@ expert_id: "EXP-XXX"
 type: "{type}"
 language: "es"
 year: {year}
+isbn: ""
 skills_covered: []
 distillation_date: "{datetime.now().strftime("%Y-%m-%d")}"
-distillation_quality: "pending"
+distillation_quality: "draft"
 loaded_in_notebook: false
 ---
 
@@ -249,7 +257,7 @@ def source_update(source_id: str, change: str) -> None:
     update_yaml_metadata(source_file, updates)
 
     # Git commit
-    commit_msg = f"update(source): {source_id}: {change}"
+    commit_msg = f"docs(source): update {source_id}: {change}"
     try:
         commit_sha = git_commit(source_file, commit_msg)
         console().print(
@@ -267,6 +275,63 @@ def source_update(source_id: str, change: str) -> None:
         console().print(
             f"[green]✓[/green] Source updated: [bold]{source_id}[/bold] (v{new_version})"
         )
+
+
+@source.command("ingest-preview")
+@click.argument("source_id")
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Optional path where the JSON preview report will be written.",
+)
+@click.option(
+    "--max-chars",
+    type=int,
+    default=1200,
+    show_default=True,
+    help="Maximum characters per emitted chunk preview.",
+)
+def source_ingest_preview(source_id: str, output: Path | None, max_chars: int) -> None:
+    """Build an auditable manual ingestion preview for one FUENTE source."""
+    if max_chars <= 0:
+        raise ValueError("max_chars must be greater than 0")
+
+    project_root = get_project_root()
+    search_paths = [project_root / "docs"]
+    matches = find_sources_by_id(source_id, [str(path) for path in search_paths])
+
+    if not matches:
+        console().print(f"[red]Error: Source {source_id} not found[/red]")
+        console().print(f"[yellow]Search paths:[/yellow] {search_paths}")
+        raise click.Abort()
+
+    if len(matches) > 1:
+        console().print("[yellow]Warning: Found multiple sources:[/yellow]")
+        for match in matches:
+            console().print(f"  • {match}")
+
+    source_file = Path(matches[0])
+    report = build_domain_knowledge_preview(source_file, max_chunk_chars=max_chars)
+    report_json = report.to_json()
+
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(report_json + "\n", encoding="utf-8")
+        click.echo(
+            json.dumps(
+                {
+                    "status": "written",
+                    "output": str(output),
+                    "source_id": report.source_id,
+                    "chunk_count": report.chunk_count,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    click.echo(report_json)
 
 
 @source.command("validate")
