@@ -133,6 +133,9 @@ class ProjectOverviewService:
         estimated_total_minutes = 0
         estimated_remaining_minutes = 0
         explicit_estimate_count = 0
+        fallback_estimate_count = 0
+        remaining_explicit_estimate_count = 0
+        remaining_fallback_estimate_count = 0
 
         completed_tasks = 0
         remaining_tasks = 0
@@ -145,6 +148,8 @@ class ProjectOverviewService:
             estimated_total_minutes += estimate_minutes
             if explicit:
                 explicit_estimate_count += 1
+            else:
+                fallback_estimate_count += 1
 
             if task.status in completed_statuses:
                 completed_tasks += 1
@@ -155,6 +160,10 @@ class ProjectOverviewService:
 
             remaining_tasks += 1
             estimated_remaining_minutes += estimate_minutes
+            if explicit:
+                remaining_explicit_estimate_count += 1
+            else:
+                remaining_fallback_estimate_count += 1
 
         active_run_elapsed_minutes = 0
         for run in active_runs:
@@ -188,6 +197,10 @@ class ProjectOverviewService:
             completed_tasks=completed_tasks,
             remaining_tasks=remaining_tasks,
             active_run_count=len(active_runs),
+            explicit_estimate_task_count=explicit_estimate_count,
+            fallback_estimate_task_count=fallback_estimate_count,
+            remaining_explicit_estimate_task_count=remaining_explicit_estimate_count,
+            remaining_fallback_estimate_task_count=remaining_fallback_estimate_count,
             estimated_total_minutes=estimated_total_minutes,
             estimated_remaining_minutes=estimated_remaining_minutes,
             active_run_elapsed_minutes=active_run_elapsed_minutes,
@@ -618,6 +631,9 @@ class ProjectOverviewService:
         if task is None:
             return None
 
+        project_task_ids = {
+            item.task_id for item in self.tasks.list_by_project(project_id, limit=1000)
+        }
         dependencies = [
             TaskDependencyResponse(
                 dependency_id=item.dependency_id,
@@ -627,6 +643,8 @@ class ProjectOverviewService:
                 created_at=item.created_at,
             )
             for item in self.task_dependencies.list_by_task(task_id)
+            if item.task_id in project_task_ids
+            and item.depends_on_task_id in project_task_ids
         ]
         return TaskDependenciesResponse(
             project_id=project_id,
@@ -664,13 +682,9 @@ class ProjectOverviewService:
 
         effective_limit = max(1, min(limit, 200))
         runs = self.task_runs.list_active_by_project(project_id, limit=effective_limit)
-        task_ids = [run.task_id for run in runs]
+        task_ids = {run.task_id for run in runs}
         tasks_by_id = {
-            task.task_id: task
-            for task in self.tasks.list_recent_by_project(
-                project_id, limit=max(len(task_ids), 1) * 5
-            )
-            if task.task_id in task_ids
+            task_id: self.tasks.get_by_id(project_id, task_id) for task_id in task_ids
         }
 
         return ActiveRunsResponse(
@@ -680,9 +694,11 @@ class ProjectOverviewService:
                     run_id=run.run_id,
                     project_id=run.project_id,
                     task_id=run.task_id,
-                    task_title=tasks_by_id[run.task_id].title
-                    if run.task_id in tasks_by_id
-                    else None,
+                    task_title=(
+                        task.title
+                        if (task := tasks_by_id.get(run.task_id)) is not None
+                        else None
+                    ),
                     actor_type=run.actor_type,
                     actor_id=run.actor_id,
                     status=run.status,

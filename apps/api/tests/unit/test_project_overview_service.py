@@ -11,6 +11,7 @@ from mastermind_cli.project_state.database.session import (
     get_session_factory,
     initialize_database,
 )
+from mastermind_cli.project_state.models.artifact import ArtifactLink, ArtifactVersion
 from mastermind_cli.project_state.models.checkpoint import Checkpoint
 from mastermind_cli.project_state.models.decision import DecisionRecord
 from mastermind_cli.project_state.models.project import Project
@@ -24,6 +25,9 @@ from mastermind_cli.project_state.services.project_overview import (
 from mastermind_cli.project_state.schemas.overview import (
     CreateCheckpointRequest,
     CreateDecisionRequest,
+    DoctrineUpdateRequest,
+    RecordTokenUsageRequest,
+    UpdateTaskStatusRequest,
 )
 
 
@@ -699,6 +703,15 @@ def test_project_overview_service_returns_task_list_and_dependencies(
                 created_at=now,
             )
         )
+        session.add(
+            TaskDependency(
+                dependency_id="dep-invalid",
+                task_id="task-a",
+                depends_on_task_id="task-missing",
+                dependency_type="relates_to",
+                created_at=now,
+            )
+        )
         session.commit()
 
     with session_factory() as session:
@@ -712,6 +725,7 @@ def test_project_overview_service_returns_task_list_and_dependencies(
     assert task_dependencies is not None
     assert task_dependencies.task_id == "task-a"
     assert len(task_dependencies.dependencies) == 1
+    assert task_dependencies.dependencies[0].dependency_id == "dep-1"
     assert task_dependencies.dependencies[0].depends_on_task_id == "task-b"
 
 
@@ -868,6 +882,10 @@ def test_project_overview_service_returns_time_summary(tmp_path: Path) -> None:
     assert summary.completed_tasks == 1
     assert summary.remaining_tasks == 2
     assert summary.active_run_count == 1
+    assert summary.explicit_estimate_task_count == 2
+    assert summary.fallback_estimate_task_count == 1
+    assert summary.remaining_explicit_estimate_task_count == 1
+    assert summary.remaining_fallback_estimate_task_count == 1
     assert summary.estimated_total_minutes == 210
     assert summary.estimated_remaining_minutes == 180
     assert summary.active_run_elapsed_minutes >= 25
@@ -948,3 +966,228 @@ def test_project_overview_service_creates_checkpoint_and_decision(
     assert decision.task_id == "task-write"
     assert decision.metadata["brain"] == "backend"
     assert decision.metadata["recorded_by"] == "test-user-id-001"
+
+
+def test_project_overview_service_returns_artifact_lineage(tmp_path: Path) -> None:
+    """Return ordered artifact versions and causal links for one artifact."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-artifacts",
+                name="Project Artifacts",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+            )
+        )
+        session.add(
+            Task(
+                task_id="task-artifact",
+                project_id="project-artifacts",
+                title="Track lineage",
+                status="in_progress",
+                priority="high",
+                owner_type="agent",
+                owner_id="brain-04",
+                metadata_json={},
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add_all(
+            [
+                ArtifactVersion(
+                    version_id="version-1",
+                    artifact_id="artifact-1",
+                    project_id="project-artifacts",
+                    artifact_type="spec",
+                    version=1,
+                    content_hash="hash-1",
+                    created_at=now,
+                    metadata_json={"phase": "draft"},
+                ),
+                ArtifactVersion(
+                    version_id="version-2",
+                    artifact_id="artifact-1",
+                    project_id="project-artifacts",
+                    artifact_type="spec",
+                    version=2,
+                    content_hash="hash-2",
+                    created_at=now + timedelta(minutes=1),
+                    metadata_json={"phase": "approved"},
+                ),
+            ]
+        )
+        session.add(
+            ArtifactLink(
+                link_id="link-1",
+                source_artifact_id="version-1",
+                target_artifact_id="version-2",
+                link_type="supersedes",
+                task_id="task-artifact",
+                decision_id=None,
+                checkpoint_id=None,
+                created_at=now + timedelta(minutes=2),
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        lineage = service.get_artifact_lineage("artifact-1")
+
+    assert lineage is not None
+    assert [item.version for item in lineage.versions] == [1, 2]
+    assert lineage.links[0].link_id == "link-1"
+    assert lineage.links[0].link_type == "supersedes"
+
+
+def test_project_overview_service_updates_task_status_and_project_doctrine(
+    tmp_path: Path,
+) -> None:
+    """Update task status metadata and persist doctrine changes."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-doctrine-write",
+                name="Project Doctrine Write",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id="task-doctrine-write",
+                project_id="project-doctrine-write",
+                title="Update doctrine",
+                status="pending",
+                priority="high",
+                owner_type="agent",
+                owner_id="brain-04",
+                metadata_json={},
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        updated_task = service.update_task_status(
+            "project-doctrine-write",
+            "task-doctrine-write",
+            UpdateTaskStatusRequest(status="blocked", reason="waiting on security"),
+            actor_user_id="user-42",
+        )
+        doctrine = service.update_project_doctrine(
+            "project-doctrine-write",
+            DoctrineUpdateRequest(
+                methodology="SDD",
+                methodology_reason="High coordination work",
+                required_phases=["discover", "plan", "verify"],
+                quality_gates=["gga", "uat"],
+            ),
+        )
+
+    assert updated_task is not None
+    assert updated_task.status == "blocked"
+    assert updated_task.metadata["status_updated_by"] == "user-42"
+    assert updated_task.metadata["status_reason"] == "waiting on security"
+    assert doctrine is not None
+    assert doctrine.project_id == "project-doctrine-write"
+    assert doctrine.methodology == "SDD"
+    assert doctrine.required_phases == ["discover", "plan", "verify"]
+    assert doctrine.quality_gates == ["gga", "uat"]
+
+
+def test_project_overview_service_records_usage_quality_and_realtime_events(
+    tmp_path: Path,
+) -> None:
+    """Record token usage, derive quality summary, and expose realtime feed events."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-realtime",
+                name="Project Realtime",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id="task-realtime",
+                project_id="project-realtime",
+                title="Emit realtime events",
+                status="in_progress",
+                priority="high",
+                owner_type="agent",
+                owner_id="brain-04",
+                metadata_json={},
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        usage = service.record_token_usage(
+            "project-realtime",
+            "task-realtime",
+            RecordTokenUsageRequest(
+                model="claude-sonnet-4-6",
+                provider="anthropic",
+                auth_mode="subscription",
+                prompt_tokens=120,
+                completion_tokens=30,
+                estimated_cost=1.5,
+                metadata={"phase": "qa"},
+                agent_id="brain-06",
+                review_pass=True,
+                verification_pass=False,
+                rework_count=2,
+            ),
+        )
+        quality = service.get_project_quality_summary("project-realtime")
+        realtime_events = service.get_realtime_events("project-realtime", limit=10)
+
+    assert usage is not None
+    assert usage.metadata["agent_id"] == "brain-06"
+    assert usage.metadata["review_pass"] is True
+    assert quality is not None
+    assert quality.total_events == 1
+    assert quality.review_pass_count == 1
+    assert quality.verification_fail_count == 1
+    assert quality.avg_rework_count == 2.0
+    assert realtime_events is not None
+    assert any(event.event_type == "token_usage_recorded" for event in realtime_events)

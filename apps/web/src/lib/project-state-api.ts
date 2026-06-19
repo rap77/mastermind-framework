@@ -1,6 +1,12 @@
 import 'server-only'
 
+import { execFile } from 'node:child_process'
 import { cookies } from 'next/headers'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { promisify } from 'node:util'
+
+const execFileAsync = promisify(execFile)
 
 export interface ProjectStateProject {
   project_id: string
@@ -115,6 +121,10 @@ export interface ProjectTimeSummary {
   completed_tasks: number
   remaining_tasks: number
   active_run_count: number
+  explicit_estimate_task_count: number
+  fallback_estimate_task_count: number
+  remaining_explicit_estimate_task_count: number
+  remaining_fallback_estimate_task_count: number
   estimated_total_minutes: number
   estimated_remaining_minutes: number
   active_run_elapsed_minutes: number
@@ -176,7 +186,103 @@ export interface DoctrineProjection {
   }
 }
 
+export interface KnowledgeDistillationSystemHealth {
+  record_count: number
+  avg_quality_score: number
+  rejection_rate: number
+  p50_latency_ms: number
+  p90_latency_ms: number
+  t1_trend: Array<{
+    day: string
+    avg_t1_ms: number
+  }>
+}
+
+export interface KnowledgeDistillationOutcomeMetrics {
+  delta_velocity: number
+  knowledge_yield: number
+  planning_accuracy: number
+}
+
+export interface KnowledgeTemplateSummary {
+  id: string
+  brain_id: string
+  template_name: string
+  success_rate: number
+  usage_count: number
+  created_at: string
+  last_used_at: string | null
+}
+
+export interface GapRegistryEntry {
+  id: string
+  title: string
+  status: string
+  detected_from: string
+  objective_slug: string | null
+  evidence: string[]
+  impact: string
+  urgency: string
+  suggested_followup: string | null
+  promotion_readiness: string
+  promoted_objective_slug: string | null
+  created_at_utc: string
+  updated_at_utc: string
+}
+
+export interface GapDuplicateSuspect {
+  gap_ids: string[]
+  reasons: string[]
+  shared_suggested_followup: string | null
+  shared_normalized_title: string | null
+}
+
+export interface GapNextRecommendation {
+  recommended_gap: GapRegistryEntry | null
+  ranked_open_gaps: GapRegistryEntry[]
+}
+
 const DEFAULT_API_URL = 'http://localhost:8001'
+
+async function readGapRegistryFile(): Promise<string | null> {
+  const candidates = [
+    join(process.cwd(), '.mm-flow', 'planning', 'gaps', 'gap-registry.json'),
+    join(process.cwd(), '..', '.mm-flow', 'planning', 'gaps', 'gap-registry.json'),
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      return await readFile(candidate, 'utf-8')
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+function gapRegistryHelperCandidates(): string[] {
+  return [
+    join(process.cwd(), '.mm-flow', 'commands', 'mm', 'gap-registry.py'),
+    join(process.cwd(), '..', '.mm-flow', 'commands', 'mm', 'gap-registry.py'),
+  ]
+}
+
+async function runGapRegistryCommand(
+  args: string[]
+): Promise<{ stdout: string; stderr: string } | null> {
+  for (const helperPath of gapRegistryHelperCandidates()) {
+    try {
+      return await execFileAsync('python3', [helperPath, ...args], {
+        cwd: process.cwd(),
+      })
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
 
 async function fetchProjectState<T>(path: string): Promise<T> {
   const apiUrl = process.env.AGENT_RUNTIME_URL || DEFAULT_API_URL
@@ -204,18 +310,24 @@ async function fetchProjectState<T>(path: string): Promise<T> {
   return (await response.json()) as T
 }
 
+function encodePathSegment(value: string): string {
+  return encodeURIComponent(value)
+}
+
 export async function fetchProjectList(): Promise<ProjectStateProject[]> {
   const data = await fetchProjectState<{ projects: ProjectStateProject[] }>('/api/projects')
   return data.projects
 }
 
 export async function fetchProjectOverview(projectId: string): Promise<ProjectStateOverview> {
-  return fetchProjectState<ProjectStateOverview>(`/api/projects/${projectId}/overview`)
+  return fetchProjectState<ProjectStateOverview>(
+    `/api/projects/${encodePathSegment(projectId)}/overview`
+  )
 }
 
 export async function fetchProjectTasks(projectId: string): Promise<ProjectStateTask[]> {
   const data = await fetchProjectState<{ tasks: ProjectStateTask[] }>(
-    `/api/projects/${projectId}/tasks`
+    `/api/projects/${encodePathSegment(projectId)}/tasks`
   )
   return data.tasks
 }
@@ -225,41 +337,43 @@ export async function fetchTaskDependencies(
   taskId: string
 ): Promise<TaskDependency[]> {
   const data = await fetchProjectState<{ dependencies: TaskDependency[] }>(
-    `/api/projects/${projectId}/tasks/${taskId}/dependencies`
+    `/api/projects/${encodePathSegment(projectId)}/tasks/${encodePathSegment(taskId)}/dependencies`
   )
   return data.dependencies
 }
 
 export async function fetchActiveRuns(projectId: string): Promise<RunDetail[]> {
   const data = await fetchProjectState<{ runs: RunDetail[] }>(
-    `/api/projects/${projectId}/runs/active`
+    `/api/projects/${encodePathSegment(projectId)}/runs/active`
   )
   return data.runs
 }
 
 export async function fetchProjectDecisions(projectId: string): Promise<DecisionDetail[]> {
   const data = await fetchProjectState<{ decisions: DecisionDetail[] }>(
-    `/api/projects/${projectId}/decisions`
+    `/api/projects/${encodePathSegment(projectId)}/decisions`
   )
   return data.decisions
 }
 
 export async function fetchProjectActivity(projectId: string): Promise<ActivityEvent[]> {
   const data = await fetchProjectState<{ events: ActivityEvent[] }>(
-    `/api/projects/${projectId}/activity`
+    `/api/projects/${encodePathSegment(projectId)}/activity`
   )
   return data.events
 }
 
 export async function fetchProjectTokenUsage(projectId: string): Promise<TokenUsageEvent[]> {
   const data = await fetchProjectState<{ events: TokenUsageEvent[] }>(
-    `/api/projects/${projectId}/token-usage`
+    `/api/projects/${encodePathSegment(projectId)}/token-usage`
   )
   return data.events
 }
 
 export async function fetchProjectTimeSummary(projectId: string): Promise<ProjectTimeSummary> {
-  return fetchProjectState<ProjectTimeSummary>(`/api/projects/${projectId}/time-summary`)
+  return fetchProjectState<ProjectTimeSummary>(
+    `/api/projects/${encodePathSegment(projectId)}/time-summary`
+  )
 }
 
 export async function fetchTaskContextProjection(
@@ -267,7 +381,7 @@ export async function fetchTaskContextProjection(
   taskId: string
 ): Promise<TaskContextProjection> {
   return fetchProjectState<TaskContextProjection>(
-    `/api/projects/${projectId}/tasks/${taskId}/context-projection`
+    `/api/projects/${encodePathSegment(projectId)}/tasks/${encodePathSegment(taskId)}/context-projection`
   )
 }
 
@@ -276,6 +390,67 @@ export async function fetchTaskDoctrineProjection(
   taskId: string
 ): Promise<DoctrineProjection> {
   return fetchProjectState<DoctrineProjection>(
-    `/api/projects/${projectId}/tasks/${taskId}/doctrine-projection`
+    `/api/projects/${encodePathSegment(projectId)}/tasks/${encodePathSegment(taskId)}/doctrine-projection`
   )
+}
+
+export async function fetchKnowledgeDistillationSystemHealth(): Promise<KnowledgeDistillationSystemHealth> {
+  return fetchProjectState<KnowledgeDistillationSystemHealth>('/api/analytics/system-health')
+}
+
+export async function fetchKnowledgeDistillationOutcomeMetrics(): Promise<KnowledgeDistillationOutcomeMetrics> {
+  return fetchProjectState<KnowledgeDistillationOutcomeMetrics>('/api/analytics/outcome-metrics')
+}
+
+export async function fetchKnowledgeTemplates(
+  limit = 5
+): Promise<KnowledgeTemplateSummary[]> {
+  return fetchProjectState<KnowledgeTemplateSummary[]>(`/api/analytics/templates?limit=${limit}`)
+}
+
+export async function fetchGapRegistryEntries(): Promise<GapRegistryEntry[]> {
+  const content = await readGapRegistryFile()
+  if (!content) return []
+
+  try {
+    const data = JSON.parse(content) as { gaps?: GapRegistryEntry[] }
+    return Array.isArray(data.gaps) ? data.gaps : []
+  } catch {
+    return []
+  }
+}
+
+export async function fetchGapDuplicateSuspects(): Promise<GapDuplicateSuspect[]> {
+  const result = await runGapRegistryCommand(['duplicates'])
+  if (!result) return []
+
+  try {
+    const data = JSON.parse(result.stdout) as { suspects?: GapDuplicateSuspect[] }
+    return Array.isArray(data.suspects) ? data.suspects : []
+  } catch {
+    return []
+  }
+}
+
+export async function fetchGapNextRecommendation(): Promise<GapNextRecommendation> {
+  const result = await runGapRegistryCommand(['next'])
+  if (!result) {
+    return {
+      recommended_gap: null,
+      ranked_open_gaps: [],
+    }
+  }
+
+  try {
+    const data = JSON.parse(result.stdout) as GapNextRecommendation
+    return {
+      recommended_gap: data.recommended_gap ?? null,
+      ranked_open_gaps: Array.isArray(data.ranked_open_gaps) ? data.ranked_open_gaps : [],
+    }
+  } catch {
+    return {
+      recommended_gap: null,
+      ranked_open_gaps: [],
+    }
+  }
 }

@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from mastermind_cli.types.pydantic import StrictRequestModel
+
 
 class CheckpointSummary(BaseModel):
     """Summary of the latest project checkpoint."""
@@ -139,7 +141,7 @@ class LatestCheckpointResponse(BaseModel):
     created_at: datetime = Field(..., description="Checkpoint creation timestamp")
 
 
-class CreateCheckpointRequest(BaseModel):
+class CreateCheckpointRequest(StrictRequestModel):
     """Request payload to create a new task checkpoint."""
 
     run_id: str | None = Field(None, description="Associated run identifier")
@@ -184,6 +186,18 @@ class ProjectTimeSummaryResponse(BaseModel):
     completed_tasks: int = Field(..., description="Completed task count")
     remaining_tasks: int = Field(..., description="Remaining task count")
     active_run_count: int = Field(..., description="Currently active run count")
+    explicit_estimate_task_count: int = Field(
+        ..., description="Tasks with explicit estimates in metadata"
+    )
+    fallback_estimate_task_count: int = Field(
+        ..., description="Tasks relying on heuristic fallback estimates"
+    )
+    remaining_explicit_estimate_task_count: int = Field(
+        ..., description="Remaining tasks with explicit estimates"
+    )
+    remaining_fallback_estimate_task_count: int = Field(
+        ..., description="Remaining tasks still relying on fallback estimates"
+    )
     estimated_total_minutes: int = Field(
         ..., description="Estimated total project effort in minutes"
     )
@@ -235,7 +249,7 @@ class TokenUsageListResponse(BaseModel):
     )
 
 
-class RecordTokenUsageRequest(BaseModel):
+class RecordTokenUsageRequest(StrictRequestModel):
     """Request body for recording a token usage event from an agent."""
 
     model: str = Field(..., description="Model identifier (e.g. claude-sonnet-4-6)")
@@ -329,7 +343,7 @@ class DecisionDetailResponse(BaseModel):
     created_at: datetime = Field(..., description="Decision creation timestamp")
 
 
-class CreateDecisionRequest(BaseModel):
+class CreateDecisionRequest(StrictRequestModel):
     """Request payload to record a new decision for a project or task."""
 
     task_id: str | None = Field(None, description="Associated task identifier")
@@ -343,7 +357,7 @@ class CreateDecisionRequest(BaseModel):
     )
 
 
-class UpdateTaskStatusRequest(BaseModel):
+class UpdateTaskStatusRequest(StrictRequestModel):
     """Request payload to update a task's status."""
 
     status: str = Field(..., min_length=1, max_length=64, description="New task status")
@@ -438,7 +452,7 @@ class DoctrineRuleResponse(BaseModel):
     check: str | None = Field(None, description="Validation or compliance check")
 
 
-class DoctrineRuleRequest(BaseModel):
+class DoctrineRuleRequest(StrictRequestModel):
     """Single doctrine rule for a write request."""
 
     rule_id: str
@@ -447,7 +461,7 @@ class DoctrineRuleRequest(BaseModel):
     check: str | None = None
 
 
-class DoctrineUpdateRequest(BaseModel):
+class DoctrineUpdateRequest(StrictRequestModel):
     """Request body for setting project-level doctrine (partial update)."""
 
     methodology: str | None = None

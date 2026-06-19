@@ -1,6 +1,7 @@
 // Generated proto types for TypeScript
 // TODO: Generate from proto/mastermind/v1/brain_runtime.proto using ts-proto
 // Setup blocker: buf CLI not available, documented in velocity-baseline.md
+// Until codegen is restored, keep this shim aligned with the proto contract.
 
 export interface DispatchTaskRequest {
   brief: string;

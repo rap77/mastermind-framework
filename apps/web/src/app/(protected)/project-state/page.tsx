@@ -1,5 +1,11 @@
 import {
   fetchActiveRuns,
+  fetchGapDuplicateSuspects,
+  fetchGapNextRecommendation,
+  fetchGapRegistryEntries,
+  fetchKnowledgeDistillationOutcomeMetrics,
+  fetchKnowledgeDistillationSystemHealth,
+  fetchKnowledgeTemplates,
   fetchProjectActivity,
   fetchProjectDecisions,
   fetchProjectList,
@@ -44,22 +50,54 @@ export default async function ProjectStatePage({
         decisions={[]}
         activity={[]}
         tokenUsage={[]}
+        gapRegistryEntries={[]}
+        gapDuplicateSuspects={[]}
+        gapNextRecommendation={null}
+        kdSystemHealth={null}
+        kdOutcomeMetrics={null}
+        kdTemplates={[]}
         contextProjection={null}
         doctrineProjection={null}
       />
     )
   }
 
+  const [
+    overview,
+    timeSummary,
+    tasks,
+    runs,
+    decisions,
+    activity,
+    tokenUsage,
+    gapRegistryEntries,
+    gapDuplicateSuspects,
+    gapNextRecommendation,
+  ] =
+    await Promise.all([
+      fetchProjectOverview(selectedProjectId),
+      fetchProjectTimeSummary(selectedProjectId),
+      fetchProjectTasks(selectedProjectId),
+      fetchActiveRuns(selectedProjectId),
+      fetchProjectDecisions(selectedProjectId),
+      fetchProjectActivity(selectedProjectId),
+      fetchProjectTokenUsage(selectedProjectId),
+      fetchGapRegistryEntries(),
+      fetchGapDuplicateSuspects(),
+      fetchGapNextRecommendation(),
+    ])
 
-  const [overview, timeSummary, tasks, runs, decisions, activity, tokenUsage] = await Promise.all([
-    fetchProjectOverview(selectedProjectId),
-    fetchProjectTimeSummary(selectedProjectId),
-    fetchProjectTasks(selectedProjectId),
-    fetchActiveRuns(selectedProjectId),
-    fetchProjectDecisions(selectedProjectId),
-    fetchProjectActivity(selectedProjectId),
-    fetchProjectTokenUsage(selectedProjectId),
+  const [kdSystemHealthResult, kdOutcomeMetricsResult, kdTemplatesResult] = await Promise.allSettled([
+    fetchKnowledgeDistillationSystemHealth(),
+    fetchKnowledgeDistillationOutcomeMetrics(),
+    fetchKnowledgeTemplates(),
   ])
+
+  const kdSystemHealth =
+    kdSystemHealthResult.status === 'fulfilled' ? kdSystemHealthResult.value : null
+  const kdOutcomeMetrics =
+    kdOutcomeMetricsResult.status === 'fulfilled' ? kdOutcomeMetricsResult.value : null
+  const kdTemplates = kdTemplatesResult.status === 'fulfilled' ? kdTemplatesResult.value : []
 
   const selectedTaskId = params.task ?? tasks[0]?.task_id ?? null
 
@@ -89,6 +127,12 @@ export default async function ProjectStatePage({
       decisions={decisions}
       activity={activity}
       tokenUsage={tokenUsage}
+      gapRegistryEntries={gapRegistryEntries}
+      gapDuplicateSuspects={gapDuplicateSuspects}
+      gapNextRecommendation={gapNextRecommendation.recommended_gap}
+      kdSystemHealth={kdSystemHealth}
+      kdOutcomeMetrics={kdOutcomeMetrics}
+      kdTemplates={kdTemplates}
       contextProjection={contextProjection}
       doctrineProjection={doctrineProjection}
     />

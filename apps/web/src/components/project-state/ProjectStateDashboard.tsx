@@ -15,6 +15,11 @@ import type {
   ActivityEvent,
   DecisionDetail,
   DoctrineProjection,
+  GapDuplicateSuspect,
+  GapRegistryEntry,
+  KnowledgeDistillationOutcomeMetrics,
+  KnowledgeDistillationSystemHealth,
+  KnowledgeTemplateSummary,
   ProjectStateOverview,
   ProjectStateProject,
   ProjectStateTask,
@@ -29,6 +34,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils'
 import { TaskGraphPanel } from '@/components/project-state/TaskGraphPanel'
 import { ProjectStateWritePanel } from '@/components/project-state/ProjectStateWritePanel'
+import { BrainStatusFeed } from '@/components/ws/BrainStatusFeed'
 
 export interface ProjectStateDashboardProps {
   projects: ProjectStateProject[]
@@ -42,6 +48,12 @@ export interface ProjectStateDashboardProps {
   decisions: DecisionDetail[]
   activity: ActivityEvent[]
   tokenUsage: TokenUsageEvent[]
+  gapRegistryEntries: GapRegistryEntry[]
+  gapDuplicateSuspects: GapDuplicateSuspect[]
+  gapNextRecommendation: GapRegistryEntry | null
+  kdSystemHealth: KnowledgeDistillationSystemHealth | null
+  kdOutcomeMetrics: KnowledgeDistillationOutcomeMetrics | null
+  kdTemplates: KnowledgeTemplateSummary[]
   contextProjection: TaskContextProjection | null
   doctrineProjection: DoctrineProjection | null
 }
@@ -71,6 +83,22 @@ function formatMinutes(totalMinutes: number): string {
   if (hours === 0) return `${minutes}m`
   if (minutes === 0) return `${hours}h`
   return `${hours}h ${minutes}m`
+}
+
+function formatRatio(numerator: number, denominator: number): string {
+  if (denominator <= 0) return '0/0'
+  return `${numerator}/${denominator}`
+}
+
+function buildProjectHref(projectId: string): string {
+  return `/project-state?project=${encodeURIComponent(projectId)}`
+}
+
+function buildTaskHref(projectId: string | null, taskId: string): string {
+  const params = new URLSearchParams()
+  if (projectId) params.set('project', projectId)
+  params.set('task', taskId)
+  return `/project-state?${params.toString()}`
 }
 
 function statusVariant(status: string): 'default' | 'secondary' | 'warning' | 'success' | 'destructive' {
@@ -131,6 +159,12 @@ export function ProjectStateDashboard({
   decisions,
   activity,
   tokenUsage,
+  gapRegistryEntries,
+  gapDuplicateSuspects,
+  gapNextRecommendation,
+  kdSystemHealth,
+  kdOutcomeMetrics,
+  kdTemplates,
   contextProjection,
   doctrineProjection,
 }: ProjectStateDashboardProps) {
@@ -192,7 +226,7 @@ export function ProjectStateDashboard({
                 return (
                   <Link
                     key={project.project_id}
-                    href={`/project-state?project=${project.project_id}`}
+                    href={buildProjectHref(project.project_id)}
                     className={cn(
                       'block rounded-xl border p-3 transition-colors',
                       isActive
@@ -225,7 +259,7 @@ export function ProjectStateDashboard({
                 return (
                   <Link
                     key={task.task_id}
-                    href={`/project-state?project=${selectedProjectId}&task=${task.task_id}`}
+                    href={buildTaskHref(selectedProjectId, task.task_id)}
                     className={cn(
                       'block rounded-lg border p-3 transition-colors',
                       isSelected
@@ -343,6 +377,33 @@ export function ProjectStateDashboard({
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground">
                           {timeSummary.estimation_basis}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {timeSummary ? (
+                      <div className="rounded-xl border border-border/70 bg-muted/25 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium">Estimate coverage</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {formatRatio(
+                                timeSummary.explicit_estimate_task_count,
+                                timeSummary.total_tasks
+                              )}{' '}
+                              tasks have explicit estimates
+                            </p>
+                          </div>
+                          <Badge variant="outline">{timeSummary.confidence}</Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Remaining explicit:{' '}
+                          {formatRatio(
+                            timeSummary.remaining_explicit_estimate_task_count,
+                            timeSummary.remaining_tasks
+                          )}
+                          {' · '}Fallback remaining:{' '}
+                          {timeSummary.remaining_fallback_estimate_task_count}
                         </p>
                       </div>
                     ) : null}
@@ -514,6 +575,175 @@ export function ProjectStateDashboard({
         </main>
 
         <aside className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Live brain feed</CardTitle>
+              <CardDescription>
+                Read-only lifecycle events from the Rust real-time hub without leaving project state.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BrainStatusFeed className="rounded-xl border border-border/60 bg-muted/20 p-3" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Gap registry</CardTitle>
+              <CardDescription>
+                Read-only harness follow-ups captured from the new gap lifecycle registry.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {gapNextRecommendation ? (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Next recommended gap
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{gapNextRecommendation.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {gapNextRecommendation.id} {'· '}follow-up:{' '}
+                    {gapNextRecommendation.suggested_followup ?? 'None'}
+                  </p>
+                </div>
+              ) : null}
+
+              {gapRegistryEntries.length > 0 ? (
+                gapRegistryEntries.slice(0, 6).map((gap) => (
+                  <div key={gap.id} className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{gap.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{gap.id}</p>
+                      </div>
+                      <Badge variant={statusVariant(gap.status)}>{gap.status}</Badge>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline">{gap.promotion_readiness}</Badge>
+                      <Badge variant="outline">impact {gap.impact}</Badge>
+                      <Badge variant="outline">urgency {gap.urgency}</Badge>
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Follow-up: {gap.suggested_followup ?? 'None'} {'· '}Promoted objective:{' '}
+                      {gap.promoted_objective_slug ?? 'None'}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No gap registry entries recorded yet.
+                </p>
+              )}
+
+              <div className="rounded-xl border border-border/60 bg-background p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">Duplicate suspects</p>
+                  <Badge variant="outline">{gapDuplicateSuspects.length}</Badge>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {gapDuplicateSuspects.length > 0 ? (
+                    gapDuplicateSuspects.slice(0, 3).map((suspect) => (
+                      <div
+                        key={suspect.gap_ids.join('-')}
+                        className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                      >
+                        <p className="text-sm font-medium">{suspect.gap_ids.join(' ↔ ')}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Reasons: {suspect.reasons.join(', ')}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No duplicate suspects detected right now.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Knowledge distillation</CardTitle>
+              <CardDescription>
+                Read-only view of learning health, reuse and top templates from the existing KD backend.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {kdSystemHealth && kdOutcomeMetrics ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        Records
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold">{kdSystemHealth.record_count}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Avg quality {kdSystemHealth.avg_quality_score.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        Yield
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold">
+                        {(kdOutcomeMetrics.knowledge_yield * 100).toFixed(1)}%
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Planning accuracy {kdOutcomeMetrics.planning_accuracy.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        P50 latency
+                      </p>
+                      <p className="mt-1 text-sm font-medium">{kdSystemHealth.p50_latency_ms.toFixed(0)} ms</p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 px-3 py-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        P90 latency
+                      </p>
+                      <p className="mt-1 text-sm font-medium">{kdSystemHealth.p90_latency_ms.toFixed(0)} ms</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/60 bg-background p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">Top reusable templates</p>
+                      <Badge variant="outline">{kdTemplates.length}</Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {kdTemplates.length > 0 ? (
+                        kdTemplates.slice(0, 3).map((template) => (
+                          <div
+                            key={template.id}
+                            className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                          >
+                            <p className="text-sm font-medium">{template.template_name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {template.brain_id} • success {(template.success_rate * 100).toFixed(0)}% • used{' '}
+                              {template.usage_count}x
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No reusable templates recorded yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Knowledge distillation analytics are currently unavailable for this environment.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           <ProjectStateWritePanel
             selectedProjectId={selectedProjectId}
             selectedTaskId={selectedTaskId}
