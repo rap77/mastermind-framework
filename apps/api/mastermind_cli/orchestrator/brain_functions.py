@@ -188,7 +188,9 @@ Use the labeled format exactly. Be specific and actionable."""
 # =============================================================================
 
 
-def brain_02_ux_research(brain_input: BrainInput, mcp_client: MCPClient) -> UXResearch:
+def brain_02_ux_research(
+    brain_input: BrainInput, mcp_client: MCPClient, rag_context: str = ""
+) -> UXResearch:
     """
     Pure function: UX Research brain.
 
@@ -227,6 +229,9 @@ METHODOLOGY: [research approach description]
 
 Use the labeled format exactly. Be specific about user behavior."""
 
+    if rag_context:
+        query = query + "\n\n" + rag_context
+
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
     s = _parse_sections(knowledge)
 
@@ -249,7 +254,9 @@ Use the labeled format exactly. Be specific about user behavior."""
 # =============================================================================
 
 
-def brain_03_ui_design(brain_input: BrainInput, mcp_client: MCPClient) -> UIDesign:
+def brain_03_ui_design(
+    brain_input: BrainInput, mcp_client: MCPClient, rag_context: str = ""
+) -> UIDesign:
     """
     Pure function: UI Design brain.
 
@@ -294,6 +301,9 @@ PRINCIPLES:
 - [principle 3]
 
 Use the labeled format exactly."""
+
+    if rag_context:
+        query = query + "\n\n" + rag_context
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
     s = _parse_sections(knowledge)
@@ -558,6 +568,7 @@ def brain_07_growth_data(
     brain_input: BrainInput,
     mcp_client: MCPClient,
     previous_outputs: dict[str, Any] | None = None,
+    rag_context: str = "",
 ) -> GrowthDataEvaluation:
     """
     Pure function: Growth & Data brain (Evaluator).
@@ -590,6 +601,9 @@ REJECTION_REASONS:
 - [reason 2 if REJECT]
 
 Use the labeled format exactly. Be rigorous — quality over approval."""
+
+    if rag_context:
+        query = query + "\n\n" + rag_context
 
     knowledge = mcp_client.query_notebooklm(notebook_id=notebook_id, query=query)
     s = _parse_sections(knowledge)
@@ -728,7 +742,34 @@ BRAIN_FUNCTIONS = {
     "brain-08-master-interviewer": brain_08_master_interviewer,
 }
 
+_BRAIN_ID_ALIASES = {
+    "brain-01-product": "brain-01-product-strategy",
+    "brain-02-ux": "brain-02-ux-research",
+    "brain-03-ui": "brain-03-ui-design",
+    "brain-06-qa": "brain-06-qa-devops",
+    "brain-07-growth": "brain-07-growth-data",
+}
+
+
+def canonical_brain_id(brain_id: str) -> str:
+    """Return the canonical brain ID for runtime compatibility aliases."""
+    return _BRAIN_ID_ALIASES.get(brain_id, brain_id)
+
+
+def brain_id_variants(brain_id: str) -> set[str]:
+    """Return known equivalent IDs for a brain.
+
+    This keeps runtime compatibility while the repo still contains a mix of
+    shorter operational IDs and longer canonical IDs.
+    """
+    canonical_id = canonical_brain_id(brain_id)
+    variants = {brain_id, canonical_id}
+    for alias_id, alias_target in _BRAIN_ID_ALIASES.items():
+        if alias_target == canonical_id:
+            variants.add(alias_id)
+    return variants
+
 
 def get_brain_function(brain_id: str) -> Any:
     """Get pure function for brain ID."""
-    return BRAIN_FUNCTIONS.get(brain_id)
+    return BRAIN_FUNCTIONS.get(canonical_brain_id(brain_id))

@@ -10,6 +10,7 @@ we DON'T have shared state pollution."
 """
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -21,6 +22,8 @@ from mastermind_cli.types.interfaces import (
 from mastermind_cli.types.protocol import BrainEnvelope, BrainOutputType
 from mastermind_cli.types.parallel import ExecutionGraph, FlowConfig
 from mastermind_cli.brain_registry import BrainRegistry
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -78,6 +81,15 @@ class StatelessCoordinator:
     - Each execution is isolated
     - Easier to test (no hidden state)
     """
+
+    _RAG_ENABLED_BRAIN_IDS = frozenset(
+        {
+            "brain-01-product-strategy",
+            "brain-02-ux-research",
+            "brain-03-ui-design",
+            "brain-07-growth-data",
+        }
+    )
 
     def __init__(self, config: CoordinatorConfig):
         """
@@ -202,7 +214,9 @@ class StatelessCoordinator:
             except Exception as e:
                 # Log error and continue (don't fail entire flow)
                 if self.config.enable_logging:
-                    print(f"[StatelessCoordinator] Brain {brain_id} failed: {e}")
+                    logger.exception(
+                        "[StatelessCoordinator] Brain %s failed: %s", brain_id, e
+                    )
                 # Re-raise if needed, or return error model
                 raise
 
@@ -222,8 +236,9 @@ class StatelessCoordinator:
         No state access, only input → output.
 
         Phase 21 RAG integration:
-        For Brain #1 (brain-01-product-strategy), RAGContextBuilder.build() is
-        called BEFORE the LLM query when an asyncpg connection is provided.
+        For the first RAG-enabled cohort (Brains #1, #2, #3, and #7),
+        RAGContextBuilder.build() is called BEFORE the LLM query when an
+        asyncpg connection is provided.
         The resulting block (or "" when both collections are empty) is passed
         to the brain function as ``rag_context``.  Empty blocks are never
         appended to the system prompt (21.14 guard).
@@ -233,13 +248,13 @@ class StatelessCoordinator:
             brief: User's brief
             previous_results: Outputs from previous waves
             conn: Optional asyncpg connection used to run RAG retrieval for
-                  Brain #1.  When None, RAG is skipped and ``rag_context``
+                  the first RAG-enabled cohort. When None, RAG is skipped and ``rag_context``
                   defaults to "" (empty — no block appended).
 
         Returns:
             Brain output model (ProductStrategy, UXResearch, etc.)
         """
-        from .brain_functions import get_brain_function
+        from .brain_functions import brain_id_variants, get_brain_function
 
         # Get pure function for this brain
         brain_func = get_brain_function(brain_id)
@@ -250,11 +265,14 @@ class StatelessCoordinator:
         # Prepare input for this brain
         brain_input = self._prepare_input(brain_id, brief, previous_results)
 
-        # 21.13: Retrieve RAG context for Brain #1 before the LLM call.
+        # 21.13+: Retrieve RAG context for the selected cohort before the LLM call.
         # RAGContextBuilder.build() is async → awaited here inside the async
-        # _execute_brain method.  Other brains are not yet RAG-enabled.
+        # _execute_brain method. Other brains are not yet RAG-enabled.
         rag_context = ""
-        if brain_id == "brain-01-product-strategy" and conn is not None:
+        if (
+            self._RAG_ENABLED_BRAIN_IDS.intersection(brain_id_variants(brain_id))
+            and conn is not None
+        ):
             from mastermind_cli.rag.context_builder import RAGContextBuilder  # noqa: PLC0415
 
             rag_context = await RAGContextBuilder(conn).build(
@@ -278,7 +296,7 @@ class StatelessCoordinator:
             output = brain_func(brain_input, mcp_client=self.config.mcp_client)
 
         if self.config.enable_logging:
-            print(f"[StatelessCoordinator] Completed: {brain_id}")
+            logger.info("[StatelessCoordinator] Completed: %s", brain_id)
 
         return output
 
@@ -385,9 +403,12 @@ class StatelessCoordinator:
         # Extract context from previous results
         additional_context = {}
 
+        from .brain_functions import brain_id_variants
+
         for prev_brain_id, prev_output in previous_results.items():
-            # Convert Pydantic model to dict for context
-            additional_context[prev_brain_id] = prev_output.model_dump()
+            payload = prev_output.model_dump()
+            for variant_id in brain_id_variants(prev_brain_id):
+                additional_context[variant_id] = payload
 
         return BrainInput(
             brief=brief,
@@ -414,6 +435,7 @@ class StatelessCoordinator:
             ExecutionGraph with waves
         """
         from .dependency_resolver import DependencyResolver
+        from .brain_functions import canonical_brain_id
 
         # Get brain registry (create if not provided)
         registry = self.config.brain_registry
@@ -425,8 +447,11 @@ class StatelessCoordinator:
 
         # Build simple flow config (no dependencies for now)
         # In production, load from brains.yaml with actual deps
+        canonical_to_requested = {
+            canonical_brain_id(brain_id): brain_id for brain_id in brain_ids
+        }
         nodes: dict[str, list[str]] = {
-            brain_id: [] for brain_id in brain_ids
+            canonical_id: [] for canonical_id in canonical_to_requested
         }  # No deps for now
 
         flow_config = FlowConfig(
@@ -437,6 +462,12 @@ class StatelessCoordinator:
 
         # Resolve into waves
         execution_graph = await resolver.resolve(flow_config)
+
+        for level in execution_graph.levels:
+            level.brain_ids = [
+                canonical_to_requested.get(brain_id, brain_id)
+                for brain_id in level.brain_ids
+            ]
 
         return execution_graph
 

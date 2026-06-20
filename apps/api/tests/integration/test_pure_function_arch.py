@@ -17,18 +17,20 @@ import pytest
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
+from pydantic import BaseModel
 from mastermind_cli.types.interfaces import Brief, ProductStrategy
 from mastermind_cli.orchestrator.stateless_coordinator import (
     StatelessCoordinator,
     CoordinatorConfig,
 )
 from mastermind_cli.auth.api_keys import (
-    validate_api_key,
-    generate_api_key,
-    hash_api_key,
+    validate_legacy_api_key,
+    generate_legacy_api_key,
+    hash_legacy_api_key,
 )
 from mastermind_cli.compatibility.legacy_wrapper import LegacyBrainAdapter
 from mastermind_cli.state.logger import ExecutionLogger
@@ -40,17 +42,18 @@ from mastermind_cli.state.logger import ExecutionLogger
 
 
 @pytest.fixture
-def sample_brief():
+def sample_brief() -> Brief:
     """Create sample Brief for testing."""
     return Brief(
         problem_statement="Build a CRM system for small businesses",
         context="Targeting companies with 10-50 employees",
         constraints=["Web-based", "Budget under $10k/month"],
+        target_audience="Operations teams",
     )
 
 
 @pytest.fixture
-def mock_mcp_client():
+def mock_mcp_client() -> Mock:
     """Create mock MCP client."""
     client = Mock()
     client.query_notebooklm = Mock(return_value="Mocked NotebookLM response")
@@ -58,7 +61,7 @@ def mock_mcp_client():
 
 
 @pytest.fixture
-def coordinator_config(mock_mcp_client):
+def coordinator_config(mock_mcp_client: Mock) -> CoordinatorConfig:
     """Create CoordinatorConfig for testing."""
     return CoordinatorConfig(mcp_client=mock_mcp_client, enable_logging=False)
 
@@ -78,8 +81,8 @@ class TestMultiUserSafety:
 
     @pytest.mark.asyncio
     async def test_concurrent_executions_no_crosstalk(
-        self, coordinator_config, sample_brief
-    ):
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test 5 concurrent requests with different briefs.
 
@@ -92,13 +95,19 @@ class TestMultiUserSafety:
         results_by_id = {}
         execution_lock = asyncio.Lock()
 
-        async def execute_request(exec_id: str, brief_text: str):
+        async def execute_request(
+            exec_id: str, brief_text: str
+        ) -> dict[str, BaseModel]:
             """Execute a single request."""
             # Create NEW coordinator per request (stateless)
             coordinator = StatelessCoordinator(coordinator_config)
 
             # Create unique brief for this request
-            brief = Brief(problem_statement=brief_text)
+            brief = Brief(
+                problem_statement=brief_text,
+                context="Concurrent execution test",
+                target_audience="Operations teams",
+            )
 
             # Execute
             results = await coordinator.execute_flow(
@@ -125,8 +134,9 @@ class TestMultiUserSafety:
         # Verify no cross-talk (each has unique brief in result)
         for exec_id, results in results_by_id.items():
             assert "brain-01-product-strategy" in results
-            result = results["brain-01-product-strategy"]
+            result = cast(ProductStrategy, results["brain-01-product-strategy"])
             # Brief should be unique to this execution (access problem_statement)
+            assert result.brief is not None
             assert (
                 exec_id.split("-")[1] in result.brief.problem_statement
                 or "variant" in result.brief.problem_statement
@@ -134,8 +144,8 @@ class TestMultiUserSafety:
 
     @pytest.mark.asyncio
     async def test_parallel_sequential_consistency(
-        self, coordinator_config, sample_brief
-    ):
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test that parallel executions produce same results as sequential.
 
@@ -174,19 +184,21 @@ class TestMCPSequentialExecution:
     """
 
     @pytest.mark.asyncio
-    async def test_waves_execute_sequentially(self, coordinator_config, sample_brief):
+    async def test_waves_execute_sequentially(
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test that waves execute sequentially (not all at once).
 
         If all brains executed in parallel, we'd hit MCP rate limits.
         """
         # Track execution order
-        execution_order = []
+        execution_order: list[str] = []
 
         # Create mock MCP client that tracks calls
         mock_client = Mock()
 
-        def mock_query(notebook_id: str, query: str):
+        def mock_query(notebook_id: str, query: str) -> str:
             execution_order.append(f"call-{len(execution_order)}")
             time.sleep(0.01)  # Simulate work (sync, like real code)
             return f"Response {len(execution_order)}"
@@ -209,8 +221,8 @@ class TestMCPSequentialExecution:
 
     @pytest.mark.asyncio
     async def test_no_rate_limit_errors_under_load(
-        self, coordinator_config, sample_brief
-    ):
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test that rapid sequential executions don't cause rate limits.
 
@@ -220,7 +232,7 @@ class TestMCPSequentialExecution:
         mock_client = Mock()
         call_count = {"count": 0}
 
-        def mock_query(notebook_id: str, query: str):
+        def mock_query(notebook_id: str, query: str) -> str:
             call_count["count"] += 1
             # Simulate realistic response time (sync, like real code)
             time.sleep(0.05)
@@ -259,7 +271,9 @@ class TestLegacyBrainCompatibility:
     via LegacyBrainAdapter."
     """
 
-    def test_legacy_brain_adapter_creates_isolated_context(self, sample_brief):
+    def test_legacy_brain_adapter_creates_isolated_context(
+        self, sample_brief: Brief
+    ) -> None:
         """
         Test that legacy brain gets its own isolated orchestrator.
 
@@ -269,10 +283,10 @@ class TestLegacyBrainCompatibility:
 
         # Mock legacy brain class (stateful, expects global orchestrator)
         class MockLegacyBrain:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.global_state = "SHARED_STATE"
 
-            def execute(self, brief: str, orchestrator: Any):
+            def execute(self, brief: str, orchestrator: Any) -> dict[str, Any]:
                 """
                 Legacy brain signature - expects orchestrator.
 
@@ -331,49 +345,52 @@ class TestAuthValidation:
     and Web UI (SQLite)."
     """
 
-    def test_cli_auth_with_env_var(self):
+    def test_cli_auth_with_env_var(self) -> None:
         """Test CLI authentication via MM_API_KEY environment variable."""
         # Generate valid key
-        valid_key = generate_api_key()
+        valid_key = generate_legacy_api_key()
 
         with patch.dict("os.environ", {"MM_API_KEY": valid_key}):
-            result = validate_api_key(valid_key)
+            result = validate_legacy_api_key(valid_key)
             assert result is not None
             assert result.owner == "cli-user"
             assert result.is_active is True
 
-    def test_cli_auth_rejects_invalid_key(self):
+    def test_cli_auth_rejects_invalid_key(self) -> None:
         """Test CLI authentication rejects invalid key."""
         with patch.dict("os.environ", {"MM_API_KEY": "different-key"}):
-            result = validate_api_key("invalid-key")
+            result = validate_legacy_api_key("invalid-key")
             assert result is None
 
-    def test_cli_auth_requires_env_match(self):
+    def test_cli_auth_requires_env_match(self) -> None:
         """
         Test that key must match environment variable.
 
         Security: User can't use someone else's key
         by setting MM_API_KEY to their own key.
         """
-        user_key = generate_api_key()
-        attacker_key = generate_api_key()
+        user_key = generate_legacy_api_key()
+        attacker_key = generate_legacy_api_key()
 
         # Attacker sets MM_API_KEY to their own key
         with patch.dict("os.environ", {"MM_API_KEY": attacker_key}):
             # Try to use victim's key
-            result = validate_api_key(user_key)
+            result = validate_legacy_api_key(user_key)
             assert result is None  # Rejected
 
-    def test_web_auth_with_database(self, tmp_path):
+    def test_web_auth_with_database(self, tmp_path: Path) -> None:
         """Test Web UI authentication via SQLite database."""
         import asyncio
         from unittest.mock import patch
 
-        async def test_async():
+        async def test_async() -> None:
             db_path = str(tmp_path / "test_auth.db")
             logger = ExecutionLogger(db_path=db_path, enabled=True)
 
-            from mastermind_cli.auth.api_keys import APIKeyCreate, create_api_key
+            from mastermind_cli.auth.api_keys import (
+                LegacyAPIKeyCreate,
+                create_legacy_api_key,
+            )
             from mastermind_cli.state.database import get_db
 
             # Create schema on the file DB
@@ -382,18 +399,18 @@ class TestAuthValidation:
             await db_init.create_auth_schema()
             await db_init.close()
 
-            # Pre-connect a DB instance so create_api_key (which skips connect()) can use it
+            # Pre-connect a DB instance so create_legacy_api_key can use it
             connected_db = get_db(db_path)
             await connected_db.connect()
 
-            key_data = APIKeyCreate(owner="web-user", scopes=["read", "write"])
+            key_data = LegacyAPIKeyCreate(owner="web-user", scopes=["read", "write"])
 
             # Patch get_db to return the already-connected instance
             with patch(
                 "mastermind_cli.state.database.get_db",
                 return_value=connected_db,
             ):
-                full_key, response = await create_api_key(key_data)
+                full_key, response = await create_legacy_api_key(key_data)
 
             await connected_db.close()
 
@@ -401,7 +418,7 @@ class TestAuthValidation:
             db = get_db(db_path)
             await db.connect()
 
-            key_hash = hash_api_key(full_key)
+            key_hash = hash_legacy_api_key(full_key)
             retrieved = await db.get_api_key(key_hash)
             assert retrieved is not None
             assert retrieved["owner"] == "web-user"
@@ -425,7 +442,9 @@ class TestPerformanceBenchmarks:
     """
 
     @pytest.mark.asyncio
-    async def test_single_execution_performance(self, coordinator_config, sample_brief):
+    async def test_single_execution_performance(
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Benchmark single execution performance.
 
@@ -444,15 +463,15 @@ class TestPerformanceBenchmarks:
 
     @pytest.mark.asyncio
     async def test_concurrent_execution_performance(
-        self, coordinator_config, sample_brief
-    ):
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Benchmark concurrent execution performance.
 
         Target: 5 concurrent requests complete in < 10 seconds total.
         """
 
-        async def execute_single():
+        async def execute_single() -> dict[str, BaseModel]:
             coordinator = StatelessCoordinator(coordinator_config)
             return await coordinator.execute_flow(
                 sample_brief, ["brain-01-product-strategy"]
@@ -474,7 +493,9 @@ class TestPerformanceBenchmarks:
         assert duration < 10.0, f"Concurrent execution took {duration:.2f}s"
 
     @pytest.mark.asyncio
-    async def test_memory_efficiency(self, coordinator_config, sample_brief):
+    async def test_memory_efficiency(
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test that stateless architecture doesn't leak memory.
 
@@ -515,8 +536,8 @@ class TestEndToEndFlows:
 
     @pytest.mark.asyncio
     async def test_full_flow_with_logging(
-        self, coordinator_config, sample_brief, tmp_path
-    ):
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief, tmp_path: Any
+    ) -> None:
         """
         Test full flow: brief → coordinator → brain → log → query.
         """
@@ -535,7 +556,9 @@ class TestEndToEndFlows:
             execution_id="e2e-test-1",
             brain_id="brain-01-product-strategy",
             brief=sample_brief,
-            output=results.get("brain-01-product-strategy"),
+            output=cast(
+                ProductStrategy | None, results.get("brain-01-product-strategy")
+            ),
             status="success",
             duration_ms=500,
         )
@@ -553,14 +576,16 @@ class TestEndToEndFlows:
         await logger.close()
 
     @pytest.mark.asyncio
-    async def test_error_recovery_flow(self, coordinator_config, sample_brief):
+    async def test_error_recovery_flow(
+        self, coordinator_config: CoordinatorConfig, sample_brief: Brief
+    ) -> None:
         """
         Test that errors are handled gracefully and execution continues.
         """
         # Create MCP client that fails on first call, succeeds on second
         call_count = {"count": 0}
 
-        def failing_query(notebook_id: str, query: str):
+        def failing_query(notebook_id: str, query: str) -> str:
             call_count["count"] += 1
             if call_count["count"] == 1:
                 raise RuntimeError("MCP connection failed")
