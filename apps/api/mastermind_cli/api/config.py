@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,8 +32,33 @@ class Settings(BaseSettings):
     # Costs
     cost_metrics_enabled: bool = True
 
+    # Legacy/new shared auth secret
+    jwt_secret: SecretStr = Field(
+        default=SecretStr("dev-secret"),
+        validation_alias=AliasChoices("MM_SECRET_KEY", "JWT_SECRET"),
+    )
+
+    # SMTP
+    smtp_host: str | None = None
+    smtp_port: int = 25
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+
+    # WhatsApp
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_access_token: SecretStr | None = None
+
+    # Instagram
+    instagram_business_account_id: str | None = None
+    instagram_access_token: SecretStr | None = None
+
+
+def load_settings() -> Settings:
+    """Return a fresh settings instance from the current environment."""
+    return Settings()
+
 
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()
+    return load_settings()

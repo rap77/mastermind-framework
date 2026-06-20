@@ -1,13 +1,8 @@
-"""
-Pydantic models for task state persistence.
-
-This module provides TaskRecord model for mapping SQLite rows
-to Python objects with validation.
-"""
-
-from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime, timezone
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from mastermind_cli.types.parallel import TaskState
 
 
 class TaskRecord(BaseModel):
@@ -31,9 +26,9 @@ class TaskRecord(BaseModel):
 
     id: str = Field(..., description="Unique task ID")
     brain_id: str = Field(..., description="Brain being executed")
-    status: str = Field(..., description="Task state")
-    progress: Optional[str] = Field(None, description="JSON progress data")
-    result: Optional[str] = Field(None, description="JSON result data")
-    error: Optional[str] = Field(None, description="Error message if failed")
+    status: TaskState = Field(..., description="Task state")
+    progress: str | None = Field(None, description="JSON progress data")
+    result: str | None = Field(None, description="JSON result data")
+    error: str | None = Field(None, description="Error message if failed")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
