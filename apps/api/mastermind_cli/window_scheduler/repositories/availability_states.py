@@ -52,3 +52,21 @@ class AvailabilityStatesRepository:
         self.session.commit()
         self.session.refresh(record)
         return record
+
+    def get_by_id(self, backend_id: str) -> AvailabilityState | None:
+        """Return the availability row for a backend, if present."""
+        result = self.session.execute(
+            select(AvailabilityState).where(AvailabilityState.backend_id == backend_id)
+        )
+        return result.scalar_one_or_none()
+
+    def list_by_backend_ids(self, backend_ids: list[str]) -> list[AvailabilityState]:
+        """Return availability rows for the given backend IDs."""
+        if not backend_ids:
+            return []
+        result = self.session.execute(
+            select(AvailabilityState).where(
+                AvailabilityState.backend_id.in_(backend_ids)
+            )
+        )
+        return list(result.scalars().all())

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from mastermind_cli.window_scheduler.models.backend_session import BackendSession
@@ -21,3 +21,12 @@ class BackendSessionsRepository:
             select(BackendSession).where(BackendSession.backend_id == backend_id)
         )
         return result.scalar_one_or_none()
+
+    def list_enabled(self) -> list[BackendSession]:
+        """Return enabled backend sessions ordered by scheduler priority."""
+        result = self.session.execute(
+            select(BackendSession)
+            .where(BackendSession.enabled.is_(True))
+            .order_by(desc(BackendSession.priority), BackendSession.backend_id)
+        )
+        return list(result.scalars().all())

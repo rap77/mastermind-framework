@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -109,6 +110,48 @@ def test_reset_estimate_requires_source_and_confidence(tmp_path: Path) -> None:
             estimation_source=None,
             estimation_confidence=None,
         )
+
+
+def test_reset_estimate_rejects_invalid_datetime_string(tmp_path: Path) -> None:
+    """Reject invalid reset-estimate strings with a descriptive validation error."""
+    service = _build_service(tmp_path)
+    _seed_backend(service, "claude-sub-01")
+
+    with pytest.raises(ValueError, match="valid ISO 8601 datetime string"):
+        service.record_availability_state(
+            backend_id="claude-sub-01",
+            state="exhausted",
+            estimated_reset_at="not-a-datetime",
+            estimation_source="heuristic",
+            estimation_confidence="medium",
+        )
+
+
+def test_record_availability_state_normalizes_reset_estimate_to_utc(
+    tmp_path: Path,
+) -> None:
+    """Store reset estimates as UTC-aware datetimes regardless of input tzinfo."""
+    service = _build_service(tmp_path)
+    _seed_backend(service, "claude-sub-01")
+
+    availability = service.record_availability_state(
+        backend_id="claude-sub-01",
+        state="exhausted",
+        estimated_reset_at=datetime(
+            2026,
+            6,
+            21,
+            6,
+            0,
+            tzinfo=timezone(timedelta(hours=-4)),
+        ),
+        estimation_source="heuristic",
+        estimation_confidence="medium",
+    )
+
+    assert availability.estimated_reset_at == datetime(
+        2026, 6, 21, 10, 0, tzinfo=timezone.utc
+    )
 
 
 def test_valid_checkpoint_then_switch_persists_records(tmp_path: Path) -> None:
