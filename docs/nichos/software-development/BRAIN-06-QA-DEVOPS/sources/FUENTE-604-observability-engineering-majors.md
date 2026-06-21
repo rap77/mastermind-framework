@@ -43,7 +43,7 @@ relevancia: "CRÍTICA — Define el estándar moderno de observabilidad más all
 
 ---
 
-## 1. Principios Fundamentales
+### 1. Principios Fundamentales
 
 > **P1: Monitoring y Observabilidad son conceptos diferentes**
 > Monitoring te dice qué sabes que puede fallar (conocido-conocido). Observabilidad te permite descubrir qué no sabías que podía fallar (desconocido-desconocido). En sistemas distribuidos complejos, la mayoría de los problemas son desconocidos. Un sistema observable permite debugging exploratorio en producción.
@@ -67,7 +67,7 @@ relevancia: "CRÍTICA — Define el estándar moderno de observabilidad más all
 
 ---
 
-## 2. Frameworks y Metodologías
+### 2. Frameworks y Metodologías
 
 ### Framework 1: Los 3 Pilares de la Observabilidad (y el 4to pilar)
 
@@ -147,7 +147,7 @@ relevancia: "CRÍTICA — Define el estándar moderno de observabilidad más all
 
 ---
 
-## 4. Criterios de Decisión
+### 4. Criterios de Decisión
 
 | Situación | Prioriza | Sobre | Por qué |
 |-----------|----------|-------|---------|
@@ -158,7 +158,7 @@ relevancia: "CRÍTICA — Define el estándar moderno de observabilidad más all
 
 ---
 
-## 5. Anti-patrones
+### 5. Anti-patrones
 
 | Anti-patrón | Por qué es malo | Qué hacer en su lugar |
 |-------------|-----------------|----------------------|
