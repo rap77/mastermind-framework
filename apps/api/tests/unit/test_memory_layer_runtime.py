@@ -6,10 +6,17 @@ import pytest
 
 from mastermind_cli.memory_layer.pgvector import PgvectorVectorSearchProvider
 from mastermind_cli.memory_layer.runtime import (
+    build_graph_recall_from_env,
     build_index_provider_from_env,
     build_memory_store_from_env,
+    build_reranker_from_env,
     build_vector_provider_from_env,
 )
+from mastermind_cli.memory_layer.graph_recall import (
+    MetadataMemoryGraphRecallProvider,
+    StaticMemoryGraphRecallProvider,
+)
+from mastermind_cli.memory_layer.reranking import HeuristicMemoryReranker
 from mastermind_cli.memory_layer.store_postgres import PostgresMemoryStore
 from mastermind_cli.memory_layer.vector import NoopVectorSearchProvider
 
@@ -53,6 +60,118 @@ def test_build_memory_store_from_env_can_disable_index_or_vector(
     assert isinstance(store, PostgresMemoryStore)
     assert store._vector_provider.__class__.__name__ == "NoopVectorSearchProvider"  # type: ignore[attr-defined]
     assert store._index_provider.__class__.__name__ == "NoopMemoryIndexProvider"  # type: ignore[attr-defined]
+
+
+def test_build_reranker_from_env_builds_heuristic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Heuristic reranking should be selectable from shared runtime env config."""
+    monkeypatch.setenv("MM_MEMORY_RERANKER_BACKEND", "heuristic")
+
+    reranker = build_reranker_from_env()
+
+    assert isinstance(reranker, HeuristicMemoryReranker)
+
+
+def test_build_graph_recall_from_env_builds_static_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Static graph recall should be selectable from shared runtime env config."""
+    monkeypatch.setenv("MM_MEMORY_GRAPH_RECALL_BACKEND", "static")
+    monkeypatch.setenv(
+        "MM_MEMORY_GRAPH_RECALL_STATIC_MAP",
+        """
+        {
+          "mem-1": [
+            {
+              "memory_id": "mem-2",
+              "title": "Linked decision",
+              "snippet": "related",
+              "score": 0.5,
+              "memory_type": "decision",
+              "project_id": "proj-001"
+            }
+          ]
+        }
+        """,
+    )
+
+    provider = build_graph_recall_from_env()
+
+    assert isinstance(provider, StaticMemoryGraphRecallProvider)
+
+
+def test_build_graph_recall_from_env_rejects_non_list_static_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Static graph recall should reject malformed adjacency payloads."""
+    monkeypatch.setenv("MM_MEMORY_GRAPH_RECALL_BACKEND", "static")
+    monkeypatch.setenv(
+        "MM_MEMORY_GRAPH_RECALL_STATIC_MAP",
+        """
+        {
+          "mem-1": {
+            "memory_id": "mem-2",
+            "title": "Linked decision",
+            "snippet": "related",
+            "score": 0.5,
+            "memory_type": "decision",
+            "project_id": "proj-001"
+          }
+        }
+        """,
+    )
+
+    with pytest.raises(ValueError, match="debe mapear cada memory_id a una lista"):
+        build_graph_recall_from_env()
+
+
+def test_build_graph_recall_from_env_builds_metadata_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Metadata graph recall should be selectable from shared runtime env config."""
+    monkeypatch.setenv("MM_MEMORY_GRAPH_RECALL_BACKEND", "metadata")
+
+    provider = build_graph_recall_from_env("sqlite:///memory.db")
+
+    assert isinstance(provider, MetadataMemoryGraphRecallProvider)
+
+
+def test_build_memory_store_from_env_wires_reranker_and_graph_recall(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The shared runtime store builder should wire retrieval follow-ons from env."""
+    monkeypatch.delenv("MM_MEMORY_VECTOR_BACKEND", raising=False)
+    monkeypatch.delenv("MM_MEMORY_INDEX_BACKEND", raising=False)
+    monkeypatch.setenv("MM_MEMORY_RERANKER_BACKEND", "heuristic")
+    monkeypatch.setenv("MM_MEMORY_GRAPH_RECALL_BACKEND", "static")
+    monkeypatch.setenv(
+        "MM_MEMORY_GRAPH_RECALL_STATIC_MAP",
+        """
+        {
+          "mem-1": [
+            {
+              "memory_id": "mem-2",
+              "title": "Linked decision",
+              "snippet": "related",
+              "score": 0.5,
+              "memory_type": "decision",
+              "project_id": "proj-001"
+            }
+          ]
+        }
+        """,
+    )
+
+    store = build_memory_store_from_env(
+        "sqlite:///memory.db",
+        enable_vector=False,
+        enable_index=False,
+    )
+
+    assert isinstance(store, PostgresMemoryStore)
+    assert isinstance(store._reranker, HeuristicMemoryReranker)  # type: ignore[attr-defined]
+    assert isinstance(store._graph_recall, StaticMemoryGraphRecallProvider)  # type: ignore[attr-defined]
 
 
 def test_build_index_provider_from_env_defaults_to_noop(

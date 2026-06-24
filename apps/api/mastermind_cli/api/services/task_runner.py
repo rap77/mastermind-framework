@@ -49,6 +49,7 @@ from mastermind_cli.experience.logger import ExperienceLogger
 from mastermind_cli.orchestrator import brain_router as _brain_router
 from mastermind_cli.orchestrator.brain7_evaluator import evaluate_session
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
+from mastermind_cli.orchestrator.governance import GovernanceInterceptor
 from mastermind_cli.project_state.database.session import (
     get_session_factory,
     initialize_database,
@@ -66,7 +67,7 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:devpassword@localhost:5434/mastermind_bd",
+    "",
 )
 
 # Rust control plane URL for internal brain-event endpoint
@@ -89,7 +90,9 @@ class _ExecutionLogger(Protocol):
         trace_context_id: str | None = None,
         quality_score: float | None = None,
         custom_metadata: dict[str, object] | None = None,
-    ) -> object: ...
+    ) -> object:
+        """Persist one execution event for a brain run."""
+        ...
 
 
 ExperienceLoggerFactory = Callable[[DatabaseConnection], _ExecutionLogger]
@@ -204,6 +207,7 @@ class _PassthroughMCPClient:
     """
 
     def query_notebooklm(self, notebook_id: str, query: str) -> str:
+        """Return an empty placeholder because subagents call MCP directly."""
         return ""  # Brain agents make their own MCP calls via Bash tool
 
 
@@ -272,6 +276,7 @@ async def run_brain_task(
     db_path: str,
     *,
     experience_logger_factory: ExperienceLoggerFactory | None = None,
+    governance: GovernanceInterceptor | None = None,
 ) -> None:
     """Execute brain orchestration and persist results.
 
@@ -311,16 +316,20 @@ async def run_brain_task(
     brain_ints = detector.get_flow_sequence(flow_type)
     brain_ids = [BRAIN_ID_MAP[n] for n in brain_ints if n in BRAIN_ID_MAP]
 
-    coordinator = create_stateless_coordinator(_PassthroughMCPClient())
+    coordinator = create_stateless_coordinator(
+        _PassthroughMCPClient(),
+        governance=governance,
+    )
     start_ms = int(time.time() * 1000)
 
     # Phase 21: open asyncpg connection for RAG retrieval.
     # If PostgreSQL is unavailable, conn stays None and RAG is skipped gracefully.
     pg_conn: asyncpg.Connection | None = None
-    try:
-        pg_conn = await asyncpg.connect(_DEFAULT_DATABASE_URL)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("RAG skipped — asyncpg connect failed: %s", exc)
+    if _DEFAULT_DATABASE_URL:
+        try:
+            pg_conn = await asyncpg.connect(_DEFAULT_DATABASE_URL)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("RAG skipped — asyncpg connect failed: %s", exc)
 
     try:
         brief_obj = Brief(problem_statement=brief, context="", target_audience=None)

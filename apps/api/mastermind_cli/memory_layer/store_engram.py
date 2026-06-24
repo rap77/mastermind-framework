@@ -34,6 +34,7 @@ class EngramMemoryStore:
             search_observations: Raw Engram search hook.
             get_observation: Optional raw Engram lookup hook by observation ID.
             save_session_summary: Optional dedicated Engram session-summary hook.
+
         """
         self._save_observation = save_observation
         self._search_observations = search_observations
@@ -52,7 +53,7 @@ class EngramMemoryStore:
             visibility=item.visibility,
             source_kind=item.source_kind,
             source_ref=item.source_ref,
-            tags=item.tags,
+            tags=self._string_list(item.tags),
             metadata=item.metadata,
         )
         return self._to_memory_item(saved, fallback=item)
@@ -226,7 +227,13 @@ class EngramMemoryStore:
         """Normalize a payload field into a list of strings."""
         if not isinstance(value, list):
             return []
-        return [str(item) for item in value if item is not None]
+        coerced: list[str] = []
+        for item in value:
+            if isinstance(item, str):
+                normalized = item.strip()
+                if normalized:
+                    coerced.append(normalized)
+        return coerced
 
     def _mapping_copy(self, value: object) -> dict[str, Any]:
         """Return a detached dict copy when the payload metadata is mapping-like."""

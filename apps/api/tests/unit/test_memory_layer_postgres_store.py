@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import TypeVar
 from collections.abc import Awaitable
 
+import pytest
+
 from sqlalchemy import select
 
 from mastermind_cli.memory_layer.store_postgres import (
@@ -13,8 +15,18 @@ from mastermind_cli.memory_layer.store_postgres import (
     MemorySessionRecord,
     PostgresMemoryStore,
 )
-from mastermind_cli.memory_layer.models import MemoryIndexPayload, MemoryItem
+from mastermind_cli.memory_layer.models import (
+    MemoryIndexPayload,
+    MemoryItem,
+    MemorySearchResult,
+    VectorCandidate,
+)
 from mastermind_cli.memory_layer.contracts import MemoryIndexProvider
+from mastermind_cli.memory_layer.graph_recall import (
+    MetadataMemoryGraphRecallProvider,
+    StaticMemoryGraphRecallProvider,
+)
+from mastermind_cli.memory_layer.reranking import HeuristicMemoryReranker
 from mastermind_cli.memory_layer.vector import NoopVectorSearchProvider
 from mastermind_cli.project_state.database.session import (
     dispose_engines,
@@ -423,6 +435,64 @@ def test_search_accepts_vector_provider_protocol(tmp_path: Path) -> None:
     assert results[0].why_matched == "fusion:lexical+vector"
 
 
+def test_search_accepts_explicit_vector_candidate_seam(tmp_path: Path) -> None:
+    """The store should support scored vector candidates without changing callers."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    semantic_memory_id = "memory-candidate-001"
+
+    class StubVectorCandidateProvider:
+        async def search(
+            self,
+            query: str,
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[str]:
+            del query, scope, limit
+            raise AssertionError(
+                "legacy search() should not be used when candidates exist"
+            )
+
+        async def search_candidates(
+            self,
+            query: str,
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[VectorCandidate]:
+            assert query == "semantic recall"
+            assert scope == {"project_id": "proj-001"}
+            assert limit == 5
+            return [VectorCandidate(memory_id=semantic_memory_id, score=0.9)]
+
+    store = PostgresMemoryStore(
+        database_url,
+        vector_provider=StubVectorCandidateProvider(),
+    )
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=semantic_memory_id,
+                memory_type="lesson",
+                title="Semantic recall note",
+                content="Project memory for semantic retrieval.",
+                project_id="proj-001",
+                brain_id=None,
+                niche="software-development",
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("semantic recall", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert len(results) == 1
+    assert results[0].memory_id == semantic_memory_id
+    assert results[0].why_matched == "fusion:lexical+vector"
+    assert results[0].score >= 2.9
+
+
 def test_search_with_noop_vector_provider_keeps_lexical_only_behavior(
     tmp_path: Path,
 ) -> None:
@@ -455,6 +525,368 @@ def test_search_with_noop_vector_provider_keeps_lexical_only_behavior(
 
     assert len(results) == 1
     assert results[0].why_matched == "lexical:title_or_content"
+
+
+def test_search_with_noop_reranker_preserves_existing_order(tmp_path: Path) -> None:
+    """Default reranking should not perturb the canonical Retrieval v1 ordering."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(database_url)
+
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=None,
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=None,
+                memory_type="lesson",
+                title="Weekly review",
+                content="Review the launch brief with the marketing team.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert [result.title for result in results] == ["Launch checklist", "Weekly review"]
+
+
+def test_search_accepts_optional_reranker_without_changing_callers(
+    tmp_path: Path,
+) -> None:
+    """The public search contract should stay stable when a reranker is injected."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    rerank_calls: list[tuple[str, dict[str, str | None] | None, int, int]] = []
+
+    class StubReranker:
+        async def rerank(
+            self,
+            query: str,
+            results: list[MemorySearchResult],
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[MemorySearchResult]:
+            rerank_calls.append((query, scope, limit, len(results)))
+            return list(results)
+
+    store = PostgresMemoryStore(database_url, reranker=StubReranker())
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=None,
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert len(results) == 1
+    assert rerank_calls == [("launch", {"project_id": "proj-001"}, 5, 1)]
+
+
+def test_search_accepts_optional_graph_recall_without_changing_callers(
+    tmp_path: Path,
+) -> None:
+    """The public search contract should stay stable when graph recall is injected."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    expand_calls: list[tuple[str, dict[str, str | None] | None, int, int]] = []
+
+    class StubGraphRecall:
+        async def expand(
+            self,
+            query: str,
+            results: list[MemorySearchResult],
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[MemorySearchResult]:
+            expand_calls.append((query, scope, limit, len(results)))
+            return list(results)
+
+    store = PostgresMemoryStore(database_url, graph_recall=StubGraphRecall())
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=None,
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert len(results) == 1
+    assert expand_calls == [("launch", {"project_id": "proj-001"}, 5, 1)]
+
+
+def test_search_graph_recall_can_append_related_results(tmp_path: Path) -> None:
+    """Graph recall should enrich the result set with related memory items."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    seed_memory_id = "memory-seed-001"
+    related_memory_id = "memory-related-001"
+
+    related_result = MemorySearchResult(
+        memory_id=related_memory_id,
+        title="Decision lineage note",
+        snippet="linked from launch decision",
+        score=0.5,
+        memory_type="decision",
+        project_id="proj-001",
+    )
+    store = PostgresMemoryStore(
+        database_url,
+        graph_recall=StaticMemoryGraphRecallProvider(
+            {seed_memory_id: [related_result]}
+        ),
+    )
+
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=seed_memory_id,
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert [result.memory_id for result in results] == [
+        seed_memory_id,
+        related_memory_id,
+    ]
+    assert results[1].why_matched == "graph:related"
+
+
+def test_search_graph_recall_respects_project_scope(tmp_path: Path) -> None:
+    """Graph recall should not append related memories outside the active project scope."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    seed_memory_id = "memory-seed-002"
+
+    store = PostgresMemoryStore(
+        database_url,
+        graph_recall=StaticMemoryGraphRecallProvider(
+            {
+                seed_memory_id: [
+                    MemorySearchResult(
+                        memory_id="memory-other-project-001",
+                        title="Cross-project link",
+                        snippet="must stay filtered out",
+                        score=0.5,
+                        memory_type="decision",
+                        project_id="proj-002",
+                    ),
+                    MemorySearchResult(
+                        memory_id="memory-same-project-001",
+                        title="Same-project link",
+                        snippet="eligible related result",
+                        score=0.4,
+                        memory_type="decision",
+                        project_id="proj-001",
+                    ),
+                ]
+            }
+        ),
+    )
+
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id=seed_memory_id,
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert [result.memory_id for result in results] == [
+        seed_memory_id,
+        "memory-same-project-001",
+    ]
+    assert results[1].why_matched == "graph:related"
+
+
+def test_search_metadata_graph_recall_reads_persisted_relations(tmp_path: Path) -> None:
+    """Metadata graph recall should enrich results from persisted relation IDs."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(
+        database_url,
+        graph_recall=MetadataMemoryGraphRecallProvider(database_url),
+    )
+
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id="memory-seed-metadata-001",
+                memory_type="lesson",
+                title="Launch checklist",
+                content="Coordinate GTM and CRM guardrails.",
+                project_id="proj-001",
+                brain_id="brain-1",
+                niche=None,
+                visibility="project",
+                metadata={"related_memory_ids": ["memory-related-metadata-001"]},
+            )
+        )
+    )
+    run_async(
+        store.save_item(
+            MemoryItem(
+                memory_id="memory-related-metadata-001",
+                memory_type="decision",
+                title="Decision lineage",
+                content="Persisted relation target.",
+                project_id="proj-001",
+                brain_id="brain-1",
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    results = run_async(
+        store.search("checklist", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert [result.memory_id for result in results] == [
+        "memory-seed-metadata-001",
+        "memory-related-metadata-001",
+    ]
+    assert results[1].why_matched == "graph:metadata"
+
+
+def test_search_heuristic_reranker_can_reorder_fused_candidates(tmp_path: Path) -> None:
+    """Heuristic reranking should promote stronger title matches over raw vector score."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    lexical_memory_id = "memory-lexical-rr-001"
+    semantic_memory_id = "memory-semantic-rr-001"
+
+    class StubVectorCandidateProvider:
+        async def search(
+            self,
+            query: str,
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[str]:
+            del query, scope, limit
+            raise AssertionError("legacy vector seam should not run in this test")
+
+        async def search_candidates(
+            self,
+            query: str,
+            scope: dict[str, str | None] | None = None,
+            limit: int = 10,
+        ) -> list[VectorCandidate]:
+            assert query == "launch"
+            assert scope == {"project_id": "proj-001"}
+            assert limit == 5
+            return [VectorCandidate(memory_id=semantic_memory_id, score=3.0)]
+
+    baseline_store = PostgresMemoryStore(
+        database_url,
+        vector_provider=StubVectorCandidateProvider(),
+    )
+    reranked_store = PostgresMemoryStore(
+        database_url,
+        vector_provider=StubVectorCandidateProvider(),
+        reranker=HeuristicMemoryReranker(),
+    )
+
+    run_async(
+        baseline_store.save_item(
+            MemoryItem(
+                memory_id=lexical_memory_id,
+                memory_type="lesson",
+                title="Launch note",
+                content="Brief summary for release prep.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+    run_async(
+        baseline_store.save_item(
+            MemoryItem(
+                memory_id=semantic_memory_id,
+                memory_type="lesson",
+                title="Release summary",
+                content="Semantic note about release planning and rollout.",
+                project_id="proj-001",
+                brain_id=None,
+                niche=None,
+                visibility="project",
+            )
+        )
+    )
+
+    baseline_results = run_async(
+        baseline_store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+    reranked_results = run_async(
+        reranked_store.search("launch", scope={"project_id": "proj-001"}, limit=5)
+    )
+
+    assert baseline_results[0].memory_id == semantic_memory_id
+    assert reranked_results[0].memory_id == lexical_memory_id
 
 
 def test_list_recent_orders_project_items_newest_first(tmp_path: Path) -> None:
@@ -520,6 +952,23 @@ def test_save_session_summary_persists_dedicated_session_record(tmp_path: Path) 
     assert record.metadata_json == {"objective": "memory-layer-v1"}
 
 
+def test_save_session_summary_rejects_non_json_metadata(tmp_path: Path) -> None:
+    """Session summaries should reject non-JSON metadata payloads."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(database_url)
+
+    with pytest.raises(ValueError, match="Metadata values must be JSON-compatible"):
+        run_async(
+            store.save_session_summary(
+                session_id="session-456",
+                summary="Bad metadata payload",
+                project_id="proj-001",
+                metadata={"objective": object()},
+            )
+        )
+
+
 def test_save_preference_persists_dedicated_preference_record(tmp_path: Path) -> None:
     """Preferences should persist outside the generic memory items table."""
     database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
@@ -547,6 +996,44 @@ def test_save_preference_persists_dedicated_preference_record(tmp_path: Path) ->
     assert record.scope == "personal"
     assert record.project_id == "proj-001"
     assert record.value_json == {"level": "brief"}
+
+
+def test_save_preference_rejects_non_json_compatible_values(tmp_path: Path) -> None:
+    """Preferences should fail fast on unsupported value objects."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(database_url)
+
+    with pytest.raises(ValueError, match="JSON-compatible"):
+        run_async(
+            store.save_preference(
+                key="output_verbosity",
+                value=object(),
+                scope="personal",
+                project_id="proj-001",
+            )
+        )
+
+
+def test_save_item_rejects_non_json_metadata(tmp_path: Path) -> None:
+    """Memory items should reject non-JSON metadata payloads."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(database_url)
+
+    with pytest.raises(ValueError, match="Metadata values must be JSON-compatible"):
+        run_async(
+            store.save_item(
+                MemoryItem(
+                    memory_type="lesson",
+                    title="Bad metadata",
+                    content="bad",
+                    project_id="proj-001",
+                    visibility="project",
+                    metadata={"objective": object()},
+                )
+            )
+        )
 
 
 def run_async(awaitable: Awaitable[T]) -> T:

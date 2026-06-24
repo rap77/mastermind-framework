@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from .contracts import MemoryStore
 from .models import MemoryItem, MemorySearchResult
 
@@ -41,12 +43,23 @@ class MemoryService:
         source_kind: str | None = None,
         source_ref: str | None = None,
         tags: list[str] | None = None,
+        related_memory_ids: Sequence[str | None] | None = None,
         metadata: dict[str, object] | None = None,
     ) -> MemoryItem:
         """Persist a reusable lesson, fix, pattern, or decision memory item."""
         normalized_tags = [memory_type]
         if tags:
             normalized_tags.extend(tag for tag in tags if tag not in normalized_tags)
+
+        normalized_metadata = dict(metadata or {})
+        normalized_related_ids = self._normalize_related_memory_ids(
+            related_memory_ids,
+            normalized_metadata.get("related_memory_ids"),
+        )
+        if normalized_related_ids:
+            normalized_metadata["related_memory_ids"] = normalized_related_ids
+        elif "related_memory_ids" in normalized_metadata:
+            normalized_metadata.pop("related_memory_ids")
 
         item = MemoryItem(
             memory_id=None,
@@ -60,7 +73,7 @@ class MemoryService:
             source_kind=source_kind,
             source_ref=source_ref,
             tags=normalized_tags,
-            metadata=dict(metadata or {}),
+            metadata=normalized_metadata,
         )
         return await self._store.save_item(item)
 
@@ -93,3 +106,31 @@ class MemoryService:
             scope={"project_id": project_id},
             limit=limit,
         )
+
+    def _normalize_related_memory_ids(
+        self,
+        related_memory_ids: Sequence[str | None] | None,
+        existing_value: object,
+    ) -> list[str]:
+        """Merge and dedupe related memory IDs into a stable list."""
+        merged: list[str] = []
+        for value in self._coerce_related_memory_ids(existing_value):
+            if value not in merged:
+                merged.append(value)
+        for value in self._coerce_related_memory_ids(related_memory_ids):
+            if value not in merged:
+                merged.append(value)
+        return merged
+
+    def _coerce_related_memory_ids(self, value: object) -> list[str]:
+        """Coerce a metadata payload into related memory IDs when possible."""
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            coerced: list[str] = []
+            for item in value:
+                if not isinstance(item, str):
+                    continue
+                normalized = item.strip()
+                if normalized:
+                    coerced.append(normalized)
+            return coerced
+        return []

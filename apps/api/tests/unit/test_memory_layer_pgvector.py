@@ -12,9 +12,11 @@ class StubEmbeddingProvider:
     """Simple embedding stub for pgvector provider tests."""
 
     def __init__(self, values: list[list[float]]) -> None:
+        """Store the embeddings returned by the stub."""
         self._values = values
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Return the precomputed embedding matrix."""
         del texts
         return self._values
 
@@ -29,6 +31,7 @@ class FakeConnection:
         existing_dimensions: int | None = None,
         row_count: int = 0,
     ) -> None:
+        """Store fake execution sinks and schema metadata."""
         self._sink = sink
         self._existing_dimensions = existing_dimensions
         self._row_count = row_count
@@ -36,6 +39,7 @@ class FakeConnection:
     def execute(
         self, statement: object, params: dict[str, object] | None = None
     ) -> object:
+        """Capture executed SQL and return canned result objects."""
         text_value = str(statement)
         self._sink.append((text_value, params))
         if "SELECT format_type" in text_value:
@@ -53,12 +57,15 @@ class FakeResult:
     """Tiny result wrapper supporting fetchone/scalar for schema checks."""
 
     def __init__(self, rows: list[tuple[object, ...]]) -> None:
+        """Store fake row tuples."""
         self._rows = rows
 
     def fetchone(self) -> tuple[object, ...] | None:
+        """Return the first row when present."""
         return self._rows[0] if self._rows else None
 
     def scalar(self) -> object | None:
+        """Return the first column from the first row when present."""
         row = self.fetchone()
         return row[0] if row else None
 
@@ -73,11 +80,13 @@ class FakeBeginContext:
         existing_dimensions: int | None = None,
         row_count: int = 0,
     ) -> None:
+        """Store fake engine state for context entry."""
         self._sink = sink
         self._existing_dimensions = existing_dimensions
         self._row_count = row_count
 
     def __enter__(self) -> FakeConnection:
+        """Return a fake connection for the context block."""
         return FakeConnection(
             self._sink,
             existing_dimensions=self._existing_dimensions,
@@ -85,6 +94,7 @@ class FakeBeginContext:
         )
 
     def __exit__(self, exc_type: object, exc: object, tb: object) -> bool:
+        """Leave the fake context without suppressing exceptions."""
         del exc_type, exc, tb
         return False
 
@@ -98,11 +108,13 @@ class FakeEngine:
         existing_dimensions: int | None = None,
         row_count: int = 0,
     ) -> None:
+        """Initialize the fake engine state."""
         self.calls: list[tuple[str, dict[str, object] | None]] = []
         self._existing_dimensions = existing_dimensions
         self._row_count = row_count
 
     def begin(self) -> FakeBeginContext:
+        """Return a fake transaction context."""
         return FakeBeginContext(
             self.calls,
             existing_dimensions=self._existing_dimensions,
@@ -257,3 +269,11 @@ def test_pgvector_schema_rejects_dimension_change_with_existing_rows() -> None:
 
     with pytest.raises(ValueError, match="uses 768 dimensions"):
         _ensure_pgvector_memory_schema(engine, 1024)
+
+
+def test_vector_literal_rejects_non_finite_values() -> None:
+    """Vector literals should refuse NaN and infinity."""
+    from mastermind_cli.memory_layer.pgvector import _vector_literal
+
+    with pytest.raises(ValueError, match="finite numeric values"):
+        _vector_literal([0.1, float("nan")])

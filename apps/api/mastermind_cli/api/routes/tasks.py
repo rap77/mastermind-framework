@@ -17,7 +17,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 
-from mastermind_cli.api.dependencies import get_db_path, get_project_state_db_url
+from mastermind_cli.api.dependencies import (
+    get_db_path,
+    get_governance,
+    get_project_state_db_url,
+)
 from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.api.services.graph_builder import build_niche_clustered_graph
 from mastermind_cli.api.services.task_runner import run_brain_task
@@ -33,6 +37,7 @@ from mastermind_cli.orchestration.distillation_service import (
     DistillationTask,
 )
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
+from mastermind_cli.orchestrator.governance import GovernanceInterceptor
 from mastermind_cli.state.database import DatabaseConnection
 from mastermind_cli.types.pydantic import StrictRequestModel
 
@@ -163,16 +168,14 @@ def _load_task_graph_source(
         )
 
     import sqlite3
+    from contextlib import closing
 
-    conn = sqlite3.connect(db_path)
-    try:
+    with closing(sqlite3.connect(db_path)) as conn:
         cursor = conn.execute(
             "SELECT flow_config, status, brief FROM executions WHERE id = ? AND user_id = ?",
             [task_id, user_id],
         )
         row = cursor.fetchone()
-    finally:
-        conn.close()
 
     if row is None:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -290,6 +293,7 @@ async def create_task(
     user_id: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
     database_url: str = Depends(get_project_state_db_url),
+    governance: GovernanceInterceptor | None = Depends(get_governance),
 ) -> TaskResponse:
     """Create new orchestration task.
 
@@ -337,6 +341,7 @@ async def create_task(
         brief=brief_sanitized,
         flow=request.flow if isinstance(request.flow, str) else None,
         db_path=db_path,
+        governance=governance,
     )
 
     return TaskResponse(
@@ -353,6 +358,7 @@ async def create_auto_task(
     user_id: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
     database_url: str = Depends(get_project_state_db_url),
+    governance: GovernanceInterceptor | None = Depends(get_governance),
 ) -> AutoTaskResponse:
     """Create task with auto-detected flow.
 
@@ -401,6 +407,7 @@ async def create_auto_task(
         brief=brief_sanitized,
         flow=detected_flow,
         db_path=db_path,
+        governance=governance,
     )
 
     # NEW: Hook distillation after orchestration completes

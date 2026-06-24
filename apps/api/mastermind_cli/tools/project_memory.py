@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import os
 import sys
 from typing import cast
@@ -42,6 +43,7 @@ from mastermind_cli.memory_layer.contracts import (
 from mastermind_cli.memory_layer.indexing import create_memory_index_provider
 from mastermind_cli.memory_layer.models import MemoryItem
 from mastermind_cli.memory_layer.runtime import (
+    build_graph_recall_from_env,
     build_memory_store_from_env,
     build_vector_provider_from_env,
 )
@@ -58,6 +60,15 @@ from mastermind_cli.project_state.database.session import (
 )
 
 
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
+
+
 def _get_database_url() -> str:
     """Resolve the database URL for first-party memory retrieval.
 
@@ -68,6 +79,7 @@ def _get_database_url() -> str:
 
     Raises:
         ValueError: When no supported explicit configuration is available.
+
     """
     explicit_url = os.environ.get("MM_MEMORY_DATABASE_URL") or os.environ.get(
         "DATABASE_URL"
@@ -92,6 +104,14 @@ def _get_database_url() -> str:
         "Configura MM_MEMORY_DATABASE_URL o DATABASE_URL. "
         "Si quieres SQLite local, usa MM_MEMORY_BACKEND=sqlite y MM_DB_PATH."
     )
+
+
+def _emit_json(payload: object) -> None:
+    """Emit a JSON payload through the module logger."""
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.stream = sys.stdout
+    logger.info(json.dumps(payload, indent=2, ensure_ascii=False, default=str))
 
 
 def _get_vector_provider() -> VectorSearchProvider:
@@ -168,7 +188,7 @@ async def _cmd_query(
         limit=args.limit,
     )
     payload = [result.model_dump() for result in results]
-    print(json.dumps(payload, indent=2, ensure_ascii=False, default=str))
+    _emit_json(payload)
 
 
 async def _cmd_backfill(
@@ -200,16 +220,12 @@ async def _cmd_backfill(
         await provider.upsert(build_memory_index_payload(item))
         indexed += 1
 
-    print(
-        json.dumps(
-            {
-                "indexed": indexed,
-                "project_id": args.project_id,
-                "limit": args.limit,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
+    _emit_json(
+        {
+            "indexed": indexed,
+            "project_id": args.project_id,
+            "limit": args.limit,
+        }
     )
 
 
@@ -229,6 +245,7 @@ def _collect_status(project_id: str | None = None) -> dict[str, object]:
     database_kind = _detect_database_kind(database_url)
     vector_backend = os.environ.get("MM_MEMORY_VECTOR_BACKEND", "none")
     index_backend = os.environ.get("MM_MEMORY_INDEX_BACKEND", "none")
+    graph_recall_backend = os.environ.get("MM_MEMORY_GRAPH_RECALL_BACKEND", "none")
     embedding_backend = os.environ.get("MM_MEMORY_EMBEDDING_BACKEND", "none")
 
     engine = get_engine(database_url)
@@ -294,11 +311,19 @@ def _collect_status(project_id: str | None = None) -> dict[str, object]:
                 ).scalar()
             memory_embeddings_count = int(result or 0)
 
+    graph_recall_configured = True
+    try:
+        build_graph_recall_from_env(database_url)
+    except Exception:
+        graph_recall_configured = False
+
     return {
         "database_kind": database_kind,
         "project_id": project_id,
         "vector_backend": vector_backend,
         "index_backend": index_backend,
+        "graph_recall_backend": graph_recall_backend,
+        "graph_recall_configured": graph_recall_configured,
         "embedding_backend": embedding_backend,
         "tables": {
             "mm_memory_items": "mm_memory_items" in table_names,
@@ -314,13 +339,7 @@ def _collect_status(project_id: str | None = None) -> dict[str, object]:
 
 async def _cmd_status(args: argparse.Namespace) -> None:
     """Print operational status for the first-party project memory layer."""
-    print(
-        json.dumps(
-            _collect_status(project_id=args.project_id),
-            indent=2,
-            ensure_ascii=False,
-        )
-    )
+    _emit_json(_collect_status(project_id=args.project_id))
 
 
 def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
@@ -328,6 +347,10 @@ def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
     database_kind = str(status.get("database_kind", "unknown"))
     vector_backend = str(status.get("vector_backend", "none"))
     index_backend = str(status.get("index_backend", "none"))
+    graph_recall_backend = str(status.get("graph_recall_backend", "none"))
+    graph_recall_configured = bool(
+        status.get("graph_recall_configured", graph_recall_backend != "none")
+    )
     counts = status.get("counts", {})
     tables = status.get("tables", {})
 
@@ -354,6 +377,7 @@ def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
         ),
         "vector_backend_enabled": vector_backend == "pgvector",
         "index_backend_enabled": index_backend == "pgvector",
+        "graph_recall_enabled": graph_recall_configured,
         "has_memory_items": memory_items > 0,
         "has_memory_embeddings": (memory_embeddings or 0) > 0
         if memory_embeddings is not None
@@ -373,6 +397,14 @@ def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
         next_steps.append(
             "Configura MM_MEMORY_INDEX_BACKEND=pgvector para indexación semántica."
         )
+    if graph_recall_backend == "none":
+        next_steps.append(
+            "Configura MM_MEMORY_GRAPH_RECALL_BACKEND=metadata para expansión relacional."
+        )
+    if graph_recall_backend != "none" and not graph_recall_configured:
+        next_steps.append(
+            "Corrige la configuración de graph recall; el backend actual no se puede inicializar."
+        )
     if database_kind == "postgresql" and not bool(pgvector_installed):
         next_steps.append("Instala o habilita la extensión vector en PostgreSQL.")
     if memory_items > 0 and (memory_embeddings or 0) == 0:
@@ -388,6 +420,7 @@ def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
         database_kind == "postgresql"
         and vector_backend == "pgvector"
         and index_backend == "pgvector"
+        and graph_recall_configured
         and bool(pgvector_installed)
         and memory_items > 0
         and (memory_embeddings or 0) > 0
@@ -404,7 +437,7 @@ def _build_doctor_report(status: dict[str, object]) -> dict[str, object]:
 async def _cmd_doctor(args: argparse.Namespace) -> None:
     """Print an actionable doctor report for project memory readiness."""
     status = _collect_status(project_id=args.project_id)
-    print(json.dumps(_build_doctor_report(status), indent=2, ensure_ascii=False))
+    _emit_json(_build_doctor_report(status))
 
 
 def _build_parser() -> argparse.ArgumentParser:

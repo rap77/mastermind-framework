@@ -67,6 +67,144 @@ async def test_record_learning_builds_canonical_memory_item() -> None:
 
 
 @pytest.mark.asyncio
+async def test_record_learning_merges_related_memory_ids_into_metadata() -> None:
+    """Related memory IDs should be normalized into memory metadata for graph recall."""
+    store = AsyncMock()
+    store.save_item.return_value = MemoryItem(
+        memory_id="mem-2",
+        memory_type="lesson",
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        tags=["lesson"],
+        metadata={"related_memory_ids": ["mem-1", "mem-3"]},
+    )
+    service = MemoryService(store)
+
+    saved = await service.record_learning(
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        related_memory_ids=["mem-3", "mem-4"],
+        metadata={"source": "task-runner", "related_memory_ids": ["mem-1"]},
+    )
+
+    item = store.save_item.await_args.args[0]
+    assert item.metadata == {
+        "source": "task-runner",
+        "related_memory_ids": ["mem-1", "mem-3", "mem-4"],
+    }
+    assert saved.memory_id == "mem-2"
+
+
+@pytest.mark.asyncio
+async def test_record_learning_accepts_non_list_related_memory_ids() -> None:
+    """Tuple metadata should still normalize into related memory IDs."""
+    store = AsyncMock()
+    store.save_item.return_value = MemoryItem(
+        memory_id="mem-3",
+        memory_type="lesson",
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        tags=["lesson"],
+        metadata={"related_memory_ids": ["mem-1", "mem-2"]},
+    )
+    service = MemoryService(store)
+
+    await service.record_learning(
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        related_memory_ids=("mem-2", "mem-4"),
+        metadata={"related_memory_ids": ("mem-1",)},
+    )
+
+    item = store.save_item.await_args.args[0]
+    assert item.metadata["related_memory_ids"] == ["mem-1", "mem-2", "mem-4"]
+
+
+@pytest.mark.asyncio
+async def test_record_learning_ignores_mapping_related_memory_ids() -> None:
+    """Mapping payloads should not be mistaken for ordered related IDs."""
+    store = AsyncMock()
+    store.save_item.return_value = MemoryItem(
+        memory_id="mem-4",
+        memory_type="lesson",
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        tags=["lesson"],
+        metadata={},
+    )
+    service = MemoryService(store)
+
+    await service.record_learning(
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        metadata={"related_memory_ids": {"a": "mem-1", "b": "mem-2"}},
+    )
+
+    item = store.save_item.await_args.args[0]
+    assert "related_memory_ids" not in item.metadata
+
+
+@pytest.mark.asyncio
+async def test_record_learning_ignores_none_related_memory_ids() -> None:
+    """None entries should not be coerced into a fake related-memory ID."""
+    store = AsyncMock()
+    store.save_item.return_value = MemoryItem(
+        memory_id="mem-5",
+        memory_type="lesson",
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        tags=["lesson"],
+        metadata={"related_memory_ids": ["mem-1"]},
+    )
+    service = MemoryService(store)
+
+    await service.record_learning(
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        related_memory_ids=[None, "mem-2"],
+        metadata={"related_memory_ids": [None, "mem-1"]},
+    )
+
+    item = store.save_item.await_args.args[0]
+    assert item.metadata["related_memory_ids"] == ["mem-1", "mem-2"]
+
+
+@pytest.mark.asyncio
+async def test_record_learning_ignores_non_string_related_memory_ids() -> None:
+    """Only string IDs should survive normalization."""
+    store = AsyncMock()
+    store.save_item.return_value = MemoryItem(
+        memory_id="mem-6",
+        memory_type="lesson",
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        tags=["lesson"],
+        metadata={"related_memory_ids": ["mem-1"]},
+    )
+    service = MemoryService(store)
+
+    await service.record_learning(
+        title="Follow-up note",
+        content="related",
+        visibility="project",
+        related_memory_ids=[1, "mem-2", True, ""],  # type: ignore[list-item]
+        metadata={"related_memory_ids": [False, "mem-1"]},
+    )
+
+    item = store.save_item.await_args.args[0]
+    assert item.metadata["related_memory_ids"] == ["mem-1", "mem-2"]
+
+
+@pytest.mark.asyncio
 async def test_record_preference_delegates_to_store() -> None:
     """Operational preferences should persist through the store contract."""
     store = AsyncMock()

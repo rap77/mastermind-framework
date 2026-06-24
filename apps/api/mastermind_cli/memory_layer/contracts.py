@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .models import MemoryIndexPayload, MemoryItem, MemorySearchResult
+from .models import MemoryIndexPayload, MemoryItem, MemorySearchResult, VectorCandidate
 
 
 @runtime_checkable
@@ -65,6 +65,19 @@ class VectorSearchProvider(Protocol):
 
 
 @runtime_checkable
+class VectorCandidateProvider(Protocol):
+    """Contract for optional scored vector candidate providers."""
+
+    async def search_candidates(
+        self,
+        query: str,
+        scope: dict[str, str | None] | None = None,
+        limit: int = 10,
+    ) -> list[VectorCandidate]:
+        """Return ranked semantic candidates with explicit scores."""
+
+
+@runtime_checkable
 class MemoryIndexProvider(Protocol):
     """Contract for optional vector indexers over canonical memory items."""
 
@@ -78,3 +91,31 @@ class EmbeddingProvider(Protocol):
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Return one embedding vector per input text."""
+
+
+@runtime_checkable
+class MemoryReranker(Protocol):
+    """Contract for optional post-fusion reranking providers."""
+
+    async def rerank(
+        self,
+        query: str,
+        results: list[MemorySearchResult],
+        scope: dict[str, str | None] | None = None,
+        limit: int = 10,
+    ) -> list[MemorySearchResult]:
+        """Return reordered or rescored search results."""
+
+
+@runtime_checkable
+class MemoryGraphRecallProvider(Protocol):
+    """Contract for optional post-ranking graph recall providers."""
+
+    async def expand(
+        self,
+        query: str,
+        results: list[MemorySearchResult],
+        scope: dict[str, str | None] | None = None,
+        limit: int = 10,
+    ) -> list[MemorySearchResult]:
+        """Return graph-enriched search results."""

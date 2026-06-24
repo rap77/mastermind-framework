@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TypeAlias
 
-from .embeddings import create_embedding_provider
 from .contracts import VectorSearchProvider
+from .embeddings import create_embedding_provider
+from .models import VectorCandidate
 from .pgvector import PgvectorVectorSearchProvider
 
 VectorSearchCallable: TypeAlias = Callable[
@@ -43,6 +44,29 @@ class CallableVectorSearchProvider:
         limit: int = 10,
     ) -> list[str]:
         """Delegate vector candidate lookup to the wrapped callable."""
+        return await self._search_callable(query, scope, limit)
+
+
+class CallableVectorCandidateProvider:
+    """Adapter that wraps an async callable returning explicit vector candidates."""
+
+    def __init__(
+        self,
+        search_callable: Callable[
+            [str, dict[str, str | None] | None, int],
+            Awaitable[list[VectorCandidate]],
+        ],
+    ) -> None:
+        """Store the wrapped async callable."""
+        self._search_callable = search_callable
+
+    async def search_candidates(
+        self,
+        query: str,
+        scope: dict[str, str | None] | None = None,
+        limit: int = 10,
+    ) -> list[VectorCandidate]:
+        """Delegate scored candidate lookup to the wrapped callable."""
         return await self._search_callable(query, scope, limit)
 
 
@@ -115,6 +139,7 @@ def create_vector_search_provider(
 
 
 __all__ = [
+    "CallableVectorCandidateProvider",
     "CallableVectorSearchProvider",
     "NoopVectorSearchProvider",
     "UnsupportedVectorSearchProvider",

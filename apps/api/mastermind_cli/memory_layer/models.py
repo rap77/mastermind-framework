@@ -60,6 +60,13 @@ class MemorySearchResult(BaseModel):
     source_ref: str | None = Field(None, description="Origin reference identifier.")
 
 
+class VectorCandidate(BaseModel):
+    """Ranked semantic candidate returned by a vector retrieval seam."""
+
+    memory_id: str = Field(..., description="Unique memory identifier.")
+    score: float = Field(..., description="Normalized vector relevance score.")
+
+
 class MemoryContextBundle(BaseModel):
     """Structured context bundle assembled from memory search results."""
 
@@ -91,3 +98,50 @@ class MemoryIndexPayload(BaseModel):
     niche: str | None = Field(None, description="Optional niche classification.")
     source_ref: str | None = Field(None, description="Origin reference identifier.")
     embedding_text: str = Field(..., min_length=1, description="Text to embed.")
+
+
+class RetrievalEvalCase(BaseModel):
+    """One deterministic retrieval eval expectation."""
+
+    case_id: str = Field(..., min_length=1, description="Stable case identifier.")
+    query: str = Field(..., min_length=1, description="Retrieval query to execute.")
+    expected_memory_ids: list[str] = Field(
+        default_factory=list,
+        description="Memory IDs that must appear in the result set.",
+    )
+    scope: dict[str, str | None] = Field(
+        default_factory=dict,
+        description="Additional scope filters merged with the project scope.",
+    )
+
+
+class RetrievalEvalCaseResult(BaseModel):
+    """Outcome for one retrieval eval case."""
+
+    case_id: str = Field(..., min_length=1, description="Stable case identifier.")
+    query: str = Field(..., min_length=1, description="Executed retrieval query.")
+    passed: bool = Field(..., description="Whether the case passed.")
+    expected_memory_ids: list[str] = Field(
+        default_factory=list,
+        description="Memory IDs required by the case.",
+    )
+    matched_memory_ids: list[str] = Field(
+        default_factory=list,
+        description="Actual ranked memory IDs returned by search.",
+    )
+    scope: dict[str, str | None] = Field(
+        default_factory=dict,
+        description="Effective scope used for the search.",
+    )
+
+
+class RetrievalEvalReport(BaseModel):
+    """Aggregate scorecard for an offline retrieval baseline."""
+
+    total_cases: int = Field(..., ge=0, description="Number of executed cases.")
+    passed_cases: int = Field(..., ge=0, description="Number of passing cases.")
+    pass_rate: float = Field(..., ge=0.0, le=1.0, description="Passing ratio.")
+    cases: list[RetrievalEvalCaseResult] = Field(
+        default_factory=list,
+        description="Per-case retrieval outcomes.",
+    )

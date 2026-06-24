@@ -167,6 +167,7 @@ async def test_cmd_status_prints_status_json(
             "project_id": project_id,
             "vector_backend": "pgvector",
             "index_backend": "pgvector",
+            "graph_recall_backend": "metadata",
             "embedding_backend": "sentence-transformers",
             "tables": {
                 "mm_memory_items": True,
@@ -196,6 +197,7 @@ def test_build_doctor_report_marks_ready_when_pgvector_is_fully_operational() ->
             "project_id": "proj-001",
             "vector_backend": "pgvector",
             "index_backend": "pgvector",
+            "graph_recall_backend": "metadata",
             "embedding_backend": "sentence-transformers",
             "tables": {
                 "mm_memory_items": True,
@@ -221,6 +223,7 @@ def test_build_doctor_report_recommends_backfill_when_embeddings_are_missing() -
             "project_id": "proj-001",
             "vector_backend": "pgvector",
             "index_backend": "pgvector",
+            "graph_recall_backend": "metadata",
             "embedding_backend": "sentence-transformers",
             "tables": {
                 "mm_memory_items": True,
@@ -238,6 +241,33 @@ def test_build_doctor_report_recommends_backfill_when_embeddings_are_missing() -
     assert any("backfill" in step for step in report["next_steps"])
 
 
+def test_build_doctor_report_rejects_unconfigurable_graph_recall() -> None:
+    """Doctor should not mark ready when graph recall config cannot initialize."""
+    report = project_memory._build_doctor_report(
+        {
+            "database_kind": "postgresql",
+            "project_id": "proj-001",
+            "vector_backend": "pgvector",
+            "index_backend": "pgvector",
+            "graph_recall_backend": "static",
+            "graph_recall_configured": False,
+            "embedding_backend": "sentence-transformers",
+            "tables": {
+                "mm_memory_items": True,
+                "mm_memory_embeddings": True,
+            },
+            "counts": {
+                "memory_items": 10,
+                "memory_embeddings": 8,
+            },
+            "pgvector_extension_installed": True,
+        }
+    )
+
+    assert report["ready_for_semantic_query"] is False
+    assert any("graph recall" in step for step in report["next_steps"])
+
+
 @pytest.mark.asyncio
 async def test_cmd_doctor_prints_actionable_report(
     capsys: pytest.CaptureFixture[str],
@@ -252,6 +282,7 @@ async def test_cmd_doctor_prints_actionable_report(
             "project_id": project_id,
             "vector_backend": "pgvector",
             "index_backend": "pgvector",
+            "graph_recall_backend": "metadata",
             "embedding_backend": "sentence-transformers",
             "tables": {
                 "mm_memory_items": True,
@@ -271,6 +302,7 @@ async def test_cmd_doctor_prints_actionable_report(
     assert payload["ready_for_semantic_query"] is False
     assert payload["checks"]["has_memory_items_table"] is True
     assert any("backfill" in step for step in payload["next_steps"])
+    assert payload["checks"]["graph_recall_enabled"] is True
 
 
 @pytest.mark.asyncio

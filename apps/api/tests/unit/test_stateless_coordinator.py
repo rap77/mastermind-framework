@@ -29,6 +29,12 @@ from mastermind_cli.types.interfaces import (
     UIDesign,
     UXResearch,
 )
+from mastermind_cli.orchestrator.governance import (
+    GovernanceDecision,
+    Intention,
+    PolicyVerdict,
+    TaskContext,
+)
 from mastermind_cli.orchestrator.stateless_coordinator import (
     StatelessCoordinator,
     CoordinatorConfig,
@@ -84,6 +90,22 @@ class MockMCPClient:
         return (
             f"Mock response for {notebook_id}: {query[:50]}... "
             f"[hash:{query_hash} call:{self._call_count}]"
+        )
+
+
+class BlockingGovernance:
+    """Governance stub that always blocks execution."""
+
+    def evaluate(
+        self, intention: Intention, context: TaskContext
+    ) -> GovernanceDecision:
+        """Return a blocked decision."""
+        del intention, context
+        return GovernanceDecision(
+            final_verdict=PolicyVerdict.DENY,
+            triggering_policy="test",
+            audit_event_ref="audit-1",
+            next_action="do_not_delegate",
         )
 
 
@@ -174,6 +196,25 @@ async def test_coordinator_executes_single_brain(
     assert "brain-01-product-strategy" in results
     assert isinstance(results["brain-01-product-strategy"], ProductStrategy)
     assert results["brain-01-product-strategy"].positioning
+
+
+@pytest.mark.asyncio
+async def test_coordinator_blocks_when_governance_denies(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """Stateless coordinator should fail closed when governance blocks."""
+    config = CoordinatorConfig(
+        mcp_client=coordinator_config.mcp_client,
+        enable_logging=False,
+        governance=BlockingGovernance(),
+    )
+    coordinator = StatelessCoordinator(config)
+
+    results = await coordinator.execute_flow(
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
+    )
+
+    assert results == {}
 
 
 @pytest.mark.asyncio
@@ -303,6 +344,24 @@ async def test_coordinator_factory_function(
     )
 
     assert "brain-01-product-strategy" in results
+
+
+@pytest.mark.asyncio
+async def test_coordinator_factory_accepts_governance(
+    sample_brief: Brief,
+) -> None:
+    """Factory should pass governance through to the stateless coordinator."""
+    coordinator = create_stateless_coordinator(
+        mcp_client=MockMCPClient(),
+        enable_logging=False,
+        governance=BlockingGovernance(),
+    )
+
+    results = await coordinator.execute_flow(
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
+    )
+
+    assert results == {}
 
 
 @pytest.mark.asyncio
@@ -481,6 +540,46 @@ async def test_brain_input_contains_execution_metadata(
 
     assert "brain-01-product-strategy" in results
     # If execution succeeded, metadata was included
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_populates_runtime_contracts(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """Coordinator should expose deterministic runtime contract state."""
+    coordinator = StatelessCoordinator(coordinator_config)
+
+    results = await coordinator.execute_flow(
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
+    )
+
+    assert "brain-01-product-strategy" in results
+    assert coordinator.runtime_task_profile is not None
+    assert coordinator.runtime_loop_policy is not None
+    assert coordinator.runtime_envelope is not None
+    assert coordinator.runtime_verification_outcome is not None
+    assert coordinator.runtime_review_outcome is not None
+    assert coordinator.runtime_envelope.artifacts == ("brain-01-product-strategy",)
+    assert coordinator.runtime_envelope.status == "success"
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_logs_runtime_contract_metadata(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """Message envelopes should carry runtime contract metadata for traceability."""
+    coordinator = StatelessCoordinator(coordinator_config)
+
+    await coordinator.execute_flow(
+        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
+    )
+
+    assert coordinator.message_log
+    runtime_metadata = coordinator.message_log[0].transport_metadata[
+        "runtime_contracts"
+    ]
+    assert runtime_metadata["task_profile"]["complexity"] == "medium"
+    assert runtime_metadata["loop_policy"]["base_loop"] == "execute+verify-light"
 
 
 # =============================================================================

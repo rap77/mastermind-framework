@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import hashlib
 import re
 from typing import Any
@@ -118,7 +119,12 @@ def _validate_postgres_url(database_url: str) -> None:
 
 def _vector_literal(values: list[float]) -> str:
     """Return a pgvector-compatible literal."""
-    return "[" + ",".join(str(value) for value in values) + "]"
+    literal_values: list[str] = []
+    for value in values:
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise ValueError("pgvector embeddings must be finite numeric values")
+        literal_values.append(str(float(value)))
+    return "[" + ",".join(literal_values) + "]"
 
 
 class PgvectorMemoryIndexProvider:

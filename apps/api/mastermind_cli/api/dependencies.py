@@ -7,7 +7,10 @@ them in one place via app.dependency_overrides.
 
 import os
 
-__all__ = ["get_db_path", "get_project_state_db_url"]
+from fastapi import Request
+from mastermind_cli.orchestrator.governance import GovernanceInterceptor
+
+__all__ = ["get_db_path", "get_project_state_db_url", "get_governance"]
 
 
 async def get_db_path() -> str:
@@ -23,3 +26,11 @@ async def get_project_state_db_url() -> str:
             "POSTGRES_URL", "sqlite+aiosqlite:///./mastermind_project_state.db"
         ),
     )
+
+
+async def get_governance(request: Request) -> GovernanceInterceptor | None:
+    """Governance dependency; reads the app-scoped provider."""
+    governance = getattr(request.app.state, "governance", None)
+    if isinstance(governance, GovernanceInterceptor):
+        return governance
+    return None

@@ -19,6 +19,21 @@ from .mcp_wrapper import (
 from .mcp_integration import MCPIntegration
 from .output_formatter import OutputFormatter
 from .coordinator import Coordinator
+from .runtime_contracts import (
+    CapabilityDefinition,
+    CapabilityRegistry,
+    CapabilitySet,
+    ExecutionEnvelope,
+    HarnessDefinition,
+    HarnessRegistry,
+    LoopPolicy,
+    LoopSelector,
+    RecoveryPayload,
+    TaskProfile,
+    VerificationPayload,
+    build_execution_envelope,
+    validate_execution_envelope,
+)
 
 __all__ = [
     "FlowDetector",
@@ -33,4 +48,17 @@ __all__ = [
     "MCPIntegration",
     "OutputFormatter",
     "Coordinator",
+    "CapabilityDefinition",
+    "CapabilityRegistry",
+    "CapabilitySet",
+    "ExecutionEnvelope",
+    "HarnessDefinition",
+    "HarnessRegistry",
+    "LoopPolicy",
+    "LoopSelector",
+    "RecoveryPayload",
+    "TaskProfile",
+    "VerificationPayload",
+    "build_execution_envelope",
+    "validate_execution_envelope",
 ]

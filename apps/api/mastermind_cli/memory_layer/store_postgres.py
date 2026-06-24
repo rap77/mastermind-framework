@@ -15,10 +15,18 @@ from mastermind_cli.project_state.database.session import (
     get_session_factory,
 )
 
-from .contracts import MemoryIndexProvider, VectorSearchProvider
+from .contracts import (
+    MemoryGraphRecallProvider,
+    MemoryReranker,
+    MemoryIndexProvider,
+    VectorCandidateProvider,
+    VectorSearchProvider,
+)
+from .graph_recall import NoopMemoryGraphRecallProvider
 from .embeddings import build_memory_index_payload
 from .indexing import NoopMemoryIndexProvider
-from .models import MemoryItem, MemorySearchResult
+from .models import MemoryItem, MemorySearchResult, VectorCandidate
+from .reranking import NoopMemoryReranker
 from .vector import (
     CallableVectorSearchProvider,
     NoopVectorSearchProvider,
@@ -117,6 +125,8 @@ class PostgresMemoryStore:
         *,
         vector_search: VectorSearchCallable | None = None,
         vector_provider: VectorSearchProvider | None = None,
+        reranker: MemoryReranker | None = None,
+        graph_recall: MemoryGraphRecallProvider | None = None,
         index_provider: MemoryIndexProvider | None = None,
     ) -> None:
         """Create a store bound to the provided database URL."""
@@ -127,6 +137,8 @@ class PostgresMemoryStore:
             vector_search=vector_search,
             vector_provider=vector_provider,
         )
+        self._reranker = reranker or NoopMemoryReranker()
+        self._graph_recall = graph_recall or NoopMemoryGraphRecallProvider()
         self._index_provider = index_provider or NoopMemoryIndexProvider()
 
     async def save_item(self, item: MemoryItem) -> MemoryItem:
@@ -150,7 +162,7 @@ class PostgresMemoryStore:
                     source_kind=item.source_kind,
                     source_ref=item.source_ref,
                     tags_json=list(item.tags),
-                    metadata_json=dict(item.metadata),
+                    metadata_json=self._normalize_metadata_json(item.metadata),
                     created_at=item.created_at,
                     updated_at=now,
                 )
@@ -166,7 +178,7 @@ class PostgresMemoryStore:
                 record.source_kind = item.source_kind
                 record.source_ref = item.source_ref
                 record.tags_json = list(item.tags)
-                record.metadata_json = dict(item.metadata)
+                record.metadata_json = self._normalize_metadata_json(item.metadata)
                 record.updated_at = now
             session.commit()
             session.refresh(record)
@@ -213,21 +225,44 @@ class PostgresMemoryStore:
             )
 
         ranked_rows = self._rank_lexical_rows(rows, normalized_query)
-        vector_rows = await self._load_vector_rows(
+        vector_rows = await self._load_vector_candidates(
             normalized_query,
             scope=scope,
             limit=limit,
         )
 
         if ranked_rows:
-            return self._fuse_search_results(
+            results = self._fuse_search_results(
                 ranked_rows,
                 vector_rows,
                 query=normalized_query,
                 limit=limit,
             )
+            reranked = await self._reranker.rerank(
+                normalized_query,
+                results,
+                scope=scope,
+                limit=limit,
+            )
+            return await self._graph_recall.expand(
+                normalized_query,
+                reranked,
+                scope=scope,
+                limit=limit,
+            )
 
-        return self._vector_only_results(vector_rows[:limit])
+        reranked = await self._reranker.rerank(
+            normalized_query,
+            self._vector_only_results(vector_rows[:limit]),
+            scope=scope,
+            limit=limit,
+        )
+        return await self._graph_recall.expand(
+            normalized_query,
+            reranked,
+            scope=scope,
+            limit=limit,
+        )
 
     async def list_recent(
         self,
@@ -264,13 +299,13 @@ class PostgresMemoryStore:
                         session_id=session_id,
                         project_id=project_id,
                         summary=summary,
-                        metadata_json=dict(metadata or {}),
+                        metadata_json=self._normalize_metadata_json(metadata or {}),
                     )
                 )
             else:
                 record.project_id = project_id
                 record.summary = summary
-                record.metadata_json = dict(metadata or {})
+                record.metadata_json = self._normalize_metadata_json(metadata or {})
             session.commit()
 
     async def save_preference(
@@ -447,7 +482,29 @@ class PostgresMemoryStore:
             return list(value)
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
-        return str(value)
+        raise ValueError("Preference values must be JSON-compatible")
+
+    def _normalize_metadata_json(self, value: object) -> dict[str, Any]:
+        """Normalize metadata into a JSON-compatible mapping."""
+        if not isinstance(value, dict):
+            raise ValueError("Metadata must be a JSON-compatible mapping")
+
+        normalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ValueError("Metadata keys must be strings")
+            normalized[key] = self._normalize_metadata_value(item)
+        return normalized
+
+    def _normalize_metadata_value(self, value: object) -> JsonValue:
+        """Normalize a nested metadata value into a JSON-compatible value."""
+        if isinstance(value, dict):
+            return self._normalize_metadata_json(value)
+        if isinstance(value, list):
+            return [self._normalize_metadata_value(item) for item in value]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        raise ValueError("Metadata values must be JSON-compatible")
 
     def _build_vector_provider(
         self,
@@ -462,26 +519,47 @@ class PostgresMemoryStore:
             return CallableVectorSearchProvider(vector_search)
         return NoopVectorSearchProvider()
 
-    async def _load_vector_rows(
+    async def _load_vector_candidates(
         self,
         query: str,
         *,
         scope: dict[str, str | None] | None,
         limit: int,
-    ) -> list[MemoryItemRecord]:
-        """Load vector candidates through the optional seam."""
+    ) -> list[tuple[MemoryItemRecord, float]]:
+        """Load vector candidates through either the legacy or explicit seam."""
         if not query:
             return []
 
-        memory_ids = await self._vector_provider.search(query, scope, limit)
-        if not memory_ids:
+        if isinstance(self._vector_provider, VectorCandidateProvider):
+            candidates = await self._vector_provider.search_candidates(
+                query, scope, limit
+            )
+        else:
+            memory_ids = await self._vector_provider.search(query, scope, limit)
+            candidates = [
+                VectorCandidate(memory_id=memory_id, score=0.75 / index)
+                for index, memory_id in enumerate(memory_ids, start=1)
+            ]
+
+        return self._materialize_vector_candidates(candidates, scope=scope, limit=limit)
+
+    def _materialize_vector_candidates(
+        self,
+        candidates: list[VectorCandidate],
+        *,
+        scope: dict[str, str | None] | None,
+        limit: int,
+    ) -> list[tuple[MemoryItemRecord, float]]:
+        """Resolve vector candidate IDs into scoped relational rows plus scores."""
+        if not candidates:
             return []
 
         with self._session_factory() as session:
             rows = [
-                row
-                for memory_id in memory_ids
-                if (row := session.get(MemoryItemRecord, memory_id)) is not None
+                (row, candidate.score)
+                for candidate in candidates
+                if (row := session.get(MemoryItemRecord, candidate.memory_id))
+                is not None
                 and self._record_matches_scope(row, scope)
             ]
 
@@ -489,7 +567,7 @@ class PostgresMemoryStore:
 
     def _vector_only_results(
         self,
-        rows: list[MemoryItemRecord],
+        rows: list[tuple[MemoryItemRecord, float]],
     ) -> list[MemorySearchResult]:
         """Convert vector-only rows into fallback search results."""
         return [
@@ -497,43 +575,37 @@ class PostgresMemoryStore:
                 memory_id=row.memory_id,
                 title=row.title,
                 snippet=row.content[:240],
-                score=0.75,
+                score=score,
                 memory_type=row.memory_type,
                 project_id=row.project_id,
                 brain_id=row.brain_id,
                 why_matched="vector:fallback",
                 source_ref=row.source_ref,
             )
-            for row in rows
+            for row, score in rows
         ]
 
     def _fuse_search_results(
         self,
         lexical_rows: list[MemoryItemRecord],
-        vector_rows: list[MemoryItemRecord],
+        vector_rows: list[tuple[MemoryItemRecord, float]],
         *,
         query: str,
         limit: int,
     ) -> list[MemorySearchResult]:
         """Combine lexical and vector candidates with a simple additive fusion."""
-        vector_rank = {
-            row.memory_id: index for index, row in enumerate(vector_rows, start=1)
-        }
+        vector_rank = {row.memory_id: score for row, score in vector_rows}
         candidates: dict[str, MemoryItemRecord] = {
             row.memory_id: row for row in lexical_rows
         }
-        for row in vector_rows:
+        for row, _score in vector_rows:
             candidates.setdefault(row.memory_id, row)
 
         fused = sorted(
             candidates.values(),
             key=lambda row: (
                 self._lexical_score(row, query)
-                + (
-                    0.75 / vector_rank[row.memory_id]
-                    if row.memory_id in vector_rank
-                    else 0.0
-                ),
+                + (vector_rank[row.memory_id] if row.memory_id in vector_rank else 0.0),
                 self._ensure_utc(row.created_at),
             ),
             reverse=True,
@@ -543,9 +615,7 @@ class PostgresMemoryStore:
         for row in fused[:limit]:
             lexical_score = self._lexical_score(row, query)
             vector_bonus = (
-                0.75 / vector_rank[row.memory_id]
-                if row.memory_id in vector_rank
-                else 0.0
+                vector_rank[row.memory_id] if row.memory_id in vector_rank else 0.0
             )
             if lexical_score > 0 and vector_bonus > 0:
                 why_matched = "fusion:lexical+vector"

@@ -5,11 +5,22 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
-from typing import TypedDict
+import sys
+from typing import NotRequired, TypedDict
 
 from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
 from mastermind_cli.memory_layer.service import MemoryService
+
+
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 class SmokeSeedItem(TypedDict):
@@ -23,6 +34,7 @@ class SmokeSeedItem(TypedDict):
     source_kind: str
     source_ref: str
     tags: list[str]
+    related_memory_ids: NotRequired[list[str]]
 
 
 def build_smoke_seed_items(project_id: str) -> list[SmokeSeedItem]:
@@ -83,11 +95,40 @@ async def main() -> None:
     service = MemoryService(store)
 
     seeded_items = []
+    seeded_memory_ids: list[str] = []
     for item in build_smoke_seed_items(project_id):
-        seeded = await service.record_learning(**item)
+        related_memory_ids = list(seeded_memory_ids) if seeded_memory_ids else None
+        if related_memory_ids is None:
+            seeded = await service.record_learning(
+                title=item["title"],
+                content=item["content"],
+                project_id=item["project_id"],
+                memory_type=item["memory_type"],
+                visibility=item["visibility"],
+                source_kind=item["source_kind"],
+                source_ref=item["source_ref"],
+                tags=item["tags"],
+            )
+        else:
+            seeded = await service.record_learning(
+                title=item["title"],
+                content=item["content"],
+                project_id=item["project_id"],
+                memory_type=item["memory_type"],
+                visibility=item["visibility"],
+                source_kind=item["source_kind"],
+                source_ref=item["source_ref"],
+                tags=item["tags"],
+                related_memory_ids=related_memory_ids,
+            )
         seeded_items.append({"memory_id": seeded.memory_id, "title": seeded.title})
+        if seeded.memory_id:
+            seeded_memory_ids.append(seeded.memory_id)
 
-    print(
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.stream = sys.stdout
+    logger.info(
         json.dumps(
             {
                 "project_id": project_id,

@@ -68,6 +68,35 @@ async def test_save_item_maps_memory_item_to_engram_payload() -> None:
 
 
 @pytest.mark.asyncio
+async def test_save_item_filters_non_string_tags() -> None:
+    """Saving an item should not forward malformed tags to Engram."""
+    save_observation = AsyncMock(return_value={"id": 42, "tags": ["auth"]})
+    store = EngramMemoryStore(
+        save_observation=save_observation,
+        search_observations=AsyncMock(return_value=[]),
+    )
+
+    item = MemoryItem.model_construct(
+        memory_id=None,
+        memory_type="lesson",
+        title="Avoid auth drift",
+        content="Only mmsk_ keys should remain in runtime auth.",
+        project_id="proj-001",
+        brain_id="brain-07-growth-data",
+        niche="software-development",
+        visibility="project",
+        source_kind=None,
+        source_ref=None,
+        tags=["auth", " ", 123],
+        metadata={},
+    )
+
+    await store.save_item(item)
+
+    assert save_observation.await_args.kwargs["tags"] == ["auth"]
+
+
+@pytest.mark.asyncio
 async def test_get_item_maps_engram_observation_to_memory_item() -> None:
     """Fetching an item should normalize an Engram observation into MemoryItem."""
     get_observation = AsyncMock(
