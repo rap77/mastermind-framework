@@ -6,6 +6,7 @@ import base64
 import json
 import sqlite3
 from datetime import datetime
+from contextlib import closing
 from typing import Any
 
 from sqlalchemy import asc, desc, select
@@ -375,7 +376,7 @@ def _fetch_legacy_history_rows(
     sort_asc: bool,
 ) -> list[tuple[Any, ...]]:
     """Read legacy execution history rows from SQLite without aiosqlite."""
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         _ensure_legacy_execution_history_schema(connection)
         if cursor_id:
             cursor_row = connection.execute(
@@ -419,7 +420,7 @@ def _fetch_legacy_execution_row(
     execution_id: str,
 ) -> tuple[Any, ...] | None:
     """Read one legacy execution detail row from SQLite without aiosqlite."""
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         _ensure_legacy_execution_history_schema(connection)
         row = connection.execute(
             """SELECT id, task_id, brief, status, duration_ms, brain_count,
