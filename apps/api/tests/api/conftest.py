@@ -6,7 +6,6 @@ Fixtures:
 - db_path: Creates a temporary SQLite database with test schema and users
 - app: Creates a FastAPI application instance with test DB path override
 - client: Async HTTP client for testing API endpoints
-- sync_client: Synchronous HTTP client (TestClient wrapper)
 - auth_headers: Bearer token headers for test user A
 - auth_headers_b: Bearer token headers for test user B
 - valid_jwt: Raw JWT access token for test user A
@@ -26,18 +25,19 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from contextlib import closing
 from pathlib import Path
+import uuid
 
 import bcrypt
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from pytest import MonkeyPatch
 
 # Set JWT_SECRET BEFORE importing create_app (jwt_handler reads it at import time)
-os.environ["JWT_SECRET"] = "test_secret_for_unit_tests_only"
+os.environ["JWT_SECRET"] = uuid.uuid4().hex
 
 from mastermind_cli.api.app import create_app
 from mastermind_cli.api.dependencies import get_db_path
@@ -48,7 +48,7 @@ TEST_USER_ID = "test-user-id-001"
 TEST_USER_ID_B = "test-user-id-002"
 TEST_USERNAME = "testuser"
 TEST_USERNAME_B = "testuserb"
-TEST_PASSWORD = "testpass123"
+TEST_PASSWORD = uuid.uuid4().hex
 TEST_PASSWORD_HASH = bcrypt.hashpw(
     TEST_PASSWORD.encode(), bcrypt.gensalt(rounds=4)
 ).decode()
@@ -58,7 +58,7 @@ TEST_PASSWORD_HASH_B = bcrypt.hashpw(
 
 
 def _run_setup(path: str) -> None:
-    with sqlite3.connect(path) as conn:
+    with closing(sqlite3.connect(path)) as conn:
         conn.executescript("""
             PRAGMA journal_mode=WAL;
 
@@ -180,9 +180,10 @@ def stub_background_brain_task(monkeypatch: MonkeyPatch) -> None:
         brief: str,
         flow: str | None,
         db_path: str,
+        governance: object | None = None,
     ) -> None:
         """No-op replacement for run_brain_task during API tests."""
-        del task_id, brief, flow, db_path
+        del task_id, brief, flow, db_path, governance
 
     monkeypatch.setattr(
         "mastermind_cli.api.routes.tasks.run_brain_task",
@@ -368,12 +369,6 @@ def stub_auth_database_connection(monkeypatch: MonkeyPatch) -> None:
         "mastermind_cli.api.routes.auth.DatabaseConnection",
         _FakeDatabaseConnection,
     )
-
-
-@pytest.fixture
-def sync_client(app: FastAPI) -> TestClient:
-    """Synchronous HTTP client (TestClient wrapper)."""
-    return TestClient(app)
 
 
 @pytest.fixture
