@@ -13,10 +13,15 @@ in the staged objective artifacts, the commit is rejected. This prevents the
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+from planning_paths import get_planning_dir, planning_relpath
+
+logger = logging.getLogger(__name__)
 
 
 def find_project_root() -> Path:
@@ -33,7 +38,9 @@ def find_project_root() -> Path:
 
 
 PROJECT_ROOT = find_project_root()
-RUNTIME_STATE = PROJECT_ROOT / ".mm-flow" / "planning" / "task-progress.json"
+PLANNING_DIR = get_planning_dir(PROJECT_ROOT)
+PLANNING_LABEL = planning_relpath(PROJECT_ROOT)
+RUNTIME_STATE = PLANNING_DIR / "task-progress.json"
 
 
 def run_git(*args: str) -> subprocess.CompletedProcess[str]:
@@ -98,7 +105,7 @@ def status_rank(status: str) -> int:
 
 def is_code_like_path(path: str) -> bool:
     """Return True for paths that represent code/docs changes outside planning."""
-    if path.startswith(".mm-flow/planning/"):
+    if path.startswith(f"{PLANNING_LABEL}/"):
         return False
     if path.startswith(".gitignore"):
         return False
@@ -132,7 +139,7 @@ def main() -> int:
     if not any(is_code_like_path(path) for path in files):
         return 0
 
-    objective_base = f".mm-flow/planning/changes/{objective_slug}"
+    objective_base = f"{PLANNING_LABEL}/changes/{objective_slug}"
     execution_state_path = f"{objective_base}/execution-state.json"
     todo_path = f"{objective_base}/todo.md"
     handoff_path = f"{objective_base}/HANDOFF-CURRENT.md"
@@ -143,30 +150,33 @@ def main() -> int:
         if path not in files
     ]
     if missing:
-        print(
-            "ERROR: Active objective commit is missing required checkpoint artifacts."
+        sys.stderr.write(
+            "ERROR: Active objective commit is missing required checkpoint artifacts.\n"
         )
-        print(f"  Active task: {active_task}")
-        print("  Missing staged files:")
+        sys.stderr.write(f"  Active task: {active_task}\n")
+        sys.stderr.write("  Missing staged files:\n")
         for path in missing:
-            print(f"    - {path}")
-        print(
+            sys.stderr.write(f"    - {path}\n")
+        sys.stderr.write(
             "Use the handler checkpoint flow before committing: "
             "complete-task-handler.py --mark-in-progress/--mark-done"
         )
+        sys.stderr.write("\n")
         return 1
 
     head_state = load_json_from_git("HEAD", execution_state_path) or {}
     staged_state = load_json_from_index(execution_state_path)
     if staged_state is None:
-        print("ERROR: Could not read staged execution-state.json from index.")
+        sys.stderr.write(
+            "ERROR: Could not read staged execution-state.json from index.\n"
+        )
         return 1
 
     head_task = head_state.get("tasks", {}).get(active_task, {})
     staged_task = staged_state.get("tasks", {}).get(active_task, {})
     staged_subtasks = staged_task.get("subtasks", {})
     if not staged_subtasks:
-        print(
+        logger.error(
             "ERROR: Staged execution-state.json does not contain active task subtasks."
         )
         return 1
@@ -187,15 +197,15 @@ def main() -> int:
         advanced = True
 
     if not advanced:
-        print(
+        logger.error(
             "ERROR: Commit contains code changes but no durable task progress advancement."
         )
-        print(f"  Active task: {active_task}")
-        print(f"  Objective: {objective_slug}")
-        print(
+        logger.error("  Active task: %s", active_task)
+        logger.error("  Objective: %s", objective_slug)
+        logger.error(
             "  Staged execution-state.json did not advance any subtask/root-task status."
         )
-        print(
+        logger.error(
             "Checkpoint the task first with the handler, then stage objective artifacts and commit."
         )
         return 1

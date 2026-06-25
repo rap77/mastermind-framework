@@ -5,20 +5,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from planning_paths import get_planning_dir, planning_relpath
 
-REGISTRY_RELATIVE_PATH = Path(".mm-flow/planning/gaps/gap-registry.json")
 OPEN_STATUSES = {"open", "deferred"}
-ARCHIVE_OBJECTIVES_PATH = Path(".mm-flow/planning/archive/objectives")
-CHANGES_OBJECTIVES_PATH = Path(".mm-flow/planning/changes")
 READINESS_PRIORITY = {"ready": 3, "needs_more_evidence": 2, "blocked": 1}
 IMPACT_PRIORITY = {"high": 3, "medium": 2, "low": 1}
 URGENCY_PRIORITY = {"high": 3, "medium": 2, "low": 1}
+logger = logging.getLogger(__name__)
 
 
 def project_root() -> Path:
@@ -39,7 +40,12 @@ def project_root() -> Path:
 
 
 ROOT = project_root()
-REGISTRY_PATH = ROOT / REGISTRY_RELATIVE_PATH
+PLANNING_DIR = get_planning_dir(ROOT)
+PLANNING_LABEL = planning_relpath(ROOT)
+REGISTRY_PATH = PLANNING_DIR / "gaps" / "gap-registry.json"
+REGISTRY_RELATIVE_PATH = REGISTRY_PATH.relative_to(ROOT)
+ARCHIVE_OBJECTIVES_PATH = PLANNING_DIR / "archive" / "objectives"
+CHANGES_OBJECTIVES_PATH = PLANNING_DIR / "changes"
 
 
 def parse_args() -> argparse.Namespace:
@@ -224,8 +230,8 @@ def register_gap(args: argparse.Namespace) -> int:
     gap_id = args.gap_id or next_gap_id(data)
     gaps = data["gaps"]
     if any(entry.get("id") == gap_id for entry in gaps if isinstance(entry, dict)):
-        print("STATUS: FAILED")
-        print(f"- Gap ID already exists: {gap_id}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- Gap ID already exists: {gap_id}\n")
         return 1
 
     entry: dict[str, Any] = {
@@ -246,9 +252,9 @@ def register_gap(args: argparse.Namespace) -> int:
     gaps.append(entry)
     write_registry(data)
 
-    print("STATUS: PASSED")
-    print(f"- Registered gap: {gap_id}")
-    print(f"- Registry: {REGISTRY_RELATIVE_PATH}")
+    logger.info("STATUS: PASSED")
+    logger.info("- Registered gap: %s", gap_id)
+    logger.info("- Registry: %s", REGISTRY_RELATIVE_PATH)
     return 0
 
 
@@ -259,7 +265,7 @@ def list_gaps(args: argparse.Namespace) -> int:
     if not args.all:
         gaps = open_gap_entries(data)
     payload = {"version": data.get("version", 1), "gaps": gaps}
-    print(json.dumps(payload, indent=2))
+    logger.info("%s", json.dumps(payload, indent=2))
     return 0
 
 
@@ -275,13 +281,13 @@ def promote_gap(args: argparse.Namespace) -> int:
         entry["promoted_objective_slug"] = args.objective_slug
         entry["updated_at_utc"] = utc_now()
         write_registry(data)
-        print("STATUS: PASSED")
-        print(f"- Promoted gap: {args.gap_id}")
-        print(f"- Objective slug: {args.objective_slug}")
+        logger.info("STATUS: PASSED")
+        logger.info("- Promoted gap: %s", args.gap_id)
+        logger.info("- Objective slug: %s", args.objective_slug)
         return 0
 
-    print("STATUS: FAILED")
-    print(f"- Gap ID not found: {args.gap_id}")
+    logger.error("STATUS: FAILED")
+    logger.error("- Gap ID not found: %s", args.gap_id)
     return 1
 
 
@@ -293,7 +299,7 @@ def list_duplicate_suspects() -> int:
         "version": data.get("version", 1),
         "suspects": duplicate_suspects(gaps),
     }
-    print(json.dumps(payload, indent=2))
+    logger.info("%s", json.dumps(payload, indent=2))
     return 0
 
 
@@ -306,15 +312,15 @@ def recommend_next_gap() -> int:
         "recommended_gap": ranked[0] if ranked else None,
         "ranked_open_gaps": ranked,
     }
-    print(json.dumps(payload, indent=2))
+    logger.info("%s", json.dumps(payload, indent=2))
     return 0
 
 
 def objective_lifecycle_status(objective_slug: str) -> str | None:
     """Infer lifecycle status from exact objective artifact presence."""
-    if (ROOT / ARCHIVE_OBJECTIVES_PATH / objective_slug).exists():
+    if (ARCHIVE_OBJECTIVES_PATH / objective_slug).exists():
         return "resolved"
-    if (ROOT / CHANGES_OBJECTIVES_PATH / objective_slug).exists():
+    if (CHANGES_OBJECTIVES_PATH / objective_slug).exists():
         return "promoted"
     return None
 
@@ -333,8 +339,10 @@ def sync_objective(args: argparse.Namespace) -> int:
     """Synchronize a matching gap entry against exact objective artifacts."""
     target_status = objective_lifecycle_status(args.objective_slug)
     if target_status is None:
-        print("STATUS: FAILED")
-        print(f"- Objective artifacts not found for slug: {args.objective_slug}")
+        logger.error("STATUS: FAILED")
+        logger.error(
+            "- Objective artifacts not found for slug: %s", args.objective_slug
+        )
         return 1
 
     data = load_registry()
@@ -347,14 +355,14 @@ def sync_objective(args: argparse.Namespace) -> int:
         entry["promoted_objective_slug"] = args.objective_slug
         entry["updated_at_utc"] = utc_now()
         write_registry(data)
-        print("STATUS: PASSED")
-        print(f"- Synchronized gap: {entry.get('id')}")
-        print(f"- Objective slug: {args.objective_slug}")
-        print(f"- New status: {target_status}")
+        logger.info("STATUS: PASSED")
+        logger.info("- Synchronized gap: %s", entry.get("id"))
+        logger.info("- Objective slug: %s", args.objective_slug)
+        logger.info("- New status: %s", target_status)
         return 0
 
-    print("STATUS: FAILED")
-    print(f"- No gap found for suggested_followup: {args.objective_slug}")
+    logger.error("STATUS: FAILED")
+    logger.error("- No gap found for suggested_followup: %s", args.objective_slug)
     return 1
 
 
@@ -368,44 +376,48 @@ def prepare_promotion(args: argparse.Namespace) -> int:
             continue
 
         if entry.get("status") not in OPEN_STATUSES:
-            print("STATUS: FAILED")
-            print(f"- Gap is not promotion-eligible from status: {entry.get('status')}")
+            logger.error("STATUS: FAILED")
+            logger.error(
+                "- Gap is not promotion-eligible from status: %s", entry.get("status")
+            )
             return 1
 
         if entry.get("promotion_readiness") != "ready":
-            print("STATUS: FAILED")
-            print(f"- Gap is not promotion-ready: {entry.get('promotion_readiness')}")
+            logger.error("STATUS: FAILED")
+            logger.error(
+                "- Gap is not promotion-ready: %s", entry.get("promotion_readiness")
+            )
             return 1
 
         objective_slug = str(entry.get("suggested_followup") or "").strip()
         if not objective_slug:
-            print("STATUS: FAILED")
-            print("- Gap has no suggested_followup objective slug.")
+            logger.error("STATUS: FAILED")
+            logger.error("- Gap has no suggested_followup objective slug.")
             return 1
 
         lifecycle_status = objective_lifecycle_status(objective_slug)
         if lifecycle_status == "promoted":
-            print("STATUS: FAILED")
-            print(f"- Objective already exists in changes/: {objective_slug}")
+            logger.error("STATUS: FAILED")
+            logger.error("- Objective already exists in changes/: %s", objective_slug)
             return 1
         if lifecycle_status == "resolved":
-            print("STATUS: FAILED")
-            print(f"- Objective already exists in archive/: {objective_slug}")
+            logger.error("STATUS: FAILED")
+            logger.error("- Objective already exists in archive/: %s", objective_slug)
             return 1
 
         objective_name = objective_display_name_from_gap(entry)
         command = (
             f'/mm:discover --existing --objective {objective_slug} "{objective_name}"'
         )
-        print("STATUS: PASSED")
-        print(f"GAP_ID: {entry.get('id')}")
-        print(f"OBJECTIVE_SLUG: {objective_slug}")
-        print(f"OBJECTIVE_NAME: {objective_name}")
-        print(f"NEXT_COMMAND: {command}")
+        logger.info("STATUS: PASSED")
+        logger.info("GAP_ID: %s", entry.get("id"))
+        logger.info("OBJECTIVE_SLUG: %s", objective_slug)
+        logger.info("OBJECTIVE_NAME: %s", objective_name)
+        logger.info("NEXT_COMMAND: %s", command)
         return 0
 
-    print("STATUS: FAILED")
-    print(f"- Gap ID not found: {args.gap_id}")
+    logger.error("STATUS: FAILED")
+    logger.error("- Gap ID not found: %s", args.gap_id)
     return 1
 
 
@@ -426,8 +438,8 @@ def main() -> int:
         return sync_objective(args)
     if args.command == "prepare-promotion":
         return prepare_promotion(args)
-    print("STATUS: FAILED")
-    print(f"- Unsupported command: {args.command}")
+    logger.error("STATUS: FAILED")
+    logger.error("- Unsupported command: %s", args.command)
     return 1
 
 

@@ -7,14 +7,19 @@ minimum structural sections needed for another model to resume safely.
 
 from __future__ import annotations
 
+import logging
 import re
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
+from planning_paths import get_planning_dir, planning_relpath
+
+logger = logging.getLogger(__name__)
+
 PROJECT_ROOT = Path.cwd()
 
-# Use .mm-flow/planning/ as base (new structure)
-PLANNING_BASE = PROJECT_ROOT / ".mm-flow" / "planning"
+PLANNING_BASE = get_planning_dir(PROJECT_ROOT)
+PLANNING_LABEL = planning_relpath(PROJECT_ROOT)
 HANDOFF_PATH = PLANNING_BASE / "HANDOFF-CURRENT.md"
 CHANGES_DIR = PLANNING_BASE / "changes"
 ARCHIVE_DIR = PLANNING_BASE / "archive"
@@ -35,7 +40,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--objective",
         default=None,
-        help="Validate a per-objective package in .mm-flow/planning/changes/<objective>/ instead of the legacy global contract.",
+        help=f"Validate a per-objective package in {PLANNING_LABEL}/changes/<objective>/ instead of the legacy global contract.",
     )
     return parser.parse_args()
 
@@ -57,7 +62,7 @@ def infer_active_objective() -> str | None:
 
 
 def validate_handoff(text: str) -> list[str]:
-    """Validate minimum required sections in .mm-flow/planning/HANDOFF-CURRENT.md."""
+    """Validate minimum required sections in the active planning handoff."""
     issues: list[str] = []
     if not text:
         return ["HANDOFF-CURRENT.md missing"]
@@ -82,7 +87,7 @@ def validate_requirements(text: str, objective: str) -> list[str]:
     """Validate minimum required sections in requirements.md."""
     issues: list[str] = []
     if not text:
-        return [f".mm-flow/planning/changes/{objective}/requirements.md missing"]
+        return [f"{PLANNING_LABEL}/changes/{objective}/requirements.md missing"]
 
     section_checks = {
         "problem/purpose": ["## problem / purpose", "# requirements"],
@@ -102,7 +107,7 @@ def validate_design(text: str, objective: str) -> list[str]:
     """Validate minimum required sections in design.md."""
     issues: list[str] = []
     if not text:
-        return [f".mm-flow/planning/changes/{objective}/design.md missing"]
+        return [f"{PLANNING_LABEL}/changes/{objective}/design.md missing"]
 
     section_checks = {
         "architecture / boundaries": ["## architecture / boundaries"],
@@ -121,7 +126,7 @@ def validate_objective_tasks(text: str, objective: str) -> list[str]:
     """Validate minimum required structure in objective tasks.md."""
     issues: list[str] = []
     if not text:
-        return [f".mm-flow/planning/changes/{objective}/tasks.md missing"]
+        return [f"{PLANNING_LABEL}/changes/{objective}/tasks.md missing"]
 
     if not re.findall(r"^##\s+[A-Z]{1,4}\d+:", text, re.MULTILINE):
         issues.append("tasks.md missing concrete task headings")
@@ -162,7 +167,7 @@ def validate_objective_contract(objective: str) -> list[str]:
     issues.extend(validate_handoff(read_text(base_dir / "HANDOFF-CURRENT.md")))
     todo_text = read_text(base_dir / "todo.md")
     if not todo_text:
-        issues.append(f".mm-flow/planning/changes/{objective}/todo.md missing")
+        issues.append(f"{PLANNING_LABEL}/changes/{objective}/todo.md missing")
     else:
         if (
             "- [ ]" not in todo_text
@@ -184,29 +189,32 @@ def main() -> int:
     args = parse_args()
     objective = args.objective or infer_active_objective()
     if not objective:
-        print("STATUS: FAILED")
-        print(
-            "- Could not infer an active objective. Pass --objective <name> or refresh .mm-flow/planning/HANDOFF-CURRENT.md."
+        logger.error("STATUS: FAILED")
+        logger.error(
+            "- Could not infer an active objective. Pass --objective <name> or refresh %s/HANDOFF-CURRENT.md.",
+            PLANNING_LABEL,
         )
         return 1
 
     issues: list[str] = validate_objective_contract(objective)
 
     if issues:
-        print("STATUS: FAILED")
+        logger.error("STATUS: FAILED")
         for issue in issues:
-            print(f"- {issue}")
+            logger.error("- %s", issue)
         return 1
 
     base_dir = CHANGES_DIR / objective
     next_task = find_next_task(read_text(base_dir / "todo.md"))
 
-    print("STATUS: PASSED")
-    print(f"- Objective planning contract is structurally complete for {objective}")
+    logger.info("STATUS: PASSED")
+    logger.info(
+        "- Objective planning contract is structurally complete for %s", objective
+    )
     if next_task:
-        print(f"- Next: /mm:complete-task {next_task}")
+        logger.info("- Next: /mm:complete-task %s", next_task)
     else:
-        print("- All tasks complete — run /mm:archive-objective to close")
+        logger.info("- All tasks complete — run /mm:archive-objective to close")
     return 0
 
 
