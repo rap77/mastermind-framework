@@ -968,6 +968,68 @@ def test_project_overview_service_creates_checkpoint_and_decision(
     assert decision.metadata["recorded_by"] == "test-user-id-001"
 
 
+def test_project_overview_service_normalizes_invalid_task_metadata_on_checkpoint(
+    tmp_path: Path,
+) -> None:
+    """Create a checkpoint even when task metadata is not a dict."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    now = datetime.now(timezone.utc)
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-bad-metadata",
+                name="Project Bad Metadata",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.add(
+            Task(
+                task_id="task-bad-metadata",
+                project_id="project-bad-metadata",
+                title="Task Bad Metadata",
+                status="in_progress",
+                priority="high",
+                owner_type="agent",
+                owner_id="brain-04",
+                metadata_json=["unexpected", "metadata"],
+                constraints={},
+                completion_criteria={},
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(session)
+        checkpoint = service.create_checkpoint(
+            "project-bad-metadata",
+            "task-bad-metadata",
+            CreateCheckpointRequest(
+                run_id="run-bad-metadata",
+                context_summary={"phase": "implementation"},
+                resume_state={"cursor": 2},
+                next_step_summary="Continue despite legacy metadata",
+            ),
+            actor_user_id="test-user-id-001",
+        )
+        task = service.get_task_detail("project-bad-metadata", "task-bad-metadata")
+
+    assert checkpoint is not None
+    assert checkpoint.run_id == "run-bad-metadata"
+    assert task is not None
+    assert task.metadata["last_checkpoint_by"] == "test-user-id-001"
+    assert task.metadata["last_checkpoint_at"].startswith(str(now.year))
+
+
 def test_project_overview_service_returns_artifact_lineage(tmp_path: Path) -> None:
     """Return ordered artifact versions and causal links for one artifact."""
     database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
