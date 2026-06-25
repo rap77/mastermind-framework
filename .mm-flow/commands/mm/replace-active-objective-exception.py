@@ -2,8 +2,8 @@
 """Replace one active-objective exception entry by id from a JSON object file.
 
 This helper is intentionally narrow. It rewrites exactly one matching entry in
-`.mm-flow/planning/active-objective-exceptions.json` using an explicit JSON
-object from `--entry-file`, then instructs the operator to run
+the active planning surface's `active-objective-exceptions.json` using an
+explicit JSON object from `--entry-file`, then instructs the operator to run
 `validate-active-objective-exceptions.py`.
 """
 
@@ -12,12 +12,15 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+from planning_paths import get_planning_dir, planning_relpath
 
 ROOT = Path.cwd()
-PLANNING_DIR = ROOT / ".mm-flow" / "planning"
+PLANNING_DIR = get_planning_dir(ROOT)
+PLANNING_LABEL = planning_relpath(ROOT)
 EXCEPTIONS_PATH = PLANNING_DIR / "active-objective-exceptions.json"
 COMMANDS_DIR = Path(__file__).resolve().parent
 
@@ -165,28 +168,29 @@ def main() -> int:
         if not args.dry_run:
             write_updated_artifact(artifact, target_index, normalized)
     except ValueError as exc:
-        print("STATUS: FAILED")
-        print(f"- {exc}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- {exc}\n")
         return 1
 
-    print("STATUS: PASSED")
+    sys.stdout.write("STATUS: PASSED\n")
     if args.dry_run:
-        print("DRY_RUN: true")
-        print(f"TARGET_ID: {exception_id}")
-        print(
+        sys.stdout.write("DRY_RUN: true\n")
+        sys.stdout.write(f"TARGET_ID: {exception_id}\n")
+        sys.stdout.write(
             f"CHANGED_FIELDS: {', '.join(summarize_changed_fields(current_entry, normalized))}"
         )
-        print("CURRENT_ENTRY:")
-        print(json.dumps(current_entry, indent=2))
-        print("REPLACEMENT_ENTRY:")
-        print(json.dumps(normalized, indent=2))
-        print("- Preview only; artifact not modified.")
+        sys.stdout.write("\nCURRENT_ENTRY:\n")
+        sys.stdout.write(json.dumps(current_entry, indent=2))
+        sys.stdout.write("\nREPLACEMENT_ENTRY:\n")
+        sys.stdout.write(json.dumps(normalized, indent=2))
+        sys.stdout.write("\n- Preview only; artifact not modified.\n")
     else:
-        print(
+        sys.stdout.write(
             "- Replaced one exception entry in "
-            ".mm-flow/planning/active-objective-exceptions.json; now run "
+            f"{PLANNING_LABEL}/active-objective-exceptions.json; now run "
             "validate-active-objective-exceptions.py"
         )
+        sys.stdout.write("\n")
     return 0
 
 

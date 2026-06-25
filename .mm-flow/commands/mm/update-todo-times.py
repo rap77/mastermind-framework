@@ -9,6 +9,8 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
+from planning_paths import get_planning_dir
+
 
 def _find_project_root() -> Path:
     """Find project root via git, fallback to file-relative path."""
@@ -140,7 +142,7 @@ def _update_todo_time_tracking(
 
     line1, line2 = _build_time_tracking_line(
         completed,
-        total if task_subtasks else len(task_subtasks) or 1,
+        total if task_subtasks else total,
         total_duration,
         avg_per_subtask,
         in_progress,
@@ -196,7 +198,7 @@ def _find_runtime_state(cwd: Path) -> tuple[dict | None, Path | None, Path | Non
                 pass
         check_dir = check_dir.parent
 
-    # Phase 2: Fallback to project root's .mm-flow/planning/task-progress.json
+    # Phase 2: Fallback to the active planning surface runtime state.
     try:
         cwd.resolve().relative_to(project_root_resolved)
         in_project = True
@@ -204,7 +206,7 @@ def _find_runtime_state(cwd: Path) -> tuple[dict | None, Path | None, Path | Non
         in_project = False
 
     if in_project:
-        fallback = project_root / ".mm-flow" / "planning" / "task-progress.json"
+        fallback = get_planning_dir(project_root) / "task-progress.json"
         if fallback.exists():
             try:
                 state = json.loads(fallback.read_text(encoding="utf-8"))
@@ -222,7 +224,7 @@ def _find_runtime_state(cwd: Path) -> tuple[dict | None, Path | None, Path | Non
 def main() -> int:
     """Main entry point."""
     if len(sys.argv) < 2:
-        print("Usage: update-todo-times.py <task_id>", file=sys.stderr)
+        sys.stderr.write("Usage: update-todo-times.py <task_id>\n")
         return 1
 
     task_id = sys.argv[1]
@@ -230,19 +232,20 @@ def main() -> int:
 
     runtime_state, _runtime_path, todo_path = _find_runtime_state(cwd)
     if runtime_state is None or todo_path is None:
-        print("No runtime state found", file=sys.stderr)
+        sys.stderr.write("No runtime state found\n")
         return 1
 
     try:
         updated = _update_todo_time_tracking(todo_path, task_id, runtime_state)
-        print(
+        sys.stdout.write(
             f"Updated time tracking for {task_id}"
             if updated
             else f"No changes needed for {task_id}"
         )
+        sys.stdout.write("\n")
         return 0
     except Exception as e:
-        print(f"Failed to update time tracking: {e}", file=sys.stderr)
+        sys.stderr.write(f"Failed to update time tracking: {e}\n")
         return 1
 
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render one existing active-objective exception entry to stdout.
 
-This helper is intentionally print-first. It does not mutate
-`.mm-flow/planning/active-objective-exceptions.json`. Operators can render an
+This helper is intentionally print-first. It does not mutate the active
+planning surface's `active-objective-exceptions.json`. Operators can render an
 existing entry by `id`, optionally apply narrow overrides, then paste/replace
 the JSON object manually and run `validate-active-objective-exceptions.py`.
 """
@@ -12,12 +12,15 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+from planning_paths import get_planning_dir, planning_relpath
 
 ROOT = Path.cwd()
-PLANNING_DIR = ROOT / ".mm-flow" / "planning"
+PLANNING_DIR = get_planning_dir(ROOT)
+PLANNING_LABEL = planning_relpath(ROOT)
 EXCEPTIONS_PATH = PLANNING_DIR / "active-objective-exceptions.json"
 COMMANDS_DIR = Path(__file__).resolve().parent
 
@@ -172,17 +175,19 @@ def main() -> int:
         entry = find_raw_exception_entry(artifact, args.id.strip())
         rendered = apply_overrides(entry, args)
     except ValueError as exc:
-        print("STATUS: FAILED")
-        print(f"- {exc}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- {exc}\n")
         return 1
 
-    print("STATUS: PASSED")
-    print(
+    sys.stdout.write("STATUS: PASSED\n")
+    sys.stdout.write(
         "- Paste/replace the JSON object below into "
-        ".mm-flow/planning/active-objective-exceptions.json and then run "
+        f"{PLANNING_LABEL}/active-objective-exceptions.json and then run "
         "validate-active-objective-exceptions.py"
     )
-    print(json.dumps(rendered, indent=2))
+    sys.stdout.write("\n")
+    sys.stdout.write(json.dumps(rendered, indent=2))
+    sys.stdout.write("\n")
     return 0
 
 

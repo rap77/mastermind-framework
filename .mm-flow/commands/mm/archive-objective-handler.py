@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Archive a completed objective package from .mm-flow/planning/changes to archive/objectives."""
+"""Archive a completed objective package from the active planning surface."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+
+from planning_paths import get_planning_dir, planning_relpath
 
 
 def project_root() -> Path:
@@ -30,7 +32,8 @@ def project_root() -> Path:
 
 
 ROOT = project_root()
-PLANNING_DIR = ROOT / ".mm-flow" / "planning"
+PLANNING_DIR = get_planning_dir(ROOT)
+PLANNING_LABEL = planning_relpath(ROOT)
 CHANGES_DIR = PLANNING_DIR / "changes"
 ARCHIVE_OBJECTIVES_DIR = PLANNING_DIR / "archive" / "objectives"
 GLOBAL_HANDOFF = PLANNING_DIR / "HANDOFF-CURRENT.md"
@@ -61,7 +64,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         "--objective",
         default=None,
-        help="Objective slug under .mm-flow/planning/changes/<objective>.",
+        help=f"Objective slug under {PLANNING_LABEL}/changes/<objective>.",
     )
     parser.add_argument(
         "--summary-only",
@@ -75,9 +78,9 @@ def infer_objective() -> str | None:
     """Infer the active objective, preferring the current changes directory state.
 
     Resolution order:
-    1. If exactly one objective exists under `.mm-flow/planning/changes/`, use it.
+    1. If exactly one objective exists under the active planning changes directory, use it.
     2. Otherwise, if global handoff points at an objective that still exists in
-       `.mm-flow/planning/changes/`, use that.
+       the active planning changes directory, use that.
     3. Otherwise return None and require explicit `--objective`.
     """
     if CHANGES_DIR.exists():
@@ -261,6 +264,10 @@ def find_next_objective() -> dict | None:
         data = json.loads(objectives_json.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
+    if isinstance(data, dict):
+        data = data.get("objectives", [])
+    if not isinstance(data, list):
+        return None
     candidates = [
         o for o in data if o.get("status") == "planned" and o.get("ready_now", False)
     ]
@@ -365,30 +372,30 @@ def main() -> int:
     args = parse_args()
     objective = args.objective or infer_objective()
     if not objective:
-        print("STATUS: FAILED")
-        print("- Could not infer objective. Pass --objective <slug>.")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write("- Could not infer objective. Pass --objective <slug>.\n")
         return 1
 
     objective_dir = CHANGES_DIR / objective
     if not objective_dir.exists():
-        print("STATUS: FAILED")
-        print(f"- Active objective package missing: {objective_dir}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- Active objective package missing: {objective_dir}\n")
         return 1
 
     completed, reason = archive_safety(objective, objective_dir)
     if not completed:
-        print("STATUS: FAILED")
-        print(f"- Objective `{objective}` is not archive-safe: {reason}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- Objective `{objective}` is not archive-safe: {reason}\n")
         return 1
 
     archive_dir = ARCHIVE_OBJECTIVES_DIR / objective
     if archive_dir.exists():
-        print("STATUS: FAILED")
-        print(f"- Archive destination already exists: {archive_dir}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- Archive destination already exists: {archive_dir}\n")
         return 1
 
-    print("STATUS: PASSED")
-    print(f"- Objective `{objective}` is archive-safe: {reason}")
+    sys.stdout.write("STATUS: PASSED\n")
+    sys.stdout.write(f"- Objective `{objective}` is archive-safe: {reason}\n")
     if args.summary_only:
         return 0
 
@@ -397,19 +404,19 @@ def main() -> int:
     write_completion_summary(objective_dir, archive_dir, reason)
     mark_objective_done_in_roadmap(objective)
     update_global_handoff(objective)
-    print(f"- Archived to: {archive_dir}")
+    sys.stdout.write(f"- Archived to: {archive_dir}\n")
     sync_ok, sync_message = sync_gap_registry_for_archived_objective(objective)
     if sync_ok:
-        print(f"- Gap registry sync: {sync_message}")
+        sys.stdout.write(f"- Gap registry sync: {sync_message}\n")
     else:
-        print(f"- Gap registry sync info: {sync_message}")
+        sys.stdout.write(f"- Gap registry sync info: {sync_message}\n")
 
     next_obj = find_next_objective()
     if next_obj:
         slug = next_obj.get("slug") or next_obj.get("stable_id", "unknown")
-        print(f"NEXT_COMMAND: /mm:activate-next-objective  # next: {slug}")
+        sys.stdout.write(f"NEXT_COMMAND: /mm:activate-next-objective  # next: {slug}\n")
     else:
-        print("NEXT_COMMAND: none — no planned objectives remaining")
+        sys.stdout.write("NEXT_COMMAND: none — no planned objectives remaining\n")
 
     return 0
 

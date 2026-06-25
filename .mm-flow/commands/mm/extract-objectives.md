@@ -21,7 +21,7 @@ Extract objectives from the roadmap into individual objective packages.
 ## What It Does
 
 1. Reads `objectives.json` from the roadmap
-2. Creates a package directory under `.mm-flow/planning/changes/<slug>/`
+2. Creates a package directory under the active planning surface, e.g. `.planning/changes/<slug>/`
 3. Populates it with:
    - `requirements.md`
    - `design.md`

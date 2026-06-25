@@ -57,7 +57,7 @@ python3 .claude/commands/mm/activate-next-objective-handler.py [--quick]
 
 **`STATUS: FAILED` — active objective already exists** → do NOT ask questions. Instead:
 
-a. Read `.mm-flow/planning/changes/<active-slug>/tasks.md` to find the first non-completed task ID.
+a. Read the active planning package `changes/<active-slug>/tasks.md` (typically `.planning/changes/<active-slug>/tasks.md`) to find the first non-completed task ID.
 
 b. Reply with exactly:
 ```

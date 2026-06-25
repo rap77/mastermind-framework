@@ -7,18 +7,18 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from planning_paths import get_planning_dir
 
-ACTIVE_OBJECTIVE_EXCEPTIONS_PATH = Path(
-    ".mm-flow/planning/active-objective-exceptions.json"
-)
-ACTIVE_OBJECTIVE_COMMAND_BUNDLES_PATH = Path(
-    ".mm-flow/planning/active-objective-command-bundles.json"
-)
+
+def _planning_file(root_dir: Path, name: str) -> Path:
+    """Return a file path rooted at the active planning directory."""
+
+    return get_planning_dir(root_dir) / name
 
 
 def load_roadmap(root_dir: Path) -> object | None:
     """Load roadmap objectives.json when present."""
-    roadmap_path = root_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+    roadmap_path = _planning_file(root_dir, "roadmap/objectives.json")
     if not roadmap_path.exists():
         return None
     try:
@@ -67,7 +67,7 @@ def load_active_objective_exceptions(root_dir: Path) -> list[dict[str, object]]:
     Invalid files or malformed entries fail closed and return an empty or
     filtered list rather than raising.
     """
-    path = root_dir / ACTIVE_OBJECTIVE_EXCEPTIONS_PATH
+    path = _planning_file(root_dir, "active-objective-exceptions.json")
     if not path.exists():
         return []
 
@@ -112,7 +112,7 @@ def load_named_active_objective_command_bundles(
     root_dir: Path,
 ) -> dict[str, dict[str, object]]:
     """Load command bundles keyed by stable bundle name."""
-    path = root_dir / ACTIVE_OBJECTIVE_COMMAND_BUNDLES_PATH
+    path = _planning_file(root_dir, "active-objective-command-bundles.json")
     if not path.exists():
         return {}
     try:
@@ -355,7 +355,8 @@ def command_scope_matches(
 
 def runtime_objective_slug(root_dir: Path) -> str | None:
     """Return the runtime state's objective slug when present."""
-    runtime_path = root_dir / ".mm-flow" / "planning" / "task-progress.json"
+    planning_dir = get_planning_dir(root_dir)
+    runtime_path = planning_dir / "task-progress.json"
     if not runtime_path.exists():
         return None
     try:
@@ -365,7 +366,12 @@ def runtime_objective_slug(root_dir: Path) -> str | None:
     if not isinstance(data, dict):
         return None
     slug = data.get("objective_slug")
-    return str(slug) if slug else None
+    if not slug:
+        return None
+    objective_dir = planning_dir / "changes" / str(slug)
+    if not objective_dir.exists():
+        return None
+    return str(slug)
 
 
 def is_stale_bootstrapped_done_objective(root_dir: Path, objective_dir: Path) -> bool:
@@ -405,7 +411,7 @@ def is_stale_bootstrapped_done_objective(root_dir: Path, objective_dir: Path) ->
 
 def active_objective_dirs(root_dir: Path) -> list[Path]:
     """Return blocking active objective directories under planning/changes."""
-    changes_dir = root_dir / ".mm-flow" / "planning" / "changes"
+    changes_dir = get_planning_dir(root_dir) / "changes"
     if not changes_dir.exists():
         return []
     dirs = sorted(path for path in changes_dir.iterdir() if path.is_dir())

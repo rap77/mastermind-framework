@@ -2,19 +2,22 @@
 """Scaffold one active-objective exception entry to stdout.
 
 This helper does not mutate the exceptions artifact. It prints a single JSON
-entry that operators can paste into `.mm-flow/planning/active-objective-exceptions.json`
-and then validate with `validate-active-objective-exceptions.py`.
+entry that operators can paste into the active planning surface's
+`active-objective-exceptions.json` and then validate with
+`validate-active-objective-exceptions.py`.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+from planning_paths import planning_relpath
 
 ROOT = Path.cwd()
-COMMANDS_DIR = ROOT / ".mm-flow" / "commands" / "mm"
+PLANNING_LABEL = planning_relpath(ROOT)
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,15 +97,17 @@ def main() -> int:
     try:
         entry = build_entry(parse_args())
     except ValueError as exc:
-        print("STATUS: FAILED")
-        print(f"- {exc}")
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- {exc}\n")
         return 1
 
-    print("STATUS: PASSED")
-    print(
-        "- Copy the JSON object below into .mm-flow/planning/active-objective-exceptions.json and then run validate-active-objective-exceptions.py"
+    sys.stdout.write("STATUS: PASSED\n")
+    sys.stdout.write(
+        f"- Copy the JSON object below into {PLANNING_LABEL}/active-objective-exceptions.json and then run validate-active-objective-exceptions.py"
     )
-    print(json.dumps(entry, indent=2))
+    sys.stdout.write("\n")
+    sys.stdout.write(json.dumps(entry, indent=2))
+    sys.stdout.write("\n")
     return 0
 
 
