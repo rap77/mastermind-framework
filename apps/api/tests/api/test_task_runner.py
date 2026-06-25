@@ -13,7 +13,10 @@ Brain #6 guidance: BackgroundTasks pattern, not asyncio.create_task().
 
 import asyncio
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
+from typing import Any
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -28,6 +31,13 @@ from mastermind_cli.project_state.models.artifact import ArtifactVersion
 from mastermind_cli.project_state.models.project import Project
 from mastermind_cli.project_state.models.task import Task
 from mastermind_cli.project_state.models.task_run import TaskRun
+
+
+class BlockingGovernance:
+    """Governance stub used to verify seam propagation."""
+
+    pass
+
 
 # Constants mirrored from task_runner (tested explicitly below)
 EXPECTED_BRAIN_ID_MAP = {
@@ -52,15 +62,16 @@ def cleanup_project_state_engines() -> None:
 
 
 @pytest.fixture
-def task_id():
+def task_id() -> str:
+    """Return the stable task identifier used by task runner tests."""
     return "task-test-001"
 
 
 @pytest.fixture(autouse=True)
-def stub_asyncpg_connect(monkeypatch):
+def stub_asyncpg_connect(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disable real asyncpg network access during task runner tests."""
 
-    async def _fail_connect(*args, **kwargs):
+    async def _fail_connect(*args: Any, **kwargs: Any) -> None:
         del args, kwargs
         raise OSError("asyncpg disabled in tests")
 
@@ -71,10 +82,10 @@ def stub_asyncpg_connect(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def stub_session_evaluated_event(monkeypatch):
+def stub_session_evaluated_event(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disable outbound Rust control-plane calls during task runner tests."""
 
-    async def _noop_event(*args, **kwargs):
+    async def _noop_event(*args: Any, **kwargs: Any) -> None:
         del args, kwargs
 
     monkeypatch.setattr(
@@ -84,7 +95,7 @@ def stub_session_evaluated_event(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def stub_brain_routing(monkeypatch):
+def stub_brain_routing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep task runner tests focused on the primary execution path."""
 
     monkeypatch.setattr(
@@ -94,7 +105,7 @@ def stub_brain_routing(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def stub_langsmith_run_tree(monkeypatch):
+def stub_langsmith_run_tree(monkeypatch: pytest.MonkeyPatch) -> None:
     """Avoid LangSmith pytest-plugin side effects inside task_runner tests."""
 
     monkeypatch.setattr(
@@ -104,27 +115,27 @@ def stub_langsmith_run_tree(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def stub_task_runner_db_connection(monkeypatch):
+def stub_task_runner_db_connection(monkeypatch: pytest.MonkeyPatch) -> None:
     """Replace task_runner aiosqlite access with a lightweight sqlite3 async shim."""
 
     class _Cursor:
         def __init__(self, cursor: sqlite3.Cursor):
             self._cursor = cursor
 
-        async def fetchone(self):
+        async def fetchone(self) -> Any:
             return self._cursor.fetchone()
 
-        async def fetchall(self):
+        async def fetchall(self) -> Any:
             return self._cursor.fetchall()
 
     class _Conn:
         def __init__(self, connection: sqlite3.Connection):
             self._connection = connection
 
-        async def execute(self, sql: str, params=None):
+        async def execute(self, sql: str, params: Any = None) -> Any:
             return _Cursor(self._connection.execute(sql, params or []))
 
-        async def commit(self):
+        async def commit(self) -> None:
             self._connection.commit()
 
     class _FakeDatabaseConnection:
@@ -137,17 +148,17 @@ def stub_task_runner_db_connection(monkeypatch):
             assert self._connection is not None
             return _Conn(self._connection)
 
-        async def __aenter__(self):
+        async def __aenter__(self) -> "_FakeDatabaseConnection":
             self._connection = sqlite3.connect(self.db_path)
             return self
 
-        async def __aexit__(self, exc_type, exc, tb):
+        async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             del exc_type, exc, tb
             assert self._connection is not None
             self._connection.close()
             self._connection = None
 
-        async def create_experience_schema(self):
+        async def create_experience_schema(self) -> None:
             assert self._connection is not None
             self._connection.executescript("""
                 CREATE TABLE IF NOT EXISTS experience_records (
@@ -180,10 +191,10 @@ def stub_task_runner_db_connection(monkeypatch):
 
 
 @pytest.fixture
-def db_with_task(tmp_path, task_id):
+def db_with_task(tmp_path: Path, task_id: str) -> str:
     """DB with an execution record pre-inserted in 'pending' state."""
     db_file = str(tmp_path / "test.db")
-    with sqlite3.connect(db_file) as connection:
+    with closing(sqlite3.connect(db_file)) as connection:
         connection.executescript("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
@@ -282,7 +293,7 @@ def db_with_task(tmp_path, task_id):
 
 
 def _get_task_status(db_path: str, task_id: str) -> str:
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         row = connection.execute(
             "SELECT status FROM executions WHERE id = ?",
             (task_id,),
@@ -309,14 +320,14 @@ def _get_project_state_statuses(
 # ===== BRAIN_ID_MAP tests =====
 
 
-def test_brain_id_map_covers_all_seven_brains():
+def test_brain_id_map_covers_all_seven_brains() -> None:
     """BRAIN_ID_MAP must map all 7 brain integers to correct string IDs."""
     from mastermind_cli.api.services.task_runner import BRAIN_ID_MAP
 
     assert BRAIN_ID_MAP == EXPECTED_BRAIN_ID_MAP
 
 
-def test_brain_id_map_no_f_string_interpolation():
+def test_brain_id_map_no_f_string_interpolation() -> None:
     """Brain IDs must be explicit strings, not computed — prevents silent mismatches."""
     from mastermind_cli.api.services.task_runner import BRAIN_ID_MAP
 
@@ -329,7 +340,9 @@ def test_brain_id_map_no_f_string_interpolation():
 # ===== Status transition tests =====
 
 
-def test_run_brain_task_transitions_to_running_then_completed(db_with_task, task_id):
+def test_run_brain_task_transitions_to_running_then_completed(
+    db_with_task: str, task_id: str
+) -> None:
     """run_brain_task() sets status=running at start, then completed on success."""
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "ok"}
@@ -381,7 +394,45 @@ def test_run_brain_task_transitions_to_running_then_completed(db_with_task, task
     assert run_ended is True
 
 
-def test_run_brain_task_transitions_to_failed_on_exception(db_with_task, task_id):
+def test_run_brain_task_passes_governance_to_factory(
+    db_with_task: str, task_id: str
+) -> None:
+    """run_brain_task() should forward governance into the coordinator factory."""
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {"result": "ok"}
+
+    with (
+        patch(
+            "mastermind_cli.api.services.task_runner.create_stateless_coordinator"
+        ) as MockCoord,
+        patch(
+            "mastermind_cli.api.services.task_runner.ExperienceLogger",
+            return_value=AsyncMock(),
+        ),
+    ):
+        instance = MockCoord.return_value
+        instance.execute_flow = AsyncMock(
+            return_value={"brain-01-product": mock_output}
+        )
+
+        from mastermind_cli.api.services.task_runner import run_brain_task
+
+        asyncio.run(
+            run_brain_task(
+                task_id=task_id,
+                brief="Test brief input",
+                flow="validation_only",
+                db_path=db_with_task,
+                governance=BlockingGovernance(),
+            )
+        )
+
+    assert MockCoord.call_args.kwargs["governance"] is not None
+
+
+def test_run_brain_task_transitions_to_failed_on_exception(
+    db_with_task: str, task_id: str
+) -> None:
     """run_brain_task() sets status=failed when StatelessCoordinator raises."""
     with (
         patch(
@@ -416,7 +467,9 @@ def test_run_brain_task_transitions_to_failed_on_exception(db_with_task, task_id
     assert run_ended is True
 
 
-def test_run_brain_task_handles_cancelled_error(db_with_task, task_id):
+def test_run_brain_task_handles_cancelled_error(
+    db_with_task: str, task_id: str
+) -> None:
     """CancelledError (uvicorn shutdown) sets status=failed, does NOT propagate."""
     with (
         patch(
@@ -449,11 +502,15 @@ def test_run_brain_task_handles_cancelled_error(db_with_task, task_id):
 # ===== Flow detection + brain mapping =====
 
 
-def test_run_brain_task_maps_flow_detector_ints_to_brain_strings(db_with_task, task_id):
+def test_run_brain_task_maps_flow_detector_ints_to_brain_strings(
+    db_with_task: str, task_id: str
+) -> None:
     """FlowDetector returns list[int]; run_brain_task converts via BRAIN_ID_MAP."""
     captured_brain_ids: list[str] = []
 
-    async def capture_brain_ids(brief, brain_ids, conn=None):
+    async def capture_brain_ids(
+        brief: Any, brain_ids: list[str], conn: Any = None
+    ) -> dict[str, Any]:
         captured_brain_ids.extend(brain_ids)
         return {}
 
@@ -493,7 +550,9 @@ def test_run_brain_task_maps_flow_detector_ints_to_brain_strings(db_with_task, t
 # ===== ExperienceLogger integration =====
 
 
-def test_run_brain_task_writes_experience_record(db_with_task, task_id):
+def test_run_brain_task_writes_experience_record(
+    db_with_task: str, task_id: str
+) -> None:
     """run_brain_task() logs an experience record on successful execution."""
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "logged"}
@@ -518,7 +577,7 @@ def test_run_brain_task_writes_experience_record(db_with_task, task_id):
         )
 
     # Verify experience_records table has at least one entry
-    with sqlite3.connect(db_with_task) as connection:
+    with closing(sqlite3.connect(db_with_task)) as connection:
         row = connection.execute(
             "SELECT COUNT(*) FROM experience_records WHERE brain_id = ?",
             ("brain-01-product",),
@@ -529,15 +588,15 @@ def test_run_brain_task_writes_experience_record(db_with_task, task_id):
 
 
 def test_run_brain_task_accepts_injected_experience_logger_factory(
-    db_with_task, task_id
-):
+    db_with_task: str, task_id: str
+) -> None:
     """run_brain_task() can use an injected logger seam instead of ExperienceLogger."""
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "logged"}
     fake_logger = AsyncMock()
     factory_calls: list[object] = []
 
-    def logger_factory(db):
+    def logger_factory(db: Any) -> AsyncMock:
         factory_calls.append(db)
         return fake_logger
 
@@ -572,8 +631,8 @@ def test_run_brain_task_accepts_injected_experience_logger_factory(
 
 
 def test_run_brain_task_persists_canonical_execution_output_artifact(
-    db_with_task, task_id
-):
+    db_with_task: str, task_id: str
+) -> None:
     """Successful runs persist a canonical execution_output_bundle artifact."""
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "artifact"}
@@ -615,8 +674,8 @@ def test_run_brain_task_persists_canonical_execution_output_artifact(
 
 
 def test_run_brain_task_marks_rag_enabled_for_short_brain1_runtime_id(
-    db_with_task, task_id
-):
+    db_with_task: str, task_id: str
+) -> None:
     """Short Brain #1 runtime ID should still persist rag_enabled=True."""
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "ok"}
