@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from unittest.mock import patch
+from typing import Any
 
 import pytest
 
@@ -15,6 +17,7 @@ from mastermind_cli.project_state.database.session import (
     get_session_factory,
     initialize_database,
 )
+from mastermind_cli.api.dependencies import get_governance
 from mastermind_cli.project_state.models.project import Project
 from mastermind_cli.project_state.models.task import Task
 from mastermind_cli.project_state.models.task_run import TaskRun
@@ -22,7 +25,7 @@ from tests.api.conftest import TEST_USER_ID
 
 
 @pytest.mark.asyncio
-async def test_create_task(client, auth_headers):
+async def test_create_task(client: Any, auth_headers: Any) -> None:
     """POST /api/tasks creates task and returns task_id."""
     response = await client.post(
         "/api/tasks",
@@ -38,8 +41,8 @@ async def test_create_task(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_create_task_persists_project_state_task_and_run(
-    client, auth_headers, db_path
-):
+    client: Any, auth_headers: Any, db_path: Any
+) -> None:
     """POST /api/tasks writes the transitional project_state task and run records."""
     response = await client.post(
         "/api/tasks",
@@ -68,7 +71,31 @@ async def test_create_task_persists_project_state_task_and_run(
 
 
 @pytest.mark.asyncio
-async def test_create_task_validation(client, auth_headers):
+async def test_create_task_forwards_governance_dependency(
+    app: Any, client: Any, auth_headers: Any
+) -> None:
+    """POST /api/tasks forwards the app-scoped governance provider."""
+    sentinel = object()
+
+    async def _override_governance() -> object:
+        return sentinel
+
+    app.dependency_overrides[get_governance] = _override_governance
+    try:
+        with patch("mastermind_cli.api.routes.tasks.run_brain_task") as mock_runner:
+            response = await client.post(
+                "/api/tasks",
+                headers=auth_headers,
+                json={"brief": "Create task with governance"},
+            )
+        assert response.status_code == 201
+        assert mock_runner.call_args.kwargs["governance"] is sentinel
+    finally:
+        app.dependency_overrides.pop(get_governance, None)
+
+
+@pytest.mark.asyncio
+async def test_create_task_validation(client: Any, auth_headers: Any) -> None:
     """Empty brief returns 422."""
     response = await client.post(
         "/api/tasks",
@@ -79,7 +106,7 @@ async def test_create_task_validation(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_list_tasks(client, auth_headers):
+async def test_list_tasks(client: Any, auth_headers: Any) -> None:
     """GET /api/tasks returns list of user's tasks."""
     # Create a task first
     await client.post(
@@ -99,8 +126,8 @@ async def test_list_tasks(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_list_tasks_reads_project_state_records_only(
-    client, auth_headers, db_path
-):
+    client: Any, auth_headers: Any, db_path: Any
+) -> None:
     """GET /api/tasks lists records from project_state even without legacy executions."""
     database_url = f"sqlite:///{db_path}.project_state"
     dispose_engines()
@@ -147,7 +174,7 @@ async def test_list_tasks_reads_project_state_records_only(
 
 
 @pytest.mark.asyncio
-async def test_get_task(client, auth_headers):
+async def test_get_task(client: Any, auth_headers: Any) -> None:
     """GET /api/tasks/{id} returns task; 404 for unknown."""
     create = await client.post(
         "/api/tasks",
@@ -165,7 +192,9 @@ async def test_get_task(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_get_task_reads_project_state_record_only(client, auth_headers, db_path):
+async def test_get_task_reads_project_state_record_only(
+    client: Any, auth_headers: Any, db_path: Any
+) -> None:
     """GET /api/tasks/{id} reads from project_state even without legacy executions."""
     database_url = f"sqlite:///{db_path}.project_state"
     dispose_engines()
@@ -215,7 +244,7 @@ async def test_get_task_reads_project_state_record_only(client, auth_headers, db
 
 
 @pytest.mark.asyncio
-async def test_cancel_task(client, auth_headers):
+async def test_cancel_task(client: Any, auth_headers: Any) -> None:
     """DELETE /api/tasks/{id} cancels task."""
     create = await client.post(
         "/api/tasks",
@@ -231,7 +260,9 @@ async def test_cancel_task(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_cancel_task_updates_project_state_status(client, auth_headers, db_path):
+async def test_cancel_task_updates_project_state_status(
+    client: Any, auth_headers: Any, db_path: Any
+) -> None:
     """DELETE /api/tasks/{id} updates project_state task status."""
     create = await client.post(
         "/api/tasks",
@@ -258,7 +289,9 @@ async def test_cancel_task_updates_project_state_status(client, auth_headers, db
 
 
 @pytest.mark.asyncio
-async def test_session_isolation(client, auth_headers, auth_headers_b):
+async def test_session_isolation(
+    client: Any, auth_headers: Any, auth_headers_b: Any
+) -> None:
     """User A cannot access User B's tasks."""
     # Create task as user B
     create_b = await client.post(
@@ -291,8 +324,8 @@ class TestTaskGraphBE02:
 
     @pytest.mark.asyncio
     async def test_graph_empty_flow_config_returns_valid_shape(
-        self, client, auth_headers
-    ):
+        self: "TestTaskGraphBE02", client: Any, auth_headers: Any
+    ) -> None:
         """Empty flow_config returns response with all required keys including layout_positions."""
         # Create a task (no flow_config set — defaults to empty)
         create = await client.post(
@@ -321,7 +354,9 @@ class TestTaskGraphBE02:
         assert data["max_parallelism"] == 0
 
     @pytest.mark.asyncio
-    async def test_graph_layout_positions_field_is_null(self, client, auth_headers):
+    async def test_graph_layout_positions_field_is_null(
+        self: "TestTaskGraphBE02", client: Any, auth_headers: Any
+    ) -> None:
         """layout_positions is null when server does not compute layout (Phase 08 deferred)."""
         create = await client.post(
             "/api/tasks",
@@ -340,8 +375,8 @@ class TestTaskGraphBE02:
 
     @pytest.mark.asyncio
     async def test_graph_edges_use_source_target_fields(
-        self, client, auth_headers, db_path
-    ):
+        self: "TestTaskGraphBE02", client: Any, auth_headers: Any, db_path: str
+    ) -> None:
         """Edge objects serialize with 'source' and 'target' keys — React Flow compatible."""
         # Create task then patch canonical project_state flow_config
         create = await client.post(
@@ -393,8 +428,8 @@ class TestTaskGraphBE02:
 
     @pytest.mark.asyncio
     async def test_graph_reads_project_state_flow_config_only(
-        self, client, auth_headers, db_path
-    ):
+        self: "TestTaskGraphBE02", client: Any, auth_headers: Any, db_path: str
+    ) -> None:
         """GET /api/tasks/{id}/graph can render from project_state without legacy executions flow_config."""
         database_url = f"sqlite:///{db_path}.project_state"
         dispose_engines()
@@ -455,7 +490,9 @@ class TestTaskGraphBE02:
         assert data["edges"][0]["target"] == "brain-02"
 
     @pytest.mark.asyncio
-    async def test_graph_returns_404_for_unknown_task(self, client, auth_headers):
+    async def test_graph_returns_404_for_unknown_task(
+        self: "TestTaskGraphBE02", client: Any, auth_headers: Any
+    ) -> None:
         """GET /api/tasks/{id}/graph returns 404 for unknown task_id."""
         response = await client.get(
             "/api/tasks/nonexistent-task-id-99999/graph", headers=auth_headers
