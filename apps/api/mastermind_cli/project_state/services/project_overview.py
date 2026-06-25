@@ -83,6 +83,11 @@ class ProjectOverviewService:
         return value.astimezone(timezone.utc)
 
     @staticmethod
+    def _metadata_dict(value: object) -> dict[str, Any]:
+        """Return a defensive dict view for metadata payloads."""
+        return dict(value) if isinstance(value, dict) else {}
+
+    @staticmethod
     def _estimate_minutes_from_metadata(
         metadata: dict[str, object], priority: str
     ) -> tuple[int, bool]:
@@ -142,7 +147,7 @@ class ProjectOverviewService:
 
         for task in tasks:
             estimate_minutes, explicit = self._estimate_minutes_from_metadata(
-                task.metadata_json,
+                self._metadata_dict(task.metadata_json),
                 task.priority,
             )
             estimated_total_minutes += estimate_minutes
@@ -241,7 +246,7 @@ class ProjectOverviewService:
             created_at=created_at,
         )
 
-        task_metadata = deepcopy(task.metadata_json)
+        task_metadata = deepcopy(self._metadata_dict(task.metadata_json))
         task_metadata["last_checkpoint_by"] = actor_user_id
         task_metadata["last_checkpoint_at"] = created_at.isoformat()
         task.metadata_json = task_metadata
@@ -319,7 +324,7 @@ class ProjectOverviewService:
             return None
 
         updated_at = datetime.now(timezone.utc)
-        task_metadata = deepcopy(task.metadata_json)
+        task_metadata = deepcopy(self._metadata_dict(task.metadata_json))
         task_metadata["status_updated_by"] = actor_user_id
         task_metadata["status_updated_at"] = updated_at.isoformat()
         if request.reason:
@@ -337,7 +342,7 @@ class ProjectOverviewService:
             priority=task.priority,
             owner_type=task.owner_type,
             owner_id=task.owner_id,
-            metadata=task.metadata_json,
+            metadata=self._metadata_dict(task.metadata_json),
             constraints=task.constraints,
             completion_criteria=task.completion_criteria,
             created_at=task.created_at,
@@ -506,7 +511,7 @@ class ProjectOverviewService:
                 priority=item.priority,
                 owner_type=item.owner_type,
                 owner_id=item.owner_id,
-                metadata=item.metadata_json,
+                metadata=self._metadata_dict(item.metadata_json),
                 constraints=item.constraints,
                 completion_criteria=item.completion_criteria,
                 created_at=item.created_at,
@@ -938,21 +943,23 @@ class ProjectOverviewService:
         if not decisions:
             decisions = self.decisions.list_recent_by_project(project_id, limit=5)
 
-        blockers_raw = task.metadata_json.get("blockers", [])
+        task_metadata = self._metadata_dict(task.metadata_json)
+
+        blockers_raw = task_metadata.get("blockers", [])
         blockers = (
             [str(item) for item in blockers_raw]
             if isinstance(blockers_raw, list)
             else []
         )
 
-        dependencies_raw = task.metadata_json.get("dependencies", [])
+        dependencies_raw = task_metadata.get("dependencies", [])
         dependencies = (
             [str(item) for item in dependencies_raw]
             if isinstance(dependencies_raw, list)
             else []
         )
 
-        artifacts_raw = task.metadata_json.get("relevant_artifacts", [])
+        artifacts_raw = task_metadata.get("relevant_artifacts", [])
         relevant_artifacts = (
             [str(item) for item in artifacts_raw]
             if isinstance(artifacts_raw, list)
@@ -1193,7 +1200,7 @@ class ProjectOverviewService:
             priority=task.priority,
             owner_type=task.owner_type,
             owner_id=task.owner_id,
-            metadata=task.metadata_json,
+            metadata=self._metadata_dict(task.metadata_json),
             constraints=task.constraints,
             completion_criteria=task.completion_criteria,
             created_at=task.created_at,
