@@ -10,10 +10,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from mastermind_cli.memory_layer.service import MemoryService
+
+
+logger = logging.getLogger(__name__)
 
 
 def _payload_tags(value: object) -> list[str]:
@@ -44,6 +48,9 @@ class ErrorTracker:
 
     # root_cause → list of ErrorRecord
     _errors_by_root_cause: dict[str, list[ErrorRecord]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    _memory_ids_by_root_cause: dict[str, list[str]] = field(
         default_factory=lambda: defaultdict(list)
     )
 
@@ -117,29 +124,46 @@ class ErrorTracker:
         )
 
         if is_pattern:
+            related_memory_ids = list(self._memory_ids_by_root_cause[root_cause])
             payload = self.get_pattern_decision_payload(
                 root_cause=root_cause,
                 project_id=project_id,
             )
-            await memory_service.record_learning(
-                title=str(payload["title"]),
-                content=str(payload["rationale"]),
-                project_id=project_id,
-                memory_type="pattern",
-                visibility="project",
-                source_kind="error_tracker",
-                source_ref=f"error_pattern:{root_cause}",
-                tags=_payload_tags(payload["tags"]),
-                metadata={
-                    "decision_type": payload["decision_type"],
-                    "chosen_option": payload["chosen_option"],
-                    "confidence": payload["confidence"],
-                    "impact_level": payload["impact_level"],
-                    "made_by": payload["made_by"],
-                },
-            )
+            try:
+                saved_item = await memory_service.record_learning(
+                    title=str(payload["title"]),
+                    content=str(payload["rationale"]),
+                    project_id=project_id,
+                    memory_type="pattern",
+                    visibility="project",
+                    source_kind="error_tracker",
+                    source_ref=f"error_pattern:{root_cause}",
+                    tags=_payload_tags(payload["tags"]),
+                    related_memory_ids=related_memory_ids or None,
+                    metadata={
+                        "decision_type": payload["decision_type"],
+                        "chosen_option": payload["chosen_option"],
+                        "confidence": payload["confidence"],
+                        "impact_level": payload["impact_level"],
+                        "made_by": payload["made_by"],
+                    },
+                )
+            except Exception:
+                logger.warning(
+                    "error tracker pattern memory persistence failed", exc_info=True
+                )
+            else:
+                if (
+                    saved_item.memory_id
+                    and saved_item.memory_id
+                    not in self._memory_ids_by_root_cause[root_cause]
+                ):
+                    self._memory_ids_by_root_cause[root_cause].append(
+                        saved_item.memory_id
+                    )
             return decision_type, is_pattern
 
+        related_memory_ids = list(self._memory_ids_by_root_cause[root_cause])
         payload = self.get_resolution_decision_payload(
             subtask_id=subtask_id,
             root_cause=root_cause,
@@ -148,23 +172,36 @@ class ErrorTracker:
             confidence=confidence,
             project_id=project_id,
         )
-        await memory_service.record_learning(
-            title=str(payload["title"]),
-            content=str(payload["rationale"]),
-            project_id=project_id,
-            memory_type="fix",
-            visibility="project",
-            source_kind="error_tracker",
-            source_ref=f"error_resolution:{subtask_id}:{root_cause}",
-            tags=_payload_tags(payload["tags"]),
-            metadata={
-                "decision_type": payload["decision_type"],
-                "chosen_option": payload["chosen_option"],
-                "confidence": payload["confidence"],
-                "impact_level": payload["impact_level"],
-                "made_by": payload["made_by"],
-            },
-        )
+        try:
+            saved_item = await memory_service.record_learning(
+                title=str(payload["title"]),
+                content=str(payload["rationale"]),
+                project_id=project_id,
+                memory_type="fix",
+                visibility="project",
+                source_kind="error_tracker",
+                source_ref=f"error_resolution:{subtask_id}:{root_cause}",
+                tags=_payload_tags(payload["tags"]),
+                related_memory_ids=related_memory_ids or None,
+                metadata={
+                    "decision_type": payload["decision_type"],
+                    "chosen_option": payload["chosen_option"],
+                    "confidence": payload["confidence"],
+                    "impact_level": payload["impact_level"],
+                    "made_by": payload["made_by"],
+                },
+            )
+        except Exception:
+            logger.warning(
+                "error tracker resolution memory persistence failed", exc_info=True
+            )
+        else:
+            if (
+                saved_item.memory_id
+                and saved_item.memory_id
+                not in self._memory_ids_by_root_cause[root_cause]
+            ):
+                self._memory_ids_by_root_cause[root_cause].append(saved_item.memory_id)
         return decision_type, is_pattern
 
     def get_pattern_decision_payload(
