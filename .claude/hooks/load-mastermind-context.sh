@@ -56,3 +56,7 @@ fi
 
 # The framework is now active and the mastermind-consultant skill
 # will automatically detect the .mastermind-active file and activate.
+
+"$PROJECT_ROOT/.claude/hooks/start-ollama.sh" || true
+"$PROJECT_ROOT/.claude/hooks/start-graphify-watch.sh" || true
+"$PROJECT_ROOT/.claude/hooks/start-graphify-doc-watch.sh" || true

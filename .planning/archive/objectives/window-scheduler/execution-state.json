@@ -1,0 +1,33 @@
+{
+  "objective_slug": "window-scheduler",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/window-scheduler/todo.md"
+    }
+  },
+  "updated_at": "2026-06-21T16:12:53.565852",
+  "bootstrapped_from_artifacts": true
+}

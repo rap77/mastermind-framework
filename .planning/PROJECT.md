@@ -1,5 +1,11 @@
 # MasterMind Framework
 
+## Project Naming
+
+- **Canonical project identifier:** `mastermind-framework`
+- **Local repository directory:** `/home/rpadron/proy/mastermind`
+- **Convention:** keep `mastermind-framework` for memory, planning, and handoff artifacts; treat `mastermind` as the local folder name only.
+
 ## What This Is
 
 A cognitive architecture framework for building specialized AI-powered solutions using expert "brains" — distilled knowledge from world-class experts organized by niche. v2.2 ships autonomous Claude Code subagents per brain: each agent embeds the intermediary protocol natively, reads a two-level BRAIN-FEED (global + domain), and is dispatched in parallel by the orchestrator — replacing sequential manual skill steps with autonomous expert collaboration.

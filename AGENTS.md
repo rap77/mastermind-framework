@@ -1,4 +1,13 @@
+
 # Mente Maestra - Code Review Rules
+
+---
+
+# AI-DLC Workflow Rules (aidlc-workflows v1.0.0)
+
+The AI-DLC adaptive workflow rules are stored in `.aidlc-rule-details/` directory.
+The core workflow is in `.claude/CLAUDE.md`. Codex/OpenAI agents: read `.aidlc-rule-details/` for the detailed phase rules.
+Reference: https://github.com/awslabs/aidlc-workflows
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
