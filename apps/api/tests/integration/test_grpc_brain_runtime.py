@@ -9,9 +9,11 @@ Tests follow TDD pattern:
 import pytest
 import sqlite3
 import time
+from contextlib import closing
 from datetime import datetime
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 from mastermind_cli.project_state.database.session import dispose_engines
 
@@ -37,17 +39,17 @@ def isolated_brain_runtime_db(
         def __init__(self, cursor: sqlite3.Cursor):
             self._cursor = cursor
 
-        async def fetchone(self):
+        async def fetchone(self) -> Any:
             return self._cursor.fetchone()
 
     class _Conn:
         def __init__(self, connection: sqlite3.Connection):
             self._connection = connection
 
-        async def execute(self, sql: str, params=None):
+        async def execute(self, sql: str, params: Any = None) -> Any:
             return _Cursor(self._connection.execute(sql, params or []))
 
-        async def commit(self):
+        async def commit(self) -> None:
             self._connection.commit()
 
     class _FakeDatabaseConnection:
@@ -60,17 +62,17 @@ def isolated_brain_runtime_db(
             assert self._connection is not None
             return _Conn(self._connection)
 
-        async def __aenter__(self):
+        async def __aenter__(self) -> "_FakeDatabaseConnection":
             self._connection = sqlite3.connect(self.db_path)
             return self
 
-        async def __aexit__(self, exc_type, exc, tb):
+        async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             del exc_type, exc, tb
             assert self._connection is not None
             self._connection.close()
             self._connection = None
 
-        async def create_task_schema(self):
+        async def create_task_schema(self) -> None:
             assert self._connection is not None
             self._connection.executescript("""
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -192,7 +194,7 @@ class TestBrainRuntimeGrpcServer:
         # Verify execution was created in SQLite
         # Schema: id, flow_config, brief, created_at, status, user_id
         db_path = os.getenv("MM_DB_PATH", "mastermind.db")
-        with sqlite3.connect(db_path) as connection:
+        with closing(sqlite3.connect(db_path)) as connection:
             row = connection.execute(
                 "SELECT * FROM executions WHERE id = ?",
                 (response.task_id,),
@@ -286,7 +288,7 @@ class TestBrainRuntimeGrpcServer:
         factory_calls: list[str] = []
 
         class _Cursor:
-            async def fetchone(self):
+            async def fetchone(self) -> None:
                 return None
 
         class _Conn:
@@ -294,11 +296,11 @@ class TestBrainRuntimeGrpcServer:
                 self.execute_calls: list[tuple[str, list[object]]] = []
                 self.committed = False
 
-            async def execute(self, sql: str, params=None):
+            async def execute(self, sql: str, params: Any = None) -> Any:
                 self.execute_calls.append((sql, list(params or [])))
                 return _Cursor()
 
-            async def commit(self):
+            async def commit(self) -> None:
                 self.committed = True
 
         class _FakeDB:
@@ -307,13 +309,13 @@ class TestBrainRuntimeGrpcServer:
                 self.conn = _Conn()
                 self.schema_created = False
 
-            async def __aenter__(self):
+            async def __aenter__(self) -> "_FakeDB":
                 return self
 
-            async def __aexit__(self, exc_type, exc, tb):
+            async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 del exc_type, exc, tb
 
-            async def create_task_schema(self):
+            async def create_task_schema(self) -> None:
                 self.schema_created = True
 
         fake_dbs: list[_FakeDB] = []
