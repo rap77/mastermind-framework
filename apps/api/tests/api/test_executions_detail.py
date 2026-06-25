@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime
 from datetime import timedelta
 
@@ -50,7 +51,7 @@ def _insert_execution_full(
     _brain_outputs = brain_outputs or {}
     _graph_snapshot = graph_snapshot or {}
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         connection.executescript("""
             CREATE TABLE IF NOT EXISTS execution_history (
                 id TEXT PRIMARY KEY,
