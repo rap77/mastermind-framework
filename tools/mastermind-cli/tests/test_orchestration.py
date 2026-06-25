@@ -7,6 +7,8 @@ Tests the evaluator, NotebookLM client, and overall orchestration flow.
 import os
 import sys
 
+import pytest
+
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
@@ -20,7 +22,10 @@ from mastermind_cli.orchestrator import (  # noqa: E402
 )
 
 
-def test_list_active_brains():
+pytestmark = pytest.mark.smoke
+
+
+def test_list_active_brains() -> None:
     """Test listing active brains."""
     print("\n=== Test: List Active Brains ===")
     brains = list_active_brains()
@@ -33,7 +38,7 @@ def test_list_active_brains():
     print("✅ PASS")
 
 
-def test_notebooklm_client():
+def test_notebooklm_client() -> None:
     """Test NotebookLM client."""
     print("\n=== Test: NotebookLM Client ===")
     client = NotebookLMClient()
@@ -55,7 +60,7 @@ def test_notebooklm_client():
     print("✅ PASS")
 
 
-def test_evaluator_load_matrix():
+def test_evaluator_load_matrix() -> None:
     """Test evaluator matrix loading."""
     print("\n=== Test: Evaluator Matrix Loading ===")
     evaluator = Evaluator()
@@ -76,7 +81,7 @@ def test_evaluator_load_matrix():
     print("✅ PASS")
 
 
-def test_evaluator_simple():
+def test_evaluator_simple() -> None:
     """Test evaluator with a simple output."""
     print("\n=== Test: Evaluator (Simple) ===")
     evaluator = Evaluator()
@@ -130,7 +135,7 @@ def test_evaluator_simple():
     print("✅ PASS")
 
 
-def test_evaluator_weak_output():
+def test_evaluator_weak_output() -> None:
     """Test evaluator with a weak output (should REJECT)."""
     print("\n=== Test: Evaluator (Weak Output - Expected REJECT) ===")
     evaluator = Evaluator()
@@ -162,7 +167,7 @@ def test_evaluator_weak_output():
     print("✅ PASS")
 
 
-def test_mcp_wrapper():
+def test_mcp_wrapper() -> None:
     """Test MCP wrapper."""
     print("\n=== Test: MCP Wrapper ===")
 
@@ -180,7 +185,7 @@ def test_mcp_wrapper():
     print("✅ PASS")
 
 
-def run_all_tests():
+def run_all_tests() -> None:
     """Run all tests."""
     print("\n" + "=" * 50)
     print("MasterMind Orchestration Tests")

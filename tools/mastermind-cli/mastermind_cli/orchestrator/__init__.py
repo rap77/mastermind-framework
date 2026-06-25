@@ -18,6 +18,21 @@ from .mcp_wrapper import (
 )
 from .mcp_integration import MCPIntegration
 from .output_formatter import OutputFormatter
+from .governance import (
+    AuditEvent,
+    EvidenceChainWriter,
+    GovernanceInterceptor,
+    Intention,
+    PolicyVerdict,
+    TaskContext,
+)
+from .budget import (
+    BudgetContext,
+    BudgetEnforcer,
+    BudgetLedger,
+    BudgetSnapshot,
+    BudgetVerdict,
+)
 from .coordinator import Coordinator
 
 __all__ = [
@@ -32,5 +47,16 @@ __all__ = [
     "list_active_brains",
     "MCPIntegration",
     "OutputFormatter",
+    "AuditEvent",
+    "EvidenceChainWriter",
+    "GovernanceInterceptor",
+    "Intention",
+    "PolicyVerdict",
+    "TaskContext",
+    "BudgetContext",
+    "BudgetEnforcer",
+    "BudgetLedger",
+    "BudgetSnapshot",
+    "BudgetVerdict",
     "Coordinator",
 ]
