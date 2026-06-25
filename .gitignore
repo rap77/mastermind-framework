@@ -68,6 +68,7 @@ apps/api/mastermind.db
 .planning/BACKEND-USAGE.json
 mastermind.db
 tasks/todo.md.backup_*
+graphify-out/
 
 # App-local MasterMind registration/runtime markers
 apps/api/.mastermind/
