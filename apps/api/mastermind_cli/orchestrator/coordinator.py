@@ -2,6 +2,8 @@
 Coordinator - Main orchestration coordinator with iteration loop.
 """
 
+import logging
+import sys
 import os
 from typing import Any, Annotated
 
@@ -10,8 +12,25 @@ from .flow_detector import FlowDetector
 from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
 from .output_formatter import OutputFormatter
+from .governance import GovernanceInterceptor, Intention, TaskContext
 from ..memory import EvaluationLogger
 from ..types.parallel import ProviderConfig
+
+logger = logging.getLogger(__name__)
+
+
+def emit(
+    *parts: object,
+    sep: str = " ",
+    end: str = "\n",
+    file: object | None = None,
+    flush: bool = True,
+) -> None:
+    """Write a single structured line to stdout or stderr."""
+    stream = sys.stderr if file is sys.stderr else sys.stdout
+    stream.write(sep.join(str(part) for part in parts) + end)
+    if flush:
+        stream.flush()
 
 
 class Coordinator:
@@ -25,6 +44,7 @@ class Coordinator:
         formatter: OutputFormatter | None = None,
         use_mcp: bool = False,
         enable_logging: bool = True,
+        governance: GovernanceInterceptor | None = None,
     ) -> None:
         """Initialize coordinator.
 
@@ -43,6 +63,7 @@ class Coordinator:
         self.eval_logger = (
             EvaluationLogger(enabled=enable_logging) if enable_logging else None
         )
+        self.governance = governance
 
         # Execution state
         self.current_plan: dict[str, Any] | None = None
@@ -83,11 +104,42 @@ class Coordinator:
         self.rejection_count = 0
         self.use_mcp = use_mcp
 
+        if self.governance is not None:
+            intention = Intention(
+                action="orchestrate",
+                targets=[flow or "auto"],
+                scope=flow or "default",
+                estimated_risk="low",
+                estimated_tokens=None,
+                requires_network=False,
+                requires_write=False,
+                requires_production_access=False,
+            )
+            context = TaskContext(
+                task_id="coordinator",
+                session_id="coordinator-session",
+                allowed_paths=[],
+                sensitive_paths=[],
+                task_type="orchestration",
+                approval_state="not_required",
+                dry_run_enabled=dry_run,
+                production_mode=False,
+            )
+            decision = self.governance.evaluate(intention, context)
+            if decision.final_verdict.value != "allow":
+                return {
+                    "status": "blocked",
+                    "verdict": decision.final_verdict.value,
+                    "policy": decision.triggering_policy,
+                    "audit_event_ref": decision.audit_event_ref,
+                    "next_action": decision.next_action,
+                }
+
         # Step 1: Detect or validate flow
         if not flow:
             flow = self._detect_flow(brief)
         elif not self.flow_detector.validate_flow(flow):
-            return self._error_report(f"Invalid flow type: {flow}")
+            raise ValueError(f"Invalid flow type: {flow}")
 
         # Step 2: Generate execution plan
         self.current_plan = self.plan_generator.generate(brief, flow)
@@ -116,6 +168,7 @@ class Coordinator:
 
         # Step 5: Format and deliver final result
         final_output = self.formatter.format_final_deliverable(execution_report)
+        emit(final_output)
 
         if output_file:
             self._save_output(final_output, output_file)
@@ -174,14 +227,14 @@ class Coordinator:
         """
         plan_id = self._generate_session_id()
 
-        print(
+        logger.info(
             self.formatter.format_info("🎤 Starting Discovery Interview with Brain #8")
         )
-        print(self.formatter.format_separator())
+        logger.info(self.formatter.format_separator())
 
         try:
             # Step 1: Generate interview plan via Brain #8
-            print(
+            logger.info(
                 self.formatter.format_info("Step 1: Generating interview strategy...")
             )
             interview_plan = self._generate_interview_plan(brief)
@@ -189,22 +242,22 @@ class Coordinator:
             if not interview_plan or interview_plan.get("status") == "error":
                 return self._error_report("Failed to generate interview plan")
 
-            print(self.formatter.format_interview_plan(interview_plan))
+            logger.info(self.formatter.format_interview_plan(interview_plan))
 
             # Step 2: Execute iterative interview
-            print(self.formatter.format_info("Step 2: Conducting interview..."))
-            print(
+            logger.info(self.formatter.format_info("Step 2: Conducting interview..."))
+            logger.info(
                 self.formatter.format_info(
                     "(Type your answers. Press Ctrl+C to end interview early)"
                 )
             )
-            print(self.formatter.format_separator())
+            logger.info(self.formatter.format_separator())
 
             interview_doc = self._conduct_interview(interview_plan, brief)
 
             # Step 3: Generate final deliverable
-            print(self.formatter.format_separator())
-            print(
+            logger.info(self.formatter.format_separator())
+            logger.info(
                 self.formatter.format_info(
                     "Step 3: Generating final recommendations..."
                 )
@@ -213,8 +266,8 @@ class Coordinator:
             # Format the interview document as deliverable
             deliverable = self._format_interview_deliverable(interview_doc)
 
-            print(self.formatter.format_interview_complete(interview_doc))
-            print(deliverable)
+            logger.info(self.formatter.format_interview_complete(interview_doc))
+            logger.info(deliverable)
 
             # Step 4: Log interview (if enabled)
             if self.eval_logger:
@@ -223,7 +276,7 @@ class Coordinator:
                     # Fallback: log as evaluation
                     self._log_interview_as_evaluation(interview_doc, brief)
                 except Exception as e:
-                    print(f"Warning: Could not log interview: {e}")
+                    logger.warning("Could not log interview: %s", e)
 
             return {
                 "plan_id": plan_id,
@@ -235,7 +288,9 @@ class Coordinator:
             }
 
         except KeyboardInterrupt:
-            print(self.formatter.format_warning("\nInterview interrupted by user."))
+            logger.info(
+                self.formatter.format_warning("\nInterview interrupted by user.")
+            )
             return {
                 "plan_id": plan_id,
                 "status": "interrupted",
@@ -349,11 +404,11 @@ class Coordinator:
             self.iteration_count = iteration
 
             if iteration > 1:
-                print(self.formatter.format_iteration_start(iteration, max_iterations))
+                emit(self.formatter.format_iteration_start(iteration, max_iterations))
 
             # --- Task 1: Brain #1 (Product Strategy) ---
             task_1 = tasks[0]
-            print(self.formatter.format_task_start(task_1))
+            emit(self.formatter.format_task_start(task_1))
 
             # Add context from previous iterations if any
             if iteration > 1 and evaluations:
@@ -364,7 +419,7 @@ class Coordinator:
                     task_1["inputs"]["iteration"] = iteration
 
             result_1 = self.brain_executor.execute(1, task_1, use_mcp=self.use_mcp)
-            print(self.formatter.format_brain_output(result_1, task_1))
+            emit(self.formatter.format_brain_output(result_1, task_1))
 
             outputs["TASK-001"] = result_1.get("output", {})
 
@@ -373,13 +428,13 @@ class Coordinator:
             task_7["output_to_evaluate"] = result_1.get("output", {})
             task_7["previous_brain_id"] = 1
 
-            print(self.formatter.format_task_start(task_7))
+            emit(self.formatter.format_task_start(task_7))
             result_7 = self.brain_executor.execute(
                 7, task_7, use_mcp=False
             )  # Evaluator uses local logic
 
             # Format evaluation result
-            print(self.formatter.format_evaluation_result(result_7))
+            emit(self.formatter.format_evaluation_result(result_7))
 
             # Log evaluation if enabled
             if self.eval_logger:
@@ -415,14 +470,14 @@ class Coordinator:
             elif veredict == "CONDITIONAL":
                 # Try one more iteration with fixes
                 if iteration < max_iterations:
-                    print(
+                    emit(
                         self.formatter.format_info(
                             f"Conditional approval. Applying fixes and retrying... ({iteration}/{max_iterations})"
                         )
                     )
                     continue
                 else:
-                    print(
+                    emit(
                         self.formatter.format_warning(
                             f"Reached max iterations ({max_iterations}) with conditional approval."
                         )
@@ -446,7 +501,7 @@ class Coordinator:
 
                 # Check for escalation
                 if self.rejection_count >= 3:
-                    print(
+                    emit(
                         self.formatter.format_escalation_notice(
                             "3rd consecutive rejection. This brief requires human review."
                         )
@@ -468,7 +523,7 @@ class Coordinator:
 
                 # Try again if we have iterations left
                 if iteration < max_iterations:
-                    print(
+                    emit(
                         self.formatter.format_info(
                             f"Rejected. Re-submitting with feedback... ({iteration}/{max_iterations})"
                         )
@@ -476,7 +531,7 @@ class Coordinator:
                     continue
                 else:
                     # Max iterations reached, still rejected
-                    print(
+                    emit(
                         self.formatter.format_warning(
                             f"Reached max iterations ({max_iterations}) with rejection."
                         )
@@ -497,7 +552,7 @@ class Coordinator:
 
             elif veredict == "ESCALATE":
                 # Immediate escalation
-                print(
+                emit(
                     self.formatter.format_escalation_notice(
                         result_7.get("evaluation", {}).get(
                             "summary", "Evaluator requested escalation."
@@ -550,17 +605,18 @@ class Coordinator:
 
         brief = self.current_plan["brief"]["original"]
 
-        # Create a simple FlowConfig for all brains in the plan
-        # In a real implementation, this would be parsed from the plan
+        # Create a simple FlowConfig for all brains in the plan.
+        # Until tasks expose explicit cross-brain dependencies, preserve the
+        # plan order as a linear dependency chain so wave resolution is real.
         from ..types.parallel import FlowConfig
 
-        # For now, create a simple flow with all brains as independent nodes
-        # This will be improved in future plans to parse actual dependencies
         nodes: dict[str, list[str]] = {}
         tasks = self.current_plan.get("tasks", [])
+        previous_brain_id: str | None = None
         for task in tasks:
             brain_id = f"brain-{task['brain_id']:02d}"
-            nodes[brain_id] = []  # No dependencies for now
+            nodes[brain_id] = [previous_brain_id] if previous_brain_id else []
+            previous_brain_id = brain_id
 
         flow = FlowConfig(flow_id="test-flow", nodes=nodes)
 
@@ -597,14 +653,23 @@ class Coordinator:
             try:
                 for level_idx, level in enumerate(execution_graph.levels):
                     # Execute all brains in this wave concurrently
-                    print(
+                    emit(
                         self.formatter.format_info(
                             f"Wave {level_idx + 1}/{len(execution_graph.levels)}: "
                             f"Executing {len(level.brain_ids)} brains"
                         )
                     )
 
-                    wave_results = await executor.execute_brains_parallel(flow, brief)
+                    wave_flow = FlowConfig(
+                        flow_id=f"{flow.flow_id}-wave-{level_idx + 1}",
+                        nodes={
+                            brain_id: flow.nodes.get(brain_id, [])
+                            for brain_id in level.brain_ids
+                        },
+                    )
+                    wave_results = await executor.execute_brains_parallel(
+                        wave_flow, brief
+                    )
                     results.update(wave_results)
 
                     # Check for failures
@@ -626,7 +691,7 @@ class Coordinator:
                 # Handle cancellation
                 from .error_formatter import BrainErrorFormatter
 
-                print("\n⚠️  Cancellation requested...")
+                emit("\n⚠️  Cancellation requested...")
 
                 # Use CancellationManager for graceful shutdown
                 from .cancellation import CancellationManager
@@ -634,7 +699,7 @@ class Coordinator:
                 cancellation_mgr = CancellationManager(grace_period=5.0)
                 cancel_results = await cancellation_mgr.cancel(executor)
 
-                print(BrainErrorFormatter.format_parallel_summary(results))
+                emit(BrainErrorFormatter.format_parallel_summary(results))
 
                 return {
                     "status": "cancelled",
@@ -678,7 +743,7 @@ class Coordinator:
 
             # Check if brain is available
             if not self.brain_executor.is_brain_available(brain_id):
-                print(
+                emit(
                     self.formatter.format_warning(
                         f"Brain #{brain_id} is not implemented. Skipping."
                     )
@@ -693,7 +758,7 @@ class Coordinator:
                     )
 
             # Print task start
-            print(self.formatter.format_task_start(task))
+            emit(self.formatter.format_task_start(task))
 
             # Execute brain (use MCP only for non-evaluator brains)
             use_mcp_for_brain = self.use_mcp if brain_id != 7 else False
@@ -702,20 +767,20 @@ class Coordinator:
             )
 
             # Format and print brain output
-            print(self.formatter.format_brain_output(result, task))
+            emit(self.formatter.format_brain_output(result, task))
 
             # Store output
             outputs[task_id] = result.get("output", {})
 
             # If this is Brain #7 (evaluator), format evaluation
             if brain_id == 7:
-                print(self.formatter.format_evaluation_result(result))
+                emit(self.formatter.format_evaluation_result(result))
                 evaluations[task_id] = result
 
                 # Check veredict - may want to stop early
                 veredict = result.get("veredict", "PLACEHOLDER")
                 if veredict == "ESCALATE":
-                    print(
+                    emit(
                         self.formatter.format_escalation_notice(
                             "Evaluator requested escalation."
                         )
@@ -897,7 +962,7 @@ class Coordinator:
             )
         except Exception as e:
             # Don't fail orchestration if logging fails
-            print(f"Warning: Failed to log evaluation: {e}")
+            emit(f"Warning: Failed to log evaluation: {e}")
 
     def _detect_flow(self, brief: str) -> str:
         """
@@ -917,7 +982,7 @@ class Coordinator:
         # Check 1: Word count
         word_count = len(brief.split())
         if word_count < 15:
-            print(
+            emit(
                 self.formatter.format_info(
                     f"Brief is too short ({word_count} words). Starting discovery interview."
                 )
@@ -942,7 +1007,7 @@ class Coordinator:
 
         # If 2+ ambiguity markers, needs discovery
         if marker_count >= 2:
-            print(
+            emit(
                 self.formatter.format_info(
                     f"Brief contains {marker_count} ambiguity markers. Starting discovery interview."
                 )
@@ -963,7 +1028,7 @@ class Coordinator:
         has_problem = any(kw in brief_lower for kw in problem_keywords)
 
         if not has_problem and word_count < 30:
-            print(
+            emit(
                 self.formatter.format_info(
                     "Brief lacks clear problem statement. Starting discovery interview."
                 )
@@ -1079,7 +1144,7 @@ Keep the JSON format clean and parseable.
             return self._generate_basic_interview_plan(brief)
 
         except Exception as e:
-            print(
+            emit(
                 self.formatter.format_warning(
                     f"Brain #8 query failed: {e}. Using basic plan."
                 )
@@ -1222,8 +1287,8 @@ Keep the JSON format clean and parseable.
 
             if similar:
                 similar_interviews_count = len(similar)
-                print(self.formatter.format_separator())
-                print(
+                emit(self.formatter.format_separator())
+                emit(
                     self.formatter.format_info(
                         f"📚 Found {similar_interviews_count} similar interview(s) for context"
                     )
@@ -1236,12 +1301,12 @@ Keep the JSON format clean and parseable.
                     )
 
                 if useful_questions_from_history:
-                    print(
+                    emit(
                         self.formatter.format_info(
                             f"💡 Learned from past: {len(useful_questions_from_history)} useful questions"
                         )
                     )
-                print(self.formatter.format_separator())
+                emit(self.formatter.format_separator())
         except Exception:
             # Non-blocking: if learning fails, continue without it
             pass
@@ -1266,13 +1331,13 @@ Keep the JSON format clean and parseable.
             "outcome": {},
         }
 
-        print(self.formatter.format_separator())
-        print(
+        emit(self.formatter.format_separator())
+        emit(
             self.formatter.format_info(
                 f"Interview Plan: {len(categories)} categories to explore"
             )
         )
-        print(self.formatter.format_separator())
+        emit(self.formatter.format_separator())
 
         # Process each category
         for category in categories:
@@ -1280,8 +1345,8 @@ Keep the JSON format clean and parseable.
             category_name = category.get("name")
             target_brain = category.get("target_brain")
 
-            print(f"\n📂 Category: {category_name}")
-            print(f"   Target Brain: #{target_brain}")
+            emit(f"\n📂 Category: {category_name}")
+            emit(f"   Target Brain: #{target_brain}")
 
             # Get initial question for this category
             category_questions = [
@@ -1299,13 +1364,13 @@ Keep the JSON format clean and parseable.
                 question = question_item.get("question")
 
                 # Ask question to user
-                print(self.formatter.format_question_to_user(question))
+                emit(self.formatter.format_question_to_user(question))
 
                 # Get user response
                 try:
                     user_response = input("Your answer: ").strip()
                 except (EOFError, KeyboardInterrupt):
-                    print(
+                    emit(
                         self.formatter.format_warning(
                             "\nInterview interrupted by user."
                         )
@@ -1313,7 +1378,7 @@ Keep the JSON format clean and parseable.
                     break
 
                 if not user_response:
-                    print("Empty response, skipping...")
+                    emit("Empty response, skipping...")
                     continue
 
                 # Route to domain brain for follow-up
@@ -1337,7 +1402,7 @@ Keep the JSON format clean and parseable.
 
                 # Display follow-up
                 if follow_up.get("has_follow_up"):
-                    print(
+                    emit(
                         self.formatter.format_followup_response(
                             follow_up.get("follow_up_question", "Thinking...")
                         )
@@ -1420,7 +1485,7 @@ Format as JSON:
             return self._generate_basic_follow_up(question, answer)
 
         except Exception as e:
-            print(self.formatter.format_warning(f"Domain brain query failed: {e}"))
+            emit(self.formatter.format_warning(f"Domain brain query failed: {e}"))
             return {
                 "has_follow_up": False,
                 "insights": [answer[:100]],  # Partial insight

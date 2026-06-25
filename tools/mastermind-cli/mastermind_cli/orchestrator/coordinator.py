@@ -3,12 +3,32 @@ Coordinator - Main orchestration coordinator with iteration loop.
 """
 
 import os
+import logging
+import sys
 from typing import Dict, Optional
 
+from .budget import BudgetContext, BudgetEnforcer, BudgetVerdict
 from .flow_detector import FlowDetector
+from .governance import GovernanceInterceptor, Intention, PolicyVerdict, TaskContext
 from .plan_generator import PlanGenerator
 from .brain_executor import BrainExecutor
 from .output_formatter import OutputFormatter
+
+logger = logging.getLogger(__name__)
+
+
+def emit(
+    *parts: object,
+    sep: str = " ",
+    end: str = "\n",
+    file: object | None = None,
+    flush: bool = True,
+) -> None:
+    """Write a single structured line to stdout or stderr."""
+    stream = sys.stderr if file is sys.stderr else sys.stdout
+    stream.write(sep.join(str(part) for part in parts) + end)
+    if flush:
+        stream.flush()
 
 
 class Coordinator:
@@ -17,13 +37,19 @@ class Coordinator:
     MAX_ITERATIONS = 3
 
     def __init__(
-        self, formatter: Optional[OutputFormatter] = None, use_mcp: bool = False
-    ):
+        self,
+        formatter: Optional[OutputFormatter] = None,
+        use_mcp: bool = False,
+        governance: Optional[GovernanceInterceptor] = None,
+        budget_enforcer: Optional[BudgetEnforcer] = None,
+    ) -> None:
         """Initialize coordinator.
 
         Args:
             formatter: Output formatter
             use_mcp: Whether to use MCP for real NotebookLM calls
+            governance: Optional deterministic governance gate
+            budget_enforcer: Optional token budget gate
         """
         from .mcp_integration import MCPIntegration
 
@@ -32,6 +58,8 @@ class Coordinator:
         self.mcp_integration = MCPIntegration(use_mcp=use_mcp)
         self.brain_executor = BrainExecutor(mcp_client=self.mcp_integration)
         self.formatter = formatter or OutputFormatter()
+        self.governance = governance
+        self.budget_enforcer = budget_enforcer
 
         # Execution state
         self.current_plan = None
@@ -48,6 +76,7 @@ class Coordinator:
         output_file: Optional[str] = None,
         max_iterations: int = MAX_ITERATIONS,
         use_mcp: bool = False,
+        session_id: Optional[str] = None,
     ) -> Dict:
         """
         Main orchestration entry point with iteration support.
@@ -59,24 +88,32 @@ class Coordinator:
             output_file: Save output to file
             max_iterations: Maximum iteration attempts (default: 3)
             use_mcp: Use MCP for real NotebookLM calls (default: False)
+            session_id: Optional session identifier for budget tracking
 
         Returns:
             Execution report
         """
         self.iteration_count = 0
         self.rejection_count = 0
+        self.current_plan = None
+        self.execution_results = {}
         self.use_mcp = use_mcp
 
         # Step 1: Detect or validate flow
         if not flow:
             flow = self.flow_detector.detect(brief)
         elif not self.flow_detector.validate_flow(flow):
-            return self._error_report(f"Invalid flow type: {flow}")
+            raise ValueError(f"Invalid flow type: {flow}")
 
-        # Step 2: Generate execution plan
+        # Step 2: Governance pre-check before planning/execution
+        governance_result = self._evaluate_governance(brief=brief, flow=flow)
+        if governance_result is not None:
+            return governance_result
+
+        # Step 3: Generate execution plan
         self.current_plan = self.plan_generator.generate(brief, flow)
 
-        # Step 3: If dry_run, print plan and exit
+        # Step 4: If dry_run, print plan and exit
         if dry_run:
             plan_output = self.formatter.format_execution_plan(self.current_plan)
             if output_file:
@@ -87,11 +124,26 @@ class Coordinator:
                 "output": plan_output,
             }
 
-        # Step 4: Execute with iteration loop
+        budget_result = self._evaluate_budget(
+            session_id=session_id or self.current_plan["plan_id"]
+        )
+        if budget_result is not None:
+            return budget_result
+        budget_context = BudgetContext(
+            session_id=session_id or self.current_plan["plan_id"],
+            task_id=self.current_plan["plan_id"],
+        )
+        estimated_tokens = self._estimate_execution_tokens(self.current_plan)
+
+        # Step 5: Execute with iteration loop
         execution_report = self._execute_with_iterations(max_iterations)
 
-        # Step 5: Format and deliver final result
+        if self.budget_enforcer:
+            self.budget_enforcer.post_call(estimated_tokens, budget_context)
+
+        # Step 6: Format and deliver final result
         final_output = self.formatter.format_final_deliverable(execution_report)
+        emit(final_output)
 
         if output_file:
             self._save_output(final_output, output_file)
@@ -128,11 +180,13 @@ class Coordinator:
             self.iteration_count = iteration
 
             if iteration > 1:
-                print(self.formatter.format_iteration_start(iteration, max_iterations))
+                logger.info(
+                    self.formatter.format_iteration_start(iteration, max_iterations)
+                )
 
             # --- Task 1: Brain #1 (Product Strategy) ---
             task_1 = tasks[0]
-            print(self.formatter.format_task_start(task_1))
+            logger.info(self.formatter.format_task_start(task_1))
 
             # Add context from previous iterations if any
             if iteration > 1 and evaluations:
@@ -143,7 +197,7 @@ class Coordinator:
                     task_1["inputs"]["iteration"] = iteration
 
             result_1 = self.brain_executor.execute(1, task_1, use_mcp=self.use_mcp)
-            print(self.formatter.format_brain_output(result_1, task_1))
+            logger.info(self.formatter.format_brain_output(result_1, task_1))
 
             outputs["TASK-001"] = result_1.get("output", {})
 
@@ -152,13 +206,13 @@ class Coordinator:
             task_7["output_to_evaluate"] = result_1.get("output", {})
             task_7["previous_brain_id"] = 1
 
-            print(self.formatter.format_task_start(task_7))
+            logger.info(self.formatter.format_task_start(task_7))
             result_7 = self.brain_executor.execute(
                 7, task_7, use_mcp=False
             )  # Evaluator uses local logic
 
             # Format evaluation result
-            print(self.formatter.format_evaluation_result(result_7))
+            logger.info(self.formatter.format_evaluation_result(result_7))
 
             evaluations["TASK-002"] = result_7
             outputs["TASK-002"] = result_7
@@ -186,14 +240,14 @@ class Coordinator:
             elif veredict == "CONDITIONAL":
                 # Try one more iteration with fixes
                 if iteration < max_iterations:
-                    print(
+                    logger.info(
                         self.formatter.format_info(
                             f"Conditional approval. Applying fixes and retrying... ({iteration}/{max_iterations})"
                         )
                     )
                     continue
                 else:
-                    print(
+                    logger.warning(
                         self.formatter.format_warning(
                             f"Reached max iterations ({max_iterations}) with conditional approval."
                         )
@@ -217,7 +271,7 @@ class Coordinator:
 
                 # Check for escalation
                 if self.rejection_count >= 3:
-                    print(
+                    logger.warning(
                         self.formatter.format_escalation_notice(
                             "3rd consecutive rejection. This brief requires human review."
                         )
@@ -239,7 +293,7 @@ class Coordinator:
 
                 # Try again if we have iterations left
                 if iteration < max_iterations:
-                    print(
+                    logger.info(
                         self.formatter.format_info(
                             f"Rejected. Re-submitting with feedback... ({iteration}/{max_iterations})"
                         )
@@ -247,7 +301,7 @@ class Coordinator:
                     continue
                 else:
                     # Max iterations reached, still rejected
-                    print(
+                    logger.warning(
                         self.formatter.format_warning(
                             f"Reached max iterations ({max_iterations}) with rejection."
                         )
@@ -268,7 +322,7 @@ class Coordinator:
 
             elif veredict == "ESCALATE":
                 # Immediate escalation
-                print(
+                logger.warning(
                     self.formatter.format_escalation_notice(
                         result_7.get("evaluation", {}).get(
                             "summary", "Evaluator requested escalation."
@@ -313,7 +367,7 @@ class Coordinator:
 
             # Check if brain is available
             if not self.brain_executor.is_brain_available(brain_id):
-                print(
+                logger.warning(
                     self.formatter.format_warning(
                         f"Brain #{brain_id} is not implemented. Skipping."
                     )
@@ -328,7 +382,7 @@ class Coordinator:
                     )
 
             # Print task start
-            print(self.formatter.format_task_start(task))
+            logger.info(self.formatter.format_task_start(task))
 
             # Execute brain (use MCP only for non-evaluator brains)
             use_mcp_for_brain = self.use_mcp if brain_id != 7 else False
@@ -337,20 +391,20 @@ class Coordinator:
             )
 
             # Format and print brain output
-            print(self.formatter.format_brain_output(result, task))
+            logger.info(self.formatter.format_brain_output(result, task))
 
             # Store output
             outputs[task_id] = result.get("output", {})
 
             # If this is Brain #7 (evaluator), format evaluation
             if brain_id == 7:
-                print(self.formatter.format_evaluation_result(result))
+                logger.info(self.formatter.format_evaluation_result(result))
                 evaluations[task_id] = result
 
                 # Check veredict - may want to stop early
                 veredict = result.get("veredict", "PLACEHOLDER")
                 if veredict == "ESCALATE":
-                    print(
+                    logger.warning(
                         self.formatter.format_escalation_notice(
                             "Evaluator requested escalation."
                         )
@@ -449,7 +503,67 @@ class Coordinator:
         """Generate error report."""
         return {"status": "error", "error": error, "plan": self.current_plan}
 
-    def _save_output(self, output: str, filepath: str):
+    def _governance_report(self, status: str, error: str) -> Dict:
+        """Generate a governance block report."""
+        return {"status": status, "error": error, "plan": None}
+
+    def _budget_report(self, status: str, error: str) -> Dict:
+        """Generate a budget block report."""
+        return {"status": status, "error": error, "plan": self.current_plan}
+
+    def _evaluate_budget(self, session_id: str) -> Dict | None:
+        """Evaluate token budget before execution."""
+        if not self.budget_enforcer:
+            return None
+
+        estimated_tokens = self._estimate_execution_tokens(self.current_plan)
+        context = BudgetContext(
+            session_id=session_id,
+            task_id=self.current_plan["plan_id"],
+        )
+        verdict = self.budget_enforcer.pre_call(estimated_tokens, context)
+
+        if verdict == BudgetVerdict.ALLOW:
+            return None
+        if verdict == BudgetVerdict.PAUSE_AND_ASK:
+            return self._budget_report(
+                "paused", "Budget requires human approval before execution."
+            )
+        return self._budget_report(
+            "blocked", "Budget denied the request before execution."
+        )
+
+    def _estimate_execution_tokens(self, plan: Dict) -> int:
+        """Estimate token cost for a plan."""
+        tasks = plan.get("summary", {}).get("total_tasks", 0)
+        return max(1, tasks) * 100
+
+    def _evaluate_governance(self, brief: str, flow: str) -> Dict | None:
+        """Evaluate governance before generating a plan."""
+        if not self.governance:
+            return None
+
+        intention = Intention(
+            action="orchestrate",
+            target="Coordinator.orchestrate",
+            scope=flow,
+            metadata={"brief": brief},
+        )
+        context = TaskContext(brief=brief, flow_type=flow)
+        verdict = self.governance.evaluate(intention, context)
+
+        if verdict == PolicyVerdict.ALLOW:
+            return None
+        if verdict == PolicyVerdict.PAUSE_AND_ASK:
+            return self._governance_report(
+                "paused", "Governance requires human approval before execution."
+            )
+
+        return self._governance_report(
+            "blocked", "Governance denied the request before planning."
+        )
+
+    def _save_output(self, output: str, filepath: str) -> None:
         """Save output to file."""
         os.makedirs(
             os.path.dirname(filepath) if os.path.dirname(filepath) else ".",
