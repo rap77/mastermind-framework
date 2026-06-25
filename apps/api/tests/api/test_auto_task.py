@@ -9,15 +9,20 @@ Validates the auto-detection endpoint that:
 """
 
 from unittest.mock import patch
+from typing import Any
 
 import pytest
+
+from mastermind_cli.api.dependencies import get_governance
 
 
 # ===== Happy path =====
 
 
 @pytest.mark.asyncio
-async def test_auto_task_returns_202_with_execution_id(client, auth_headers):
+async def test_auto_task_returns_202_with_execution_id(
+    client: Any, auth_headers: Any
+) -> None:
     """POST /api/tasks/auto with valid brief returns 202 with execution ID."""
     response = await client.post(
         "/api/tasks/auto",
@@ -32,7 +37,9 @@ async def test_auto_task_returns_202_with_execution_id(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auto_task_detects_flow_via_flow_detector(client, auth_headers):
+async def test_auto_task_detects_flow_via_flow_detector(
+    client: Any, auth_headers: Any
+) -> None:
     """FlowDetector.detect() is called and the detected flow is returned."""
     with patch("mastermind_cli.api.routes.tasks.FlowDetector") as MockDetector:
         mock_instance = MockDetector.return_value
@@ -54,8 +61,8 @@ async def test_auto_task_detects_flow_via_flow_detector(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_auto_task_creates_execution_record_with_pending_status(
-    client, auth_headers
-):
+    client: Any, auth_headers: Any
+) -> None:
     """An execution record is created in the DB with status='pending'."""
     with patch("mastermind_cli.api.routes.tasks.run_brain_task"):
         response = await client.post(
@@ -74,9 +81,9 @@ async def test_auto_task_creates_execution_record_with_pending_status(
 
 
 @pytest.mark.asyncio
-async def test_auto_task_uses_background_tasks(client, auth_headers):
+async def test_auto_task_uses_background_tasks(client: Any, auth_headers: Any) -> None:
     """The endpoint dispatches run_brain_task via BackgroundTasks, not asyncio."""
-    with patch("mastermind_cli.api.routes.tasks.run_brain_task") as _mock_runner:
+    with patch("mastermind_cli.api.routes.tasks.run_brain_task") as mock_runner:
         response = await client.post(
             "/api/tasks/auto",
             headers=auth_headers,
@@ -84,19 +91,40 @@ async def test_auto_task_uses_background_tasks(client, auth_headers):
         )
 
     assert response.status_code == 202
-    # run_brain_task should NOT have been awaited directly —
-    # BackgroundTasks.run it after the response.
-    # With TestClient/AsyncClient the background tasks DO run,
-    # but they are dispatched via BackgroundTasks, not asyncio.create_task.
-    # We verify the mock was called (background task executed).
-    # If it used asyncio.create_task, the mock would be called differently.
+    mock_runner.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_auto_task_forwards_governance_dependency(
+    app: Any, client: Any, auth_headers: Any
+) -> None:
+    """Governance dependency should be forwarded into run_brain_task."""
+    sentinel = object()
+
+    async def _override_governance() -> object:
+        return sentinel
+
+    app.dependency_overrides[get_governance] = _override_governance
+    try:
+        with patch("mastermind_cli.api.routes.tasks.run_brain_task") as mock_runner:
+            response = await client.post(
+                "/api/tasks/auto",
+                headers=auth_headers,
+                json={"brief": "Diseñar una interfaz con governance"},
+            )
+        assert response.status_code == 202
+        assert mock_runner.call_args.kwargs["governance"] is sentinel
+    finally:
+        app.dependency_overrides.pop(get_governance, None)
 
 
 # ===== Validation errors =====
 
 
 @pytest.mark.asyncio
-async def test_auto_task_missing_brief_returns_422(client, auth_headers):
+async def test_auto_task_missing_brief_returns_422(
+    client: Any, auth_headers: Any
+) -> None:
     """Missing brief field returns 422 (Pydantic validation)."""
     response = await client.post(
         "/api/tasks/auto",
@@ -107,7 +135,9 @@ async def test_auto_task_missing_brief_returns_422(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auto_task_empty_brief_returns_422(client, auth_headers):
+async def test_auto_task_empty_brief_returns_422(
+    client: Any, auth_headers: Any
+) -> None:
     """Empty brief returns 422 (Pydantic min_length)."""
     response = await client.post(
         "/api/tasks/auto",
@@ -121,7 +151,7 @@ async def test_auto_task_empty_brief_returns_422(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_auto_task_requires_auth(client):
+async def test_auto_task_requires_auth(client: Any) -> None:
     """POST /api/tasks/auto without auth returns 401 or 403."""
     response = await client.post(
         "/api/tasks/auto",
@@ -131,7 +161,7 @@ async def test_auto_task_requires_auth(client):
 
 
 @pytest.mark.asyncio
-async def test_auto_task_invalid_token_returns_401(client):
+async def test_auto_task_invalid_token_returns_401(client: Any) -> None:
     """POST /api/tasks/auto with invalid token returns 401."""
     response = await client.post(
         "/api/tasks/auto",
