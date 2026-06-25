@@ -20,8 +20,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from planning_paths import get_planning_dir, planning_relpath
+
 # Configure logging
-# NOTE: This CLI tool uses print() instead of logger for structured output.
+# NOTE: This CLI tool uses emit() instead of logger for structured output.
 # The handler must emit machine-parseable messages (LAUNCH:, PAYLOAD:, STATUS:)
 # that the calling command can parse. Logger output doesn't guarantee this format.
 logging.basicConfig(
@@ -30,6 +32,20 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
+
+
+def emit(
+    *parts: object,
+    sep: str = " ",
+    end: str = "\n",
+    file: object | None = None,
+    flush: bool = True,
+) -> None:
+    """Write a single structured line to stdout or stderr."""
+    stream = sys.stderr if file is sys.stderr else sys.stdout
+    stream.write(sep.join(str(part) for part in parts) + end)
+    if flush:
+        stream.flush()
 
 
 def _find_project_root() -> Path:
@@ -191,7 +207,8 @@ def _read_project_id_from_config(project_root: Path) -> str | None:
 
 PROJECT_ROOT = _find_project_root()
 TASKS_DIR = PROJECT_ROOT / "tasks"
-PLANNING_DIR = PROJECT_ROOT / ".mm-flow" / "planning"
+PLANNING_DIR = get_planning_dir(PROJECT_ROOT)
+PLANNING_LABEL = planning_relpath(PROJECT_ROOT)
 RUNTIME_STATE_PATH = PLANNING_DIR / "task-progress.json"
 OBJECTIVE_STATE_FILENAME = "execution-state.json"
 
@@ -234,37 +251,43 @@ def _resolve_notify_script_path() -> Path | None:
 
 def mm_info(msg: str) -> None:
     """Print INFO message."""
-    print(f"INFO: {msg}", flush=True)
+    sys.stdout.write(f"INFO: {msg}\n")
+    sys.stdout.flush()
 
 
 def mm_task(task_id: str, title: str) -> None:
     """Print task header."""
-    print(f"TASK: {task_id}", flush=True)
-    print(f"TITLE: {title}", flush=True)
+    sys.stdout.write(f"TASK: {task_id}\n")
+    sys.stdout.write(f"TITLE: {title}\n")
+    sys.stdout.flush()
 
 
 def mm_subtask(subtask_id: str, status: str, description: str = "") -> None:
     """Print subtask line."""
     desc = f" ({description})" if description else ""
-    print(f"SUBTASK: {subtask_id} {status}{desc}", flush=True)
+    sys.stdout.write(f"SUBTASK: {subtask_id} {status}{desc}\n")
+    sys.stdout.flush()
 
 
 def mm_git(count: int, total: int, completed: list[str]) -> None:
     """Print git status."""
     completed_str = ",".join(completed) if completed else "none"
-    print(f"GIT: {count}/{total} subtasks have commits [{completed_str}]", flush=True)
+    sys.stdout.write(f"GIT: {count}/{total} subtasks have commits [{completed_str}]\n")
+    sys.stdout.flush()
 
 
 def mm_pending(count: int) -> None:
     """Print pending count."""
-    print(f"PENDING: {count} subtasks to execute", flush=True)
+    sys.stdout.write(f"PENDING: {count} subtasks to execute\n")
+    sys.stdout.flush()
 
 
 def mm_launch(task_id: str) -> None:
     """Print launch command."""
     payload = get_task_payload(task_id)
-    print("LAUNCH: task-executor", flush=True)
-    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
+    sys.stdout.write("LAUNCH: task-executor\n")
+    sys.stdout.write(f"PAYLOAD: {json.dumps(payload)}\n")
+    sys.stdout.flush()
 
 
 def _open_db_session(_task_id: str, _pending_count: int) -> str | None:
@@ -291,25 +314,25 @@ def _mm_launch_with_db(task_id: str, db_session_id: str | None) -> None:
     payload = get_task_payload(task_id)
     if db_session_id:
         payload["db_session_id"] = db_session_id
-    print("LAUNCH: task-executor", flush=True)
-    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
+    emit("LAUNCH: task-executor", flush=True)
+    emit(f"PAYLOAD: {json.dumps(payload)}", flush=True)
 
 
 def mm_status(msg: str) -> None:
     """Print status message."""
-    print(f"STATUS: {msg}", flush=True)
+    emit(f"STATUS: {msg}", flush=True)
 
 
 def mm_error(msg: str) -> None:
     """Print error message."""
-    print(f"ERROR: {msg}", flush=True, file=sys.stderr)
+    emit(f"ERROR: {msg}", flush=True, file=sys.stderr)
 
 
 def mm_model_brief(brief: str) -> None:
     """Print a model-resume brief."""
-    print("MODEL_BRIEF_START", flush=True)
-    print(brief.rstrip(), flush=True)
-    print("MODEL_BRIEF_END", flush=True)
+    emit("MODEL_BRIEF_START", flush=True)
+    emit(brief.rstrip(), flush=True)
+    emit("MODEL_BRIEF_END", flush=True)
 
 
 def task_heading_exists(plan_path: Path, task_id: str) -> bool:
@@ -370,12 +393,34 @@ def ensure_objective_todo(objective_dir: Path, task_id: str) -> Path:
     return todo_path
 
 
+def get_objective_dir(objective_slug: str) -> Path:
+    """Return the active planning directory for an objective slug."""
+
+    return PLANNING_DIR / "changes" / objective_slug
+
+
+def runtime_state_matches_active_objective(state: dict[str, Any]) -> bool:
+    """Return whether runtime state still points at a real active objective."""
+
+    objective_slug = state.get("objective_slug")
+    plan_path = state.get("plan_path")
+    todo_path = state.get("todo_path")
+    if not isinstance(objective_slug, str) or not objective_slug:
+        return False
+    objective_dir = get_objective_dir(objective_slug)
+    if not objective_dir.exists():
+        return False
+    if not isinstance(plan_path, str) or not isinstance(todo_path, str):
+        return False
+    return Path(plan_path).exists() and Path(todo_path).exists()
+
+
 def resolve_task_source(task_id: str, objective_slug: str | None = None) -> TaskSource:
     """Resolve a task from an active objective package."""
-    changes_dir = PROJECT_ROOT / ".mm-flow" / "planning" / "changes"
+    changes_dir = PLANNING_DIR / "changes"
     if not changes_dir.exists():
         raise ValueError(
-            f"Task {task_id} not found in objective packages under .mm-flow/planning/changes/"
+            f"Task {task_id} not found in objective packages under {PLANNING_LABEL}/changes/"
         )
 
     runtime_state = load_runtime_state()
@@ -438,11 +483,11 @@ def resolve_task_source(task_id: str, objective_slug: str | None = None) -> Task
     if objective_slug:
         raise ValueError(
             f"Task {task_id} not found under active objective "
-            f".mm-flow/planning/changes/{objective_slug}/"
+            f"{PLANNING_LABEL}/changes/{objective_slug}/"
         )
 
     raise ValueError(
-        f"Task {task_id} not found in objective packages under .mm-flow/planning/changes/"
+        f"Task {task_id} not found in objective packages under {PLANNING_LABEL}/changes/"
     )
 
 
@@ -459,9 +504,9 @@ def get_active_paths(
     if RUNTIME_STATE_PATH.exists():
         try:
             state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
-            plan_path = state.get("plan_path")
-            todo_path = state.get("todo_path")
-            if plan_path and todo_path:
+            if runtime_state_matches_active_objective(state):
+                plan_path = state.get("plan_path")
+                todo_path = state.get("todo_path")
                 return Path(plan_path), Path(todo_path)
         except (json.JSONDecodeError, OSError):
             pass
@@ -476,9 +521,14 @@ def load_runtime_state() -> dict[str, Any] | None:
     if not RUNTIME_STATE_PATH.exists():
         return None
     try:
-        return json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
+        state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
+    if not isinstance(state, dict):
+        return None
+    if not runtime_state_matches_active_objective(state):
+        return None
+    return state
 
 
 def runtime_task_complete(state: dict[str, Any]) -> bool:
@@ -497,31 +547,13 @@ def get_objective_handoff_path(task_id: str | None = None) -> Path | None:
         except ValueError:
             return None
         if source.objective_slug:
-            return (
-                PROJECT_ROOT
-                / ".mm-flow"
-                / "planning"
-                / "changes"
-                / source.objective_slug
-                / "HANDOFF-CURRENT.md"
-            )
+            return get_objective_dir(source.objective_slug) / "HANDOFF-CURRENT.md"
 
-    if RUNTIME_STATE_PATH.exists():
-        try:
-            state = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
-            objective_slug = state.get("objective_slug")
-            if objective_slug:
-                path = (
-                    PROJECT_ROOT
-                    / ".mm-flow"
-                    / "planning"
-                    / "changes"
-                    / objective_slug
-                    / "HANDOFF-CURRENT.md"
-                )
-                return path
-        except (json.JSONDecodeError, OSError):
-            pass
+    state = load_runtime_state()
+    if state is not None:
+        objective_slug = state.get("objective_slug")
+        if isinstance(objective_slug, str) and objective_slug:
+            return get_objective_dir(objective_slug) / "HANDOFF-CURRENT.md"
 
     return None
 
@@ -531,14 +563,7 @@ def get_objective_state_path(
 ) -> Path | None:
     """Return the durable execution-state path for an objective."""
     if objective_slug:
-        return (
-            PROJECT_ROOT
-            / ".mm-flow"
-            / "planning"
-            / "changes"
-            / objective_slug
-            / OBJECTIVE_STATE_FILENAME
-        )
+        return get_objective_dir(objective_slug) / OBJECTIVE_STATE_FILENAME
 
     if task_id:
         try:
@@ -575,9 +600,7 @@ def load_objective_state(
                     source.objective_slug, source.plan_path, source.todo_path
                 )
         elif objective_slug is not None:
-            objective_dir = (
-                PROJECT_ROOT / ".mm-flow" / "planning" / "changes" / objective_slug
-            )
+            objective_dir = get_objective_dir(objective_slug)
             plan_path = objective_dir / "tasks.md"
             todo_path = ensure_objective_todo(objective_dir, objective_slug)
             if plan_path.exists() and todo_path.exists():
@@ -790,7 +813,7 @@ def get_root_task_statuses(todo_path: Path) -> list[tuple[str, str, str]]:
         return []
     content = todo_path.read_text(encoding="utf-8")
     pattern = re.compile(
-        r"^-\s\[(?P<status>[ x~])\]\s+(?P<task_id>[A-Z]{1,4}\d+):\s*(?P<title>.+)$",
+        r"^-\s\[(?P<status>[ x~])\]\s+(?P<task_id>[A-Z]{1,4}\d+)\s*(?::|—|-)\s*(?P<title>.+)$",
         re.MULTILINE,
     )
     return [
@@ -828,17 +851,9 @@ def sync_objective_todo_from_state(task_id: str) -> None:
     original_content = todo_content
     for root_id in get_task_ids_from_plan(plan_path):
         task_entry = objective_state.get("tasks", {}).get(root_id, {})
-        todo_content = re.sub(
-            rf"(^-\s\[[ x~]\]\s+){re.escape(root_id)}:",
-            rf"\g<1>{root_id}:",
-            todo_content,
-            count=0,
-            flags=re.MULTILINE,
-        )
-
         parent_checkbox = checkbox_for_status(task_entry.get("status", "pending"))
         todo_content = re.sub(
-            rf"(^-\s\[)([ x~])(\]\s+{re.escape(root_id)}:)",
+            rf"(^-\s\[)([ x~])(\]\s+{re.escape(root_id)}\s*(?::|—|-)\s*)",
             rf"\g<1>{parent_checkbox}\g<3>",
             todo_content,
             count=1,
@@ -959,7 +974,9 @@ def bootstrap_objective_state_from_artifacts(
 
         subtask_states = [s["status"] for s in task_entry["subtasks"].values()]
         parent_checkbox = root_status_map.get(root_task_id, " ")
-        if subtask_states and all(status == "completed" for status in subtask_states):
+        if parent_checkbox == "x" and not subtask_states:
+            task_entry["status"] = "completed"
+        elif subtask_states and all(status == "completed" for status in subtask_states):
             task_entry["status"] = "completed"
         elif (
             any(status == "in_progress" for status in subtask_states)
@@ -978,12 +995,11 @@ def bootstrap_objective_state_from_artifacts(
 def sync_objective_handoff(task_id: str) -> None:
     """Synchronize objective HANDOFF-CURRENT.md from objective todo/task state."""
     handoff_path = get_objective_handoff_path(task_id)
-    if handoff_path is None or not handoff_path.exists():
+    if handoff_path is None:
         return
 
     try:
         plan_path, todo_path = get_active_paths(task_id)
-        handoff_text = handoff_path.read_text(encoding="utf-8")
     except (FileNotFoundError, OSError, ValueError):
         return
 
@@ -1034,34 +1050,116 @@ def sync_objective_handoff(task_id: str) -> None:
         validation_lines = [f"- {command}" for command in validation_commands] or [
             "- Validation commands not declared yet."
         ]
-
-    handoff_text = re.sub(
-        r"## Completed tasks\n.*?(?=\n## |\Z)",
-        "## Completed tasks\n" + "\n".join(completed_lines) + "\n",
-        handoff_text,
-        flags=re.DOTALL,
-    )
-    handoff_text = re.sub(
-        r"## Exact next recommended task\n.*?(?=\n## |\Z)",
-        "## Exact next recommended task\n" + "\n".join(next_task_lines) + "\n",
-        handoff_text,
-        flags=re.DOTALL,
-    )
-    handoff_text = re.sub(
-        r"## Validation commands for [^\n]+\n.*?(?=\n## |\Z)",
-        "## Validation commands for "
-        + (next_pending[0] if next_pending else "objective completion")
-        + "\n"
-        + "\n".join(validation_lines)
-        + "\n",
-        handoff_text,
-        flags=re.DOTALL,
+    objective_slug = handoff_path.parent.name
+    validation_target = next_pending[0] if next_pending else "objective completion"
+    handoff_text = "\n".join(
+        [
+            f"# Handoff — {objective_slug}",
+            "",
+            "## Current objective",
+            f"- `{objective_slug}`",
+            "",
+            "## Decisions already made",
+            "- Per-objective planning artifacts are the source of truth for this objective.",
+            "- `execution-state.json` is the durable ledger; `todo.md` and `HANDOFF-CURRENT.md` are projected artifacts.",
+            "- Do not restart from historical kickoff notes when durable state already exists.",
+            "",
+            "## Blockers / risks",
+            "- This objective previously drifted from implementation progress because the planning surface and harness paths diverged.",
+            f"- Use `python3 .claude/commands/mm/complete-task-handler.py --resync-objective {objective_slug}` after repairing objective artifacts.",
+            "- Do not manually edit `todo.md`, `HANDOFF-CURRENT.md`, `task-progress.json`, or `execution-state.json`.",
+            "",
+            "## Completed tasks",
+            *completed_lines,
+            "",
+            "## Exact next recommended task",
+            *next_task_lines,
+            "",
+            f"## Validation commands for {validation_target}",
+            *validation_lines,
+            "",
+        ]
     )
 
     try:
         handoff_path.write_text(handoff_text, encoding="utf-8")
     except OSError as exc:
         mm_error(f"Failed to sync objective handoff: {exc}")
+
+
+def sync_global_handoff_for_objective(objective_slug: str) -> None:
+    """Rewrite the root handoff as a thin pointer to the objective-local source."""
+
+    objective_dir = get_objective_dir(objective_slug)
+    objective_handoff = objective_dir / "HANDOFF-CURRENT.md"
+    objective_state = objective_dir / OBJECTIVE_STATE_FILENAME
+    content = "\n".join(
+        [
+            f"# Handoff — {objective_slug}",
+            "",
+            "## Project naming",
+            "- Canonical project identifier for memory/planning: `mastermind-framework`",
+            f"- Local repository directory: `{PROJECT_ROOT}`",
+            f"- Active planning surface: `{PLANNING_LABEL}`",
+            "",
+            "## Current objective",
+            f"- `{objective_slug}`",
+            "",
+            "## Source of truth",
+            f"- `{objective_handoff.relative_to(PROJECT_ROOT)}`",
+            f"- `{(objective_dir / 'tasks.md').relative_to(PROJECT_ROOT)}`",
+            f"- `{(objective_dir / 'todo.md').relative_to(PROJECT_ROOT)}`",
+            f"- `{objective_state.relative_to(PROJECT_ROOT)}`",
+            "",
+            "## Decisions already made",
+            "- The detailed handoff lives with the active objective package, not in the root handoff.",
+            "- Handler-managed state must stay aligned with the active planning surface before task execution resumes.",
+            "- Do not manually edit derived progress artifacts; use handler commands or objective resync.",
+            "",
+            "## Blockers / risks",
+            "- Historical `.mm-flow/planning` artifacts may still exist, but they are not the active source of truth when `.planning/` is present.",
+            f"- If objective artifacts drift again, run `python3 .claude/commands/mm/complete-task-handler.py --resync-objective {objective_slug}`.",
+            "",
+            "## Exact next recommended task",
+            f"- Read `{objective_handoff.relative_to(PROJECT_ROOT)}` and follow its current next-step section.",
+            "",
+            "## Validation commands",
+            f"- python3 .claude/commands/mm/discover-contract-check.py --objective {objective_slug}",
+            f"- python3 .claude/commands/mm/complete-task-handler.py --resync-objective {objective_slug}",
+            "",
+        ]
+    )
+    try:
+        (PLANNING_DIR / "HANDOFF-CURRENT.md").write_text(content, encoding="utf-8")
+    except OSError as exc:
+        mm_error(f"Failed to sync root handoff: {exc}")
+
+
+def resync_objective_artifacts(objective_slug: str) -> None:
+    """Bootstrap durable state and rewrite objective/global handoffs."""
+
+    objective_dir = get_objective_dir(objective_slug)
+    plan_path = objective_dir / "tasks.md"
+    handoff_path = objective_dir / "HANDOFF-CURRENT.md"
+    if not objective_dir.exists():
+        raise ValueError(
+            f"Objective `{objective_slug}` not found under {PLANNING_LABEL}/changes/"
+        )
+    if not plan_path.exists():
+        raise ValueError(f"Objective `{objective_slug}` is missing tasks.md")
+    if not handoff_path.exists():
+        raise ValueError(f"Objective `{objective_slug}` is missing HANDOFF-CURRENT.md")
+
+    todo_path = ensure_objective_todo(objective_dir, objective_slug)
+    bootstrap_objective_state_from_artifacts(objective_slug, plan_path, todo_path)
+
+    task_ids = get_task_ids_from_plan(plan_path)
+    if not task_ids:
+        raise ValueError(f"Objective `{objective_slug}` has no root tasks in tasks.md")
+
+    sync_objective_todo_from_state(task_ids[0])
+    sync_objective_handoff(task_ids[0])
+    sync_global_handoff_for_objective(objective_slug)
 
 
 def audit_task_consistency(task_id: str) -> list[str]:
@@ -2580,7 +2678,7 @@ def start_task(task_id: str, objective_slug: str | None = None) -> None:
     if permission_warnings:
         mm_info("PERMISSION CHECK:")
         for warning in permission_warnings:
-            print(warning, flush=True)
+            emit(warning, flush=True)
         mm_info(
             "Please ensure Claude Code has these permissions enabled in settings.json"
         )
@@ -2756,7 +2854,7 @@ def resume_task(task_id: str, objective_slug: str | None = None) -> None:
     if permission_warnings:
         mm_info("PERMISSION CHECK:")
         for warning in permission_warnings:
-            print(warning, flush=True)
+            emit(warning, flush=True)
         mm_info(
             "Please ensure Claude Code has these permissions enabled in settings.json"
         )
@@ -2789,8 +2887,8 @@ def resume_task(task_id: str, objective_slug: str | None = None) -> None:
         "resume": True,
         "resumed_from_checkpoint": state.get("last_checkpoint"),
     }
-    print("LAUNCH: task-executor", flush=True)
-    print(f"PAYLOAD: {json.dumps(payload)}", flush=True)
+    emit("LAUNCH: task-executor", flush=True)
+    emit(f"PAYLOAD: {json.dumps(payload)}", flush=True)
     mm_status("RESUMING FROM CHECKPOINT")
 
 
@@ -2808,9 +2906,9 @@ def mark_all_complete(task_id: str, subtasks: list[dict[str, Any]]) -> None:
 def show_status() -> None:
     """Show status of all tasks."""
     mm_info("Task Status Overview")
-    changes_dir = PROJECT_ROOT / ".mm-flow" / "planning" / "changes"
+    changes_dir = PLANNING_DIR / "changes"
     if not changes_dir.exists():
-        mm_error("No objective packages found under .mm-flow/planning/changes")
+        mm_error(f"No objective packages found under {PLANNING_LABEL}/changes")
         return
 
     for objective_dir in sorted(changes_dir.iterdir()):
@@ -2820,7 +2918,7 @@ def show_status() -> None:
         todo_path = ensure_objective_todo(objective_dir, objective_dir.name)
         if not tasks_path.exists() or not todo_path.exists():
             continue
-        print(f"\n  [{objective_dir.name}]", flush=True)
+        emit(f"\n  [{objective_dir.name}]", flush=True)
         objective_state = load_objective_state(objective_slug=objective_dir.name)
         if objective_state and objective_state.get("tasks"):
             first_task_ids = get_task_ids_from_plan(tasks_path)
@@ -2873,7 +2971,7 @@ def show_status() -> None:
                     issues = audit_task_consistency(task_id)
                     if issues:
                         sync_suffix = f" ⚠ sync:{len(issues)}"
-            print(f"    {task_id} {status}: {title}{sync_suffix}", flush=True)
+            emit(f"    {task_id} {status}: {title}{sync_suffix}", flush=True)
 
 
 def reset_stale_subtasks(task_id: str) -> None:
@@ -3080,48 +3178,56 @@ def main() -> None:
     help_flags = {"-h", "--help", "help"}
 
     if len(sys.argv) < 2:
-        print(
+        emit(
             "Usage: mm-complete-task <TASK_ID> [--continue] [--status] [--reset-stale] [--reconcile]",
             flush=True,
         )
-        print("       mm-complete-task --status  # Show all tasks", flush=True)
-        print(
+        emit("       mm-complete-task --status  # Show all tasks", flush=True)
+        emit(
             "       mm-complete-task --mark-done <SUBTASK_ID>       # Mark subtask complete",
             flush=True,
         )
-        print(
+        emit(
             "       mm-complete-task --mark-in-progress <SUBTASK_ID>  # Mark subtask started",
             flush=True,
         )
-        print(
+        emit(
             "       mm-complete-task --reconcile <TASK_ID>  # Repair todo/handoff from runtime truth",
             flush=True,
         )
-        print(
+        emit(
+            "       mm-complete-task --resync-objective <OBJECTIVE>  # Rebuild execution-state/todo/handoffs from objective artifacts",
+            flush=True,
+        )
+        emit(
             "       mm-complete-task --brief <TASK_ID>  # Print a concise model handoff brief",
             flush=True,
         )
         sys.exit(1)
 
     if sys.argv[1] in help_flags:
-        print(
+        emit(
             "Usage: mm-complete-task <TASK_ID> [--continue] [--status] [--reset-stale] [--reconcile]",
             flush=True,
         )
-        print("       mm-complete-task --status  # Show all tasks", flush=True)
-        print(
+        emit("       mm-complete-task --status  # Show all tasks", flush=True)
+        emit(
             "       mm-complete-task --mark-done <SUBTASK_ID>       # Mark subtask complete",
             flush=True,
         )
-        print(
+        emit(
             "       mm-complete-task --mark-in-progress <SUBTASK_ID>  # Mark subtask started",
             flush=True,
         )
-        print(
+        emit(
             "       mm-complete-task --reconcile <TASK_ID>  # Repair todo/handoff from runtime truth",
             flush=True,
         )
-        print(
+        emit(
+            "       mm-complete-task --resync-objective <OBJECTIVE>  # Rebuild execution-state/todo/handoffs from objective artifacts",
+            flush=True,
+        )
+        emit(
             "       mm-complete-task --brief <TASK_ID>  # Print a concise model handoff brief",
             flush=True,
         )
@@ -3164,6 +3270,20 @@ def main() -> None:
                 mm_error(f"SYNC: {issue}")
             sys.exit(1)
         mm_status(f"RECONCILED {task_id}")
+        return
+
+    if sys.argv[1] == "--resync-objective":
+        if len(sys.argv) < 3:
+            mm_error("Usage: mm-complete-task --resync-objective <OBJECTIVE>")
+            mm_error("Example: mm-complete-task --resync-objective window-scheduler")
+            sys.exit(1)
+        objective_slug = sys.argv[2].strip().lower()
+        try:
+            resync_objective_artifacts(objective_slug)
+        except ValueError as exc:
+            mm_error(str(exc))
+            sys.exit(1)
+        mm_status(f"RESYNCED {objective_slug}")
         return
 
     if sys.argv[1] == "--brief":

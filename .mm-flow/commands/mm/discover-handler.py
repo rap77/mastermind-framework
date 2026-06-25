@@ -20,6 +20,25 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from planning_paths import planning_relpath
+
+
+def emit(
+    *parts: object,
+    sep: str = " ",
+    end: str = "\n",
+    file: object | None = None,
+    flush: bool = True,
+) -> None:
+    """Write a single structured line to stdout or stderr."""
+    stream = sys.stderr if file is sys.stderr else sys.stdout
+    stream.write(sep.join(str(part) for part in parts) + end)
+    if flush:
+        stream.flush()
+
+
+PLANNING_LABEL = planning_relpath(Path.cwd())
+
 
 def parse_args() -> argparse.Namespace:
     """Parse discovery command arguments."""
@@ -270,7 +289,7 @@ def ensure_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def load_active_objective_helpers():
+def load_active_objective_helpers() -> object:
     """Load shared active-objective helpers from the sibling module file."""
     module_path = Path(__file__).with_name("active-objective-state.py")
     spec = importlib.util.spec_from_file_location(
@@ -283,7 +302,7 @@ def load_active_objective_helpers():
     return module
 
 
-def load_gate_status_helpers():
+def load_gate_status_helpers() -> object:
     """Load shared gate-status helpers from the sibling module file."""
     module_path = Path(__file__).with_name("objective-gate-status.py")
     spec = importlib.util.spec_from_file_location(
@@ -1163,11 +1182,11 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
     context_notes = []
     if source_of_truth:
         context_notes.append(
-            "- Source of truth exists in `.mm-flow/planning/SOURCE-OF-TRUTH.md` and should guide intent reconciliation."
+            f"- Source of truth exists in `{PLANNING_LABEL}/SOURCE-OF-TRUTH.md` and should guide intent reconciliation."
         )
     if project_state_handoff and objective_slug.startswith("project-state"):
         context_notes.append(
-            "- `.mm-flow/planning/HANDOFF-PROJECT-STATE-2026-05-24.md` provides concrete current-state guidance for this workstream."
+            f"- `{PLANNING_LABEL}/HANDOFF-PROJECT-STATE-2026-05-24.md` provides concrete current-state guidance for this workstream."
         )
     dependency_lines = [
         f"- Depends on `{dependency}`"
@@ -1564,23 +1583,23 @@ def read_context_files(root_dir: Path) -> dict[str, object]:
 def validate_mode(args: argparse.Namespace) -> None:
     """Validate mutually exclusive/required discovery modes."""
     if args.roadmap and not args.existing:
-        print("ERROR: --roadmap requires --existing")
+        sys.stdout.write("ERROR: --roadmap requires --existing\n")
         sys.exit(1)
 
     if args.objective and args.health:
-        print("ERROR: --objective cannot be combined with --health")
+        sys.stdout.write("ERROR: --objective cannot be combined with --health\n")
         sys.exit(1)
 
     if args.objective and args.gaps:
-        print("ERROR: --objective cannot be combined with --gaps")
+        sys.stdout.write("ERROR: --objective cannot be combined with --gaps\n")
         sys.exit(1)
 
     if args.objective and args.roadmap:
-        print("ERROR: --objective cannot be combined with --roadmap")
+        sys.stdout.write("ERROR: --objective cannot be combined with --roadmap\n")
         sys.exit(1)
 
     if args.quick and not args.objective:
-        print("ERROR: --quick requires --objective")
+        sys.stdout.write("ERROR: --quick requires --objective\n")
         sys.exit(1)
 
 
@@ -1680,7 +1699,7 @@ def require_existing_context(context: dict[str, object]) -> None:
             context["has_canonical_docs"],
         ]
     ):
-        print(
+        emit(
             "ERROR: No project context found (README.md, PROJECT.md, CLAUDE.md, docs/PRD, docs/canonical, or .planning sources required for existing-project discovery)"
         )
         sys.exit(1)
@@ -1699,18 +1718,18 @@ def main() -> None:
         if args.roadmap:
             payload = generate_roadmap_payload(context, args.mode, root_dir)
             written_paths = write_roadmap_files(root_dir, payload)
-            print("MODE: roadmap")
-            print("TASK: roadmap-planner")
-            print(f"PAYLOAD: {json.dumps(payload, indent=2)}")
-            print("LAUNCH: materialized-local")
-            print(
+            emit("MODE: roadmap")
+            emit("TASK: roadmap-planner")
+            emit(f"PAYLOAD: {json.dumps(payload, indent=2)}")
+            emit("LAUNCH: materialized-local")
+            emit(
                 f"WRITTEN: {json.dumps([str(path) for path in written_paths], indent=2)}"
             )
-            print()
-            print(
+            emit()
+            emit(
                 "INFO: Generating objective roadmap from explicit intent + implementation reality..."
             )
-            print(f"INFO: Session ID: {payload['session_id']}")
+            emit(f"INFO: Session ID: {payload['session_id']}")
             return
 
         if args.objective:
@@ -1727,31 +1746,31 @@ def main() -> None:
                     args.delegated_from,
                 )
                 if matched_exception is None:
-                    print("STATUS: BLOCKED")
-                    print(
+                    emit("STATUS: BLOCKED")
+                    emit(
                         f"- Active objective package already exists: {conflicting_dirs[0].relative_to(root_dir)}"
                     )
-                    print(
+                    emit(
                         "- Resolve the active objective first (complete/archive/resume) before opening a different objective package."
                     )
                     sys.exit(2)
                 allowed_slugs = ", ".join(
                     str(slug) for slug in matched_exception.get("objective_slugs", [])
                 )
-                print(f"ACTIVE_OBJECTIVE_EXCEPTION: {matched_exception.get('id', '')}")
-                print(f"ALLOWED_OBJECTIVES: {allowed_slugs}")
-                print(f"- {matched_exception.get('reason', '')}")
-                print(f"- Expires when: {matched_exception.get('expires_when', '')}")
+                emit(f"ACTIVE_OBJECTIVE_EXCEPTION: {matched_exception.get('id', '')}")
+                emit(f"ALLOWED_OBJECTIVES: {allowed_slugs}")
+                emit(f"- {matched_exception.get('reason', '')}")
+                emit(f"- Expires when: {matched_exception.get('expires_when', '')}")
 
             gate_status, gate_guidance, gate_artifact = infer_objective_gate_status(
                 root_dir, args.objective
             )
             if gate_status != "NO_CANONICAL" and gate_status != "PASSED":
-                print("STATUS: BLOCKED")
-                print(f"GATE_STATUS: {gate_status}")
+                emit("STATUS: BLOCKED")
+                emit(f"GATE_STATUS: {gate_status}")
                 if gate_artifact:
-                    print(f"GATE_ARTIFACT: {gate_artifact}")
-                print(f"- {gate_guidance}")
+                    emit(f"GATE_ARTIFACT: {gate_artifact}")
+                emit(f"- {gate_guidance}")
                 sys.exit(2)
 
             payload = generate_objective_payload(
@@ -1766,37 +1785,35 @@ def main() -> None:
             sync_ok, sync_message = sync_gap_registry_for_discovered_objective(
                 root_dir, str(payload["objective_slug"])
             )
-            print("MODE: objective")
-            print("TASK: objective-packager")
-            print(f"PAYLOAD: {json.dumps(payload, indent=2)}")
-            print("LAUNCH: materialized-local")
-            print(
+            emit("MODE: objective")
+            emit("TASK: objective-packager")
+            emit(f"PAYLOAD: {json.dumps(payload, indent=2)}")
+            emit("LAUNCH: materialized-local")
+            emit(
                 f"WRITTEN: {json.dumps([str(path) for path in written_paths], indent=2)}"
             )
             if sync_ok:
-                print(f"GAP_REGISTRY_SYNC: {sync_message}")
+                emit(f"GAP_REGISTRY_SYNC: {sync_message}")
             else:
-                print(f"GAP_REGISTRY_SYNC_INFO: {sync_message}")
-            print()
-            print(f"INFO: Preparing objective package for: {args.objective}")
-            print(f"INFO: Target directory: {payload['target_dir']}")
-            print(f"INFO: Session ID: {payload['session_id']}")
+                emit(f"GAP_REGISTRY_SYNC_INFO: {sync_message}")
+            emit()
+            emit(f"INFO: Preparing objective package for: {args.objective}")
+            emit(f"INFO: Target directory: {payload['target_dir']}")
+            emit(f"INFO: Session ID: {payload['session_id']}")
             return
 
-        print(
+        emit(
             "ERROR: Legacy discover modes (--health/--gaps/--replan/plain --existing) were removed."
         )
-        print("ERROR: Use one of:")
-        print("  /mm:discover --roadmap --existing")
-        print('  /mm:discover --existing --objective <slug> "Objective Name"')
+        emit("ERROR: Use one of:")
+        emit("  /mm:discover --roadmap --existing")
+        emit('  /mm:discover --existing --objective <slug> "Objective Name"')
         sys.exit(1)
 
-    print(
-        "ERROR: New-project legacy discover mode was removed from the active MM flow."
-    )
-    print("ERROR: Use the objective-package flow instead:")
-    print("  /mm:discover --roadmap --existing")
-    print('  /mm:discover --existing --objective <slug> "Objective Name"')
+    emit("ERROR: New-project legacy discover mode was removed from the active MM flow.")
+    emit("ERROR: Use the objective-package flow instead:")
+    emit("  /mm:discover --roadmap --existing")
+    emit('  /mm:discover --existing --objective <slug> "Objective Name"')
     sys.exit(1)
 
 
