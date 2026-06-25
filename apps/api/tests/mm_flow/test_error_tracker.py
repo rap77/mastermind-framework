@@ -5,7 +5,7 @@ TDD approach:
 - C3.25/C3.26: same root_cause >= 2 times → decision_type='error_pattern'
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import sys
@@ -261,6 +261,11 @@ class TestErrorTrackerIntegration:
         """First occurrence should persist a fix-style memory item."""
         tracker = ErrorTracker()
         memory_service = AsyncMock()
+        memory_service.record_learning.return_value = type(
+            "MemoryItem",
+            (),
+            {"memory_id": "mem-resolution-1"},
+        )()
 
         decision_type, is_pattern = await tracker.record_error_memory(
             memory_service=memory_service,
@@ -282,6 +287,7 @@ class TestErrorTrackerIntegration:
             source_kind="error_tracker",
             source_ref="error_resolution:C3.15:import_error",
             tags=["error_resolution", "import_error", "C3.15"],
+            related_memory_ids=None,
             metadata={
                 "decision_type": "error_resolution",
                 "chosen_option": "uv add httpx",
@@ -292,12 +298,42 @@ class TestErrorTrackerIntegration:
         )
 
     @pytest.mark.asyncio
+    async def test_record_error_memory_ignores_fix_persistence_failures(
+        self,
+    ) -> None:
+        """Fix persistence failures should not block error handling."""
+        tracker = ErrorTracker()
+        memory_service = AsyncMock()
+        memory_service.record_learning.side_effect = RuntimeError("boom")
+
+        with patch(
+            "mastermind_cli.mm_flow.error_tracker.logger.warning"
+        ) as mock_warning:
+            decision_type, is_pattern = await tracker.record_error_memory(
+                memory_service=memory_service,
+                subtask_id="C3.15",
+                root_cause="import_error",
+                error_message="ModuleNotFoundError: No module named httpx",
+                solution_applied="uv add httpx",
+                project_id="proj-001",
+            )
+
+        assert decision_type == "error_resolution"
+        assert is_pattern is False
+        mock_warning.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_record_error_memory_persists_pattern_learning_on_second_occurrence(
         self,
     ) -> None:
         """Recurring root causes should persist a pattern-style memory item."""
         tracker = ErrorTracker()
         memory_service = AsyncMock()
+        memory_service.record_learning.return_value = type(
+            "MemoryItem",
+            (),
+            {"memory_id": "mem-pattern-1"},
+        )()
 
         await tracker.record_error_memory(
             memory_service=memory_service,
@@ -307,6 +343,11 @@ class TestErrorTrackerIntegration:
             solution_applied="retry with backoff",
             project_id="proj-001",
         )
+        memory_service.record_learning.return_value = type(
+            "MemoryItem",
+            (),
+            {"memory_id": "mem-pattern-2"},
+        )()
         memory_service.reset_mock()
 
         decision_type, is_pattern = await tracker.record_error_memory(
@@ -328,4 +369,44 @@ class TestErrorTrackerIntegration:
         assert kwargs["source_kind"] == "error_tracker"
         assert kwargs["source_ref"] == "error_pattern:db_error"
         assert "tech-debt" in kwargs["tags"]
+        assert kwargs["related_memory_ids"] == ["mem-pattern-1"]
         assert kwargs["metadata"]["decision_type"] == "error_pattern"
+
+    @pytest.mark.asyncio
+    async def test_record_error_memory_ignores_pattern_persistence_failures(
+        self,
+    ) -> None:
+        """Pattern persistence failures should not block error handling."""
+        tracker = ErrorTracker()
+        memory_service = AsyncMock()
+        memory_service.record_learning.return_value = type(
+            "MemoryItem",
+            (),
+            {"memory_id": "mem-pattern-1"},
+        )()
+
+        await tracker.record_error_memory(
+            memory_service=memory_service,
+            subtask_id="C3.01",
+            root_cause="db_error",
+            error_message="connection refused",
+            solution_applied="retry with backoff",
+            project_id="proj-001",
+        )
+
+        memory_service.record_learning.side_effect = RuntimeError("boom")
+        with patch(
+            "mastermind_cli.mm_flow.error_tracker.logger.warning"
+        ) as mock_warning:
+            decision_type, is_pattern = await tracker.record_error_memory(
+                memory_service=memory_service,
+                subtask_id="C3.02",
+                root_cause="db_error",
+                error_message="connection reset",
+                solution_applied="retry with backoff",
+                project_id="proj-001",
+            )
+
+        assert decision_type == "error_pattern"
+        assert is_pattern is True
+        mock_warning.assert_called_once()
