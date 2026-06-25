@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
+from mastermind_cli.memory_layer.models import MemorySearchResult
 from mastermind_cli.mm_flow.cli import cli
 
 
@@ -163,6 +164,65 @@ class TestExecutePhaseStart:
             project_id="proj-001",
         )
 
+    def test_start_ignores_backend_preference_persistence_failures(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """--start should not fail if preference persistence breaks."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
+            tmp_path / ".mm-flow" / "runtime-state.json",
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        fake_memory_service.record_preference.side_effect = RuntimeError("boom")
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_preference.assert_awaited_once()
+        mock_warning.assert_called_once()
+
+    def test_start_ignores_memory_service_construction_failures(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--start should not fail if the memory service cannot be built."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
+            tmp_path / ".mm-flow" / "runtime-state.json",
+        )
+
+        conn = _make_asyncpg_conn()
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                side_effect=RuntimeError("boom"),
+            ),
+            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+
+        assert result.exit_code == 0, result.output
+        mock_warning.assert_called_once()
+
 
 class TestExecutePhaseComplete:
     def test_complete_updates_db_row(
@@ -289,6 +349,24 @@ class TestExecutePhaseComplete:
 
         conn = _make_asyncpg_conn()
         fake_memory_service = AsyncMock()
+        fake_memory_service.fetch_project_context.return_value = [
+            MemorySearchResult(
+                memory_id="mem-1",
+                title="Relevant context",
+                snippet="context",
+                score=0.9,
+                memory_type="decision",
+                project_id="proj-001",
+            ),
+            MemorySearchResult(
+                memory_id=exec_id,
+                title="Session summary",
+                snippet="current summary",
+                score=0.8,
+                memory_type="session_summary",
+                project_id="proj-001",
+            ),
+        ]
         with (
             patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
             patch(
@@ -325,6 +403,265 @@ class TestExecutePhaseComplete:
                 "invocation_method": "mm:execute-phase",
             },
         )
+        fake_memory_service.fetch_project_context.assert_awaited_once_with(
+            project_id="proj-001",
+            query="Execution complete",
+            limit=3,
+        )
+        fake_memory_service.record_learning.assert_awaited_once()
+        record_kwargs = fake_memory_service.record_learning.await_args.kwargs
+        assert record_kwargs["memory_type"] == "session_summary"
+        assert record_kwargs["related_memory_ids"] == ["mem-1"]
+        assert record_kwargs["source_ref"] == f"session_summary:{exec_id}"
+
+    def test_complete_persists_session_summary_without_related_context(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--complete should still persist the summary when recall finds nothing."""
+        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
+        )
+
+        exec_id = str(uuid.uuid4())
+        runtime_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_path.write_text(
+            json.dumps(
+                {
+                    "execution_id": exec_id,
+                    "phase": 19,
+                    "current_moment": "EXECUTION_WAVE",
+                    "active_brain": 0,
+                    "brain_state": "ACTIVE",
+                    "backend": "claude",
+                    "updated_at": "2026-04-14T00:00:00",
+                }
+            )
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        fake_memory_service.fetch_project_context.return_value = []
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "execute-phase",
+                    "--phase",
+                    "19",
+                    "--complete",
+                    "--commit",
+                    "abc123",
+                    "--tokens",
+                    "500",
+                    "--summary",
+                    "Execution complete",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_session_summary.assert_awaited_once()
+        fake_memory_service.fetch_project_context.assert_awaited_once_with(
+            project_id="proj-001",
+            query="Execution complete",
+            limit=3,
+        )
+        fake_memory_service.record_learning.assert_awaited_once()
+        record_kwargs = fake_memory_service.record_learning.await_args.kwargs
+        assert record_kwargs["memory_type"] == "session_summary"
+        assert record_kwargs["related_memory_ids"] is None
+        assert record_kwargs["source_ref"] == f"session_summary:{exec_id}"
+
+    def test_complete_ignores_context_enrichment_failures(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--complete should not fail if retrieval enrichment breaks."""
+        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
+        )
+
+        exec_id = str(uuid.uuid4())
+        runtime_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_path.write_text(
+            json.dumps(
+                {
+                    "execution_id": exec_id,
+                    "phase": 19,
+                    "current_moment": "EXECUTION_WAVE",
+                    "active_brain": 0,
+                    "brain_state": "ACTIVE",
+                    "backend": "claude",
+                    "updated_at": "2026-04-14T00:00:00",
+                }
+            )
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        fake_memory_service.fetch_project_context.side_effect = RuntimeError("boom")
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "execute-phase",
+                    "--phase",
+                    "19",
+                    "--complete",
+                    "--commit",
+                    "abc123",
+                    "--tokens",
+                    "500",
+                    "--summary",
+                    "Execution complete",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_session_summary.assert_awaited_once()
+        fake_memory_service.record_learning.assert_not_awaited()
+        mock_warning.assert_called_once()
+
+    def test_complete_ignores_session_summary_persistence_failures(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--complete should still enrich memory if the summary write breaks."""
+        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
+        )
+
+        exec_id = str(uuid.uuid4())
+        runtime_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_path.write_text(
+            json.dumps(
+                {
+                    "execution_id": exec_id,
+                    "phase": 19,
+                    "current_moment": "EXECUTION_WAVE",
+                    "active_brain": 0,
+                    "brain_state": "ACTIVE",
+                    "backend": "claude",
+                    "updated_at": "2026-04-14T00:00:00",
+                }
+            )
+        )
+
+        conn = _make_asyncpg_conn()
+        fake_memory_service = AsyncMock()
+        fake_memory_service.record_session_summary.side_effect = RuntimeError("boom")
+        fake_memory_service.fetch_project_context.return_value = []
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                return_value=fake_memory_service,
+            ),
+            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "execute-phase",
+                    "--phase",
+                    "19",
+                    "--complete",
+                    "--commit",
+                    "abc123",
+                    "--tokens",
+                    "500",
+                    "--summary",
+                    "Execution complete",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        fake_memory_service.record_session_summary.assert_awaited_once()
+        fake_memory_service.fetch_project_context.assert_awaited_once_with(
+            project_id="proj-001",
+            query="Execution complete",
+            limit=3,
+        )
+        fake_memory_service.record_learning.assert_awaited_once()
+        mock_warning.assert_called_once()
+
+    def test_complete_ignores_memory_service_construction_failures(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--complete should not fail if the memory service cannot be built."""
+        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
+        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+        monkeypatch.setattr(
+            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
+        )
+
+        exec_id = str(uuid.uuid4())
+        runtime_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_path.write_text(
+            json.dumps(
+                {
+                    "execution_id": exec_id,
+                    "phase": 19,
+                    "current_moment": "EXECUTION_WAVE",
+                    "active_brain": 0,
+                    "brain_state": "ACTIVE",
+                    "backend": "claude",
+                    "updated_at": "2026-04-14T00:00:00",
+                }
+            )
+        )
+
+        conn = _make_asyncpg_conn()
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch(
+                "mastermind_cli.mm_flow.cli._build_memory_service",
+                side_effect=RuntimeError("boom"),
+            ),
+            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "execute-phase",
+                    "--phase",
+                    "19",
+                    "--complete",
+                    "--commit",
+                    "abc123",
+                    "--tokens",
+                    "500",
+                    "--summary",
+                    "Execution complete",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_warning.assert_called_once()
 
 
 class TestMutuallyExclusiveFlags:
