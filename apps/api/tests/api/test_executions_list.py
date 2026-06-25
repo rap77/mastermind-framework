@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime, timedelta
 
 import pytest
@@ -39,7 +40,7 @@ def _insert_execution(
     """Helper: insert an execution_history record for tests."""
     exec_id = str(uuid.uuid4())
     ts = (created_at or datetime.utcnow()).isoformat()
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         connection.executescript("""
             CREATE TABLE IF NOT EXISTS execution_history (
                 id TEXT PRIMARY KEY,
