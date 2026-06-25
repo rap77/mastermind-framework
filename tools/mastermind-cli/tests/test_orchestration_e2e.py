@@ -7,6 +7,8 @@ Tests the complete flow: brief → Brain #1 → Brain #7 → veredict
 import os
 import sys
 
+import pytest
+
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
@@ -14,7 +16,10 @@ sys.path.insert(0, project_root)
 from mastermind_cli.orchestrator import Coordinator, OutputFormatter  # noqa: E402
 
 
-def test_validation_flow_good_brief():
+pytestmark = pytest.mark.smoke
+
+
+def test_validation_flow_good_brief() -> None:
     """Test validation flow with a good brief (should APPROVE)."""
     print("\n" + "=" * 70)
     print("TEST: Validation Flow - Good Brief (Expected: APPROVE)")
@@ -58,7 +63,7 @@ def test_validation_flow_good_brief():
     print("\n✅ Test passed!")
 
 
-def test_validation_flow_weak_brief():
+def test_validation_flow_weak_brief() -> None:
     """Test validation flow with a weak brief (should REJECT)."""
     print("\n" + "=" * 70)
     print("TEST: Validation Flow - Weak Brief (Expected: REJECT)")
@@ -96,7 +101,7 @@ def test_validation_flow_weak_brief():
     print("\n✅ Test passed!")
 
 
-def test_dry_run():
+def test_dry_run() -> None:
     """Test dry run mode (should show plan without executing)."""
     print("\n" + "=" * 70)
     print("TEST: Dry Run Mode")
@@ -122,7 +127,7 @@ def test_dry_run():
     print("\n✅ Test passed!")
 
 
-def test_iteration_loop():
+def test_iteration_loop() -> None:
     """Test that iteration loop works correctly."""
     print("\n" + "=" * 70)
     print("TEST: Iteration Loop")
@@ -160,7 +165,7 @@ def test_iteration_loop():
     print("\n✅ Test passed!")
 
 
-def run_all_tests():
+def run_all_tests() -> None:
     """Run all end-to-end tests."""
     print("\n" + "=" * 70)
     print("MASTERMIND ORCHESTRATION - END-TO-END TESTS")
