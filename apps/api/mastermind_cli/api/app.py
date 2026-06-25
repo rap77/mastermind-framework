@@ -6,6 +6,7 @@ Requirements: UI-01, UI-07
 """
 
 import os
+import logging
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -69,9 +70,20 @@ except ImportError:
     pass
 
 _WEB_DIR = Path(__file__).parent.parent / "web"
+logger = logging.getLogger(__name__)
 
 # Global gRPC server instance (for graceful shutdown)
 _grpc_server = None
+
+
+def _grpc_server_disabled() -> bool:
+    """Return whether gRPC startup is disabled by environment."""
+    return os.environ.get("MM_DISABLE_GRPC_SERVER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _resolve_project_state_db_url(db_path: str) -> str:
@@ -112,11 +124,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await db.create_audit_trail_schema()
 
     # Start gRPC server (Phase 18: AI Worker gRPC integration)
-    if _GRPC_ENABLED:
+    if _GRPC_ENABLED and not _grpc_server_disabled():
         try:
             _grpc_server = await start_grpc_server()
         except Exception as e:
-            print(f"WARNING: Failed to start gRPC server: {e}")
+            logger.warning("Failed to start gRPC server: %s", e)
             # Don't fail app startup if gRPC is optional
             pass
 
@@ -127,10 +139,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         try:
             await _grpc_server.stop(grace=0.1)
         except Exception as e:
-            print(f"WARNING: Error closing gRPC server: {e}")
+            logger.warning("Error closing gRPC server: %s", e)
 
 
-def create_app(db_path: str = ":memory:") -> FastAPI:
+def create_app(
+    db_path: str = ":memory:",
+    governance: object | None = None,
+) -> FastAPI:
     """Create and configure FastAPI application.
 
     Args:
@@ -147,6 +162,8 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         redoc_url="/redoc",
         lifespan=lifespan,
     )
+    app.state.governance = governance
+    app.state.db_path = db_path
     initialize_database(_resolve_project_state_db_url(db_path))
 
     # Register rate limiter (Brain #7 gap B — prevent bcrypt DoS via x-api-key spam)
@@ -198,9 +215,9 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
         """B3.2: Health check endpoint — returns status and db backend.
 
         Returns:
-            JSON with status=ok and db=postgresql.
+            JSON with status=ok and db=sqlite.
         """
-        return {"status": "ok", "db": "postgresql"}
+        return {"status": "ok", "db": "sqlite"}
 
     # Wire db_path into all routes via dependency overrides
     async def _provide_db_path() -> str:
@@ -250,6 +267,7 @@ def create_app(db_path: str = ":memory:") -> FastAPI:
     # Serve dashboard HTML
     @app.get("/dashboard", include_in_schema=False)
     async def dashboard() -> FileResponse:
+        """Serve the web dashboard entrypoint."""
         return FileResponse(_WEB_DIR / "index.html")
 
     # Mount static files for web UI
@@ -276,7 +294,8 @@ def get_app() -> FastAPI:
 # Dependency for database access
 async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
     """Database dependency for FastAPI routes."""
-    db = DatabaseConnection(":memory:")
+    db_path = os.environ.get("MM_DB_PATH", "/app/data/mastermind.db")
+    db = DatabaseConnection(db_path)
     await db.connect()
     try:
         yield db
