@@ -32,3 +32,8 @@ dev = [
     "pytest>=8.0.0",
     "ruff>=0.8.0",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "smoke: fast smoke tests for governance, budget, and orchestration",
+]
