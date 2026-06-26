@@ -448,6 +448,33 @@ def run(
     default=True,
     help="Execute brains in parallel (default: True)",
 )
+@click.option(
+    "--evidence-objective",
+    default=None,
+    help="Optional evidence objective to activate evidence routing",
+)
+@click.option(
+    "--evidence-source-clarity",
+    type=click.Choice(["clear", "partial", "ambiguous"]),
+    default="partial",
+    show_default=True,
+)
+@click.option(
+    "--evidence-uncertainty",
+    type=click.Choice(["low", "medium", "high"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--evidence-gap-count", type=int, default=0, show_default=True)
+@click.option("--evidence-needs-interview", is_flag=True)
+@click.option(
+    "--evidence-risk-level",
+    type=click.Choice(["low", "medium", "high", "critical"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--evidence-readiness-gate", default=None)
+@click.option("--evidence-readiness-score", type=float, default=None)
 def go(
     brief: str | None,
     file: str | None,
@@ -457,6 +484,14 @@ def go(
     output: str | None,
     verbose: bool,
     parallel: bool,
+    evidence_objective: str | None,
+    evidence_source_clarity: str,
+    evidence_uncertainty: str,
+    evidence_gap_count: int,
+    evidence_needs_interview: bool,
+    evidence_risk_level: str,
+    evidence_readiness_gate: str | None,
+    evidence_readiness_score: float | None,
 ) -> None:
     """Quick command to orchestrate (alias for 'run')."""
     run_callback = run.callback
@@ -471,12 +506,12 @@ def go(
         output=output,
         verbose=verbose,
         parallel=parallel,
-        evidence_objective=None,
-        evidence_source_clarity="partial",
-        evidence_uncertainty="medium",
-        evidence_gap_count=0,
-        evidence_needs_interview=False,
-        evidence_risk_level="medium",
-        evidence_readiness_gate=None,
-        evidence_readiness_score=None,
+        evidence_objective=evidence_objective,
+        evidence_source_clarity=evidence_source_clarity,
+        evidence_uncertainty=evidence_uncertainty,
+        evidence_gap_count=evidence_gap_count,
+        evidence_needs_interview=evidence_needs_interview,
+        evidence_risk_level=evidence_risk_level,
+        evidence_readiness_gate=evidence_readiness_gate,
+        evidence_readiness_score=evidence_readiness_score,
     )
