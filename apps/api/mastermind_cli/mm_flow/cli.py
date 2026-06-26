@@ -319,5 +319,20 @@ def sync_evidence_registry(database_url: str | None, registry_key: str) -> None:
     click.echo(json.dumps(payload, indent=2))
 
 
+@cli.command("evidence-readiness-score")
+@click.option(
+    "--registry-path",
+    default=None,
+    help="Path to evidence registry JSON (defaults to active planning registry)",
+)
+@click.option("--version-id", required=True, help="Registry version ID")
+def evidence_readiness_score(registry_path: str | None, version_id: str) -> None:
+    """Show the readiness score and gate for a registry version."""
+    path = Path(registry_path) if registry_path else _registry_path()
+    service = EvidenceRegistryService(path)
+    payload = service.readiness(version_id)
+    click.echo(json.dumps(payload, indent=2))
+
+
 if __name__ == "__main__":
     cli()

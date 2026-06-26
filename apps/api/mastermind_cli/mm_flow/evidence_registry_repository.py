@@ -6,8 +6,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-import asyncpg
-
 
 @dataclass(frozen=True)
 class EvidenceRegistrySyncCounts:
@@ -21,7 +19,7 @@ class EvidenceRegistrySyncCounts:
 class EvidenceRegistryRepository:
     """Persist evidence registry snapshots in PostgreSQL."""
 
-    def __init__(self, conn: asyncpg.Connection) -> None:
+    def __init__(self, conn: Any) -> None:
         """Initialize the repository with an open asyncpg connection."""
         self._conn = conn
 
@@ -30,18 +28,19 @@ class EvidenceRegistryRepository:
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS evidence_registry_sources (
                 registry_key    TEXT NOT NULL,
-                source_id       TEXT PRIMARY KEY,
+                source_id       TEXT NOT NULL,
                 source_type     TEXT NOT NULL,
                 name            TEXT NOT NULL,
                 uri             TEXT NOT NULL,
                 created_at_utc  TIMESTAMPTZ NOT NULL,
-                updated_at_utc  TIMESTAMPTZ NOT NULL
+                updated_at_utc  TIMESTAMPTZ NOT NULL,
+                PRIMARY KEY (registry_key, source_id)
             )
         """)
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS evidence_registry_versions (
                 registry_key            TEXT NOT NULL,
-                id                      TEXT PRIMARY KEY,
+                id                      TEXT NOT NULL,
                 source_id               TEXT,
                 source_type             TEXT NOT NULL,
                 name                    TEXT NOT NULL,
@@ -58,13 +57,14 @@ class EvidenceRegistryRepository:
                 contradictions          INTEGER NOT NULL,
                 user_answers_complete   BOOLEAN NOT NULL,
                 created_at_utc          TIMESTAMPTZ NOT NULL,
-                updated_at_utc          TIMESTAMPTZ NOT NULL
+                updated_at_utc          TIMESTAMPTZ NOT NULL,
+                PRIMARY KEY (registry_key, id)
             )
         """)
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS evidence_registry_deltas (
                 registry_key        TEXT NOT NULL,
-                id                  TEXT PRIMARY KEY,
+                id                  TEXT NOT NULL,
                 from_version_id     TEXT NOT NULL,
                 to_version_id       TEXT NOT NULL,
                 delta_type          TEXT NOT NULL,
@@ -73,7 +73,8 @@ class EvidenceRegistryRepository:
                 risk                TEXT NOT NULL,
                 decision            TEXT NOT NULL,
                 source_id           TEXT,
-                created_at_utc      TIMESTAMPTZ NOT NULL
+                created_at_utc      TIMESTAMPTZ NOT NULL,
+                PRIMARY KEY (registry_key, id)
             )
         """)
         await self._conn.execute(
@@ -106,7 +107,7 @@ class EvidenceRegistryRepository:
                         created_at_utc, updated_at_utc
                     )
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    ON CONFLICT (source_id) DO UPDATE SET
+                    ON CONFLICT (registry_key, source_id) DO UPDATE SET
                         registry_key = EXCLUDED.registry_key,
                         source_type = EXCLUDED.source_type,
                         name = EXCLUDED.name,
@@ -139,7 +140,7 @@ class EvidenceRegistryRepository:
                         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                         $11, $12, $13, $14, $15, $16, $17, $18, $19
                     )
-                    ON CONFLICT (id) DO UPDATE SET
+                    ON CONFLICT (registry_key, id) DO UPDATE SET
                         registry_key = EXCLUDED.registry_key,
                         source_id = EXCLUDED.source_id,
                         source_type = EXCLUDED.source_type,
@@ -197,7 +198,7 @@ class EvidenceRegistryRepository:
                         source_id, created_at_utc
                     )
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                    ON CONFLICT (id) DO UPDATE SET
+                    ON CONFLICT (registry_key, id) DO UPDATE SET
                         registry_key = EXCLUDED.registry_key,
                         from_version_id = EXCLUDED.from_version_id,
                         to_version_id = EXCLUDED.to_version_id,

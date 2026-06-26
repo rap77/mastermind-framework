@@ -172,6 +172,30 @@ class EvidenceRegistryServiceTest(unittest.TestCase):
         self.assertEqual(
             readiness["readiness"]["reason"], "high_confidence_high_coverage"
         )
+        self.assertGreaterEqual(readiness["score"]["score"], 80.0)
+        self.assertEqual(readiness["score"]["gate"], "ready")
+
+    def test_readiness_score_penalizes_gaps_and_contradictions(self) -> None:
+        """Critical gaps and contradictions should push the score down."""
+        version = self.service.register_version(
+            source_id="canonical:prd:gamma",
+            source_type="doc",
+            name="Gamma",
+            uri="docs/gamma.md",
+            version_ref="docs/gamma.md",
+            version_hash="hash-1",
+            summary="Canonical gamma doc",
+            confidence=0.9,
+            coverage=0.9,
+            critical_gaps=2,
+            important_gaps=1,
+            contradictions=1,
+            user_answers_complete=False,
+        )
+        readiness = self.service.readiness(version["version"]["id"])
+
+        self.assertLess(readiness["score"]["score"], 65.0)
+        self.assertIn(readiness["score"]["gate"], {"blocked", "not_ready"})
 
 
 if __name__ == "__main__":

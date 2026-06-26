@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-import asyncpg
-
 from .evidence_registry_repository import EvidenceRegistryRepository
 
 SOURCE_TYPES = {"repo", "url", "book", "doc", "product", "system", "interview"}
@@ -264,6 +262,7 @@ class EvidenceRegistryService:
             "version_id": version_id,
             "registry_path": str(self._registry_path),
             "readiness": self.calculate_readiness(version),
+            "score": self.calculate_readiness_score(version),
         }
 
     async def sync_to_postgres(
@@ -273,6 +272,8 @@ class EvidenceRegistryService:
         registry_key: str = "default",
     ) -> dict[str, object]:
         """Sync the current registry snapshot into PostgreSQL."""
+        import asyncpg
+
         data = self.load_registry()
         conn = await asyncpg.connect(database_url)
         try:
@@ -331,6 +332,70 @@ class EvidenceRegistryService:
             "critical_gaps": critical_gaps,
             "contradictions": contradictions,
             "user_answers_complete": user_answers_complete,
+        }
+
+    @staticmethod
+    def calculate_readiness_score(entry: Mapping[str, Any]) -> dict[str, Any]:
+        """Compute a 0-100 readiness score from registry metadata."""
+        confidence = max(0.0, min(1.0, float(entry.get("confidence") or 0.0)))
+        coverage = max(0.0, min(1.0, float(entry.get("coverage") or 0.0)))
+        critical_gaps = max(0, int(entry.get("critical_gaps") or 0))
+        important_gaps = max(0, int(entry.get("important_gaps") or 0))
+        optional_gaps = max(0, int(entry.get("optional_gaps") or 0))
+        contradictions = max(0, int(entry.get("contradictions") or 0))
+        user_answers_complete = bool(entry.get("user_answers_complete"))
+        has_source_id = bool(str(entry.get("source_id") or "").strip())
+        has_version_ref = bool(str(entry.get("version_ref") or "").strip())
+        has_summary = bool(str(entry.get("summary") or "").strip())
+
+        traceability = (
+            (1.0 if has_source_id else 0.0)
+            + (1.0 if has_version_ref else 0.0)
+            + (1.0 if has_summary else 0.0)
+        ) / 3.0
+        completeness = 1.0 if user_answers_complete else 0.4
+
+        raw_score = (
+            confidence * 40.0
+            + coverage * 35.0
+            + traceability * 15.0
+            + completeness * 10.0
+        )
+        penalty = min(30.0, critical_gaps * 10.0) + min(20.0, important_gaps * 4.0)
+        penalty += min(10.0, optional_gaps * 2.0) + min(40.0, contradictions * 20.0)
+        if not user_answers_complete and coverage < 0.8:
+            penalty += 5.0
+
+        score = max(0.0, min(100.0, raw_score - penalty))
+        if score >= 80.0 and contradictions == 0 and critical_gaps == 0:
+            gate = "ready"
+        elif score >= 65.0 and critical_gaps == 0 and contradictions == 0:
+            gate = "conditionally_ready"
+        elif contradictions > 0:
+            gate = "blocked"
+        else:
+            gate = "not_ready"
+
+        return {
+            "score": round(score, 1),
+            "gate": gate,
+            "weights": {
+                "confidence": 40,
+                "coverage": 35,
+                "traceability": 15,
+                "completeness": 10,
+            },
+            "factors": {
+                "confidence": round(confidence, 3),
+                "coverage": round(coverage, 3),
+                "traceability": round(traceability, 3),
+                "completeness": round(completeness, 3),
+                "critical_gaps": critical_gaps,
+                "important_gaps": important_gaps,
+                "optional_gaps": optional_gaps,
+                "contradictions": contradictions,
+                "user_answers_complete": user_answers_complete,
+            },
         }
 
     def _latest_version_for_source(

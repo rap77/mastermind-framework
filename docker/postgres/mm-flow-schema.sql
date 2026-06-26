@@ -225,17 +225,18 @@ CREATE TABLE IF NOT EXISTS cross_phase_contracts (
 
 CREATE TABLE IF NOT EXISTS evidence_registry_sources (
     registry_key    TEXT NOT NULL DEFAULT 'default',
-    source_id       TEXT PRIMARY KEY,
+    source_id       TEXT NOT NULL,
     source_type     TEXT NOT NULL,
     name            TEXT NOT NULL,
     uri             TEXT NOT NULL,
     created_at_utc  TIMESTAMPTZ NOT NULL,
-    updated_at_utc  TIMESTAMPTZ NOT NULL
+    updated_at_utc  TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (registry_key, source_id)
 );
 
 CREATE TABLE IF NOT EXISTS evidence_registry_versions (
     registry_key            TEXT NOT NULL DEFAULT 'default',
-    id                      TEXT PRIMARY KEY,
+    id                      TEXT NOT NULL,
     source_id               TEXT,
     source_type             TEXT NOT NULL,
     name                    TEXT NOT NULL,
@@ -252,12 +253,13 @@ CREATE TABLE IF NOT EXISTS evidence_registry_versions (
     contradictions          INTEGER NOT NULL DEFAULT 0,
     user_answers_complete   BOOLEAN NOT NULL DEFAULT FALSE,
     created_at_utc          TIMESTAMPTZ NOT NULL,
-    updated_at_utc          TIMESTAMPTZ NOT NULL
+    updated_at_utc          TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (registry_key, id)
 );
 
 CREATE TABLE IF NOT EXISTS evidence_registry_deltas (
     registry_key        TEXT NOT NULL DEFAULT 'default',
-    id                  TEXT PRIMARY KEY,
+    id                  TEXT NOT NULL,
     from_version_id     TEXT NOT NULL,
     to_version_id       TEXT NOT NULL,
     delta_type          TEXT NOT NULL,
@@ -266,7 +268,8 @@ CREATE TABLE IF NOT EXISTS evidence_registry_deltas (
     risk                TEXT NOT NULL,
     decision            TEXT NOT NULL,
     source_id           TEXT,
-    created_at_utc      TIMESTAMPTZ NOT NULL
+    created_at_utc      TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (registry_key, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_evidence_registry_versions_registry_source
