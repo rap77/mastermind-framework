@@ -105,7 +105,8 @@ Este directorio consolida la narrativa y arquitectura canónica de MasterMind.
 99. `99-EVIDENCE-LINEAGE-SCHEMA.md`
 100. `100-CANONIZATION-LOOP-AND-FINAL-SUMMARY.md`
 101. `101-CANONICAL-REVIEW-SUMMARY-TEMPLATE.md`
-102. `templates/README.md`
+102. `102-CANONICALIZATION-COMPLETION-CRITERIA.md`
+103. `templates/README.md`
 
 ## Meta-brains
 
