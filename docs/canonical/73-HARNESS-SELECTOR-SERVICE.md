@@ -213,7 +213,7 @@ Cada selección debe registrar:
 - outcome posterior
 
 Cuando el coordinador reciba una `evidence_request`, debe persistir la selección en metadata de transporte como `evidence_routing`.
-Si la ejecución se exporta, el payload debe incluir un `execution_summary` con la misma ruta.
+Si la ejecución se exporta, el payload debe incluir un `execution_summary` con `evidence_routing` y `runtime_contracts`.
 
 ## 14. No-goals
 

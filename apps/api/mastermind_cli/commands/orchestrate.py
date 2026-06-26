@@ -359,7 +359,33 @@ def run(
                     "readiness_score": coordinator.runtime_evidence_selection.readiness_score,
                 }
 
-            results_dict = build_execution_export(results, evidence_routing)
+            runtime_contracts = None
+            if (
+                coordinator.runtime_task_profile is not None
+                and coordinator.runtime_loop_policy is not None
+            ):
+                runtime_contracts = {
+                    "task_profile": {
+                        "task_id": coordinator.runtime_task_profile.task_id,
+                        "complexity": coordinator.runtime_task_profile.complexity,
+                        "risk_level": coordinator.runtime_task_profile.risk_level,
+                        "requires_checker": coordinator.runtime_task_profile.requires_checker,
+                    },
+                    "loop_policy": {
+                        "base_loop": coordinator.runtime_loop_policy.base_loop,
+                        "additional_loops": list(
+                            coordinator.runtime_loop_policy.additional_loops
+                        ),
+                        "requires_review": coordinator.runtime_loop_policy.requires_review,
+                        "requires_verification": coordinator.runtime_loop_policy.requires_verification,
+                    },
+                }
+
+            results_dict = build_execution_export(
+                results,
+                runtime_contracts=runtime_contracts,
+                evidence_routing=evidence_routing,
+            )
 
             output_path = Path(output)
             if output_path.suffix == ".json":

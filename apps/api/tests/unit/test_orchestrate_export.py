@@ -28,11 +28,40 @@ class OrchestrateExportTest(unittest.TestCase):
                 next_actions=("canonize_sources", "record_deltas"),
                 readiness_gate="conditionally_ready",
                 readiness_score=72.0,
-            )
+            ),
+            runtime_task_profile=SimpleNamespace(
+                task_id="runtime-abc123",
+                complexity="medium",
+                risk_level="medium",
+                requires_checker=True,
+            ),
+            runtime_loop_policy=SimpleNamespace(
+                base_loop="execute+verify-light",
+                additional_loops=("verify-light",),
+                requires_review=False,
+                requires_verification=True,
+            ),
         )
 
         payload = build_execution_export(
-            results, coordinator.runtime_evidence_selection
+            results,
+            runtime_contracts={
+                "task_profile": {
+                    "task_id": coordinator.runtime_task_profile.task_id,
+                    "complexity": coordinator.runtime_task_profile.complexity,
+                    "risk_level": coordinator.runtime_task_profile.risk_level,
+                    "requires_checker": coordinator.runtime_task_profile.requires_checker,
+                },
+                "loop_policy": {
+                    "base_loop": coordinator.runtime_loop_policy.base_loop,
+                    "additional_loops": list(
+                        coordinator.runtime_loop_policy.additional_loops
+                    ),
+                    "requires_review": coordinator.runtime_loop_policy.requires_review,
+                    "requires_verification": coordinator.runtime_loop_policy.requires_verification,
+                },
+            },
+            evidence_routing=coordinator.runtime_evidence_selection,
         )
 
         self.assertIn("results", payload)
@@ -40,6 +69,8 @@ class OrchestrateExportTest(unittest.TestCase):
         routing = payload["execution_summary"]["evidence_routing"]
         self.assertEqual(routing["selected_harness"], "evidence-intake-canonization")
         self.assertEqual(routing["readiness_score"], 72.0)
+        contracts = payload["execution_summary"]["runtime_contracts"]
+        self.assertEqual(contracts["task_profile"]["task_id"], "runtime-abc123")
 
 
 if __name__ == "__main__":
