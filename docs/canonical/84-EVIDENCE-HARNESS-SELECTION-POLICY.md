@@ -28,17 +28,37 @@ El selector evalúa:
 
 Usar solo intake cuando la fuente es clara y la extracción es directa.
 
+Salida típica:
+
+- `selected_harness = evidence-intake-only`
+- `selected_loop = tool-loop`
+
 ### 4.2 Evidence Intake + Canonization
 
 Usar cuando la fuente tiene valor, pero no requiere entrevista ni gaps complejos.
+
+Salida típica:
+
+- `selected_harness = evidence-intake-canonization`
+- `selected_loop = goal-loop`
 
 ### 4.3 Full Evidence Loop
 
 Usar cuando hay evidencia incompleta, contradicciones o necesidad de clarificación.
 
+Salida típica:
+
+- `selected_harness = full-evidence-loop`
+- `selected_loop = verification-loop`
+
 ### 4.4 AI-DLC Harness
 
 Usar cuando además del intake hay que hacer discovery, requirements, design, construction y archive formal.
+
+Salida típica:
+
+- `selected_harness = ai-dlc-harness`
+- `selected_loop = goal-loop`
 
 ## 5. Regla de selección
 
@@ -87,6 +107,9 @@ El selector debe devolver:
 - razón
 - riesgos
 - siguiente paso
+- `selected_harness`
+- `selected_loop`
+- `selected_brain` si aplica
 
 ## 9. No-goals
 

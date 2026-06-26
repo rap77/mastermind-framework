@@ -15,14 +15,23 @@ import logging
 import os
 import uuid
 import subprocess
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import asyncpg
 import click
 
 from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
 from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.mm_flow.evidence_selector import (
+    EvidenceHarnessSelector,
+    EvidenceSelectionRequest,
+    EvidenceClarity,
+    RiskLevel,
+    UncertaintyLevel,
+)
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 from mastermind_cli.mm_flow.config_loader import RuntimeState
 
@@ -332,6 +341,62 @@ def evidence_readiness_score(registry_path: str | None, version_id: str) -> None
     service = EvidenceRegistryService(path)
     payload = service.readiness(version_id)
     click.echo(json.dumps(payload, indent=2))
+
+
+@cli.command("evidence-route")
+@click.option("--objective", required=True, help="Objective or task description")
+@click.option(
+    "--source-clarity",
+    type=click.Choice(["clear", "partial", "ambiguous"]),
+    default="partial",
+    show_default=True,
+)
+@click.option(
+    "--uncertainty",
+    type=click.Choice(["low", "medium", "high"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--gap-count", type=int, default=0, show_default=True)
+@click.option("--needs-interview", is_flag=True, help="Force interview-aware routing")
+@click.option(
+    "--risk-level",
+    type=click.Choice(["low", "medium", "high", "critical"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--token-budget", type=int, default=2000, show_default=True)
+@click.option("--readiness-gate", default=None, help="Optional readiness gate")
+@click.option(
+    "--readiness-score", type=float, default=None, help="Optional readiness score"
+)
+def evidence_route(
+    objective: str,
+    source_clarity: str,
+    uncertainty: str,
+    gap_count: int,
+    needs_interview: bool,
+    risk_level: str,
+    token_budget: int,
+    readiness_gate: str | None,
+    readiness_score: float | None,
+) -> None:
+    """Route an evidence task to the minimum sufficient harness."""
+    selector = EvidenceHarnessSelector()
+    payload = selector.select(
+        EvidenceSelectionRequest(
+            objective=objective,
+            source_clarity=cast(EvidenceClarity, source_clarity),
+            uncertainty=cast(UncertaintyLevel, uncertainty),
+            gap_count=gap_count,
+            needs_interview=needs_interview,
+            risk_level=cast(RiskLevel, risk_level),
+            token_budget=token_budget,
+            readiness_gate=readiness_gate,
+            readiness_score=readiness_score,
+        )
+    )
+    click.echo(json.dumps(asdict(payload), indent=2))
 
 
 if __name__ == "__main__":
