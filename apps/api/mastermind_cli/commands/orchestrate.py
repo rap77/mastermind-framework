@@ -29,6 +29,7 @@ from mastermind_cli.mm_flow.evidence_selector import (
     RiskLevel,
     UncertaintyLevel,
 )
+from mastermind_cli.mm_flow.evidence_export import build_execution_export
 from pydantic import BaseModel, ValidationError
 
 
@@ -309,6 +310,15 @@ def run(
         click.echo("✅ Execution Complete")
         click.echo("=" * 60)
 
+        if coordinator.runtime_evidence_selection is not None:
+            routing = coordinator.runtime_evidence_selection
+            click.echo(
+                "Evidence routing: "
+                f"{routing.selected_harness} -> {routing.selected_loop} "
+                f"(gate={routing.readiness_gate or 'unset'}, "
+                f"score={routing.readiness_score if routing.readiness_score is not None else 'unset'})"
+            )
+
         for brain_id, brain_output in results.items():
             click.echo(f"\n🧠 {brain_id}")
             click.echo("-" * 60)
@@ -334,11 +344,22 @@ def run(
             import json
             from pathlib import Path
 
-            # Convert results to dict
-            results_dict = {
-                brain_id: brain_output.model_dump()
-                for brain_id, brain_output in results.items()
-            }
+            evidence_routing = None
+            if coordinator.runtime_evidence_selection is not None:
+                evidence_routing = {
+                    "selected_harness": coordinator.runtime_evidence_selection.selected_harness,
+                    "selected_loop": coordinator.runtime_evidence_selection.selected_loop,
+                    "selected_brain": coordinator.runtime_evidence_selection.selected_brain,
+                    "reasons": list(coordinator.runtime_evidence_selection.reasons),
+                    "risks": list(coordinator.runtime_evidence_selection.risks),
+                    "next_actions": list(
+                        coordinator.runtime_evidence_selection.next_actions
+                    ),
+                    "readiness_gate": coordinator.runtime_evidence_selection.readiness_gate,
+                    "readiness_score": coordinator.runtime_evidence_selection.readiness_score,
+                }
+
+            results_dict = build_execution_export(results, evidence_routing)
 
             output_path = Path(output)
             if output_path.suffix == ".json":

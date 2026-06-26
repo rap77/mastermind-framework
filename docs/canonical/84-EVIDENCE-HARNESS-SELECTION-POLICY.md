@@ -112,6 +112,7 @@ El selector debe devolver:
 - `selected_brain` si aplica
 
 Cuando el selector se use desde el coordinator, la ruta debe viajar en la metadata de transporte como `evidence_routing`.
+Si el resultado se exporta a archivo, la ruta debe aparecer también en un `execution_summary` top-level.
 
 ## 9. No-goals
 
