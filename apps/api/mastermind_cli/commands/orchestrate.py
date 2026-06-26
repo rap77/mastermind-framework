@@ -319,6 +319,18 @@ def run(
                 f"score={routing.readiness_score if routing.readiness_score is not None else 'unset'})"
             )
 
+        if (
+            coordinator.runtime_task_profile is not None
+            and coordinator.runtime_loop_policy is not None
+        ):
+            click.echo(
+                "Runtime contracts: "
+                f"task={coordinator.runtime_task_profile.complexity}, "
+                f"loop={coordinator.runtime_loop_policy.base_loop}, "
+                f"review={'yes' if coordinator.runtime_loop_policy.requires_review else 'no'}, "
+                f"verify={'yes' if coordinator.runtime_loop_policy.requires_verification else 'no'}"
+            )
+
         for brain_id, brain_output in results.items():
             click.echo(f"\n🧠 {brain_id}")
             click.echo("-" * 60)
