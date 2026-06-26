@@ -11,7 +11,7 @@ import asyncio
 import click
 import os
 import sys
-from typing import cast
+from typing import Any, cast
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -70,6 +70,42 @@ def execute_flow_sync(
     return asyncio.run(_execute())
 
 
+def _apply_evidence_options(fn: Any) -> Any:
+    """Apply the shared evidence-routing CLI options to a command."""
+    decorators = (
+        click.option(
+            "--evidence-objective",
+            default=None,
+            help="Optional evidence objective to activate evidence routing",
+        ),
+        click.option(
+            "--evidence-source-clarity",
+            type=click.Choice(["clear", "partial", "ambiguous"]),
+            default="partial",
+            show_default=True,
+        ),
+        click.option(
+            "--evidence-uncertainty",
+            type=click.Choice(["low", "medium", "high"]),
+            default="medium",
+            show_default=True,
+        ),
+        click.option("--evidence-gap-count", type=int, default=0, show_default=True),
+        click.option("--evidence-needs-interview", is_flag=True),
+        click.option(
+            "--evidence-risk-level",
+            type=click.Choice(["low", "medium", "high", "critical"]),
+            default="medium",
+            show_default=True,
+        ),
+        click.option("--evidence-readiness-gate", default=None),
+        click.option("--evidence-readiness-score", type=float, default=None),
+    )
+    for decorator in reversed(decorators):
+        fn = decorator(fn)
+    return fn
+
+
 @click.group()
 def orchestrate() -> None:
     """Orchestrate brains to process user briefs."""
@@ -97,33 +133,7 @@ def orchestrate() -> None:
     default=True,
     help="Execute independent brains in parallel (default: True)",
 )
-@click.option(
-    "--evidence-objective",
-    default=None,
-    help="Optional evidence objective to activate evidence routing",
-)
-@click.option(
-    "--evidence-source-clarity",
-    type=click.Choice(["clear", "partial", "ambiguous"]),
-    default="partial",
-    show_default=True,
-)
-@click.option(
-    "--evidence-uncertainty",
-    type=click.Choice(["low", "medium", "high"]),
-    default="medium",
-    show_default=True,
-)
-@click.option("--evidence-gap-count", type=int, default=0, show_default=True)
-@click.option("--evidence-needs-interview", is_flag=True)
-@click.option(
-    "--evidence-risk-level",
-    type=click.Choice(["low", "medium", "high", "critical"]),
-    default="medium",
-    show_default=True,
-)
-@click.option("--evidence-readiness-gate", default=None)
-@click.option("--evidence-readiness-score", type=float, default=None)
+@_apply_evidence_options
 def run(
     brief: str | None,
     file: str | None,
@@ -448,33 +458,7 @@ def run(
     default=True,
     help="Execute brains in parallel (default: True)",
 )
-@click.option(
-    "--evidence-objective",
-    default=None,
-    help="Optional evidence objective to activate evidence routing",
-)
-@click.option(
-    "--evidence-source-clarity",
-    type=click.Choice(["clear", "partial", "ambiguous"]),
-    default="partial",
-    show_default=True,
-)
-@click.option(
-    "--evidence-uncertainty",
-    type=click.Choice(["low", "medium", "high"]),
-    default="medium",
-    show_default=True,
-)
-@click.option("--evidence-gap-count", type=int, default=0, show_default=True)
-@click.option("--evidence-needs-interview", is_flag=True)
-@click.option(
-    "--evidence-risk-level",
-    type=click.Choice(["low", "medium", "high", "critical"]),
-    default="medium",
-    show_default=True,
-)
-@click.option("--evidence-readiness-gate", default=None)
-@click.option("--evidence-readiness-score", type=float, default=None)
+@_apply_evidence_options
 def go(
     brief: str | None,
     file: str | None,
