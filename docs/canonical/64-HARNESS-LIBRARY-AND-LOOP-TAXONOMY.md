@@ -257,6 +257,24 @@ Monitoreo o automatización recurrente.
 - output pequeño
 - propósito de observabilidad o recordatorio
 
+### 4.8 Canonization Loop
+
+Iteración cerrada para convertir contexto en canon canónico con recomendación, aceptación, ejecución y resumen final auditable.
+
+**Criterios:**
+
+- el usuario quiere aceptar recomendaciones durante la canonicación
+- la tarea termina con un resumen completo de decisiones y acciones
+- el siguiente paso debe quedar explícito al cierre
+
+**Salidas típicas:**
+
+- recommendation
+- applied changes
+- decisions made
+- final summary
+- next recommendation
+
 ## 5. Reglas de selección
 
 - No todo necesita multi-agent.
