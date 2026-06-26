@@ -15,6 +15,8 @@ from typing import Any
 
 from planning_paths import get_planning_dir, planning_relpath
 
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+
 OPEN_STATUSES = {"open", "deferred"}
 READINESS_PRIORITY = {"ready": 3, "needs_more_evidence": 2, "blocked": 1}
 IMPACT_PRIORITY = {"high": 3, "medium": 2, "low": 1}
