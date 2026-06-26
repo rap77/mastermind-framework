@@ -8,6 +8,9 @@ argument-hint: "<type> [--name <slug>] [--title <title>]"
 
 Create new canonical documents from MasterMind framework templates.
 
+Each created canonical PRD/brain document is also registered in the evidence
+registry as a versioned canonical source.
+
 ## Usage
 
 ```bash
@@ -34,6 +37,11 @@ Create new canonical documents from MasterMind framework templates.
 | `--name <slug>` | Slug for the document (required) |
 | `--title <title>` | Human-readable title (optional, defaults to name) |
 | `--output <path>` | Custom output path |
+
+## Evidence registration
+
+The handler automatically computes a content hash and records the created
+canonical document in `.mm-flow/planning/evidence/evidence-registry.json`.
 
 ## Protocol
 

@@ -9,7 +9,10 @@ from templates following the MasterMind framework conventions.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import logging
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -32,6 +35,9 @@ def project_root() -> Path:
 
 ROOT = project_root()
 TEMPLATES_DIR = ROOT / "docs" / "canonical" / "templates"
+EVIDENCE_REGISTRY_HELPER = Path(__file__).resolve().parent / "evidence-registry.py"
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -67,11 +73,19 @@ def list_templates() -> list[str]:
     return [f.stem for f in TEMPLATES_DIR.glob("*.md")]
 
 
+def render_path(path: Path) -> str:
+    """Render a path relative to ROOT when possible, otherwise absolute."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.resolve().as_posix()
+
+
 def create_prd(name: str, title: str, output: Path | None) -> int:
     """Create a new PRD document."""
     template = TEMPLATES_DIR / "00-PRD-Template.md"
     if not template.exists():
-        print(f"ERROR: Template not found at {template}")
+        logger.error("ERROR: Template not found at %s", template)
         return 1
 
     slug = name.lower().replace(" ", "-")
@@ -80,7 +94,7 @@ def create_prd(name: str, title: str, output: Path | None) -> int:
 
     # Check if file exists
     if output.exists():
-        print(f"ERROR: File already exists: {output}")
+        logger.error("ERROR: File already exists: %s", output)
         return 1
 
     content = template.read_text()
@@ -89,8 +103,9 @@ def create_prd(name: str, title: str, output: Path | None) -> int:
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content)
-    print("STATUS: created")
-    print(f"- File: {output.relative_to(ROOT)}")
+    register_canonical_as_evidence(output, "prd", name, title)
+    logger.info("STATUS: created")
+    logger.info("- File: %s", render_path(output))
     return 0
 
 
@@ -98,7 +113,7 @@ def create_brain(name: str, title: str, output: Path | None) -> int:
     """Create a new Brain specification document."""
     template = TEMPLATES_DIR / "02-Metodo-Seleccion-Expertos.md"  # Use brain template
     if not template.exists():
-        print("ERROR: Brain template not found")
+        logger.error("ERROR: Brain template not found")
         return 1
 
     slug = name.lower().replace(" ", "-")
@@ -106,7 +121,7 @@ def create_brain(name: str, title: str, output: Path | None) -> int:
         output = ROOT / "docs" / "PRD" / f"BRAIN-{slug}.md"
 
     if output.exists():
-        print(f"ERROR: File already exists: {output}")
+        logger.error("ERROR: File already exists: %s", output)
         return 1
 
     content = template.read_text()
@@ -115,9 +130,53 @@ def create_brain(name: str, title: str, output: Path | None) -> int:
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content)
-    print("STATUS: created")
-    print(f"- File: {output.relative_to(ROOT)}")
+    register_canonical_as_evidence(output, "brain", name, title)
+    logger.info("STATUS: created")
+    logger.info("- File: %s", render_path(output))
     return 0
+
+
+def register_canonical_as_evidence(
+    output: Path, doc_type: str, name: str, title: str
+) -> None:
+    """Register a created canonical document as evidence."""
+    if not EVIDENCE_REGISTRY_HELPER.exists():
+        return
+
+    version_hash = hashlib.sha256(output.read_bytes()).hexdigest()
+    version_ref = render_path(output)
+    source_id = f"canonical:{doc_type}:{name.lower().replace(' ', '-')}"
+
+    subprocess.run(
+        [
+            "python3",
+            str(EVIDENCE_REGISTRY_HELPER),
+            "register",
+            "--source-id",
+            source_id,
+            "--source-type",
+            "doc",
+            "--name",
+            title,
+            "--uri",
+            version_ref,
+            "--version-ref",
+            version_ref,
+            "--version-hash",
+            version_hash,
+            "--summary",
+            f"Canonical {doc_type} document created from template",
+            "--confidence",
+            "1.0",
+            "--coverage",
+            "1.0",
+            "--user-answers-complete",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def main() -> int:
@@ -125,20 +184,20 @@ def main() -> int:
     args = parse_args()
 
     if args.type is None:
-        print("Available canonical types:")
-        print("  prd       - Product Requirements Document")
-        print("  brain     - Brain specification")
-        print("  source    - Source master document")
-        print("  task      - Task specification")
-        print("  objective - Objective specification")
-        print("")
-        print(
+        logger.info("Available canonical types:")
+        logger.info("  prd       - Product Requirements Document")
+        logger.info("  brain     - Brain specification")
+        logger.info("  source    - Source master document")
+        logger.info("  task      - Task specification")
+        logger.info("  objective - Objective specification")
+        logger.info("")
+        logger.info(
             "Usage: python3 new-canonical-handler.py <type> --name <slug> --title <title>"
         )
         return 0
 
     if not args.name:
-        print("ERROR: --name is required")
+        logger.error("ERROR: --name is required")
         return 1
 
     if not args.title:
@@ -151,7 +210,7 @@ def main() -> int:
     elif args.type == "brain":
         return create_brain(args.name, args.title, output)
     else:
-        print(f"ERROR: Type '{args.type}' not yet implemented")
+        logger.error("ERROR: Type '%s' not yet implemented", args.type)
         return 1
 
 
