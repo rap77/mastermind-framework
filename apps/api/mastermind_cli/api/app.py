@@ -20,7 +20,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from mastermind_cli.api.dependencies import get_db_path, get_project_state_db_url
-from mastermind_cli.api.routes import analytics, auth, tasks, brains
+from mastermind_cli.api.routes import analytics, auth, tasks, brains, evidence
 from mastermind_cli.observability.trace_context import set_trace_id
 from mastermind_cli.api.routes.executions import router as executions_router
 from mastermind_cli.api.routes.experiences import router as experiences_router
@@ -115,7 +115,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _grpc_server
 
     # STARTUP
-    async with DatabaseConnection(":memory:") as db:
+    db_path = getattr(app.state, "db_path", ":memory:")
+    async with DatabaseConnection(db_path) as db:
         await db.create_task_schema()
         await db.create_auth_schema()
         await db.create_execution_history_schema()
@@ -241,6 +242,7 @@ def create_app(
     )
     app.include_router(keys_router, prefix="/api/keys", tags=["API Keys"])
     app.include_router(analytics.router)  # Analytics endpoints
+    app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
     app.include_router(websocket_router, tags=["WebSocket"])
     app.include_router(companies_router)  # Companies with tenant isolation
     app.include_router(
@@ -292,9 +294,13 @@ def get_app() -> FastAPI:
 
 
 # Dependency for database access
-async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
+async def get_db(request: Request) -> AsyncGenerator[DatabaseConnection, None]:
     """Database dependency for FastAPI routes."""
-    db_path = os.environ.get("MM_DB_PATH", "/app/data/mastermind.db")
+    db_path = getattr(
+        request.app.state,
+        "db_path",
+        os.environ.get("MM_DB_PATH", "/app/data/mastermind.db"),
+    )
     db = DatabaseConnection(db_path)
     await db.connect()
     try:
