@@ -299,6 +299,8 @@ def register_version(args: argparse.Namespace) -> int:
         previous_version is not None
         and previous_version.get("version_hash") != args.version_hash
     ):
+        previous_version["state"] = "superseded"
+        previous_version["updated_at_utc"] = utc_now()
         append_delta(
             data,
             from_version_id=str(previous_version.get("id")),

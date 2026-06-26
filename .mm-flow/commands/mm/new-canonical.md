@@ -26,6 +26,7 @@ registry as a versioned canonical source.
 |------|-------------|
 | `prd` | Product Requirements Document |
 | `brain` | Brain specification |
+| `update` | Update an existing canonical document and register a delta |
 | `source` | Source master document |
 | `task` | Task specification |
 | `objective` | Objective specification |
@@ -50,6 +51,12 @@ Execute the handler directly:
 ```bash
 python3 .mm-flow/commands/mm/new-canonical-handler.py <type> --name <slug> --title <title>
 ```
+
+## Update behavior
+
+- `update` rewrites the existing canonical document from the template
+- the evidence registry auto-records a delta when the content hash changes
+- the previous version is marked `superseded`
 
 ---
 

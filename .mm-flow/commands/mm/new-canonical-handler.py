@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "type",
         nargs="?",
-        choices=["prd", "brain", "source", "task", "objective"],
+        choices=["prd", "brain", "update", "source", "task", "objective"],
         help="Type of canonical document to create",
     )
     parser.add_argument(
@@ -81,6 +81,16 @@ def render_path(path: Path) -> str:
         return path.resolve().as_posix()
 
 
+def write_canonical_document(
+    output: Path, content: str, *, allow_overwrite: bool = False
+) -> None:
+    """Write a canonical document, optionally allowing overwrite."""
+    if output.exists() and not allow_overwrite:
+        raise FileExistsError(f"File already exists: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(content)
+
+
 def create_prd(name: str, title: str, output: Path | None) -> int:
     """Create a new PRD document."""
     template = TEMPLATES_DIR / "00-PRD-Template.md"
@@ -92,17 +102,15 @@ def create_prd(name: str, title: str, output: Path | None) -> int:
     if output is None:
         output = ROOT / "docs" / "PRD" / f"{slug}.md"
 
-    # Check if file exists
-    if output.exists():
-        logger.error("ERROR: File already exists: %s", output)
-        return 1
-
     content = template.read_text()
     content = content.replace("{{NAME}}", name)
     content = content.replace("{{TITLE}}", title)
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(content)
+    try:
+        write_canonical_document(output, content)
+    except FileExistsError as exc:
+        logger.error("ERROR: %s", exc)
+        return 1
     register_canonical_as_evidence(output, "prd", name, title)
     logger.info("STATUS: created")
     logger.info("- File: %s", render_path(output))
@@ -120,18 +128,61 @@ def create_brain(name: str, title: str, output: Path | None) -> int:
     if output is None:
         output = ROOT / "docs" / "PRD" / f"BRAIN-{slug}.md"
 
-    if output.exists():
-        logger.error("ERROR: File already exists: %s", output)
+    content = template.read_text()
+    content = content.replace("{{NAME}}", name)
+    content = content.replace("{{TITLE}}", title)
+
+    try:
+        write_canonical_document(output, content)
+    except FileExistsError as exc:
+        logger.error("ERROR: %s", exc)
         return 1
+    register_canonical_as_evidence(output, "brain", name, title)
+    logger.info("STATUS: created")
+    logger.info("- File: %s", render_path(output))
+    return 0
+
+
+def update_prd(name: str, title: str, output: Path | None) -> int:
+    """Update an existing PRD document from the template."""
+    template = TEMPLATES_DIR / "00-PRD-Template.md"
+    if not template.exists():
+        logger.error("ERROR: Template not found at %s", template)
+        return 1
+
+    slug = name.lower().replace(" ", "-")
+    if output is None:
+        output = ROOT / "docs" / "PRD" / f"{slug}.md"
 
     content = template.read_text()
     content = content.replace("{{NAME}}", name)
     content = content.replace("{{TITLE}}", title)
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(content)
+    write_canonical_document(output, content, allow_overwrite=True)
+    register_canonical_as_evidence(output, "prd", name, title)
+    logger.info("STATUS: updated")
+    logger.info("- File: %s", render_path(output))
+    return 0
+
+
+def update_brain(name: str, title: str, output: Path | None) -> int:
+    """Update an existing Brain specification document from the template."""
+    template = TEMPLATES_DIR / "02-Metodo-Seleccion-Expertos.md"
+    if not template.exists():
+        logger.error("ERROR: Brain template not found")
+        return 1
+
+    slug = name.lower().replace(" ", "-")
+    if output is None:
+        output = ROOT / "docs" / "PRD" / f"BRAIN-{slug}.md"
+
+    content = template.read_text()
+    content = content.replace("{{NAME}}", name)
+    content = content.replace("{{TITLE}}", title)
+
+    write_canonical_document(output, content, allow_overwrite=True)
     register_canonical_as_evidence(output, "brain", name, title)
-    logger.info("STATUS: created")
+    logger.info("STATUS: updated")
     logger.info("- File: %s", render_path(output))
     return 0
 
@@ -209,6 +260,10 @@ def main() -> int:
         return create_prd(args.name, args.title, output)
     elif args.type == "brain":
         return create_brain(args.name, args.title, output)
+    elif args.type == "update":
+        if args.name.startswith("brain-"):
+            return update_brain(args.name, args.title, output)
+        return update_prd(args.name, args.title, output)
     else:
         logger.error("ERROR: Type '%s' not yet implemented", args.type)
         return 1

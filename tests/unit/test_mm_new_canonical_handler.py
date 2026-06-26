@@ -157,6 +157,39 @@ class NewCanonicalHandlerTest(unittest.TestCase):
             registry["versions"][0]["version_ref"], external_output.resolve().as_posix()
         )
 
+    def test_update_prd_overwrites_doc_and_supersedes_previous_version(self) -> None:
+        """Updating a PRD should overwrite it and supersede the previous evidence."""
+        result = self.run_helper(
+            "prd", "--name", "launch-plan", "--title", "Launch Plan"
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+        update_result = self.run_helper(
+            "update",
+            "--name",
+            "launch-plan",
+            "--title",
+            "Launch Plan v2",
+        )
+        self.assertEqual(update_result.returncode, 0, msg=update_result.stderr)
+
+        created_doc = self.temp_dir / "docs" / "PRD" / "launch-plan.md"
+        self.assertIn("Launch Plan v2", created_doc.read_text(encoding="utf-8"))
+
+        registry_path = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "evidence"
+            / "evidence-registry.json"
+        )
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(registry["versions"]), 2)
+        self.assertEqual(len(registry["deltas"]), 1)
+        self.assertEqual(registry["versions"][0]["state"], "superseded")
+        self.assertEqual(registry["versions"][1]["state"], "current")
+        self.assertEqual(registry["deltas"][0]["decision"], "superseded")
+
 
 if __name__ == "__main__":
     unittest.main()
