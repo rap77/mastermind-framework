@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import uuid
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -22,10 +23,33 @@ import click
 
 from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
 from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 from mastermind_cli.mm_flow.config_loader import RuntimeState
 
 RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
 logger = logging.getLogger(__name__)
+
+
+def _project_root() -> Path:
+    """Resolve the repository root from git."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except Exception:
+        pass
+    return Path.cwd()
+
+
+def _registry_path() -> Path:
+    """Return the active file registry path."""
+    return _project_root() / ".planning" / "evidence" / "evidence-registry.json"
 
 
 def _build_memory_service(database_url: str) -> MemoryService:
@@ -168,7 +192,12 @@ def execute_phase(
                     # Read execution_id from runtime-state.json (C4 — EXEC_ID handoff)
                     execution_id = ""
                     if RUNTIME_STATE_PATH.exists():
-                        state_data = json.loads(RUNTIME_STATE_PATH.read_text())
+                        try:
+                            state_data = json.loads(RUNTIME_STATE_PATH.read_text())
+                        except json.JSONDecodeError as exc:
+                            raise ValueError(
+                                "runtime-state.json is malformed; cannot complete phase."
+                            ) from exc
                         execution_id = state_data.get("execution_id", "")
 
                     if not execution_id:
@@ -259,6 +288,35 @@ def execute_phase(
             await conn.close()
 
     asyncio.run(_run())
+
+
+@cli.command("sync-evidence-registry")
+@click.option(
+    "--database-url",
+    default=None,
+    help="PostgreSQL DSN (defaults to DATABASE_URL env var)",
+)
+@click.option(
+    "--registry-key",
+    default="default",
+    help="Logical registry key stored in Postgres",
+)
+def sync_evidence_registry(database_url: str | None, registry_key: str) -> None:
+    """Sync the local evidence registry snapshot to PostgreSQL."""
+    resolved_database_url = database_url or os.environ.get("DATABASE_URL")
+    if not resolved_database_url:
+        raise ValueError(
+            "DATABASE_URL environment variable must be set or passed via --database-url."
+        )
+
+    service = EvidenceRegistryService(_registry_path())
+    payload = asyncio.run(
+        service.sync_to_postgres(
+            resolved_database_url,
+            registry_key=registry_key,
+        )
+    )
+    click.echo(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":

@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import asyncpg
+
+from .evidence_registry_repository import EvidenceRegistryRepository
+
 SOURCE_TYPES = {"repo", "url", "book", "doc", "product", "system", "interview"}
 VERSION_STATES = {"current", "superseded", "archived", "deprecated", "retracted"}
 DELTA_TYPES = {"functional", "structural", "data", "nfr", "decision"}
@@ -261,6 +265,35 @@ class EvidenceRegistryService:
             "registry_path": str(self._registry_path),
             "readiness": self.calculate_readiness(version),
         }
+
+    async def sync_to_postgres(
+        self,
+        database_url: str,
+        *,
+        registry_key: str = "default",
+    ) -> dict[str, object]:
+        """Sync the current registry snapshot into PostgreSQL."""
+        data = self.load_registry()
+        conn = await asyncpg.connect(database_url)
+        try:
+            repo = EvidenceRegistryRepository(conn)
+            counts = await repo.sync_snapshot(
+                registry_key=registry_key,
+                sources=data.get("sources", []),
+                versions=data.get("versions", []),
+                deltas=data.get("deltas", []),
+            )
+            return {
+                "registry_path": str(self._registry_path),
+                "registry_key": registry_key,
+                "synced": {
+                    "sources": counts.sources,
+                    "versions": counts.versions,
+                    "deltas": counts.deltas,
+                },
+            }
+        finally:
+            await conn.close()
 
     @staticmethod
     def calculate_readiness(entry: Mapping[str, Any]) -> dict[str, Any]:

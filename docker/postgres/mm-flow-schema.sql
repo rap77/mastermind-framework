@@ -220,6 +220,61 @@ CREATE TABLE IF NOT EXISTS cross_phase_contracts (
 );
 
 -- ============================================================================
+-- EVIDENCE_REGISTRY (canonical docs + source lineage snapshot)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS evidence_registry_sources (
+    registry_key    TEXT NOT NULL DEFAULT 'default',
+    source_id       TEXT PRIMARY KEY,
+    source_type     TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    uri             TEXT NOT NULL,
+    created_at_utc  TIMESTAMPTZ NOT NULL,
+    updated_at_utc  TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS evidence_registry_versions (
+    registry_key            TEXT NOT NULL DEFAULT 'default',
+    id                      TEXT PRIMARY KEY,
+    source_id               TEXT,
+    source_type             TEXT NOT NULL,
+    name                    TEXT NOT NULL,
+    uri                     TEXT NOT NULL,
+    version_ref             TEXT NOT NULL,
+    version_hash            TEXT NOT NULL,
+    summary                 TEXT NOT NULL,
+    state                   TEXT NOT NULL,
+    confidence              DOUBLE PRECISION NOT NULL,
+    coverage                DOUBLE PRECISION NOT NULL,
+    critical_gaps           INTEGER NOT NULL DEFAULT 0,
+    important_gaps          INTEGER NOT NULL DEFAULT 0,
+    optional_gaps           INTEGER NOT NULL DEFAULT 0,
+    contradictions          INTEGER NOT NULL DEFAULT 0,
+    user_answers_complete   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at_utc          TIMESTAMPTZ NOT NULL,
+    updated_at_utc          TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS evidence_registry_deltas (
+    registry_key        TEXT NOT NULL DEFAULT 'default',
+    id                  TEXT PRIMARY KEY,
+    from_version_id     TEXT NOT NULL,
+    to_version_id       TEXT NOT NULL,
+    delta_type          TEXT NOT NULL,
+    summary             TEXT NOT NULL,
+    impact              TEXT NOT NULL,
+    risk                TEXT NOT NULL,
+    decision            TEXT NOT NULL,
+    source_id           TEXT,
+    created_at_utc      TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_registry_versions_registry_source
+    ON evidence_registry_versions(registry_key, source_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_registry_deltas_registry_source
+    ON evidence_registry_deltas(registry_key, source_id);
+
+-- ============================================================================
 -- GRANTS
 -- ============================================================================
 
