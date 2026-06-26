@@ -163,6 +163,83 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
         self.assertEqual(payload["readiness"]["verdict"], "not_ready")
         self.assertEqual(payload["readiness"]["reason"], "critical_gaps_open")
 
+    def test_delta_records_change_between_versions(self) -> None:
+        """Delta should record a version-to-version change."""
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-old",
+            "--source-id",
+            "source-delta",
+            "--source-type",
+            "doc",
+            "--name",
+            "Delta Doc",
+            "--uri",
+            "docs/old.md",
+            "--version-ref",
+            "old",
+            "--version-hash",
+            "hash-old",
+            "--summary",
+            "Old evidence",
+            "--confidence",
+            "0.8",
+            "--coverage",
+            "0.8",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-new",
+            "--source-id",
+            "source-delta",
+            "--source-type",
+            "doc",
+            "--name",
+            "Delta Doc",
+            "--uri",
+            "docs/new.md",
+            "--version-ref",
+            "new",
+            "--version-hash",
+            "hash-new",
+            "--summary",
+            "New evidence",
+            "--confidence",
+            "0.9",
+            "--coverage",
+            "0.9",
+            "--user-answers-complete",
+        )
+
+        result = self.run_helper(
+            "delta",
+            "--from-id",
+            "ev-old",
+            "--to-id",
+            "ev-new",
+            "--delta-type",
+            "decision",
+            "--summary",
+            "Canonical doc refined with newer evidence",
+            "--impact",
+            "medium",
+            "--risk",
+            "low",
+            "--decision",
+            "adapted",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["delta"]["id"], "ed-0001")
+        self.assertEqual(payload["delta"]["from_version_id"], "ev-old")
+        self.assertEqual(payload["delta"]["to_version_id"], "ev-new")
+        self.assertEqual(payload["delta"]["delta_type"], "decision")
+        self.assertEqual(payload["delta"]["decision"], "adapted")
+
 
 if __name__ == "__main__":
     unittest.main()

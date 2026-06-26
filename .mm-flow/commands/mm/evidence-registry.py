@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 SOURCE_TYPES = {"repo", "url", "book", "doc", "product", "system", "interview"}
 VERSION_STATES = {"current", "superseded", "archived", "deprecated", "retracted"}
+DELTA_TYPES = {"functional", "structural", "data", "nfr", "decision"}
+DELTA_DECISIONS = {"adopted", "adapted", "rejected", "deprecated", "superseded"}
 
 
 def project_root() -> Path:
@@ -80,6 +82,25 @@ def parse_args() -> argparse.Namespace:
     )
     readiness_parser.add_argument("--id", dest="version_id", required=True)
 
+    delta_parser = subparsers.add_parser(
+        "delta", help="Record a delta between versions."
+    )
+    delta_parser.add_argument("--from-id", dest="from_version_id", required=True)
+    delta_parser.add_argument("--to-id", dest="to_version_id", required=True)
+    delta_parser.add_argument(
+        "--delta-type", choices=sorted(DELTA_TYPES), required=True
+    )
+    delta_parser.add_argument("--summary", required=True)
+    delta_parser.add_argument(
+        "--impact", choices=["low", "medium", "high"], default="medium"
+    )
+    delta_parser.add_argument(
+        "--risk", choices=["low", "medium", "high"], default="medium"
+    )
+    delta_parser.add_argument(
+        "--decision", choices=sorted(DELTA_DECISIONS), default="adapted"
+    )
+
     return parser.parse_args()
 
 
@@ -121,6 +142,19 @@ def next_version_id(data: dict[str, Any]) -> str:
         if suffix.isdigit():
             max_value = max(max_value, int(suffix))
     return f"ev-{max_value + 1:04d}"
+
+
+def next_delta_id(data: dict[str, Any]) -> str:
+    """Generate the next sequential evidence delta ID."""
+    max_value = 0
+    for entry in data.get("deltas", []):
+        delta_id = entry.get("id", "")
+        if not isinstance(delta_id, str) or not delta_id.startswith("ed-"):
+            continue
+        suffix = delta_id.removeprefix("ed-")
+        if suffix.isdigit():
+            max_value = max(max_value, int(suffix))
+    return f"ed-{max_value + 1:04d}"
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -235,6 +269,58 @@ def list_versions() -> int:
     return 0
 
 
+def record_delta(args: argparse.Namespace) -> int:
+    """Record a delta between two evidence versions."""
+    data = load_registry()
+    from_version = next(
+        (
+            entry
+            for entry in data.get("versions", [])
+            if isinstance(entry, dict) and entry.get("id") == args.from_version_id
+        ),
+        None,
+    )
+    to_version = next(
+        (
+            entry
+            for entry in data.get("versions", [])
+            if isinstance(entry, dict) and entry.get("id") == args.to_version_id
+        ),
+        None,
+    )
+    if from_version is None or to_version is None:
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write("- Both version IDs must exist before recording a delta\n")
+        return 1
+
+    delta = {
+        "id": next_delta_id(data),
+        "from_version_id": args.from_version_id,
+        "to_version_id": args.to_version_id,
+        "delta_type": args.delta_type,
+        "summary": args.summary,
+        "impact": args.impact,
+        "risk": args.risk,
+        "decision": args.decision,
+        "source_id": to_version.get("source_id") or from_version.get("source_id"),
+        "created_at_utc": utc_now(),
+    }
+    data["deltas"].append(delta)
+    write_registry(data)
+
+    sys.stdout.write(
+        json.dumps(
+            {
+                "registry_path": str(REGISTRY_RELATIVE_PATH),
+                "delta": delta,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    return 0
+
+
 def readiness(args: argparse.Namespace) -> int:
     """Compute readiness for an evidence version."""
     data = load_registry()
@@ -276,6 +362,8 @@ def main() -> int:
         return list_versions()
     if args.command == "readiness":
         return readiness(args)
+    if args.command == "delta":
+        return record_delta(args)
     sys.stdout.write("STATUS: FAILED\n")
     sys.stdout.write(f"- Unsupported command: {args.command}\n")
     return 1
