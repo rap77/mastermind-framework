@@ -111,6 +111,8 @@ El selector debe devolver:
 - `selected_loop`
 - `selected_brain` si aplica
 
+Cuando el selector se use desde el coordinator, la ruta debe viajar en la metadata de transporte como `evidence_routing`.
+
 ## 9. No-goals
 
 - no usar AI-DLC por costumbre

@@ -212,6 +212,8 @@ Cada selección debe registrar:
 - tokens estimados
 - outcome posterior
 
+Cuando el coordinador reciba una `evidence_request`, debe persistir la selección en metadata de transporte como `evidence_routing`.
+
 ## 14. No-goals
 
 - no seleccionar sin metadata

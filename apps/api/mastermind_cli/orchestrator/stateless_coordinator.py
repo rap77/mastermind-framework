@@ -24,6 +24,11 @@ from mastermind_cli.orchestrator.governance import (
     Intention,
     TaskContext,
 )
+from mastermind_cli.mm_flow.evidence_selector import (
+    EvidenceHarnessSelector,
+    EvidenceSelectionRequest,
+    EvidenceSelectionResult,
+)
 from mastermind_cli.orchestrator.runtime_contracts import (
     CapabilityRegistry,
     ExecutionEnvelope,
@@ -138,6 +143,7 @@ class StatelessCoordinator:
         self.runtime_verification_outcome: VerificationOutcome | None = None
         self.runtime_review_outcome: ReviewOutcome | None = None
         self.runtime_recovery_decision: RecoveryDecision | None = None
+        self.runtime_evidence_selection: EvidenceSelectionResult | None = None
 
         # Flow configuration (for DAG execution)
         self.flow_config: FlowConfig | None = None
@@ -147,6 +153,7 @@ class StatelessCoordinator:
         brief: Brief,
         brain_ids: list[str],
         conn: object | None = None,
+        evidence_request: EvidenceSelectionRequest | None = None,
     ) -> dict[str, BaseModel]:
         """
         Execute flow with wave-based parallelism.
@@ -185,6 +192,7 @@ class StatelessCoordinator:
         self.runtime_verification_outcome = None
         self.runtime_review_outcome = None
         self.runtime_recovery_decision = None
+        self.runtime_evidence_selection = None
 
         if self.config.governance is not None:
             intention = Intention(
@@ -211,7 +219,11 @@ class StatelessCoordinator:
             if decision.final_verdict.value != "allow":
                 return {}
 
-        self._prepare_runtime_contracts(brief=brief, brain_ids=brain_ids)
+        self._prepare_runtime_contracts(
+            brief=brief,
+            brain_ids=brain_ids,
+            evidence_request=evidence_request,
+        )
 
         # Step 1: Resolve dependencies into waves
         waves = await self._resolve_waves(brain_ids)
@@ -435,6 +447,17 @@ class StatelessCoordinator:
                     "requires_verification": self.runtime_loop_policy.requires_verification,
                 },
             }
+        if self.runtime_evidence_selection is not None:
+            envelope.transport_metadata["evidence_routing"] = {
+                "selected_harness": self.runtime_evidence_selection.selected_harness,
+                "selected_loop": self.runtime_evidence_selection.selected_loop,
+                "selected_brain": self.runtime_evidence_selection.selected_brain,
+                "reasons": list(self.runtime_evidence_selection.reasons),
+                "risks": list(self.runtime_evidence_selection.risks),
+                "next_actions": list(self.runtime_evidence_selection.next_actions),
+                "readiness_gate": self.runtime_evidence_selection.readiness_gate,
+                "readiness_score": self.runtime_evidence_selection.readiness_score,
+            }
 
         self.message_log.append(envelope)
 
@@ -542,6 +565,7 @@ class StatelessCoordinator:
             nodes=nodes,
             description="Stateless coordinator flow",
         )
+        self.flow_config = flow_config
 
         # Resolve into waves
         execution_graph = await resolver.resolve(flow_config)
@@ -560,16 +584,39 @@ class StatelessCoordinator:
 
         return datetime.now(timezone.utc).isoformat()
 
-    def _prepare_runtime_contracts(self, brief: Brief, brain_ids: list[str]) -> None:
+    def _prepare_runtime_contracts(
+        self,
+        brief: Brief,
+        brain_ids: list[str],
+        evidence_request: EvidenceSelectionRequest | None = None,
+    ) -> None:
         """Classify the task and select the minimum sufficient control policy."""
         selector = LoopSelector()
         capability_registry = CapabilityRegistry()
         harness_registry = HarnessRegistry()
 
+        if evidence_request is not None:
+            self.runtime_evidence_selection = EvidenceHarnessSelector().select(
+                evidence_request
+            )
+
         task_profile = selector.classify_task(brief, brain_ids)
         capability_set = capability_registry.resolve_for_task(task_profile)
         harness_registry.resolve_for_capabilities(capability_set)
-        loop_policy = selector.select_loop(task_profile, capability_set)
+        loop_policy = selector.select_loop(
+            task_profile,
+            capability_set,
+            evidence_readiness_score=(
+                self.runtime_evidence_selection.readiness_score
+                if self.runtime_evidence_selection is not None
+                else None
+            ),
+            evidence_readiness_gate=(
+                self.runtime_evidence_selection.readiness_gate
+                if self.runtime_evidence_selection is not None
+                else None
+            ),
+        )
 
         self.runtime_task_profile = task_profile
         self.runtime_loop_policy = loop_policy

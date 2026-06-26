@@ -11,6 +11,7 @@ import asyncio
 import click
 import os
 import sys
+from typing import cast
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -22,6 +23,12 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
 )
 from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
 from mastermind_cli.brain_registry import BrainRegistry
+from mastermind_cli.mm_flow.evidence_selector import (
+    EvidenceClarity,
+    EvidenceSelectionRequest,
+    RiskLevel,
+    UncertaintyLevel,
+)
 from pydantic import BaseModel, ValidationError
 
 
@@ -37,16 +44,25 @@ def execute_flow_sync(
     brief_model: Brief,
     brain_ids: list[str],
     parallel_mode: bool,
+    evidence_request: EvidenceSelectionRequest | None = None,
 ) -> dict[str, BaseModel]:
     """Execute the orchestration flow from synchronous CLI code."""
 
     async def _execute() -> dict[str, BaseModel]:
         if parallel_mode:
-            return await coordinator.execute_flow(brief_model, brain_ids)
+            return await coordinator.execute_flow(
+                brief_model,
+                brain_ids,
+                evidence_request=evidence_request,
+            )
 
         seq_results: dict[str, BaseModel] = {}
         for brain_id in brain_ids:
-            brain_results = await coordinator.execute_flow(brief_model, [brain_id])
+            brain_results = await coordinator.execute_flow(
+                brief_model,
+                [brain_id],
+                evidence_request=evidence_request,
+            )
             seq_results.update(brain_results)
         return seq_results
 
@@ -80,6 +96,33 @@ def orchestrate() -> None:
     default=True,
     help="Execute independent brains in parallel (default: True)",
 )
+@click.option(
+    "--evidence-objective",
+    default=None,
+    help="Optional evidence objective to activate evidence routing",
+)
+@click.option(
+    "--evidence-source-clarity",
+    type=click.Choice(["clear", "partial", "ambiguous"]),
+    default="partial",
+    show_default=True,
+)
+@click.option(
+    "--evidence-uncertainty",
+    type=click.Choice(["low", "medium", "high"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--evidence-gap-count", type=int, default=0, show_default=True)
+@click.option("--evidence-needs-interview", is_flag=True)
+@click.option(
+    "--evidence-risk-level",
+    type=click.Choice(["low", "medium", "high", "critical"]),
+    default="medium",
+    show_default=True,
+)
+@click.option("--evidence-readiness-gate", default=None)
+@click.option("--evidence-readiness-score", type=float, default=None)
 def run(
     brief: str | None,
     file: str | None,
@@ -89,6 +132,14 @@ def run(
     output: str | None,
     verbose: bool,
     parallel: bool,
+    evidence_objective: str | None,
+    evidence_source_clarity: str,
+    evidence_uncertainty: str,
+    evidence_gap_count: int,
+    evidence_needs_interview: bool,
+    evidence_risk_level: str,
+    evidence_readiness_gate: str | None,
+    evidence_readiness_score: float | None,
 ) -> None:
     """Orchestrate brains to process user brief (Pure Function Architecture v2.0).
 
@@ -122,21 +173,21 @@ def run(
     # ========================================================================
     api_key = os.getenv("MM_API_KEY")
     if not api_key:
-        click.echo("❌ Error: MM_API_KEY environment variable not set", err=True)
-        click.echo("\nSet your API key:", err=True)
-        click.echo("  export MM_API_KEY='your-api-key-here'", err=True)
-        click.echo("\nCreate a new key via the standard /api/keys flow.", err=True)
-        raise click.Abort()
+        raise ValueError(
+            "MM_API_KEY environment variable not set.\n"
+            "Set your API key:\n"
+            "  export MM_API_KEY='your-api-key-here'\n"
+            "Create a new key via the standard /api/keys flow."
+        )
 
     # Validate API key
     db_path = os.getenv("MM_DB_PATH", "mastermind.db")
     validated_user_id = validate_api_key(api_key, db_path)
     if validated_user_id is None:
-        click.echo("❌ Error: Invalid API key", err=True)
-        click.echo(
-            "\nYour MM_API_KEY is not valid in the standard /api/keys flow.", err=True
+        raise ValueError(
+            "Invalid API key.\n"
+            "Your MM_API_KEY is not valid in the standard /api/keys flow."
         )
-        raise click.Abort()
 
     # ========================================================================
     # 2. GET BRIEF TEXT
@@ -150,15 +201,13 @@ def run(
         brief_text = click.get_text_stream("stdin").read().strip()
 
     if not brief_text:
-        click.echo(
-            "❌ Error: No brief provided. Use --file, provide argument, or pipe via stdin.",
-            err=True,
+        raise ValueError(
+            "No brief provided. Use --file, provide argument, or pipe via stdin.\n"
+            "Examples:\n"
+            "  mm orchestrate run 'your brief here'\n"
+            "  mm orchestrate run --file brief.md\n"
+            "  echo 'brief' | mm orchestrate run"
         )
-        click.echo("\nExamples:")
-        click.echo("  mm orchestrate run 'your brief here'")
-        click.echo("  mm orchestrate run --file brief.md")
-        click.echo("  echo 'brief' | mm orchestrate run")
-        raise click.Abort()
 
     # ========================================================================
     # 3. CREATE BRIEF MODEL (Pydantic validation)
@@ -168,11 +217,10 @@ def run(
             problem_statement=brief_text, context="", target_audience=None
         )
     except ValidationError as e:
-        click.echo(f"❌ Validation Error: {e}", err=True)
-        click.echo(
-            "\nHint: Brief must have at least 3 words and 10 characters", err=True
+        raise ValueError(
+            f"Validation Error: {e}\n"
+            "Hint: Brief must have at least 3 words and 10 characters"
         )
-        raise click.Abort()
 
     # ========================================================================
     # 4. DETERMINE WHICH BRAINS TO EXECUTE
@@ -232,12 +280,26 @@ def run(
         click.echo("ℹ️  Dry run complete. Use without --dry-run to execute.")
         return
 
+    evidence_request = None
+    if evidence_objective is not None:
+        evidence_request = EvidenceSelectionRequest(
+            objective=evidence_objective,
+            source_clarity=cast(EvidenceClarity, evidence_source_clarity),
+            uncertainty=cast(UncertaintyLevel, evidence_uncertainty),
+            gap_count=evidence_gap_count,
+            needs_interview=evidence_needs_interview,
+            risk_level=cast(RiskLevel, evidence_risk_level),
+            readiness_gate=evidence_readiness_gate,
+            readiness_score=evidence_readiness_score,
+        )
+
     try:
         results = execute_flow_sync(
             coordinator=coordinator,
             brief_model=brief_model,
             brain_ids=brain_ids,
             parallel_mode=parallel,
+            evidence_request=evidence_request,
         )
 
         # ====================================================================
@@ -338,26 +400,24 @@ def go(
     parallel: bool,
 ) -> None:
     """Quick command to orchestrate (alias for 'run')."""
-    # Forward all arguments to the run command
-    args_list: list[str | None] = [
-        brief or None,
-        "--file" if file else None,
-        file or None,
-        "--brains" if brains else None,
-        brains or None,
-        "--dry-run" if dry_run else None,
-        "--use-mcp" if use_mcp else None,
-        "--output" if output else None,
-        output or None,
-        "--verbose" if verbose else None,
-        "--parallel" if parallel else "--no-parallel",
-    ]
-    # Flatten arguments and filter out None values
-    filtered_args: list[str] = [arg for arg in args_list if arg is not None]
-    # Remove flags that don't need values
-    filtered_args = [
-        arg for arg in filtered_args if arg not in ("--file", "--brains", "--output")
-    ]
-    # Invoke with context
-    ctx = run.make_context("run", filtered_args)
-    run.invoke(ctx)
+    run_callback = run.callback
+    if run_callback is None:
+        raise RuntimeError("run callback is unavailable")
+    run_callback(
+        brief=brief,
+        file=file,
+        brains=brains,
+        dry_run=dry_run,
+        use_mcp=use_mcp,
+        output=output,
+        verbose=verbose,
+        parallel=parallel,
+        evidence_objective=None,
+        evidence_source_clarity="partial",
+        evidence_uncertainty="medium",
+        evidence_gap_count=0,
+        evidence_needs_interview=False,
+        evidence_risk_level="medium",
+        evidence_readiness_gate=None,
+        evidence_readiness_score=None,
+    )

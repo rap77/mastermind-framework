@@ -29,6 +29,7 @@ from mastermind_cli.types.interfaces import (
     UIDesign,
     UXResearch,
 )
+from mastermind_cli.types.parallel import FlowConfig
 from mastermind_cli.orchestrator.governance import (
     GovernanceDecision,
     Intention,
@@ -40,6 +41,7 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
     CoordinatorConfig,
     create_stateless_coordinator,
 )
+from mastermind_cli.mm_flow.evidence_selector import EvidenceSelectionRequest
 
 
 # =============================================================================
@@ -62,6 +64,7 @@ class MockMCPClient:
     _HASH_LENGTH = 8
 
     def __init__(self) -> None:
+        """Initialize the mock client state."""
         # Queries logged for debugging purposes (not asserted in tests)
         self.queries: list[tuple[str, str]] = []
         self._call_count = 0
@@ -167,11 +170,9 @@ async def test_coordinator_is_stateless(
     )
 
     # Execute concurrently (should not interfere)
-    results1 = await coord1.execute_flow(
-        brief=brief1, brain_ids=["brain-01-product-strategy"]
-    )
-    results2 = await coord2.execute_flow(
-        brief=brief2, brain_ids=["brain-01-product-strategy"]
+    results1, results2 = await asyncio.gather(
+        coord1.execute_flow(brief=brief1, brain_ids=["brain-01-product-strategy"]),
+        coord2.execute_flow(brief=brief2, brain_ids=["brain-01-product-strategy"]),
     )
 
     # Different briefs should produce different results (no shared state)
@@ -317,13 +318,32 @@ async def test_coordinator_passes_context_to_dependent_brains(
     """Test that coordinator passes previous outputs as context."""
     coordinator = StatelessCoordinator(coordinator_config)
 
-    results = await coordinator.execute_flow(
-        brief=sample_brief, brain_ids=["brain-01-product-strategy"]
+    coordinator.flow_config = FlowConfig(
+        flow_id="test-flow",
+        nodes={
+            "brain-01-product-strategy": [],
+            "brain-02-ux-research": ["brain-01-product-strategy"],
+        },
+        description="Dependency test flow",
+    )
+    previous_results = {
+        "brain-01-product-strategy": ProductStrategy(
+            positioning="Positioning statement",
+            target_audience="Founders",
+            key_features=["feature one"],
+            success_metrics=["metric one"],
+        )
+    }
+
+    input_payload = coordinator._prepare_input(
+        "brain-02-ux-research", sample_brief, previous_results
     )
 
-    # Verify context was passed (additional_context should have previous results)
-    # This is tested indirectly by checking that brains execute successfully
-    assert results["brain-01-product-strategy"] is not None
+    assert "brain-01-product-strategy" in input_payload.additional_context
+    assert (
+        input_payload.additional_context["brain-01-product-strategy"]["positioning"]
+        == "Positioning statement"
+    )
 
 
 @pytest.mark.asyncio
@@ -580,6 +600,35 @@ async def test_stateless_coordinator_logs_runtime_contract_metadata(
     ]
     assert runtime_metadata["task_profile"]["complexity"] == "medium"
     assert runtime_metadata["loop_policy"]["base_loop"] == "execute+verify-light"
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_logs_evidence_routing_metadata(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """Evidence routing should be preserved in transport metadata when provided."""
+    coordinator = StatelessCoordinator(coordinator_config)
+
+    await coordinator.execute_flow(
+        brief=sample_brief,
+        brain_ids=["brain-01-product-strategy"],
+        evidence_request=EvidenceSelectionRequest(
+            objective="Canonize the product brief",
+            source_clarity="partial",
+            uncertainty="medium",
+            gap_count=1,
+            readiness_gate="conditionally_ready",
+            readiness_score=72.0,
+        ),
+    )
+
+    assert coordinator.runtime_evidence_selection is not None
+    assert coordinator.message_log
+    evidence_metadata = coordinator.message_log[0].transport_metadata[
+        "evidence_routing"
+    ]
+    assert evidence_metadata["selected_harness"] == "evidence-intake-canonization"
+    assert evidence_metadata["readiness_gate"] == "conditionally_ready"
 
 
 # =============================================================================
