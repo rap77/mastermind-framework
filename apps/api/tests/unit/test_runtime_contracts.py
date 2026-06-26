@@ -45,6 +45,26 @@ def test_loop_selector_selects_review_for_medium_write_task() -> None:
     assert policy.requires_review is True
 
 
+def test_loop_selector_escalates_when_evidence_readiness_is_low() -> None:
+    """Low evidence readiness should route even simple work to verify."""
+    selector = LoopSelector()
+    profile = selector.classify_task(
+        Brief(problem_statement="Review this API metric", context="", constraints=[]),
+        ["brain-07-growth-data"],
+    )
+    capabilities = CapabilityRegistry().resolve_for_task(profile)
+    policy = selector.select_loop(
+        profile,
+        capabilities,
+        evidence_readiness_score=42.0,
+        evidence_readiness_gate="not_ready",
+    )
+
+    assert policy.base_loop == "execute+verify-light"
+    assert policy.requires_verification is True
+    assert "evidence_readiness_gate=not_ready" in policy.rationale
+
+
 def test_registries_filter_capabilities_and_harnesses() -> None:
     """Compatible capabilities should drive harness selection deterministically."""
     selector = LoopSelector()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from mastermind_cli.types.interfaces import Brief
 from mastermind_cli.orchestrator.runtime_contracts.models import (
     AcceptanceMode,
@@ -77,8 +79,13 @@ class LoopSelector:
             f"requires_fresh_context={requires_fresh_context}",
             f"risk_level={risk_level}",
         ]
+        task_fingerprint = hashlib.sha1(
+            "|".join(
+                [brief.problem_statement, brief.context, ",".join(brain_ids)]
+            ).encode("utf-8")
+        ).hexdigest()[:12]
         return TaskProfile(
-            task_id=f"runtime-{abs(hash((brief.problem_statement, tuple(brain_ids))))}",
+            task_id=f"runtime-{task_fingerprint}",
             complexity=complexity,
             risk_level=risk_level,
             verifiability=verifiability,
@@ -95,9 +102,20 @@ class LoopSelector:
         self,
         task_profile: TaskProfile,
         capability_set: CapabilitySet,
+        *,
+        evidence_readiness_score: float | None = None,
+        evidence_readiness_gate: str | None = None,
     ) -> LoopPolicy:
         """Select a deterministic loop policy from the task profile."""
-        if task_profile.complexity == "simple" and not task_profile.requires_checker:
+        low_evidence_readiness = evidence_readiness_gate in {
+            "not_ready",
+            "blocked",
+        } or (evidence_readiness_score is not None and evidence_readiness_score < 65.0)
+        if (
+            task_profile.complexity == "simple"
+            and not task_profile.requires_checker
+            and not low_evidence_readiness
+        ):
             return LoopPolicy(
                 base_loop="single-pass",
                 additional_loops=(),
@@ -115,7 +133,9 @@ class LoopSelector:
             for capability in capability_set.harnesses
         )
         additional_loops = ["verify-light"]
-        requires_review = task_profile.requires_checker and has_review
+        requires_review = (
+            task_profile.requires_checker or low_evidence_readiness
+        ) and has_review
         if requires_review:
             additional_loops.append("review")
         return LoopPolicy(
@@ -131,5 +151,7 @@ class LoopSelector:
                 "minimum-sufficient-control",
                 f"complexity={task_profile.complexity}",
                 f"requires_checker={task_profile.requires_checker}",
+                f"evidence_readiness_gate={evidence_readiness_gate or 'unset'}",
+                f"evidence_readiness_score={evidence_readiness_score if evidence_readiness_score is not None else 'unset'}",
             ),
         )

@@ -20,6 +20,7 @@ El selector evalúa:
 - riesgo de la decisión
 - costo de tokens
 - necesidad de trazabilidad
+- readiness gate y readiness score si ya existe canon parcial
 
 ## 4. Rutas posibles
 
@@ -47,6 +48,7 @@ Elegir la ruta más pequeña que cumpla con:
 - trazabilidad mínima
 - costo aceptable
 - riesgo controlado
+- readiness gate compatible con la ruta elegida
 
 ## 6. Cuándo escalar
 
@@ -57,6 +59,7 @@ Escalar al full evidence loop si:
 - faltan decisiones clave
 - el usuario debe aclarar intención
 - la confianza de extracción es baja
+- el readiness score cae por debajo del umbral de salida
 
 Escalar a AI-DLC si:
 
@@ -64,6 +67,7 @@ Escalar a AI-DLC si:
 - hay que diseñar e implementar algo
 - se necesita trazabilidad de fases
 - la complejidad justifica el overhead
+- el evidence readiness ya es `ready` y toca pasar a requirements/design/implementation
 
 ## 7. Cuándo no escalar
 

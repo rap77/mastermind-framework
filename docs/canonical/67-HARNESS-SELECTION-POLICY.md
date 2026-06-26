@@ -22,6 +22,7 @@ El selector debe considerar:
 - necesidad de recuperación
 - necesidad de investigación externa
 - necesidad de construcción de código
+- evidence readiness gate/score cuando la tarea depende de canon o spec existente
 
 ## 4. Regla general
 

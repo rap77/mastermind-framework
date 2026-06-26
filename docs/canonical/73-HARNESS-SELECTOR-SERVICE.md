@@ -38,6 +38,8 @@ Campos conceptuales:
 - `memory_hints`
 - `available_tools`
 - `execution_mode`
+- `readiness_gate`
+- `readiness_score`
 
 ## 5. Outputs
 
@@ -83,6 +85,7 @@ Revisar:
 - write permissions
 - need for fresh context
 - need for MCP
+- evidence readiness gate/score when the task depends on canonical evidence
 
 ### Step 3 — Query registry
 
