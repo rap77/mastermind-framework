@@ -45,6 +45,16 @@ PLANNING_LABEL = planning_relpath(ROOT)
 REGISTRY_PATH = PLANNING_DIR / "evidence" / "evidence-registry.json"
 REGISTRY_RELATIVE_PATH = REGISTRY_PATH.relative_to(ROOT)
 
+APPS_API_DIR = ROOT / "apps" / "api"
+if str(APPS_API_DIR) not in sys.path:
+    sys.path.insert(0, str(APPS_API_DIR))
+
+from mastermind_cli.mm_flow.evidence_registry_service import (  # noqa: E402
+    EvidenceRegistryService,
+)
+
+SERVICE = EvidenceRegistryService(REGISTRY_PATH)
+
 
 def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
@@ -118,50 +128,22 @@ def utc_now() -> str:
 
 def load_registry() -> dict[str, Any]:
     """Load the evidence registry, creating a default shape when needed."""
-    if not REGISTRY_PATH.exists():
-        return {"version": 1, "sources": [], "versions": [], "deltas": []}
-    try:
-        data = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        raise ValueError(f"Failed to read evidence registry: {exc}") from exc
-    if not isinstance(data, dict):
-        raise ValueError("Evidence registry must be a JSON object.")
-    for key in ("sources", "versions", "deltas"):
-        if not isinstance(data.get(key), list):
-            raise ValueError(f"Evidence registry must contain top-level '{key}' list.")
-    return data
+    return SERVICE.load_registry()
 
 
 def write_registry(data: dict[str, Any]) -> None:
     """Persist the registry artifact."""
-    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REGISTRY_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    SERVICE.write_registry(data)
 
 
 def next_version_id(data: dict[str, Any]) -> str:
     """Generate the next sequential evidence version ID."""
-    max_value = 0
-    for entry in data.get("versions", []):
-        version_id = entry.get("id", "")
-        if not isinstance(version_id, str) or not version_id.startswith("ev-"):
-            continue
-        suffix = version_id.removeprefix("ev-")
-        if suffix.isdigit():
-            max_value = max(max_value, int(suffix))
-    return f"ev-{max_value + 1:04d}"
+    return SERVICE._next_version_id(data)
 
 
 def next_delta_id(data: dict[str, Any]) -> str:
     """Generate the next sequential evidence delta ID."""
-    max_value = 0
-    for entry in data.get("deltas", []):
-        delta_id = entry.get("id", "")
-        if not isinstance(delta_id, str) or not delta_id.startswith("ed-"):
-            continue
-        suffix = delta_id.removeprefix("ed-")
-        if suffix.isdigit():
-            max_value = max(max_value, int(suffix))
-    return f"ed-{max_value + 1:04d}"
+    return SERVICE._next_delta_id(data)
 
 
 def append_delta(
@@ -177,259 +159,112 @@ def append_delta(
     source_id: str | None,
 ) -> dict[str, Any]:
     """Append a delta entry and return it."""
-    delta = {
-        "id": next_delta_id(data),
-        "from_version_id": from_version_id,
-        "to_version_id": to_version_id,
-        "delta_type": delta_type,
-        "summary": summary,
-        "impact": impact,
-        "risk": risk,
-        "decision": decision,
-        "source_id": source_id,
-        "created_at_utc": utc_now(),
-    }
-    data["deltas"].append(delta)
-    return delta
+    return SERVICE.record_delta(
+        data,
+        from_version_id=from_version_id,
+        to_version_id=to_version_id,
+        delta_type=delta_type,
+        summary=summary,
+        impact=impact,
+        risk=risk,
+        decision=decision,
+        source_id=source_id,
+    )
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
     """Clamp a numeric value to the given range."""
-    return max(minimum, min(maximum, value))
+    return SERVICE._clamp(value, minimum, maximum)
 
 
 def calculate_readiness(entry: dict[str, Any]) -> dict[str, Any]:
     """Compute a deterministic readiness verdict for an evidence version."""
-    confidence = float(entry.get("confidence") or 0.0)
-    coverage = float(entry.get("coverage") or 0.0)
-    critical_gaps = int(entry.get("critical_gaps") or 0)
-    contradictions = int(entry.get("contradictions") or 0)
-    user_answers_complete = bool(entry.get("user_answers_complete"))
-
-    if contradictions > 0:
-        verdict = "blocked"
-        reason = "contradictions_present"
-    elif critical_gaps > 0:
-        verdict = "not_ready"
-        reason = "critical_gaps_open"
-    elif not user_answers_complete and coverage < 0.8:
-        verdict = "blocked"
-        reason = "missing_user_answers"
-    elif confidence >= 0.8 and coverage >= 0.8:
-        verdict = "ready"
-        reason = "high_confidence_high_coverage"
-    elif confidence >= 0.7 and coverage >= 0.7:
-        verdict = "conditionally_ready"
-        reason = "good_enough_with_caution"
-    else:
-        verdict = "not_ready"
-        reason = "insufficient_confidence_or_coverage"
-
-    return {
-        "verdict": verdict,
-        "reason": reason,
-        "confidence": confidence,
-        "coverage": coverage,
-        "critical_gaps": critical_gaps,
-        "contradictions": contradictions,
-        "user_answers_complete": user_answers_complete,
-    }
+    return SERVICE.calculate_readiness(entry)
 
 
 def register_version(args: argparse.Namespace) -> int:
     """Register a new evidence version entry."""
-    data = load_registry()
-    version_id = args.version_id or next_version_id(data)
-    versions = data["versions"]
-    if any(
-        entry.get("id") == version_id for entry in versions if isinstance(entry, dict)
-    ):
-        sys.stdout.write("STATUS: FAILED\n")
-        sys.stdout.write(f"- Version ID already exists: {version_id}\n")
-        return 1
-
-    previous_version = next(
-        (
-            entry
-            for entry in reversed(versions)
-            if isinstance(entry, dict) and entry.get("source_id") == args.source_id
-        ),
-        None,
-    )
-
-    confidence = clamp(args.confidence, 0.0, 1.0)
-    coverage = clamp(args.coverage, 0.0, 1.0)
-    entry: dict[str, Any] = {
-        "id": version_id,
-        "source_id": args.source_id,
-        "source_type": args.source_type,
-        "name": args.name,
-        "uri": args.uri,
-        "version_ref": args.version_ref,
-        "version_hash": args.version_hash,
-        "summary": args.summary,
-        "state": args.state,
-        "confidence": confidence,
-        "coverage": coverage,
-        "critical_gaps": args.critical_gaps,
-        "important_gaps": args.important_gaps,
-        "optional_gaps": args.optional_gaps,
-        "contradictions": args.contradictions,
-        "user_answers_complete": args.user_answers_complete,
-        "created_at_utc": utc_now(),
-        "updated_at_utc": utc_now(),
-    }
-    versions.append(entry)
-    if args.source_id and not any(
-        source.get("source_id") == args.source_id
-        for source in data["sources"]
-        if isinstance(source, dict)
-    ):
-        data["sources"].append(
-            {
-                "source_id": args.source_id,
-                "source_type": args.source_type,
-                "name": args.name,
-                "uri": args.uri,
-                "created_at_utc": utc_now(),
-                "updated_at_utc": utc_now(),
-            }
-        )
-    if (
-        previous_version is not None
-        and previous_version.get("version_hash") != args.version_hash
-    ):
-        previous_version["state"] = "superseded"
-        previous_version["updated_at_utc"] = utc_now()
-        append_delta(
-            data,
-            from_version_id=str(previous_version.get("id")),
-            to_version_id=version_id,
-            delta_type="decision",
-            summary="Auto-recorded canonical source update",
-            impact="medium",
-            risk="low",
-            decision="superseded",
+    try:
+        result = SERVICE.register_version(
             source_id=args.source_id,
+            source_type=args.source_type,
+            name=args.name,
+            uri=args.uri,
+            version_ref=args.version_ref,
+            version_hash=args.version_hash,
+            summary=args.summary,
+            state=args.state,
+            confidence=args.confidence,
+            coverage=args.coverage,
+            critical_gaps=args.critical_gaps,
+            important_gaps=args.important_gaps,
+            optional_gaps=args.optional_gaps,
+            contradictions=args.contradictions,
+            user_answers_complete=args.user_answers_complete,
+            version_id=args.version_id,
         )
-    write_registry(data)
-
+    except ValueError as exc:
+        sys.stdout.write("STATUS: FAILED\n")
+        sys.stdout.write(f"- {exc}\n")
+        return 1
     logger.info("STATUS: PASSED")
-    logger.info("- Registered evidence version: %s", version_id)
-    logger.info("- Registry: %s", REGISTRY_RELATIVE_PATH)
+    logger.info("- Registered evidence version: %s", result["version"]["id"])
+    logger.info("- Registry: %s", result["registry_path"])
     return 0
 
 
 def list_versions() -> int:
     """List evidence versions as JSON."""
-    data = load_registry()
-    payload = {
-        "registry_path": str(REGISTRY_RELATIVE_PATH),
-        "versions": data.get("versions", []),
-    }
-    sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+    sys.stdout.write(json.dumps(SERVICE.list_versions(), indent=2) + "\n")
     return 0
 
 
 def list_deltas(args: argparse.Namespace) -> int:
     """List evidence deltas as JSON."""
-    data = load_registry()
-    deltas = [
-        entry
-        for entry in data.get("deltas", [])
-        if isinstance(entry, dict)
-        and (args.source_id is None or entry.get("source_id") == args.source_id)
-        and (args.delta_type is None or entry.get("delta_type") == args.delta_type)
-        and (args.decision is None or entry.get("decision") == args.decision)
-    ]
-    payload = {
-        "registry_path": str(REGISTRY_RELATIVE_PATH),
-        "deltas": deltas,
-    }
-    sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+    sys.stdout.write(
+        json.dumps(
+            SERVICE.list_deltas(
+                source_id=args.source_id,
+                delta_type=args.delta_type,
+                decision=args.decision,
+            ),
+            indent=2,
+        )
+        + "\n"
+    )
     return 0
 
 
 def record_delta(args: argparse.Namespace) -> int:
     """Record a delta between two evidence versions."""
-    data = load_registry()
-    from_version = next(
-        (
-            entry
-            for entry in data.get("versions", [])
-            if isinstance(entry, dict) and entry.get("id") == args.from_version_id
-        ),
-        None,
-    )
-    to_version = next(
-        (
-            entry
-            for entry in data.get("versions", [])
-            if isinstance(entry, dict) and entry.get("id") == args.to_version_id
-        ),
-        None,
-    )
-    if from_version is None or to_version is None:
+    try:
+        payload = SERVICE.record_explicit_delta(
+            from_version_id=args.from_version_id,
+            to_version_id=args.to_version_id,
+            delta_type=args.delta_type,
+            summary=args.summary,
+            impact=args.impact,
+            risk=args.risk,
+            decision=args.decision,
+        )
+    except ValueError as exc:
         sys.stdout.write("STATUS: FAILED\n")
-        sys.stdout.write("- Both version IDs must exist before recording a delta\n")
+        sys.stdout.write(f"- {exc}\n")
         return 1
 
-    delta = {
-        "id": next_delta_id(data),
-        "from_version_id": args.from_version_id,
-        "to_version_id": args.to_version_id,
-        "delta_type": args.delta_type,
-        "summary": args.summary,
-        "impact": args.impact,
-        "risk": args.risk,
-        "decision": args.decision,
-        "source_id": to_version.get("source_id") or from_version.get("source_id"),
-        "created_at_utc": utc_now(),
-    }
-    data["deltas"].append(delta)
-    write_registry(data)
-
-    sys.stdout.write(
-        json.dumps(
-            {
-                "registry_path": str(REGISTRY_RELATIVE_PATH),
-                "delta": delta,
-            },
-            indent=2,
-        )
-        + "\n"
-    )
+    sys.stdout.write(json.dumps(payload, indent=2) + "\n")
     return 0
 
 
 def readiness(args: argparse.Namespace) -> int:
     """Compute readiness for an evidence version."""
-    data = load_registry()
-    version = next(
-        (
-            entry
-            for entry in data.get("versions", [])
-            if isinstance(entry, dict) and entry.get("id") == args.version_id
-        ),
-        None,
-    )
-    if version is None:
+    try:
+        payload = SERVICE.readiness(args.version_id)
+    except ValueError as exc:
         sys.stdout.write("STATUS: FAILED\n")
-        sys.stdout.write(f"- Unknown version ID: {args.version_id}\n")
+        sys.stdout.write(f"- {exc}\n")
         return 1
-
-    verdict = calculate_readiness(version)
-    sys.stdout.write(
-        json.dumps(
-            {
-                "version_id": args.version_id,
-                "registry_path": str(REGISTRY_RELATIVE_PATH),
-                "readiness": verdict,
-            },
-            indent=2,
-        )
-        + "\n"
-    )
+    sys.stdout.write(json.dumps(payload, indent=2) + "\n")
     return 0
 
 

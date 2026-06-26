@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from planning_paths import get_planning_dir
+
 
 def project_root() -> Path:
     """Find the git project root, falling back to file-relative detection."""
@@ -35,7 +37,17 @@ def project_root() -> Path:
 
 ROOT = project_root()
 TEMPLATES_DIR = ROOT / "docs" / "canonical" / "templates"
-EVIDENCE_REGISTRY_HELPER = Path(__file__).resolve().parent / "evidence-registry.py"
+APPS_API_DIR = ROOT / "apps" / "api"
+if str(APPS_API_DIR) not in sys.path:
+    sys.path.insert(0, str(APPS_API_DIR))
+
+from mastermind_cli.mm_flow.evidence_registry_service import (  # noqa: E402
+    EvidenceRegistryService,
+)
+
+EVIDENCE_REGISTRY = EvidenceRegistryService(
+    get_planning_dir(ROOT) / "evidence" / "evidence-registry.json"
+)
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
@@ -48,7 +60,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "type",
         nargs="?",
-        choices=["prd", "brain", "update", "source", "task", "objective"],
+        choices=["prd", "brain", "update"],
         help="Type of canonical document to create",
     )
     parser.add_argument(
@@ -191,42 +203,20 @@ def register_canonical_as_evidence(
     output: Path, doc_type: str, name: str, title: str
 ) -> None:
     """Register a created canonical document as evidence."""
-    if not EVIDENCE_REGISTRY_HELPER.exists():
-        return
-
     version_hash = hashlib.sha256(output.read_bytes()).hexdigest()
     version_ref = render_path(output)
     source_id = f"canonical:{doc_type}:{name.lower().replace(' ', '-')}"
-
-    subprocess.run(
-        [
-            "python3",
-            str(EVIDENCE_REGISTRY_HELPER),
-            "register",
-            "--source-id",
-            source_id,
-            "--source-type",
-            "doc",
-            "--name",
-            title,
-            "--uri",
-            version_ref,
-            "--version-ref",
-            version_ref,
-            "--version-hash",
-            version_hash,
-            "--summary",
-            f"Canonical {doc_type} document created from template",
-            "--confidence",
-            "1.0",
-            "--coverage",
-            "1.0",
-            "--user-answers-complete",
-        ],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
+    EVIDENCE_REGISTRY.register_version(
+        source_id=source_id,
+        source_type="doc",
+        name=title,
+        uri=version_ref,
+        version_ref=version_ref,
+        version_hash=version_hash,
+        summary=f"Canonical {doc_type} document created from template",
+        confidence=1.0,
+        coverage=1.0,
+        user_answers_complete=True,
     )
 
 
@@ -238,9 +228,6 @@ def main() -> int:
         logger.info("Available canonical types:")
         logger.info("  prd       - Product Requirements Document")
         logger.info("  brain     - Brain specification")
-        logger.info("  source    - Source master document")
-        logger.info("  task      - Task specification")
-        logger.info("  objective - Objective specification")
         logger.info("")
         logger.info(
             "Usage: python3 new-canonical-handler.py <type> --name <slug> --title <title>"
