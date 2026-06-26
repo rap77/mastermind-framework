@@ -28,7 +28,7 @@ Generar preguntas y registrar respuestas.
 
 ### 3.5 Readiness service
 
-Emitir verdicts `ready / not_ready / blocked`.
+Emitir verdicts `ready / conditionally_ready / not_ready / blocked` y un score `0..100`.
 
 ### 3.6 Spec generation service
 
@@ -42,7 +42,7 @@ Guardar lineage, decisiones y versiones.
 
 La implementación debe poder:
 
-- bloquear spec si readiness no es `ready`
+- bloquear spec si readiness gate no es `ready`
 - registrar contradicciones
 - persistir confidence / gap severity / coverage
 - reusar snapshots previas

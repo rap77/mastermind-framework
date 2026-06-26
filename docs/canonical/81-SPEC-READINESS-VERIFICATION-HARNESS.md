@@ -28,6 +28,19 @@ La especificación solo puede avanzar si:
 - las alternativas principales tienen criterio de decisión
 - el nivel de confianza es suficiente
 
+El harness debe emitir:
+
+- readiness verdict
+- readiness score `0..100`
+- readiness gate (`ready`, `conditionally_ready`, `not_ready`, `blocked`)
+
+Regla canónica:
+
+- `score >= 80` y sin contradicciones ni gaps críticos → `ready`
+- `score >= 65` y sin contradicciones ni gaps críticos → `conditionally_ready`
+- contradicciones presentes → `blocked`
+- gaps críticos presentes → `not_ready`
+
 ## 5. Flujo
 
 ### 5.1 Check completeness
@@ -60,6 +73,8 @@ Emitir uno de estos estados:
 El harness debe devolver:
 
 - readiness verdict
+- readiness score
+- readiness gate
 - missing items
 - risk summary
 - rework suggestions

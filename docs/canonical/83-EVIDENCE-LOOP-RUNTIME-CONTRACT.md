@@ -43,6 +43,8 @@ gaps
 questions
 answers
 readiness_verdict
+readiness_score
+readiness_gate
 risks
 next_actions
 memory_writes
@@ -72,7 +74,7 @@ Si faltan datos, preguntar al usuario.
 
 ### 6.5 Verify readiness
 
-Decidir si ya se puede pasar a especificación.
+Decidir si ya se puede pasar a especificación usando verdict + score + gate.
 
 ### 6.6 Archive
 
