@@ -38,5 +38,6 @@ python3 .mm-flow/commands/mm/evidence-registry.py list-deltas
 ## Notes
 
 - `register` records canonical docs created by `new-canonical`
+- `register` auto-records a delta when the same source is registered again with a new hash
 - `readiness` is deterministic from confidence, coverage, gaps, and contradictions
 - `delta` preserves version-to-version lineage

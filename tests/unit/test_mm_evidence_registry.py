@@ -170,7 +170,7 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
             "--id",
             "ev-old",
             "--source-id",
-            "source-delta",
+            "source-delta-a",
             "--source-type",
             "doc",
             "--name",
@@ -194,7 +194,7 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
             "--id",
             "ev-new",
             "--source-id",
-            "source-delta",
+            "source-delta-b",
             "--source-type",
             "doc",
             "--name",
@@ -246,6 +246,8 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
             "register",
             "--id",
             "ev-a",
+            "--source-id",
+            "source-list-a",
             "--source-type",
             "doc",
             "--name",
@@ -264,6 +266,8 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
             "register",
             "--id",
             "ev-b",
+            "--source-id",
+            "source-list-b",
             "--source-type",
             "doc",
             "--name",
@@ -302,6 +306,57 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
         self.assertEqual(len(payload["deltas"]), 1)
         self.assertEqual(payload["deltas"][0]["id"], "ed-0001")
         self.assertEqual(payload["deltas"][0]["delta_type"], "functional")
+
+    def test_register_adds_auto_delta_for_same_source_update(self) -> None:
+        """Registering a newer version for the same source should create a delta."""
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-old",
+            "--source-id",
+            "source-auto-delta",
+            "--source-type",
+            "doc",
+            "--name",
+            "Auto Delta Doc",
+            "--uri",
+            "docs/auto-old.md",
+            "--version-ref",
+            "old",
+            "--version-hash",
+            "hash-old",
+            "--summary",
+            "Old canonical content",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-new",
+            "--source-id",
+            "source-auto-delta",
+            "--source-type",
+            "doc",
+            "--name",
+            "Auto Delta Doc",
+            "--uri",
+            "docs/auto-new.md",
+            "--version-ref",
+            "new",
+            "--version-hash",
+            "hash-new",
+            "--summary",
+            "Updated canonical content",
+            "--user-answers-complete",
+        )
+
+        registry = json.loads(self.registry_path().read_text(encoding="utf-8"))
+        self.assertEqual(len(registry["versions"]), 2)
+        self.assertEqual(len(registry["deltas"]), 1)
+        delta = registry["deltas"][0]
+        self.assertEqual(delta["from_version_id"], "ev-old")
+        self.assertEqual(delta["to_version_id"], "ev-new")
+        self.assertEqual(delta["decision"], "superseded")
 
 
 if __name__ == "__main__":

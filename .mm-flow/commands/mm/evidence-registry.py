@@ -159,6 +159,35 @@ def next_delta_id(data: dict[str, Any]) -> str:
     return f"ed-{max_value + 1:04d}"
 
 
+def append_delta(
+    data: dict[str, Any],
+    *,
+    from_version_id: str,
+    to_version_id: str,
+    delta_type: str,
+    summary: str,
+    impact: str,
+    risk: str,
+    decision: str,
+    source_id: str | None,
+) -> dict[str, Any]:
+    """Append a delta entry and return it."""
+    delta = {
+        "id": next_delta_id(data),
+        "from_version_id": from_version_id,
+        "to_version_id": to_version_id,
+        "delta_type": delta_type,
+        "summary": summary,
+        "impact": impact,
+        "risk": risk,
+        "decision": decision,
+        "source_id": source_id,
+        "created_at_utc": utc_now(),
+    }
+    data["deltas"].append(delta)
+    return delta
+
+
 def clamp(value: float, minimum: float, maximum: float) -> float:
     """Clamp a numeric value to the given range."""
     return max(minimum, min(maximum, value))
@@ -214,6 +243,15 @@ def register_version(args: argparse.Namespace) -> int:
         sys.stdout.write(f"- Version ID already exists: {version_id}\n")
         return 1
 
+    previous_version = next(
+        (
+            entry
+            for entry in reversed(versions)
+            if isinstance(entry, dict) and entry.get("source_id") == args.source_id
+        ),
+        None,
+    )
+
     confidence = clamp(args.confidence, 0.0, 1.0)
     coverage = clamp(args.coverage, 0.0, 1.0)
     entry: dict[str, Any] = {
@@ -251,6 +289,21 @@ def register_version(args: argparse.Namespace) -> int:
                 "created_at_utc": utc_now(),
                 "updated_at_utc": utc_now(),
             }
+        )
+    if (
+        previous_version is not None
+        and previous_version.get("version_hash") != args.version_hash
+    ):
+        append_delta(
+            data,
+            from_version_id=str(previous_version.get("id")),
+            to_version_id=version_id,
+            delta_type="decision",
+            summary="Auto-recorded canonical source update",
+            impact="medium",
+            risk="low",
+            decision="superseded",
+            source_id=args.source_id,
         )
     write_registry(data)
 
