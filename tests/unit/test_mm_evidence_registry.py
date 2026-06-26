@@ -240,6 +240,69 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
         self.assertEqual(payload["delta"]["delta_type"], "decision")
         self.assertEqual(payload["delta"]["decision"], "adapted")
 
+    def test_list_deltas_returns_registered_deltas(self) -> None:
+        """List-deltas should expose the recorded delta entries."""
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-a",
+            "--source-type",
+            "doc",
+            "--name",
+            "Doc A",
+            "--uri",
+            "docs/a.md",
+            "--version-ref",
+            "a",
+            "--version-hash",
+            "hash-a",
+            "--summary",
+            "A",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-b",
+            "--source-type",
+            "doc",
+            "--name",
+            "Doc B",
+            "--uri",
+            "docs/b.md",
+            "--version-ref",
+            "b",
+            "--version-hash",
+            "hash-b",
+            "--summary",
+            "B",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "delta",
+            "--from-id",
+            "ev-a",
+            "--to-id",
+            "ev-b",
+            "--delta-type",
+            "functional",
+            "--summary",
+            "Added new behavior",
+            "--impact",
+            "high",
+            "--risk",
+            "medium",
+            "--decision",
+            "adopted",
+        )
+
+        result = self.run_helper("list-deltas")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(len(payload["deltas"]), 1)
+        self.assertEqual(payload["deltas"][0]["id"], "ed-0001")
+        self.assertEqual(payload["deltas"][0]["delta_type"], "functional")
+
 
 if __name__ == "__main__":
     unittest.main()

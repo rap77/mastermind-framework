@@ -77,6 +77,8 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("list", help="List evidence versions.")
 
+    subparsers.add_parser("list-deltas", help="List evidence deltas.")
+
     readiness_parser = subparsers.add_parser(
         "readiness", help="Calculate readiness for a registered evidence version."
     )
@@ -269,6 +271,17 @@ def list_versions() -> int:
     return 0
 
 
+def list_deltas() -> int:
+    """List evidence deltas as JSON."""
+    data = load_registry()
+    payload = {
+        "registry_path": str(REGISTRY_RELATIVE_PATH),
+        "deltas": data.get("deltas", []),
+    }
+    sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+    return 0
+
+
 def record_delta(args: argparse.Namespace) -> int:
     """Record a delta between two evidence versions."""
     data = load_registry()
@@ -360,6 +373,8 @@ def main() -> int:
         return register_version(args)
     if args.command == "list":
         return list_versions()
+    if args.command == "list-deltas":
+        return list_deltas()
     if args.command == "readiness":
         return readiness(args)
     if args.command == "delta":
