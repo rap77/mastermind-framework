@@ -307,6 +307,76 @@ class EvidenceRegistryHelperTest(unittest.TestCase):
         self.assertEqual(payload["deltas"][0]["id"], "ed-0001")
         self.assertEqual(payload["deltas"][0]["delta_type"], "functional")
 
+    def test_list_deltas_filters_by_source_id(self) -> None:
+        """List-deltas should filter by source ID."""
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-src-a",
+            "--source-id",
+            "source-filter-a",
+            "--source-type",
+            "doc",
+            "--name",
+            "Doc A",
+            "--uri",
+            "docs/a.md",
+            "--version-ref",
+            "a",
+            "--version-hash",
+            "hash-a",
+            "--summary",
+            "A",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "register",
+            "--id",
+            "ev-src-b",
+            "--source-id",
+            "source-filter-b",
+            "--source-type",
+            "doc",
+            "--name",
+            "Doc B",
+            "--uri",
+            "docs/b.md",
+            "--version-ref",
+            "b",
+            "--version-hash",
+            "hash-b",
+            "--summary",
+            "B",
+            "--user-answers-complete",
+        )
+        self.run_helper(
+            "delta",
+            "--from-id",
+            "ev-src-a",
+            "--to-id",
+            "ev-src-b",
+            "--delta-type",
+            "decision",
+            "--summary",
+            "Changed",
+            "--impact",
+            "medium",
+            "--risk",
+            "low",
+            "--decision",
+            "adapted",
+        )
+
+        result = self.run_helper(
+            "list-deltas",
+            "--source-id",
+            "source-filter-b",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(len(payload["deltas"]), 1)
+        self.assertEqual(payload["deltas"][0]["source_id"], "source-filter-b")
+
     def test_register_adds_auto_delta_for_same_source_update(self) -> None:
         """Registering a newer version for the same source should create a delta."""
         self.run_helper(

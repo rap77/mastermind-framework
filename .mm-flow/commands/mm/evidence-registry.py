@@ -77,7 +77,12 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("list", help="List evidence versions.")
 
-    subparsers.add_parser("list-deltas", help="List evidence deltas.")
+    list_deltas_parser = subparsers.add_parser(
+        "list-deltas", help="List evidence deltas."
+    )
+    list_deltas_parser.add_argument("--source-id")
+    list_deltas_parser.add_argument("--delta-type", choices=sorted(DELTA_TYPES))
+    list_deltas_parser.add_argument("--decision", choices=sorted(DELTA_DECISIONS))
 
     readiness_parser = subparsers.add_parser(
         "readiness", help="Calculate readiness for a registered evidence version."
@@ -324,12 +329,20 @@ def list_versions() -> int:
     return 0
 
 
-def list_deltas() -> int:
+def list_deltas(args: argparse.Namespace) -> int:
     """List evidence deltas as JSON."""
     data = load_registry()
+    deltas = [
+        entry
+        for entry in data.get("deltas", [])
+        if isinstance(entry, dict)
+        and (args.source_id is None or entry.get("source_id") == args.source_id)
+        and (args.delta_type is None or entry.get("delta_type") == args.delta_type)
+        and (args.decision is None or entry.get("decision") == args.decision)
+    ]
     payload = {
         "registry_path": str(REGISTRY_RELATIVE_PATH),
-        "deltas": data.get("deltas", []),
+        "deltas": deltas,
     }
     sys.stdout.write(json.dumps(payload, indent=2) + "\n")
     return 0
@@ -427,7 +440,7 @@ def main() -> int:
     if args.command == "list":
         return list_versions()
     if args.command == "list-deltas":
-        return list_deltas()
+        return list_deltas(args)
     if args.command == "readiness":
         return readiness(args)
     if args.command == "delta":
