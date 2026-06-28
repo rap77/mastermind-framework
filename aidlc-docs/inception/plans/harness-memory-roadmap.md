@@ -86,8 +86,8 @@ Exit criteria:
 - Prefer additive migration over replacement.
 
 ## Status
-Status: Slice 2 harness core runtime in progress
-Next step: extend deterministic runtime with any remaining memory continuity seams
+Status: Slice 2 harness core runtime closed (commit `cff5b01b`)
+Next step: open Slice 3 — planning bridge + adapter integration / memory-core wiring
 
 ## Draft Artifacts
 - `project-manifest.md`
