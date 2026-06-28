@@ -86,8 +86,8 @@ Exit criteria:
 - Prefer additive migration over replacement.
 
 ## Status
-Status: Slice 3 memory core wiring in progress (UOW-3 active)
-Next step: implement UOW-3 memory core — checkpoints / decisions / retrieval / resume rules and wire them through `HarnessCore`
+Status: Slice 3 memory core wiring closed (commit `d59392ad`)
+Next step: open Slice 4 — planning bridge end-to-end + adapter integration tests
 
 ## Draft Artifacts
 - `project-manifest.md`
