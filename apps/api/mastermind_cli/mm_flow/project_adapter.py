@@ -16,6 +16,7 @@ from .planning_bridge import (
     StructuredStatus,
     build_default_planning_bridge,
 )
+from .integrated_run import ValidationCheck, ValidationReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +96,51 @@ class ProjectAdapter:
                 archived_at=datetime.now(timezone.utc).isoformat(),
             )
         return None
+
+    def validate_request(self, request: HarnessRequest) -> ValidationReport:
+        """Produce a validation report describing the harness request readiness."""
+        manifest_present = bool(
+            request.project_name and request.active_uow and request.design_objective
+        )
+        planning_intent_present = bool(request.operational_objective)
+        next_command_present = "planning_next_command_missing" not in request.warnings
+        objective_aligned = (
+            "planning_objective_differs_from_design_objective" not in request.warnings
+        )
+        checks = (
+            ValidationCheck(
+                check_id="manifest_present",
+                label="Project manifest fields present",
+                passed=manifest_present,
+            ),
+            ValidationCheck(
+                check_id="planning_intent_present",
+                label="Operational objective present",
+                passed=planning_intent_present,
+            ),
+            ValidationCheck(
+                check_id="next_command_present",
+                label="Planning next command present",
+                passed=next_command_present,
+            ),
+            ValidationCheck(
+                check_id="objective_alignment",
+                label="Planning objective matches design objective",
+                passed=objective_aligned,
+            ),
+        )
+        blocking_warnings = {
+            "planning_next_command_missing",
+            "planning_objective_differs_from_design_objective",
+        }
+        residual_warnings = tuple(
+            w for w in request.warnings if w not in blocking_warnings
+        )
+        return ValidationReport(
+            passed=all(check.passed for check in checks),
+            checks=checks,
+            warnings=residual_warnings,
+        )
 
 
 def _detect_project_root() -> Path:
