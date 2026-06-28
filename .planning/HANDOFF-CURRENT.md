@@ -1,11 +1,11 @@
-# Handoff — no active objective
+# Handoff — unified harness + memory kickoff
 
 ## Last archived
 - `window-scheduler` — archived at 2026-06-21T19:23:46
 
 ## Next recommended objective
-- `context-projection` — Context Projection
-- Build model-ready context from structured project state instead of chat history.
+- `harness-memory-unification` — unified harness + memory platform
+- Build a reusable harness core plus memory layer, then bridge `.planning` into it through adapters.
 
 ## Next command
-- `/mm:activate-next-objective`
+- Review `aidlc-docs/inception/plans/harness-memory-roadmap.md` and define the project manifest.

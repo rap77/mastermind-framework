@@ -1,6 +1,9 @@
 """Memory Layer contracts and models for first-party persistent memory."""
 
 from .contracts import (
+    CheckpointStore,
+    ContextSnapshotStore,
+    DecisionStore,
     EmbeddingProvider,
     MemoryGraphRecallProvider,
     MemoryReranker,
@@ -27,6 +30,9 @@ from .indexing import (
     create_memory_index_provider,
 )
 from .models import (
+    CheckpointRecord,
+    ContextSnapshot,
+    DecisionRecord,
     MemoryContextBundle,
     MemoryIndexPayload,
     MemoryItem,
@@ -34,6 +40,8 @@ from .models import (
     RetrievalEvalCase,
     RetrievalEvalCaseResult,
     RetrievalEvalReport,
+    RunSummary,
+    RetrievalResult,
     VectorCandidate,
 )
 from .evaluation import EvalHarnessService
@@ -66,10 +74,16 @@ from .vector import (
 __all__ = [
     "CallableVectorCandidateProvider",
     "CallableVectorSearchProvider",
+    "CheckpointRecord",
+    "CheckpointStore",
     "EmbeddingProvider",
     "MemoryGraphRecallProvider",
+    "ContextSnapshot",
+    "ContextSnapshotStore",
     "MemoryContextBundle",
     "MemoryIndexPayload",
+    "DecisionRecord",
+    "DecisionStore",
     "MemoryReranker",
     "MemoryIndexProvider",
     "EngramMemoryStore",
@@ -89,9 +103,11 @@ __all__ = [
     "RetrievalEvalCase",
     "RetrievalEvalCaseResult",
     "RetrievalEvalReport",
+    "RetrievalResult",
     "PostgresMemoryStore",
     "PgvectorMemoryIndexProvider",
     "PgvectorVectorSearchProvider",
+    "RunSummary",
     "SentenceTransformerEmbeddingProvider",
     "UnsupportedMemoryIndexProvider",
     "UnsupportedVectorSearchProvider",

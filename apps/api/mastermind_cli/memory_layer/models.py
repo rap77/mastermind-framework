@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -83,6 +83,96 @@ class MemoryContextBundle(BaseModel):
         default_factory=dict,
         description="Scopes applied while building this context.",
     )
+
+
+class CheckpointRecord(BaseModel):
+    """Canonical checkpoint stored by the memory layer."""
+
+    checkpoint_id: str = Field(..., min_length=1, description="Checkpoint ID.")
+    project_id: str = Field(..., min_length=1, description="Project ID.")
+    task_id: str | None = Field(None, description="Optional related task ID.")
+    run_id: str | None = Field(None, description="Optional related run ID.")
+    context_summary: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Compact context captured at the checkpoint.",
+    )
+    resume_state: dict[str, Any] = Field(
+        default_factory=dict,
+        description="State needed to resume safely.",
+    )
+    next_step_summary: str = Field(..., min_length=1, description="Next step note.")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp in UTC.",
+    )
+
+
+class DecisionRecord(BaseModel):
+    """Canonical decision stored by the memory layer."""
+
+    decision_id: str = Field(..., min_length=1, description="Decision ID.")
+    project_id: str = Field(..., min_length=1, description="Project ID.")
+    task_id: str | None = Field(None, description="Optional related task ID.")
+    title: str = Field(..., min_length=1, description="Decision title.")
+    status: str = Field(..., min_length=1, description="Decision status.")
+    rationale_markdown: str = Field(
+        ..., min_length=1, description="Human-readable rationale."
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional decision metadata.",
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp in UTC.",
+    )
+
+
+class RunSummary(BaseModel):
+    """Persisted session or run summary."""
+
+    run_id: str = Field(..., min_length=1, description="Run or session ID.")
+    project_id: str = Field(..., min_length=1, description="Project ID.")
+    summary: str = Field(..., min_length=1, description="Run summary.")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional run metadata.",
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp in UTC.",
+    )
+
+
+class ContextSnapshot(BaseModel):
+    """Compact context bundle used to resume a run."""
+
+    project_id: str = Field(..., min_length=1, description="Project ID.")
+    task_id: str | None = Field(None, description="Optional related task ID.")
+    checkpoints: list[CheckpointRecord] = Field(
+        default_factory=list,
+        description="Relevant checkpoint records.",
+    )
+    decisions: list[DecisionRecord] = Field(
+        default_factory=list,
+        description="Relevant decision records.",
+    )
+    run_summaries: list[RunSummary] = Field(
+        default_factory=list,
+        description="Relevant run summaries.",
+    )
+    summary: str = Field(..., description="Condensed description of the context.")
+    open_gaps: list[str] = Field(
+        default_factory=list,
+        description="Known gaps or missing context signals.",
+    )
+    applied_scopes: dict[str, str | None] = Field(
+        default_factory=dict,
+        description="Scopes applied while building this context.",
+    )
+
+
+RetrievalResult: TypeAlias = MemorySearchResult
 
 
 class MemoryIndexPayload(BaseModel):

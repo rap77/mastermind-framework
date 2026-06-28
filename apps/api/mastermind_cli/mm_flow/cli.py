@@ -34,6 +34,7 @@ from mastermind_cli.mm_flow.evidence_selector import (
 )
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 from mastermind_cli.mm_flow.config_loader import RuntimeState
+from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 
 RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
 logger = logging.getLogger(__name__)
@@ -70,6 +71,11 @@ def _build_memory_service(database_url: str) -> MemoryService:
             enable_index=True,
         )
     )
+
+
+def _build_project_adapter() -> ProjectAdapter:
+    """Build the repo-specific planning bridge adapter."""
+    return ProjectAdapter.for_repo(_project_root())
 
 
 def _write_runtime_state(
@@ -180,6 +186,23 @@ def execute_phase(
                     _write_runtime_state(
                         execution_id, phase, "EXECUTION_WAVE", 0, "ACTIVE", backend
                     )
+                    try:
+                        adapter = _build_project_adapter()
+                        request = adapter.load_harness_request()
+                        adapter.write_structured_status(
+                            status="in_progress",
+                            summary=f"Phase {phase} execution started.",
+                            next_action="continue_phase_execution",
+                            verification_outcome="pending",
+                            objective=request.operational_objective,
+                            uow=request.active_uow,
+                            warnings=request.warnings,
+                        )
+                    except Exception:
+                        logger.warning(
+                            "execute-phase planning bridge write failed",
+                            exc_info=True,
+                        )
                     project_id = os.environ.get("MM_MEMORY_PROJECT_ID")
                     if project_id:
                         try:
@@ -291,6 +314,23 @@ def execute_phase(
                     _write_runtime_state(
                         execution_id, phase, "COMPLETED", 0, "IDLE", backend
                     )
+                    try:
+                        adapter = _build_project_adapter()
+                        request = adapter.load_harness_request()
+                        adapter.write_structured_status(
+                            status="completed",
+                            summary=summary or f"Phase {phase} completed.",
+                            next_action="archive_objective",
+                            verification_outcome="passed",
+                            objective=request.operational_objective,
+                            uow=request.active_uow,
+                            warnings=request.warnings,
+                        )
+                    except Exception:
+                        logger.warning(
+                            "execute-phase planning bridge archive failed",
+                            exc_info=True,
+                        )
                     click.echo(f"Phase {phase} marked complete")
 
         finally:

@@ -7,6 +7,21 @@
 - Current Phase: CONSTRUCTION
 - Current Stage: Completed UOW-5 verification-review-recovery-v1 build and test
 
+## Project Manifest
+- project_name: MasterMind Unified Harness + Memory
+- canonical_scope: reusable harness core, memory core, and project adapters
+- source_of_truth_ai_dlc: true
+- source_of_truth_planning: true
+- active_objective: harness-core-runtime-v1
+- active_uow: UOW-2
+- project_root: /home/rpadron/proy/mastermind
+- operational_layer: .planning
+- design_layer: aidlc-docs
+- memory_layer: Engram persistent memory
+- harness_layer: apps/api/mastermind_cli and tools/mastermind-cli
+- adapter_name: mastermind-adapter
+- bridge_contract: aidlc-docs/inception/plans/planning-bridge-contract.md
+
 ## Extension Configuration
 | Extension | Enabled | Decided At |
 |---|---|---|
@@ -46,6 +61,19 @@
 - Last completed stage: Build and Test — UOW-5 verification-review-recovery-v1
 - Current working stage: Operations placeholder reviewed; next slice selection pending
 - Next recommended stage: Start next UOW-5 slice for persistence/continuity/multi-loop resume seams
+- Unified initiative kickoff: `manifest-contract-bridge-v1` defined for harness + memory reuse across projects
+- Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, and planning bridge contract
+- Application design drafted for the unified harness + memory architecture
+- Unit-of-work map drafted for the unified harness + memory architecture
+- UOW-1 implementation plan drafted for the project manifest and source-of-truth rules
+- UOW-1 functional spec drafted with exact manifest fields, validation rules, and conflict handling
+- UOW-2 functional spec drafted for harness core contracts, loop selection, envelope, verification, review, and recovery
+- UOW-3 functional spec drafted for memory core, checkpoints, decisions, retrieval, and resume rules
+- UOW-4 functional spec drafted for the planning bridge between `.planning` and the harness runtime
+- UOW-5 functional spec drafted for project adapter and end-to-end integration
+- UOW-1 code generation plan drafted for the project manifest and source-of-truth rules
+- UOW-4 planning bridge + project adapter now implemented in `apps/api/mastermind_cli/mm_flow/`
+- UOW-2 harness core runtime now implemented in `apps/api/mastermind_cli/orchestrator/runtime_contracts/`
 - Notes:
   - Product discovery inputs are in `Product-Definition/`.
   - Open questions OQ-1 through OQ-8 were resolved in inception artifacts.

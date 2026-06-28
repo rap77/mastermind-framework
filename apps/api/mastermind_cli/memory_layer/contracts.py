@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .models import MemoryIndexPayload, MemoryItem, MemorySearchResult, VectorCandidate
+from .models import (
+    CheckpointRecord,
+    ContextSnapshot,
+    DecisionRecord,
+    MemoryIndexPayload,
+    MemoryItem,
+    MemorySearchResult,
+    RunSummary,
+    VectorCandidate,
+)
 
 
 @runtime_checkable
@@ -49,6 +58,60 @@ class MemoryStore(Protocol):
         project_id: str | None = None,
     ) -> None:
         """Persist an operational preference in the selected scope."""
+
+
+@runtime_checkable
+class CheckpointStore(Protocol):
+    """Contract for project-scoped checkpoint persistence."""
+
+    async def save_checkpoint(self, checkpoint: CheckpointRecord) -> CheckpointRecord:
+        """Persist a checkpoint and return the stored record."""
+
+    async def get_latest_checkpoint(
+        self,
+        project_id: str,
+        task_id: str | None = None,
+    ) -> CheckpointRecord | None:
+        """Return the latest checkpoint for a project or task."""
+
+    async def list_recent_checkpoints(
+        self,
+        project_id: str,
+        limit: int = 10,
+    ) -> list[CheckpointRecord]:
+        """Return recent checkpoints for a project."""
+
+
+@runtime_checkable
+class DecisionStore(Protocol):
+    """Contract for project-scoped decision persistence."""
+
+    async def save_decision(self, decision: DecisionRecord) -> DecisionRecord:
+        """Persist a decision and return the stored record."""
+
+    async def list_recent_decisions(
+        self,
+        project_id: str,
+        limit: int = 10,
+        task_id: str | None = None,
+    ) -> list[DecisionRecord]:
+        """Return recent decisions for a project."""
+
+
+@runtime_checkable
+class ContextSnapshotStore(Protocol):
+    """Contract for compact resume snapshots."""
+
+    async def build_context_snapshot(
+        self,
+        project_id: str,
+        task_id: str | None = None,
+        limit: int = 10,
+    ) -> ContextSnapshot:
+        """Return a compact resume snapshot for the active project."""
+
+    async def save_run_summary(self, run_summary: RunSummary) -> RunSummary:
+        """Persist a run summary and return the stored record."""
 
 
 @runtime_checkable

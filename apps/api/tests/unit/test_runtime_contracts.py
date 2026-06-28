@@ -2,13 +2,22 @@
 
 from mastermind_cli.orchestrator.runtime_contracts import (
     CapabilityRegistry,
+    ExecutionEnvelope,
+    FailureClassifier,
     HarnessRegistry,
     LoopSelector,
+    RecoveryHarness,
+    ReviewHarness,
+    ReviewRubricResolver,
     build_execution_envelope,
     synthesize_execution_envelope,
     validate_execution_envelope,
 )
 from mastermind_cli.types.interfaces import Brief
+from mastermind_cli.orchestrator.runtime_contracts.models import (
+    VerificationCheck,
+    VerificationOutcome,
+)
 
 
 def test_loop_selector_classifies_simple_task() -> None:
@@ -22,6 +31,22 @@ def test_loop_selector_classifies_simple_task() -> None:
     assert profile.complexity == "simple"
     assert profile.requires_checker is False
     assert profile.acceptance_mode == "deterministic"
+
+
+def test_loop_selector_uses_single_pass_for_simple_ready_tasks() -> None:
+    """Simple ready tasks should stay on the cheapest runtime loop."""
+    selector = LoopSelector()
+    profile = selector.classify_task(
+        Brief(problem_statement="Review this API metric", context="", constraints=[]),
+        ["brain-07-growth-data"],
+    )
+    capabilities = CapabilityRegistry().resolve_for_task(profile)
+    policy = selector.select_loop(profile, capabilities)
+
+    assert policy.base_loop == "single-pass"
+    assert policy.requires_review is False
+    assert policy.requires_verification is False
+    assert policy.additional_loops == ()
 
 
 def test_loop_selector_selects_review_for_medium_write_task() -> None:
@@ -135,3 +160,75 @@ def test_synthesize_execution_envelope_uses_most_restrictive_verdict() -> None:
 
     assert final_envelope.status == "success"
     assert final_envelope.next_actions == ("continue",)
+
+
+def test_review_harness_approves_verified_envelope() -> None:
+    """Verified envelopes with artifacts should pass local review."""
+    selector = LoopSelector()
+    profile = selector.classify_task(
+        Brief(
+            problem_statement="Implement and design a production migration plan",
+            context="Need latest research and design review",
+            constraints=["Use current sources"],
+        ),
+        ["brain-01-product-strategy", "brain-03-ui-design"],
+    )
+    capabilities = CapabilityRegistry().resolve_for_task(profile)
+    policy = selector.select_loop(profile, capabilities)
+    base_envelope = build_execution_envelope(
+        task_profile=profile,
+        loop_policy=policy,
+        artifacts=("brain-01-product-strategy",),
+        next_actions=("continue",),
+    )
+    verification = VerificationOutcome(
+        performed=True,
+        passed=True,
+        checks=(
+            VerificationCheck(
+                check_id="artifacts-present",
+                label="artifacts_present",
+                passed=True,
+                reason="artifacts present",
+            ),
+        ),
+        acceptance_criteria_satisfied=True,
+    )
+
+    review_outcome = ReviewHarness().review(
+        base_envelope,
+        verification,
+        ReviewRubricResolver().resolve(profile, policy),
+    )
+
+    assert review_outcome.approved is True
+    assert review_outcome.recommended_next_action == "continue"
+
+
+def test_recovery_harness_retries_execution_error_before_budget() -> None:
+    """Execution errors should retry before the bounded budget is exhausted."""
+    selector = LoopSelector()
+    profile = selector.classify_task(
+        Brief(problem_statement="Review this API metric", context="", constraints=[]),
+        ["brain-07-growth-data"],
+    )
+    capabilities = CapabilityRegistry().resolve_for_task(profile)
+    policy = selector.select_loop(profile, capabilities)
+    failure = FailureClassifier().classify(
+        ExecutionEnvelope(
+            status="error",
+            summary="boom",
+            artifacts=(),
+            risks=(),
+            next_actions=(),
+        ),
+        None,
+        None,
+    )
+
+    assert failure is not None
+
+    recovery = RecoveryHarness().decide(failure, policy)
+
+    assert recovery.action == "retry"
+    assert recovery.escalate_to_human is False

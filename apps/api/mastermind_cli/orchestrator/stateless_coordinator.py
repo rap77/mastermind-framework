@@ -11,8 +11,9 @@ we DON'T have shared state pollution."
 
 import asyncio
 import logging
+import os
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Callable, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 from mastermind_cli.types.interfaces import (
@@ -30,24 +31,19 @@ from mastermind_cli.mm_flow.evidence_selector import (
     EvidenceSelectionResult,
 )
 from mastermind_cli.orchestrator.runtime_contracts import (
-    CapabilityRegistry,
+    HarnessCore,
     ExecutionEnvelope,
-    FailureClassifier,
-    HarnessRegistry,
     LoopPolicy,
-    LoopSelector,
     RecoveryDecision,
-    RecoveryHarness,
-    ReviewHarness,
     ReviewOutcome,
-    ReviewRubricResolver,
+    RuntimeRequest,
     TaskProfile,
-    VerificationHarness,
+    RuntimeSelection,
     VerificationOutcome,
-    build_execution_envelope,
-    synthesize_execution_envelope,
-    validate_execution_envelope,
 )
+from mastermind_cli.memory_layer.models import ContextSnapshot
+from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
+from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.types.protocol import BrainEnvelope, BrainOutputType
 from mastermind_cli.types.parallel import ExecutionGraph, FlowConfig
 from mastermind_cli.brain_registry import BrainRegistry
@@ -87,6 +83,10 @@ class CoordinatorConfig:
     enable_logging: bool = True
     brain_registry: BrainRegistry | None = None
     governance: GovernanceInterceptor | None = None
+    project_id: str | None = None
+    memory_context_provider: (
+        Callable[[str, str | None], ContextSnapshot | None] | None
+    ) = None
 
     # Future: Add timeout, retry config, etc.
     # timeout_ms: int = 30000
@@ -144,6 +144,9 @@ class StatelessCoordinator:
         self.runtime_review_outcome: ReviewOutcome | None = None
         self.runtime_recovery_decision: RecoveryDecision | None = None
         self.runtime_evidence_selection: EvidenceSelectionResult | None = None
+        self.runtime_selection: RuntimeSelection | None = None
+        self._project_id = config.project_id or os.environ.get("MM_MEMORY_PROJECT_ID")
+        self._harness_core = HarnessCore()
 
         # Flow configuration (for DAG execution)
         self.flow_config: FlowConfig | None = None
@@ -193,6 +196,7 @@ class StatelessCoordinator:
         self.runtime_review_outcome = None
         self.runtime_recovery_decision = None
         self.runtime_evidence_selection = None
+        self.runtime_selection = None
 
         if self.config.governance is not None:
             intention = Intention(
@@ -219,7 +223,7 @@ class StatelessCoordinator:
             if decision.final_verdict.value != "allow":
                 return {}
 
-        self._prepare_runtime_contracts(
+        await self._prepare_runtime_contracts(
             brief=brief,
             brain_ids=brain_ids,
             evidence_request=evidence_request,
@@ -244,6 +248,12 @@ class StatelessCoordinator:
 
         self._finalize_runtime_envelope(results)
         return results
+
+    def _memory_task_id(self) -> str | None:
+        """Return the stable task id used for memory continuity."""
+        if self.runtime_task_profile is None:
+            return None
+        return self.runtime_task_profile.task_id
 
     async def _execute_wave(
         self,
@@ -584,107 +594,89 @@ class StatelessCoordinator:
 
         return datetime.now(timezone.utc).isoformat()
 
-    def _prepare_runtime_contracts(
+    async def _prepare_runtime_contracts(
         self,
         brief: Brief,
         brain_ids: list[str],
         evidence_request: EvidenceSelectionRequest | None = None,
     ) -> None:
         """Classify the task and select the minimum sufficient control policy."""
-        selector = LoopSelector()
-        capability_registry = CapabilityRegistry()
-        harness_registry = HarnessRegistry()
-
         if evidence_request is not None:
             self.runtime_evidence_selection = EvidenceHarnessSelector().select(
                 evidence_request
             )
 
-        task_profile = selector.classify_task(brief, brain_ids)
-        capability_set = capability_registry.resolve_for_task(task_profile)
-        harness_registry.resolve_for_capabilities(capability_set)
-        loop_policy = selector.select_loop(
-            task_profile,
-            capability_set,
-            evidence_readiness_score=(
-                self.runtime_evidence_selection.readiness_score
-                if self.runtime_evidence_selection is not None
-                else None
-            ),
-            evidence_readiness_gate=(
-                self.runtime_evidence_selection.readiness_gate
-                if self.runtime_evidence_selection is not None
-                else None
-            ),
+        memory_snapshot = await self._load_memory_snapshot()
+        runtime_selection = self._harness_core.select_runtime(
+            RuntimeRequest(
+                brief=brief,
+                brain_ids=tuple(brain_ids),
+                memory_snapshot=memory_snapshot,
+                evidence_readiness_score=(
+                    self.runtime_evidence_selection.readiness_score
+                    if self.runtime_evidence_selection is not None
+                    else None
+                ),
+                evidence_readiness_gate=(
+                    self.runtime_evidence_selection.readiness_gate
+                    if self.runtime_evidence_selection is not None
+                    else None
+                ),
+            )
         )
 
-        self.runtime_task_profile = task_profile
-        self.runtime_loop_policy = loop_policy
+        self.runtime_selection = runtime_selection
+        self.runtime_task_profile = runtime_selection.task_profile
+        self.runtime_loop_policy = runtime_selection.loop_policy
+
+    async def _load_memory_snapshot(self) -> ContextSnapshot | None:
+        """Load the project memory snapshot when project-scoped memory is configured."""
+        if self._project_id is None:
+            return None
+
+        if self.config.memory_context_provider is not None:
+            return self.config.memory_context_provider(self._project_id, None)
+
+        database_url = os.environ.get("MM_MEMORY_DATABASE_URL") or os.environ.get(
+            "DATABASE_URL"
+        )
+        if not database_url:
+            return None
+
+        try:
+            memory_service = MemoryService(
+                build_memory_store_from_env(
+                    database_url,
+                    enable_vector=False,
+                    enable_index=True,
+                )
+            )
+            return await memory_service.build_context_snapshot(self._project_id)
+        except Exception:
+            if self.config.enable_logging:
+                logger.warning("runtime memory snapshot load failed", exc_info=True)
+            return None
 
     def _finalize_runtime_envelope(self, results: dict[str, BaseModel]) -> None:
         """Build and validate the execution envelope for the completed flow."""
-        if self.runtime_task_profile is None or self.runtime_loop_policy is None:
+        if self.runtime_selection is None:
             return
         artifacts = tuple(sorted(results.keys()))
         next_actions = (
             ("independent review required",)
-            if self.runtime_loop_policy.requires_review
+            if self.runtime_selection.loop_policy.requires_review
             else ("continue",)
         )
-        base_envelope = build_execution_envelope(
-            task_profile=self.runtime_task_profile,
-            loop_policy=self.runtime_loop_policy,
+        runtime_result = self._harness_core.build_execution_result(
+            self.runtime_selection,
             artifacts=artifacts,
-            risks=tuple(self.runtime_task_profile.reasons),
+            risks=tuple(self.runtime_selection.task_profile.reasons),
             next_actions=next_actions,
         )
-        verification_outcome: VerificationOutcome | None = None
-        review_outcome: ReviewOutcome | None = None
-        recovery_decision: RecoveryDecision | None = None
-        if self.runtime_loop_policy.requires_verification:
-            verification_outcome = VerificationHarness().verify(
-                base_envelope, self.runtime_task_profile
-            )
-        if self.runtime_loop_policy.requires_review:
-            review_rubric = ReviewRubricResolver().resolve(
-                self.runtime_task_profile,
-                self.runtime_loop_policy,
-            )
-            review_outcome = ReviewHarness().review(
-                base_envelope,
-                verification_outcome
-                if verification_outcome is not None
-                else VerificationOutcome(
-                    performed=False,
-                    passed=False,
-                    checks=(),
-                    acceptance_criteria_satisfied=False,
-                ),
-                review_rubric,
-            )
-        failure_record = FailureClassifier().classify(
-            base_envelope=base_envelope,
-            verification_outcome=verification_outcome,
-            review_outcome=review_outcome,
-        )
-        if failure_record is not None:
-            recovery_decision = RecoveryHarness().decide(
-                failure_record,
-                self.runtime_loop_policy,
-            )
-        envelope = synthesize_execution_envelope(
-            base_envelope=base_envelope,
-            verification_outcome=verification_outcome,
-            review_outcome=review_outcome,
-            recovery_decision=recovery_decision,
-        )
-        valid, errors = validate_execution_envelope(envelope)
-        if not valid:
-            raise ValueError("Invalid runtime execution envelope: " + "; ".join(errors))
-        self.runtime_verification_outcome = verification_outcome
-        self.runtime_review_outcome = review_outcome
-        self.runtime_recovery_decision = recovery_decision
-        self.runtime_envelope = envelope
+        self.runtime_verification_outcome = runtime_result.verification_outcome
+        self.runtime_review_outcome = runtime_result.review_outcome
+        self.runtime_recovery_decision = runtime_result.recovery_decision
+        self.runtime_envelope = runtime_result.execution_envelope
 
 
 # =============================================================================

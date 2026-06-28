@@ -8,11 +8,13 @@ import pytest
 from typing_extensions import assert_type
 
 from mastermind_cli.memory_layer.contracts import (
+    CheckpointStore,
     EmbeddingProvider,
     MemoryIndexProvider,
     MemoryStore,
 )
 from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
     MemoryContextBundle,
     MemoryIndexPayload,
     MemoryItem,
@@ -190,6 +192,50 @@ class TestMemoryStoreProtocol:
     def test_memory_store_type_aliases_are_stable(self) -> None:
         """The protocol should preserve stable return types for implementers."""
         assert_type(MemoryStore.save_item, object)
+
+
+class TestCheckpointStoreProtocol:
+    """Test the checkpoint contract shape."""
+
+    def test_checkpoint_store_is_runtime_checkable_protocol(self) -> None:
+        """CheckpointStore should be declared as a runtime-checkable protocol."""
+
+        class DummyCheckpointStore:
+            """Protocol-shaped checkpoint store used only for tests."""
+
+            async def save_checkpoint(
+                self, checkpoint: CheckpointRecord
+            ) -> CheckpointRecord:
+                return checkpoint
+
+            async def get_latest_checkpoint(
+                self,
+                project_id: str,
+                task_id: str | None = None,
+            ) -> CheckpointRecord | None:
+                del project_id, task_id
+                return None
+
+            async def list_recent_checkpoints(
+                self,
+                project_id: str,
+                limit: int = 10,
+            ) -> list[CheckpointRecord]:
+                del project_id, limit
+                return []
+
+        dummy = DummyCheckpointStore()
+        assert isinstance(dummy, CheckpointStore)
+
+    def test_checkpoint_store_protocol_exposes_expected_methods(self) -> None:
+        """CheckpointStore should define the minimum method surface for ML2."""
+        expected_methods = {
+            "save_checkpoint",
+            "get_latest_checkpoint",
+            "list_recent_checkpoints",
+        }
+
+        assert expected_methods.issubset(set(CheckpointStore.__dict__.keys()))
 
 
 def test_memory_index_provider_is_runtime_checkable_protocol() -> None:

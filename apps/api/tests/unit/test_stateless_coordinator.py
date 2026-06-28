@@ -16,11 +16,13 @@ Mock Design Pattern:
 import hashlib
 import asyncio
 from dataclasses import FrozenInstanceError
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import BaseModel
+from mastermind_cli.memory_layer.models import ContextSnapshot
 from mastermind_cli.types.interfaces import BrainInput
 from mastermind_cli.types.interfaces import (
     Brief,
@@ -35,6 +37,9 @@ from mastermind_cli.orchestrator.governance import (
     Intention,
     PolicyVerdict,
     TaskContext,
+)
+from mastermind_cli.orchestrator import (
+    stateless_coordinator as stateless_coordinator_module,
 )
 from mastermind_cli.orchestrator.stateless_coordinator import (
     StatelessCoordinator,
@@ -629,6 +634,151 @@ async def test_stateless_coordinator_logs_evidence_routing_metadata(
     ]
     assert evidence_metadata["selected_harness"] == "evidence-intake-canonization"
     assert evidence_metadata["readiness_gate"] == "conditionally_ready"
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_loads_memory_snapshot_before_selection(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """The coordinator should pass a project memory snapshot into runtime selection."""
+    snapshot = ContextSnapshot(
+        project_id="proj-001",
+        summary="Resume from the last safe checkpoint.",
+    )
+    calls: list[tuple[str, str | None]] = []
+
+    def memory_provider(project_id: str, task_id: str | None) -> ContextSnapshot | None:
+        calls.append((project_id, task_id))
+        return snapshot
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client,
+            enable_logging=False,
+            project_id="proj-001",
+            memory_context_provider=memory_provider,
+        )
+    )
+
+    await coordinator._prepare_runtime_contracts(
+        brief=sample_brief,
+        brain_ids=["brain-01-product-strategy"],
+    )
+
+    assert calls == [("proj-001", None)]
+    assert coordinator.runtime_selection is not None
+    assert coordinator.runtime_selection.memory_snapshot == snapshot
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_loads_memory_snapshot_from_env(
+    coordinator_config: CoordinatorConfig,
+    sample_brief: Brief,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The coordinator should load project memory from env when no provider is injected."""
+    snapshot = ContextSnapshot(
+        project_id="proj-001",
+        summary="Resume from env-backed memory.",
+    )
+    calls: dict[str, object] = {}
+
+    class FakeMemoryService:
+        def __init__(self, store: object) -> None:
+            calls["store"] = store
+
+        async def build_context_snapshot(self, project_id: str) -> ContextSnapshot:
+            calls["project_id"] = project_id
+            return snapshot
+
+    monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+    monkeypatch.setenv("MM_MEMORY_DATABASE_URL", "postgresql://memory")
+    monkeypatch.setattr(
+        stateless_coordinator_module,
+        "build_memory_store_from_env",
+        lambda database_url, enable_vector, enable_index: {
+            "database_url": database_url,
+            "enable_vector": enable_vector,
+            "enable_index": enable_index,
+        },
+    )
+    monkeypatch.setattr(
+        stateless_coordinator_module,
+        "MemoryService",
+        FakeMemoryService,
+    )
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client, enable_logging=False
+        )
+    )
+
+    loaded_snapshot = await coordinator._load_memory_snapshot()
+
+    assert loaded_snapshot == snapshot
+    assert calls["project_id"] == "proj-001"
+    assert calls["store"]["database_url"] == "postgresql://memory"
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_execute_flow_uses_memory_snapshot(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """The public flow should preserve the loaded memory snapshot in runtime selection."""
+    snapshot = ContextSnapshot(
+        project_id="proj-001",
+        summary="Resume from the last safe checkpoint.",
+    )
+
+    def memory_provider(project_id: str, task_id: str | None) -> ContextSnapshot | None:
+        del task_id
+        if project_id == "proj-001":
+            return snapshot
+        return None
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client,
+            enable_logging=False,
+            project_id="proj-001",
+            memory_context_provider=memory_provider,
+        )
+    )
+
+    async def fake_resolve_waves(self, brain_ids: list[str]) -> SimpleNamespace:
+        del brain_ids
+        return SimpleNamespace(
+            levels=[SimpleNamespace(brain_ids=["brain-01-product-strategy"])]
+        )
+
+    async def fake_execute_wave(
+        self,
+        brain_ids: list[str],
+        brief: Brief,
+        previous_results: dict[str, BaseModel],
+        correlation_id: str,
+        conn: object | None = None,
+    ) -> dict[str, BaseModel]:
+        del brain_ids, brief, previous_results, correlation_id, conn
+        return {"brain-01-product-strategy": cast(BaseModel, object())}
+
+    coordinator._finalize_runtime_envelope = lambda results: None  # type: ignore[method-assign]
+    coordinator._resolve_waves = fake_resolve_waves.__get__(
+        coordinator, StatelessCoordinator
+    )  # type: ignore[method-assign]
+    coordinator._execute_wave = fake_execute_wave.__get__(
+        coordinator, StatelessCoordinator
+    )  # type: ignore[method-assign]
+
+    results = await coordinator.execute_flow(
+        brief=sample_brief,
+        brain_ids=["brain-01-product-strategy"],
+    )
+
+    assert "brain-01-product-strategy" in results
+    assert coordinator.runtime_selection is not None
+    assert coordinator.runtime_selection.memory_snapshot == snapshot
 
 
 # =============================================================================

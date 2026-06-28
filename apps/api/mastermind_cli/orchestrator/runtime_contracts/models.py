@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
+from mastermind_cli.memory_layer.models import ContextSnapshot as MemoryContextSnapshot
+from mastermind_cli.types.interfaces import Brief
+
 
 Complexity = Literal["simple", "medium", "complex"]
 RiskLevel = Literal["low", "medium", "high", "critical"]
@@ -100,6 +103,41 @@ class CapabilitySet:
     commands: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
     verifiers: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
     recovery_policies: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeRequest:
+    """Unified input contract for the runtime core."""
+
+    brief: Brief
+    brain_ids: tuple[str, ...]
+    memory_snapshot: MemoryContextSnapshot | None = None
+    evidence_readiness_score: float | None = None
+    evidence_readiness_gate: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeSelection:
+    """Deterministic runtime selection for a task."""
+
+    task_profile: TaskProfile
+    capability_set: CapabilitySet
+    harnesses: tuple[HarnessDefinition, ...]
+    loop_policy: LoopPolicy
+    memory_snapshot: MemoryContextSnapshot | None = None
+    rationale: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeExecutionResult:
+    """Canonical runtime outcome produced by the harness core."""
+
+    selection: RuntimeSelection
+    base_envelope: ExecutionEnvelope
+    verification_outcome: VerificationOutcome | None
+    review_outcome: ReviewOutcome | None
+    recovery_decision: RecoveryDecision | None
+    execution_envelope: ExecutionEnvelope
 
 
 @dataclass(frozen=True, slots=True)

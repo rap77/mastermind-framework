@@ -1,6 +1,7 @@
 """Runtime contract exports for deterministic multi-harness selection."""
 
 from .capability_registry import CapabilityRegistry
+from .core import HarnessCore
 from .envelope import (
     build_execution_envelope,
     synthesize_execution_envelope,
@@ -14,6 +15,9 @@ from .models import (
     ExecutionEnvelope,
     FailureRecord,
     HarnessDefinition,
+    RuntimeRequest,
+    RuntimeExecutionResult,
+    RuntimeSelection,
     LoopPolicy,
     RecoveryDecision,
     RecoveryPayload,
@@ -35,6 +39,7 @@ __all__ = [
     "ExecutionEnvelope",
     "FailureClassifier",
     "FailureRecord",
+    "HarnessCore",
     "HarnessDefinition",
     "HarnessRegistry",
     "LoopPolicy",
@@ -42,6 +47,9 @@ __all__ = [
     "RecoveryDecision",
     "RecoveryHarness",
     "RecoveryPayload",
+    "RuntimeRequest",
+    "RuntimeExecutionResult",
+    "RuntimeSelection",
     "ReviewHarness",
     "ReviewOutcome",
     "ReviewRubric",
