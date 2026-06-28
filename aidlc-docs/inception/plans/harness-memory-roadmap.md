@@ -86,8 +86,8 @@ Exit criteria:
 - Prefer additive migration over replacement.
 
 ## Status
-Status: Slice 4 planning bridge end-to-end closed (commit `02f56327`)
-Next step: open Slice 5 — project adapter cross-project reuse + multi-project integration smoke
+Status: Slice 5 project adapter cross-project reuse closed (commit `d5f3561a`)
+Next step: extend the reuse boundary into a second repo template and operational maintenance
 
 ## Draft Artifacts
 - `project-manifest.md`

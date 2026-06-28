@@ -13,7 +13,7 @@
 - source_of_truth_ai_dlc: true
 - source_of_truth_planning: true
 - active_objective: harness-core-runtime-v1
-- active_uow: UOW-4-closed
+- active_uow: UOW-5-closed
 - project_root: /home/rpadron/proy/mastermind
 - operational_layer: .planning
 - design_layer: aidlc-docs
@@ -58,9 +58,9 @@
 - [x] Build and Test — UOW-5 verification-review-recovery-v1
 
 ## Current Status
-- Last completed stage: Slice 4 — Planning Bridge end-to-end (UOW-4 closed and pushed as `02f56327`)
-- Current working stage: Slice 4 closed; next slice selection pending (Slice 5 candidate — adapter + multi-project reuse)
-- Next recommended stage: Open Slice 5 — Project Adapter cross-project reuse validation + integration smoke through another repo template
+- Last completed stage: Slice 5 — Project Adapter cross-project reuse (UOW-5 closed and pushed as `d5f3561a`)
+- Current working stage: Slice 5 closed; unified harness + memory initiative is end-to-end runnable across projects
+- Next recommended stage: Operational maintenance + extend reuse boundary into a second repo template
 - Unified initiative kickoff: `manifest-contract-bridge-v1` defined for harness + memory reuse across projects
 - Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, and planning bridge contract
 - Application design drafted for the unified harness + memory architecture
