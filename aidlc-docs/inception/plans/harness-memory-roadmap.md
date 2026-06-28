@@ -86,8 +86,8 @@ Exit criteria:
 - Prefer additive migration over replacement.
 
 ## Status
-Status: Slice 3 memory core wiring closed (commit `d59392ad`)
-Next step: open Slice 4 — planning bridge end-to-end + adapter integration tests
+Status: Slice 4 planning bridge end-to-end closed (commit `02f56327`)
+Next step: open Slice 5 — project adapter cross-project reuse + multi-project integration smoke
 
 ## Draft Artifacts
 - `project-manifest.md`
