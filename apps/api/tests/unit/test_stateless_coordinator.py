@@ -781,6 +781,126 @@ async def test_stateless_coordinator_execute_flow_uses_memory_snapshot(
     assert coordinator.runtime_selection.memory_snapshot == snapshot
 
 
+@pytest.mark.asyncio
+async def test_stateless_coordinator_persists_runtime_run_via_writer(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """The coordinator should hand off the runtime result to the configured writer."""
+    from mastermind_cli.orchestrator.runtime_contracts import (
+        RuntimeExecutionResult,
+        RuntimeMemoryWrite,
+    )
+
+    writer_calls: list[dict[str, object]] = []
+
+    class FakeMemoryRuntimeWriter:
+        def __init__(self) -> None:
+            self.calls = writer_calls
+
+        async def persist_runtime_run(
+            self,
+            *,
+            project_id: str,
+            task_id: str | None,
+            run_id: str,
+            runtime_result: RuntimeExecutionResult,
+            snapshot: ContextSnapshot | None = None,
+        ) -> RuntimeMemoryWrite:
+            writer_calls.append(
+                {
+                    "project_id": project_id,
+                    "task_id": task_id,
+                    "run_id": run_id,
+                    "runtime_result": runtime_result,
+                    "snapshot": snapshot,
+                }
+            )
+            return RuntimeMemoryWrite(
+                project_id=project_id,
+                run_id=run_id,
+                checkpoint_id="ckpt-test",
+                decision_id="dec-test",
+                run_summary_id="summary-test",
+            )
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client,
+            enable_logging=False,
+            project_id="proj-001",
+            memory_runtime_writer=FakeMemoryRuntimeWriter(),
+        )
+    )
+
+    results = await coordinator.execute_flow(
+        brief=sample_brief,
+        brain_ids=["brain-01-product-strategy"],
+    )
+
+    assert "brain-01-product-strategy" in results
+    assert writer_calls, "memory runtime writer should be invoked"
+    call = writer_calls[-1]
+    assert call["project_id"] == "proj-001"
+    assert call["task_id"] == coordinator.runtime_selection.task_profile.task_id
+    assert call["run_id"] == coordinator.correlation_id
+    assert call["runtime_result"] is coordinator.runtime_execution_result
+    assert coordinator.runtime_memory_write is not None
+    assert coordinator.runtime_memory_write.checkpoint_id == "ckpt-test"
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_skips_persistence_without_project_id(
+    coordinator_config: CoordinatorConfig, sample_brief: Brief
+) -> None:
+    """The writer should not be invoked when no project id is available."""
+    from mastermind_cli.orchestrator.runtime_contracts import RuntimeMemoryWrite
+
+    calls: list[dict[str, object]] = []
+
+    class FakeMemoryRuntimeWriter:
+        def __init__(self) -> None:
+            self.calls = calls
+
+        async def persist_runtime_run(
+            self,
+            *,
+            project_id: str,
+            task_id: str | None,
+            run_id: str,
+            runtime_result: object,
+            snapshot: ContextSnapshot | None = None,
+        ) -> RuntimeMemoryWrite:
+            calls.append({"project_id": project_id})
+            return RuntimeMemoryWrite(
+                project_id=project_id,
+                run_id=run_id,
+                checkpoint_id=None,
+                decision_id=None,
+                run_summary_id=None,
+            )
+
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.delenv("MM_MEMORY_PROJECT_ID", raising=False)
+        coordinator = StatelessCoordinator(
+            CoordinatorConfig(
+                mcp_client=coordinator_config.mcp_client,
+                enable_logging=False,
+                memory_runtime_writer=FakeMemoryRuntimeWriter(),
+            )
+        )
+
+        await coordinator.execute_flow(
+            brief=sample_brief,
+            brain_ids=["brain-01-product-strategy"],
+        )
+
+        assert calls == []
+        assert coordinator.runtime_memory_write is None
+    finally:
+        monkeypatch.undo()
+
+
 # =============================================================================
 # TESTS: MOCK CLIENT (REGRESSION)
 # =============================================================================

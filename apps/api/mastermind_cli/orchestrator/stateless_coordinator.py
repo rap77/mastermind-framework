@@ -34,8 +34,10 @@ from mastermind_cli.orchestrator.runtime_contracts import (
     HarnessCore,
     ExecutionEnvelope,
     LoopPolicy,
+    MemoryRuntimeWriter,
     RecoveryDecision,
     ReviewOutcome,
+    RuntimeMemoryWrite,
     RuntimeRequest,
     TaskProfile,
     RuntimeSelection,
@@ -87,6 +89,7 @@ class CoordinatorConfig:
     memory_context_provider: (
         Callable[[str, str | None], ContextSnapshot | None] | None
     ) = None
+    memory_runtime_writer: MemoryRuntimeWriter | None = None
 
     # Future: Add timeout, retry config, etc.
     # timeout_ms: int = 30000
@@ -145,6 +148,7 @@ class StatelessCoordinator:
         self.runtime_recovery_decision: RecoveryDecision | None = None
         self.runtime_evidence_selection: EvidenceSelectionResult | None = None
         self.runtime_selection: RuntimeSelection | None = None
+        self.runtime_memory_write: RuntimeMemoryWrite | None = None
         self._project_id = config.project_id or os.environ.get("MM_MEMORY_PROJECT_ID")
         self._harness_core = HarnessCore()
 
@@ -197,6 +201,7 @@ class StatelessCoordinator:
         self.runtime_recovery_decision = None
         self.runtime_evidence_selection = None
         self.runtime_selection = None
+        self.runtime_memory_write = None
 
         if self.config.governance is not None:
             intention = Intention(
@@ -247,6 +252,7 @@ class StatelessCoordinator:
             results.update(wave_results)
 
         self._finalize_runtime_envelope(results)
+        await self._persist_runtime_run()
         return results
 
     def _memory_task_id(self) -> str | None:
@@ -677,6 +683,32 @@ class StatelessCoordinator:
         self.runtime_review_outcome = runtime_result.review_outcome
         self.runtime_recovery_decision = runtime_result.recovery_decision
         self.runtime_envelope = runtime_result.execution_envelope
+        self.runtime_execution_result = runtime_result
+
+    async def _persist_runtime_run(self) -> None:
+        """Persist the current runtime run into the memory layer when configured."""
+        writer = self.config.memory_runtime_writer
+        runtime_result = getattr(self, "runtime_execution_result", None)
+        if writer is None or runtime_result is None:
+            return
+        if self._project_id is None:
+            return
+        snapshot = (
+            self.runtime_selection.memory_snapshot
+            if self.runtime_selection is not None
+            else None
+        )
+        try:
+            self.runtime_memory_write = await writer.persist_runtime_run(
+                project_id=self._project_id,
+                task_id=self._memory_task_id(),
+                run_id=self.correlation_id,
+                runtime_result=runtime_result,
+                snapshot=snapshot,
+            )
+        except Exception:
+            if self.config.enable_logging:
+                logger.warning("runtime memory persistence failed", exc_info=True)
 
 
 # =============================================================================

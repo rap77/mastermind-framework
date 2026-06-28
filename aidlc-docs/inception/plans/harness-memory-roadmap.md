@@ -86,8 +86,8 @@ Exit criteria:
 - Prefer additive migration over replacement.
 
 ## Status
-Status: Slice 2 harness core runtime closed (commit `cff5b01b`)
-Next step: open Slice 3 — planning bridge + adapter integration / memory-core wiring
+Status: Slice 3 memory core wiring in progress (UOW-3 active)
+Next step: implement UOW-3 memory core — checkpoints / decisions / retrieval / resume rules and wire them through `HarnessCore`
 
 ## Draft Artifacts
 - `project-manifest.md`

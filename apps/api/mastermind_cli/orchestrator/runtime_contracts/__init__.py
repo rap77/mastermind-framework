@@ -9,6 +9,11 @@ from .envelope import (
 )
 from .harness_registry import HarnessRegistry
 from .loop_selector import LoopSelector
+from .memory_runtime_adapter import (
+    MemoryRuntimeAdapter,
+    MemoryRuntimeWriter,
+    RuntimeMemoryWrite,
+)
 from .models import (
     CapabilityDefinition,
     CapabilitySet,
@@ -44,9 +49,12 @@ __all__ = [
     "HarnessRegistry",
     "LoopPolicy",
     "LoopSelector",
+    "MemoryRuntimeAdapter",
+    "MemoryRuntimeWriter",
     "RecoveryDecision",
     "RecoveryHarness",
     "RecoveryPayload",
+    "RuntimeMemoryWrite",
     "RuntimeRequest",
     "RuntimeExecutionResult",
     "RuntimeSelection",

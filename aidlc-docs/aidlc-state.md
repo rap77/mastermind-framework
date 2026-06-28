@@ -13,7 +13,7 @@
 - source_of_truth_ai_dlc: true
 - source_of_truth_planning: true
 - active_objective: harness-core-runtime-v1
-- active_uow: UOW-2-closed
+- active_uow: UOW-3
 - project_root: /home/rpadron/proy/mastermind
 - operational_layer: .planning
 - design_layer: aidlc-docs
@@ -58,9 +58,9 @@
 - [x] Build and Test — UOW-5 verification-review-recovery-v1
 
 ## Current Status
-- Last completed stage: Slice 2 — Harness Core Runtime (UOW-2 closed and pushed as `cff5b01b`)
-- Current working stage: Slice 2 closed; next slice selection pending (Slice 3 candidate)
-- Next recommended stage: Open Slice 3 — Planning Bridge + Adapter / memory-core wiring
+- Last completed stage: Slice 2 — Harness Core Runtime (UOW-2 closed, commits `cff5b01b` + `2491f0d0`)
+- Current working stage: Slice 3 — Memory Core wiring now active (UOW-3)
+- Next recommended stage: Implement UOW-3 memory core — checkpoint / decision / retrieval / resume rules and wire them through `HarnessCore`
 - Unified initiative kickoff: `manifest-contract-bridge-v1` defined for harness + memory reuse across projects
 - Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, and planning bridge contract
 - Application design drafted for the unified harness + memory architecture
