@@ -13,10 +13,12 @@ from .planning_bridge import (
     ArchiveRecord,
     HarnessRequest,
     PlanningBridge,
+    ProjectManifest,
     StructuredStatus,
     build_default_planning_bridge,
 )
 from .integrated_run import ValidationCheck, ValidationReport
+from .adapter_warnings import AdapterWarning, AdapterWarnings
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,6 +143,109 @@ class ProjectAdapter:
             checks=checks,
             warnings=residual_warnings,
         )
+
+    def collect_warnings(self) -> AdapterWarnings:
+        """Scan project-specific setup and return structured adapter warnings."""
+        items: list[AdapterWarning] = []
+        manifest: ProjectManifest | None = None
+        if not self.manifest_path.exists():
+            items.append(
+                AdapterWarning(
+                    code="manifest_missing",
+                    message=(
+                        "Canonical manifest not found at "
+                        f"{self.manifest_path}; the adapter cannot identify the "
+                        "active project."
+                    ),
+                    severity="error",
+                )
+            )
+        else:
+            try:
+                manifest = self.planning_bridge.load_manifest()
+            except Exception as exc:
+                items.append(
+                    AdapterWarning(
+                        code="manifest_unparseable",
+                        message=(
+                            "Manifest could not be parsed: "
+                            f"{exc}. The adapter cannot build a harness request."
+                        ),
+                        severity="error",
+                    )
+                )
+        if not self.handoff_path.exists():
+            items.append(
+                AdapterWarning(
+                    code="handoff_missing",
+                    message=(
+                        "Planning handoff not found at "
+                        f"{self.handoff_path}; runtime will fall back to the "
+                        "design-side active objective."
+                    ),
+                    severity="warning",
+                )
+            )
+        if not self.state_path.exists():
+            items.append(
+                AdapterWarning(
+                    code="state_path_missing",
+                    message=(
+                        "MM-Flow state file not found at "
+                        f"{self.state_path}; phase tracking will start fresh."
+                    ),
+                    severity="info",
+                )
+            )
+        if manifest is not None:
+            if (
+                not manifest.source_of_truth_ai_dlc
+                or not manifest.source_of_truth_planning
+            ):
+                items.append(
+                    AdapterWarning(
+                        code="source_of_truth_split_unclear",
+                        message=(
+                            "Manifest does not declare both source-of-truth flags "
+                            "as true; AI-DLC and .planning ownership are ambiguous."
+                        ),
+                        severity="warning",
+                    )
+                )
+            if not manifest.bridge_contract:
+                items.append(
+                    AdapterWarning(
+                        code="bridge_contract_undeclared",
+                        message=(
+                            "Manifest omits a bridge_contract reference; another "
+                            "project cannot locate the planning bridge contract."
+                        ),
+                        severity="info",
+                    )
+                )
+            if not manifest.project_name:
+                items.append(
+                    AdapterWarning(
+                        code="project_name_empty",
+                        message=(
+                            "Manifest project_name is empty; project_id will fall "
+                            "back to the directory name."
+                        ),
+                        severity="warning",
+                    )
+                )
+            if not self.project_id:
+                items.append(
+                    AdapterWarning(
+                        code="project_id_unstable",
+                        message=(
+                            "Could not derive a stable project_id from the manifest "
+                            "or environment; memory isolation is at risk."
+                        ),
+                        severity="warning",
+                    )
+                )
+        return AdapterWarnings(items=tuple(items))
 
 
 def _detect_project_root() -> Path:

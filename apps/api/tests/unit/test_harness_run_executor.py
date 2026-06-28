@@ -362,3 +362,60 @@ async def test_executor_validation_reports_mismatches(tmp_path: Path) -> None:
     assert run.validation.passed is False
     failed = {check.check_id for check in run.validation.checks if not check.passed}
     assert "next_command_present" in failed
+
+
+@pytest.mark.asyncio
+async def test_executor_runs_two_projects_in_isolation(tmp_path: Path) -> None:
+    """Two distinct repos must keep their planning + memory state isolated."""
+    repo_a = tmp_path / "project-alpha"
+    repo_b = tmp_path / "project-beta"
+    _write_planning_fixture(repo_a)
+    _write_planning_fixture(repo_b)
+
+    adapter_a = ProjectAdapter.for_repo(repo_a)
+    adapter_b = ProjectAdapter.for_repo(repo_b)
+
+    def coordinator_factory(**kwargs: Any) -> StatelessCoordinator:
+        coordinator = StatelessCoordinator(CoordinatorConfig(**kwargs))
+        _patch_coordinator(coordinator)
+        return coordinator
+
+    executor_a = HarnessRunExecutor(
+        adapter=adapter_a,
+        coordinator_factory=coordinator_factory,
+    )
+    executor_b = HarnessRunExecutor(
+        adapter=adapter_b,
+        coordinator_factory=coordinator_factory,
+    )
+
+    run_a = await executor_a.execute_harness_run(
+        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
+        status="in_progress",
+        summary="Alpha slice 4 integration run.",
+    )
+    run_b = await executor_b.execute_harness_run(
+        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
+        status="in_progress",
+        summary="Beta slice 4 integration run.",
+    )
+
+    assert run_a.project_id == "mastermind-unified-harness-memory"
+    assert run_b.project_id == "mastermind-unified-harness-memory"
+    assert run_a.project_id == run_b.project_id
+
+    handoff_a = (repo_a / ".planning" / "HANDOFF-CURRENT.md").read_text(
+        encoding="utf-8"
+    )
+    handoff_b = (repo_b / ".planning" / "HANDOFF-CURRENT.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Alpha slice 4 integration run." in handoff_a
+    assert "Beta slice 4 integration run." in handoff_b
+    assert "Alpha slice 4 integration run." not in handoff_b
+    assert "Beta slice 4 integration run." not in handoff_a
+
+    assert run_a.request.project_root == repo_a
+    assert run_b.request.project_root == repo_b
