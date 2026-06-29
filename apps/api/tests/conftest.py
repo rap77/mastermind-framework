@@ -4,10 +4,15 @@ Pytest configuration and shared fixtures.
 This module provides fixtures for testing parallel execution components and Phase 3 API testing.
 """
 
+import os
+import uuid
+
+os.environ.setdefault("JWT_SECRET", uuid.uuid4().hex)
+
 import pytest
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, AsyncGenerator, Dict, List
 
 from mastermind_cli.types.parallel import ProviderConfig
 from mastermind_cli.state.database import DatabaseConnection
@@ -19,7 +24,7 @@ PROVIDERS_CONFIG_PATH = CONFIG_DIR / "providers.yaml"
 
 
 @pytest.fixture
-async def async_db():
+async def async_db() -> AsyncGenerator[DatabaseConnection, None]:
     """Async in-memory database fixture.
 
     Provides a clean in-memory database for each test.
@@ -132,7 +137,7 @@ def mock_auth_headers() -> Dict[str, str]:
 
     TODO: Implement after Plan 01 Task 1 - Return valid JWT token in Authorization header.
     """
-    return {"Authorization": "Bearer test_token"}
+    return {"Authorization": f"Bearer {uuid.uuid4().hex}"}
 
 
 @pytest.fixture
@@ -150,4 +155,4 @@ def mock_api_key_headers() -> Dict[str, str]:
 
     TODO: Implement after Plan 01 Task 1 - Return valid API key in Authorization header.
     """
-    return {"Authorization": "Bearer mmsk_test1234567890abcdef"}
+    return {"Authorization": f"Bearer mmsk_{uuid.uuid4().hex}"}
