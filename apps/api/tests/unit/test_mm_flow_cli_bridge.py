@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -36,67 +37,6 @@ class _FakeConnection:
 
     async def close(self) -> None:
         self.closed = True
-
-
-def test_execute_phase_start_updates_planning_bridge(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Starting a phase should write structured bridge status."""
-    fake_conn = _FakeConnection()
-    adapter_calls: list[dict[str, object]] = []
-    runtime_state_calls: list[tuple[object, ...]] = []
-
-    class FakeAdapter:
-        def load_harness_request(self) -> SimpleNamespace:
-            return SimpleNamespace(
-                operational_objective="harness-memory-unification",
-                active_uow="UOW-4",
-                warnings=("planning_objective_differs_from_design_objective",),
-            )
-
-        def write_structured_status(self, **kwargs: object) -> None:
-            adapter_calls.append(kwargs)
-
-    async def fake_connect(database_url: str) -> _FakeConnection:
-        del database_url
-        return fake_conn
-
-    def fake_build_project_adapter() -> FakeAdapter:
-        return FakeAdapter()
-
-    def fake_write_runtime_state(*args: object) -> None:
-        runtime_state_calls.append(args)
-
-    monkeypatch.setenv("DATABASE_URL", "postgresql://example.test/db")
-    monkeypatch.delenv("MM_MEMORY_PROJECT_ID", raising=False)
-    monkeypatch.setattr(mm_flow_cli.asyncpg, "connect", fake_connect)
-    monkeypatch.setattr(
-        mm_flow_cli, "_build_project_adapter", fake_build_project_adapter
-    )
-    monkeypatch.setattr(mm_flow_cli, "_write_runtime_state", fake_write_runtime_state)
-
-    mm_flow_cli.execute_phase.callback(  # type: ignore[attr-defined]
-        phase=19,
-        start=True,
-        complete=False,
-        commit=None,
-        tokens=0,
-        summary="",
-    )
-
-    assert runtime_state_calls
-    assert adapter_calls == [
-        {
-            "status": "in_progress",
-            "summary": "Phase 19 execution started.",
-            "next_action": "continue_phase_execution",
-            "verification_outcome": "pending",
-            "objective": "harness-memory-unification",
-            "uow": "UOW-4",
-            "warnings": ("planning_objective_differs_from_design_objective",),
-        }
-    ]
-    assert fake_conn.closed is True
 
 
 def test_run_phase_in_progress_invokes_executor(
@@ -195,7 +135,6 @@ def test_run_phase_completed_archives_bridge_status(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """run-phase --complete should trigger archive path on the bridge and reuse the started execution_id."""
-    from datetime import datetime, timezone
 
     from mastermind_cli.mm_flow.integrated_run import (
         IntegratedRun,

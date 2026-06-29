@@ -1,756 +1,67 @@
 """
-Tests for mastermind_cli.mm_flow.cli
+Tests for the mm_flow CLI module — environment validation and runtime-state atomic writes.
 
-TDD: verifies CLI lifecycle management — INSERT on --start, UPDATE on --complete,
-runtime-state.json written with correct schema (C2), EXEC_ID handoff (C4).
+Note: high-level lifecycle coverage (start/complete) lives in
+`test_mm_flow_cli_bridge.py`. This file focuses on cross-cutting CLI
+contracts that don't depend on the unified harness run executor.
 """
 
 import json
-import uuid
+import stat
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
-from mastermind_cli.memory_layer.models import MemorySearchResult
 from mastermind_cli.mm_flow.cli import cli
+from mastermind_cli.mm_flow.config_loader import RuntimeState
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Environment validation
 # ---------------------------------------------------------------------------
-
-
-def _make_asyncpg_conn(
-    execute_result: object = None,
-    fetchrow_result: object = None,
-) -> MagicMock:
-    """Build a mock asyncpg connection for unit testing without a real DB.
-
-    Args:
-        execute_result: Value returned by ``conn.execute`` awaitable.
-        fetchrow_result: Value returned by ``conn.fetchrow`` awaitable.
-
-    Returns:
-        AsyncMock configured with ``execute``, ``fetchrow``, and ``close``.
-    """
-    conn = AsyncMock()
-    conn.execute = AsyncMock(return_value=execute_result)
-    conn.fetchrow = AsyncMock(return_value=fetchrow_result)
-    conn.close = AsyncMock()
-    return conn
-
-
-# ---------------------------------------------------------------------------
-# Task 2.1 tests
-# ---------------------------------------------------------------------------
-
-
-class TestExecutePhaseStart:
-    def test_start_creates_db_row(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--start issues INSERT into phase_executions with correct phase_number."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        # Override runtime-state path to tmp_path
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
-        )
-
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        # Verify execute was called twice: SET LOCAL + INSERT (IMPORTANT #1 - RLS)
-        assert conn.execute.await_count == 2
-        # Second call should be the INSERT
-        call_args = conn.execute.call_args_list[1]
-        sql: str = call_args[0][0]
-        assert "INSERT INTO phase_executions" in sql
-        # phase_number arg is second positional
-        assert call_args[0][2] == 19
-
-    def test_execution_id_in_stdout(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--start echoes execution_id:<uuid> to stdout."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
-        )
-
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        assert result.output.startswith("execution_id:")
-        # The part after "execution_id:" must be a valid UUID
-        raw_id = result.output.strip().split("execution_id:")[1]
-        parsed = uuid.UUID(raw_id)  # raises if not valid UUID
-        assert str(parsed) == raw_id
-
-    def test_start_writes_runtime_state(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--start writes runtime-state.json with correct 7-field schema (C2)."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        assert runtime_path.exists(), "runtime-state.json must be created"
-
-        state = json.loads(runtime_path.read_text())
-        required_fields = {
-            "execution_id",
-            "phase",
-            "current_moment",
-            "active_brain",
-            "brain_state",
-            "backend",
-            "updated_at",
-        }
-        assert required_fields == set(
-            state.keys()
-        ), f"Missing fields: {required_fields - set(state.keys())}"
-        assert state["phase"] == 19
-        assert state["brain_state"] == "ACTIVE"
-        # execution_id must be a valid UUID
-        uuid.UUID(state["execution_id"])
-
-    def test_start_records_backend_preference_in_memory_service(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--start should persist the selected backend as an operational preference."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-        ):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_preference.assert_awaited_once_with(
-            key="preferred_backend",
-            value={"backend_id": "claude"},
-            scope="project",
-            project_id="proj-001",
-        )
-
-    def test_start_ignores_backend_preference_persistence_failures(
-        self,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """--start should not fail if preference persistence breaks."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        fake_memory_service.record_preference.side_effect = RuntimeError("boom")
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
-        ):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_preference.assert_awaited_once()
-        mock_warning.assert_called_once()
-
-    def test_start_ignores_memory_service_construction_failures(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--start should not fail if the memory service cannot be built."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setenv("MM_FLOW_BACKEND", "claude")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
-        )
-
-        conn = _make_asyncpg_conn()
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                side_effect=RuntimeError("boom"),
-            ),
-            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
-        ):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
-
-        assert result.exit_code == 0, result.output
-        mock_warning.assert_called_once()
-
-
-class TestExecutePhaseComplete:
-    def test_complete_updates_db_row(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete issues UPDATE with status=completed."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        # Pre-write a runtime state so --complete can read execution_id
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "test run",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        # Verify execute was called twice: SET LOCAL + UPDATE (IMPORTANT #1 - RLS)
-        assert conn.execute.await_count == 2
-        # Second call should be the UPDATE
-        call_args = conn.execute.call_args_list[1]
-        sql: str = call_args[0][0]
-        assert "UPDATE phase_executions" in sql
-        assert "status='completed'" in sql
-        # execution_id is first positional arg
-        assert call_args[0][1] == exec_id
-
-    def test_complete_writes_runtime_state_idle(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete writes runtime-state.json with brain_state=IDLE."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli, ["execute-phase", "--phase", "19", "--complete"]
-            )
-
-        assert result.exit_code == 0, result.output
-        state = json.loads(runtime_path.read_text())
-        assert state["brain_state"] == "IDLE"
-        assert state["current_moment"] == "COMPLETED"
-
-    def test_complete_records_session_summary_in_memory_service(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete should persist a session summary through MemoryService."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        fake_memory_service.fetch_project_context.return_value = [
-            MemorySearchResult(
-                memory_id="mem-1",
-                title="Relevant context",
-                snippet="context",
-                score=0.9,
-                memory_type="decision",
-                project_id="proj-001",
-            ),
-            MemorySearchResult(
-                memory_id=exec_id,
-                title="Session summary",
-                snippet="current summary",
-                score=0.8,
-                memory_type="session_summary",
-                project_id="proj-001",
-            ),
-        ]
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-        ):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "Execution complete",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_session_summary.assert_awaited_once_with(
-            session_id=exec_id,
-            summary="Execution complete",
-            project_id="proj-001",
-            metadata={
-                "phase": 19,
-                "git_commit_hash": "abc123",
-                "tokens_consumed": 500,
-                "invocation_method": "mm:execute-phase",
-            },
-        )
-        fake_memory_service.fetch_project_context.assert_awaited_once_with(
-            project_id="proj-001",
-            query="Execution complete",
-            limit=3,
-        )
-        fake_memory_service.record_learning.assert_awaited_once()
-        record_kwargs = fake_memory_service.record_learning.await_args.kwargs
-        assert record_kwargs["memory_type"] == "session_summary"
-        assert record_kwargs["related_memory_ids"] == ["mem-1"]
-        assert record_kwargs["source_ref"] == f"session_summary:{exec_id}"
-
-    def test_complete_persists_session_summary_without_related_context(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete should still persist the summary when recall finds nothing."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        fake_memory_service.fetch_project_context.return_value = []
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-        ):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "Execution complete",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_session_summary.assert_awaited_once()
-        fake_memory_service.fetch_project_context.assert_awaited_once_with(
-            project_id="proj-001",
-            query="Execution complete",
-            limit=3,
-        )
-        fake_memory_service.record_learning.assert_awaited_once()
-        record_kwargs = fake_memory_service.record_learning.await_args.kwargs
-        assert record_kwargs["memory_type"] == "session_summary"
-        assert record_kwargs["related_memory_ids"] is None
-        assert record_kwargs["source_ref"] == f"session_summary:{exec_id}"
-
-    def test_complete_ignores_context_enrichment_failures(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete should not fail if retrieval enrichment breaks."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        fake_memory_service.fetch_project_context.side_effect = RuntimeError("boom")
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
-        ):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "Execution complete",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_session_summary.assert_awaited_once()
-        fake_memory_service.record_learning.assert_not_awaited()
-        mock_warning.assert_called_once()
-
-    def test_complete_ignores_session_summary_persistence_failures(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete should still enrich memory if the summary write breaks."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        fake_memory_service = AsyncMock()
-        fake_memory_service.record_session_summary.side_effect = RuntimeError("boom")
-        fake_memory_service.fetch_project_context.return_value = []
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                return_value=fake_memory_service,
-            ),
-            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
-        ):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "Execution complete",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        fake_memory_service.record_session_summary.assert_awaited_once()
-        fake_memory_service.fetch_project_context.assert_awaited_once_with(
-            project_id="proj-001",
-            query="Execution complete",
-            limit=3,
-        )
-        fake_memory_service.record_learning.assert_awaited_once()
-        mock_warning.assert_called_once()
-
-    def test_complete_ignores_memory_service_construction_failures(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """--complete should not fail if the memory service cannot be built."""
-        runtime_path = tmp_path / ".mm-flow" / "runtime-state.json"
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH", runtime_path
-        )
-
-        exec_id = str(uuid.uuid4())
-        runtime_path.parent.mkdir(parents=True, exist_ok=True)
-        runtime_path.write_text(
-            json.dumps(
-                {
-                    "execution_id": exec_id,
-                    "phase": 19,
-                    "current_moment": "EXECUTION_WAVE",
-                    "active_brain": 0,
-                    "brain_state": "ACTIVE",
-                    "backend": "claude",
-                    "updated_at": "2026-04-14T00:00:00",
-                }
-            )
-        )
-
-        conn = _make_asyncpg_conn()
-        with (
-            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
-            patch(
-                "mastermind_cli.mm_flow.cli._build_memory_service",
-                side_effect=RuntimeError("boom"),
-            ),
-            patch("mastermind_cli.mm_flow.cli.logger.warning") as mock_warning,
-        ):
-            runner = CliRunner()
-            result = runner.invoke(
-                cli,
-                [
-                    "execute-phase",
-                    "--phase",
-                    "19",
-                    "--complete",
-                    "--commit",
-                    "abc123",
-                    "--tokens",
-                    "500",
-                    "--summary",
-                    "Execution complete",
-                ],
-            )
-
-        assert result.exit_code == 0, result.output
-        mock_warning.assert_called_once()
-
-
-class TestMutuallyExclusiveFlags:
-    def test_start_and_complete_raises_usage_error(self) -> None:
-        """--start and --complete together must raise UsageError with improved message."""
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["execute-phase", "--phase", "19", "--start", "--complete"]
-        )
-        assert result.exit_code != 0
-        assert "mutually exclusive" in result.output.lower()
-        # Check for improved error message (SUGGESTION #1)
-        assert "example" in result.output.lower() or "--start" in result.output
-
-    def test_neither_flag_raises_usage_error(self) -> None:
-        """Calling without --start or --complete must raise UsageError with improved message."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["execute-phase", "--phase", "19"])
-        assert result.exit_code != 0
-        assert "required" in result.output.lower()
-        # Check for improved error message with examples (SUGGESTION #1)
-        assert "--start" in result.output and "--complete" in result.output
 
 
 class TestEnvironmentValidation:
-    """Tests for new environment variable validation (IMPORTANT #2)."""
+    """Tests for required environment variables (DATABASE_URL)."""
 
-    def test_missing_database_url_raises_usage_error(self) -> None:
+    def test_missing_database_url_raises_usage_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """DATABASE_URL environment variable must be set (no default)."""
         runner = CliRunner()
-        # Ensure DATABASE_URL is not set
-        result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        result = runner.invoke(
+            cli,
+            [
+                "run-phase",
+                "--phase",
+                "19",
+                "--brief",
+                "x",
+                "--brain-ids",
+                "y",
+            ],
+        )
         assert result.exit_code != 0
-        assert "DATABASE_URL" in result.output
-        assert "environment variable" in result.output.lower()
-        # Check for helpful example (IMPORTANT #2)
-        assert "export" in result.output or "postgresql://" in result.output
-
-    def test_database_url_with_valid_value_succeeds(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Valid DATABASE_URL allows command to proceed."""
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fake/db")
-        monkeypatch.setattr(
-            "mastermind_cli.mm_flow.cli.RUNTIME_STATE_PATH",
-            tmp_path / ".mm-flow" / "runtime-state.json",
+        assert "DATABASE_URL" in str(result.exception)
+        assert "environment variable" in str(result.exception).lower()
+        assert "export" in str(result.exception) or "postgresql://" in str(
+            result.exception
         )
 
-        conn = _make_asyncpg_conn()
-        with patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
-            runner = CliRunner()
-            result = runner.invoke(cli, ["execute-phase", "--phase", "19", "--start"])
 
-        assert result.exit_code == 0, result.output
+# ---------------------------------------------------------------------------
+# Atomic write guarantee (C2)
+# ---------------------------------------------------------------------------
 
 
 class TestAtomicWriteGuarantee:
-    """Tests for atomic write behavior (C2 code review RECOMMENDATION #1)."""
+    """Tests for atomic write behavior of RuntimeState."""
 
-    def test_atomic_write_prevents_partial_reads(self, tmp_path: Path) -> None:
-        """Verify atomic write prevents partial reads if process crashes.
-
-        This test documents the C2 invariant: runtime-state.json writes
-        are atomic via temp file + rename pattern. If process crashes
-        during write, the original file remains intact.
-        """
+    def test_atomic_write_round_trips_state(self, tmp_path: Path) -> None:
+        """`to_json_file` produces a readable file whose contents round-trip cleanly."""
         runtime_path = tmp_path / "runtime-state.json"
-
-        # Simulate crash during write: incomplete temp file exists
-        tmp = Path(str(runtime_path) + ".tmp")
-        tmp.write_text('{"incomplete": true')
-
-        # Original file should not exist or be intact (not corrupted)
-        if runtime_path.exists():
-            content = runtime_path.read_text()
-            assert "incomplete" not in content
-
-        # Complete atomic write
-        tmp.rename(runtime_path)
-        assert runtime_path.exists()
-        assert "incomplete" in runtime_path.read_text()
-
-    def test_atomic_write_creates_parent_directories(self, tmp_path: Path) -> None:
-        """Verify atomic write creates parent directories if they don't exist."""
-        runtime_path = tmp_path / "nested" / "dir" / "runtime-state.json"
-
-        # Create a minimal RuntimeState instance
-        from mastermind_cli.mm_flow.config_loader import RuntimeState
-
         state = RuntimeState(
             execution_id="test-id",
             phase=19,
@@ -761,19 +72,34 @@ class TestAtomicWriteGuarantee:
             updated_at="2026-04-14T00:00:00",
         )
 
-        # Write should create parent directories
         state.to_json_file(runtime_path)
 
+        assert runtime_path.exists()
+        payload = json.loads(runtime_path.read_text())
+        assert payload["execution_id"] == "test-id"
+        assert payload["phase"] == 19
+        assert payload["current_moment"] == "EXECUTION_WAVE"
+        assert payload["backend"] == "claude"
+
+    def test_atomic_write_creates_parent_directories(self, tmp_path: Path) -> None:
+        """Atomic write creates parent directories when they don't exist."""
+        runtime_path = tmp_path / "nested" / "dir" / "runtime-state.json"
+        state = RuntimeState(
+            execution_id="test-id",
+            phase=19,
+            current_moment="EXECUTION_WAVE",
+            active_brain=0,
+            brain_state="ACTIVE",
+            backend="claude",
+            updated_at="2026-04-14T00:00:00",
+        )
+        state.to_json_file(runtime_path)
         assert runtime_path.exists()
         assert runtime_path.parent.exists()
 
     def test_atomic_write_sets_explicit_permissions(self, tmp_path: Path) -> None:
-        """Verify atomic write sets explicit 0o644 permissions."""
+        """Atomic write sets 0o644 permissions on the resulting file."""
         runtime_path = tmp_path / "runtime-state.json"
-
-        # Create a minimal RuntimeState instance
-        from mastermind_cli.mm_flow.config_loader import RuntimeState
-
         state = RuntimeState(
             execution_id="test-id",
             phase=19,
@@ -783,20 +109,13 @@ class TestAtomicWriteGuarantee:
             backend="claude",
             updated_at="2026-04-14T00:00:00",
         )
-
-        # Write should set explicit permissions
         state.to_json_file(runtime_path)
-
-        import stat
-
         file_mode = runtime_path.stat().st_mode
         assert stat.filemode(file_mode) == "-rw-r--r--"
         assert (file_mode & 0o777) == 0o644
 
     def test_atomic_write_rejects_path_traversal(self, tmp_path: Path) -> None:
-        """Verify atomic write rejects path traversal attempts."""
-        from mastermind_cli.mm_flow.config_loader import RuntimeState
-
+        """Atomic write rejects paths containing '..'."""
         state = RuntimeState(
             execution_id="test-id",
             phase=19,
@@ -806,13 +125,9 @@ class TestAtomicWriteGuarantee:
             backend="claude",
             updated_at="2026-04-14T00:00:00",
         )
-
-        # Test with '..' in path should raise ValueError
         with pytest.raises(ValueError, match="path traversal"):
             state.to_json_file(tmp_path / ".." / "runtime-state.json")
 
-        # Absolute paths should be allowed (only '..' is blocked)
-        # This is fine because the path is within tmp_path controlled by test
         absolute_path = tmp_path / "absolute-runtime-state.json"
         state.to_json_file(absolute_path)
         assert absolute_path.exists()

@@ -1,12 +1,18 @@
 """
-MM-Flow CLI — lifecycle management for phase execution.
+MM-Flow CLI — harness execution lifecycle management.
 
-Registers phase executions in PostgreSQL phase_executions table.
-Writes runtime-state.json atomically for EXEC_ID handoff (C4).
+Runs a phase through `HarnessRunExecutor` end-to-end, registers the execution
+in the PostgreSQL phase_executions audit trail, and writes the
+`runtime-state.json` handoff for EXEC_ID continuity between `--start` and
+`--complete`.
 
 Usage:
-    uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase 19 --start
-    uv run python -m mastermind_cli.mm_flow.cli execute-phase --phase 19 --complete --commit abc123
+    uv run python -m mastermind_cli.mm_flow.cli run-phase \\
+        --phase 19 --brief "..." --brain-ids brain-01-product-strategy \\
+        --status in_progress
+    uv run python -m mastermind_cli.mm_flow.cli run-phase \\
+        --phase 19 --brief "..." --brain-ids brain-01-product-strategy \\
+        --status completed --commit abc123
 """
 
 import asyncio
@@ -44,7 +50,6 @@ from mastermind_cli.orchestrator.stateless_coordinator import (
 from mastermind_cli.types.interfaces import Brief
 from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
 
-RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
 logger = logging.getLogger(__name__)
 
 
@@ -70,20 +75,9 @@ def _registry_path() -> Path:
     return _project_root() / ".planning" / "evidence" / "evidence-registry.json"
 
 
-def _build_memory_service(database_url: str) -> MemoryService:
-    """Build the first-party memory service for MM-Flow persistence."""
-    return MemoryService(
-        build_memory_store_from_env(
-            database_url,
-            enable_vector=False,
-            enable_index=True,
-        )
-    )
-
-
-def _build_project_adapter() -> ProjectAdapter:
-    """Build the repo-specific planning bridge adapter."""
-    return ProjectAdapter.for_repo(_project_root())
+def _runtime_state_path() -> Path:
+    """Return the resolved runtime-state.json path under the repo root."""
+    return _project_root() / ".planning" / ".mm-flow" / "runtime-state.json"
 
 
 def _write_runtime_state(
@@ -113,7 +107,7 @@ def _write_runtime_state(
         backend=backend,
         updated_at=datetime.now().isoformat(),
     )
-    state_obj.to_json_file(RUNTIME_STATE_PATH)
+    state_obj.to_json_file(_runtime_state_path())
 
 
 @click.group()
@@ -123,228 +117,6 @@ def cli() -> None:
     Provides commands to register phase start/completion in the PostgreSQL
     audit trail and maintain the runtime-state.json checkpoint file.
     """
-
-
-@cli.command("execute-phase")
-@click.option("--phase", type=int, required=True, help="Phase number")
-@click.option("--start", is_flag=True, help="Mark phase as started")
-@click.option("--complete", is_flag=True, help="Mark phase as completed")
-@click.option("--commit", default=None, help="Git commit hash at completion")
-@click.option("--tokens", type=int, default=0, help="Tokens consumed")
-@click.option("--summary", default="", help="Execution summary")
-def execute_phase(
-    phase: int,
-    start: bool,
-    complete: bool,
-    commit: str | None,
-    tokens: int,
-    summary: str,
-) -> None:
-    """Manage the lifecycle of a single phase execution.
-
-    Args:
-        phase: Phase number to track (e.g. 19).
-        start: When True, inserts a new in_progress row and echoes execution_id.
-        complete: When True, updates the row to completed using the stored UUID.
-        commit: Git commit hash to attach at completion.
-        tokens: Tokens consumed during execution (default 0).
-        summary: Human-readable summary written to output_summary column.
-    """
-    if start and complete:
-        raise ValueError(
-            "--start and --complete are mutually exclusive.\n"
-            "Example: --start creates a new execution, --complete finishes it."
-        )
-    if not start and not complete:
-        raise ValueError(
-            "Either --start or --complete is required.\n"
-            "To start: execute-phase --phase 19 --start\n"
-            "To complete: execute-phase --phase 19 --complete --commit abc123"
-        )
-
-    postgres_url = os.environ.get("DATABASE_URL")
-    if not postgres_url:
-        raise ValueError(
-            "DATABASE_URL environment variable must be set.\n"
-            "Example: export DATABASE_URL=postgresql://user:pass@host:port/db"
-        )
-
-    async def _run() -> None:
-        conn = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
-        try:
-            async with conn.transaction():
-                # Set org_id for RLS policies (required for audit tables - IMPORTANT #1)
-                org_id = os.environ.get("MM_FLOW_ORG_ID", "default-org-id")
-                await conn.execute(
-                    "SELECT set_config('mm_flow.org_id', $1, true)",
-                    org_id,
-                )
-
-                if start:
-                    execution_id = str(uuid.uuid4())
-                    await conn.execute(
-                        """INSERT INTO phase_executions
-                               (id, phase_number, status, started_at, triggered_by)
-                           VALUES ($1, $2, 'in_progress', NOW(), 'skill')
-                           ON CONFLICT DO NOTHING""",
-                        execution_id,
-                        phase,
-                    )
-                    backend = os.environ.get("MM_FLOW_BACKEND", "claude")
-                    _write_runtime_state(
-                        execution_id, phase, "EXECUTION_WAVE", 0, "ACTIVE", backend
-                    )
-                    try:
-                        adapter = _build_project_adapter()
-                        request = adapter.load_harness_request()
-                        adapter.write_structured_status(
-                            status="in_progress",
-                            summary=f"Phase {phase} execution started.",
-                            next_action="continue_phase_execution",
-                            verification_outcome="pending",
-                            objective=request.operational_objective,
-                            uow=request.active_uow,
-                            warnings=request.warnings,
-                        )
-                    except Exception:
-                        logger.warning(
-                            "execute-phase planning bridge write failed",
-                            exc_info=True,
-                        )
-                    project_id = os.environ.get("MM_MEMORY_PROJECT_ID")
-                    if project_id:
-                        try:
-                            memory_service = _build_memory_service(postgres_url)
-                            await memory_service.record_preference(
-                                key="preferred_backend",
-                                value={"backend_id": backend},
-                                scope="project",
-                                project_id=project_id,
-                            )
-                        except Exception:
-                            logger.warning(
-                                "execute-phase start preference persistence failed",
-                                exc_info=True,
-                            )
-                    click.echo(f"execution_id:{execution_id}")
-
-                elif complete:
-                    # Read execution_id from runtime-state.json (C4 — EXEC_ID handoff)
-                    execution_id = ""
-                    if RUNTIME_STATE_PATH.exists():
-                        try:
-                            state_data = json.loads(RUNTIME_STATE_PATH.read_text())
-                        except json.JSONDecodeError as exc:
-                            raise ValueError(
-                                "runtime-state.json is malformed; cannot complete phase."
-                            ) from exc
-                        execution_id = state_data.get("execution_id", "")
-
-                    if not execution_id:
-                        raise ValueError(
-                            "runtime-state.json is missing execution_id; cannot complete phase."
-                        )
-
-                    await conn.execute(
-                        """UPDATE phase_executions
-                           SET status='completed', completed_at=NOW(),
-                               git_commit_hash=$2, tokens_consumed=$3, output_summary=$4
-                           WHERE id=$1""",
-                        execution_id,
-                        commit,
-                        tokens,
-                        summary,
-                    )
-                    project_id = os.environ.get("MM_MEMORY_PROJECT_ID")
-                    if summary and project_id:
-                        try:
-                            memory_service = _build_memory_service(postgres_url)
-                        except Exception:
-                            logger.warning(
-                                "execute-phase memory service construction failed",
-                                exc_info=True,
-                            )
-                        else:
-                            try:
-                                await memory_service.record_session_summary(
-                                    session_id=execution_id,
-                                    summary=summary,
-                                    project_id=project_id,
-                                    metadata={
-                                        "phase": phase,
-                                        "git_commit_hash": commit,
-                                        "tokens_consumed": tokens,
-                                        "invocation_method": "mm:execute-phase",
-                                    },
-                                )
-                            except Exception:
-                                logger.warning(
-                                    "execute-phase session summary persistence failed",
-                                    exc_info=True,
-                                )
-                            try:
-                                related_context = (
-                                    await memory_service.fetch_project_context(
-                                        project_id=project_id,
-                                        query=summary,
-                                        limit=3,
-                                    )
-                                )
-                                related_memory_ids = [
-                                    result.memory_id
-                                    for result in related_context
-                                    if result.memory_id
-                                    and result.memory_id != execution_id
-                                ]
-                                await memory_service.record_learning(
-                                    title=f"Session summary: {execution_id}",
-                                    content=summary,
-                                    project_id=project_id,
-                                    memory_type="session_summary",
-                                    visibility="project",
-                                    source_kind="mm_flow",
-                                    source_ref=f"session_summary:{execution_id}",
-                                    tags=["session_summary", f"phase-{phase}"],
-                                    related_memory_ids=related_memory_ids or None,
-                                    metadata={
-                                        "phase": phase,
-                                        "git_commit_hash": commit,
-                                        "tokens_consumed": tokens,
-                                        "invocation_method": "mm:execute-phase",
-                                    },
-                                )
-                            except Exception:
-                                logger.warning(
-                                    "execute-phase memory enrichment failed",
-                                    exc_info=True,
-                                )
-                    backend = os.environ.get("MM_FLOW_BACKEND", "claude")
-                    _write_runtime_state(
-                        execution_id, phase, "COMPLETED", 0, "IDLE", backend
-                    )
-                    try:
-                        adapter = _build_project_adapter()
-                        request = adapter.load_harness_request()
-                        adapter.write_structured_status(
-                            status="completed",
-                            summary=summary or f"Phase {phase} completed.",
-                            next_action="archive_objective",
-                            verification_outcome="passed",
-                            objective=request.operational_objective,
-                            uow=request.active_uow,
-                            warnings=request.warnings,
-                        )
-                    except Exception:
-                        logger.warning(
-                            "execute-phase planning bridge archive failed",
-                            exc_info=True,
-                        )
-                    click.echo(f"Phase {phase} marked complete")
-
-        finally:
-            await conn.close()
-
-    asyncio.run(_run())
 
 
 @cli.command("run-phase")
@@ -462,9 +234,10 @@ def run_phase(
                     )
                 else:
                     execution_id = ""
-                    if RUNTIME_STATE_PATH.exists():
+                    runtime_state_path = _runtime_state_path()
+                    if runtime_state_path.exists():
                         try:
-                            state_data = json.loads(RUNTIME_STATE_PATH.read_text())
+                            state_data = json.loads(runtime_state_path.read_text())
                             execution_id = state_data.get("execution_id", "")
                         except json.JSONDecodeError as exc:
                             raise ValueError(
@@ -474,6 +247,18 @@ def run_phase(
                         raise ValueError(
                             "runtime-state.json is missing execution_id; cannot complete phase."
                         )
+                    run = await executor.execute_harness_run(
+                        brief=Brief(
+                            problem_statement=brief,
+                            context="",
+                            constraints=[],
+                            target_audience="",
+                        ),
+                        brain_ids=parsed_brain_ids,
+                        status="completed",
+                        summary=resolved_summary,
+                        verification_outcome="passed",
+                    )
                     update_result = await conn.execute(
                         """UPDATE phase_executions
                            SET status='completed', completed_at=NOW(),
@@ -497,18 +282,6 @@ def run_phase(
                         0,
                         "IDLE",
                         backend,
-                    )
-                    run = await executor.execute_harness_run(
-                        brief=Brief(
-                            problem_statement=brief,
-                            context="",
-                            constraints=[],
-                            target_audience="",
-                        ),
-                        brain_ids=parsed_brain_ids,
-                        status="completed",
-                        summary=resolved_summary,
-                        verification_outcome="passed",
                     )
                     archived = (
                         "archived" if run.archive_record is not None else "no_archive"
