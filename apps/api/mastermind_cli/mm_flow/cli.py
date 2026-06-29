@@ -18,7 +18,7 @@ import subprocess
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import asyncpg
 import click
@@ -34,14 +34,22 @@ from mastermind_cli.mm_flow.evidence_selector import (
 )
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 from mastermind_cli.mm_flow.config_loader import RuntimeState
+from mastermind_cli.mm_flow.harness_run_executor import HarnessRunExecutor
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
+from mastermind_cli.orchestrator.runtime_contracts import MemoryRuntimeAdapter
+from mastermind_cli.orchestrator.stateless_coordinator import (
+    CoordinatorConfig,
+    StatelessCoordinator,
+)
+from mastermind_cli.types.interfaces import Brief
+from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
 
 RUNTIME_STATE_PATH = Path(".planning/.mm-flow/runtime-state.json")
 logger = logging.getLogger(__name__)
 
 
 def _project_root() -> Path:
-    """Resolve the repository root from git."""
+    """Resolve the repository root from git when possible."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
@@ -52,8 +60,8 @@ def _project_root() -> Path:
         )
         if result.returncode == 0:
             return Path(result.stdout.strip())
-    except Exception:
-        pass
+    except (subprocess.SubprocessError, OSError) as exc:
+        logger.debug("git rev-parse failed; falling back to cwd", exc_info=exc)
     return Path.cwd()
 
 
@@ -333,6 +341,183 @@ def execute_phase(
                         )
                     click.echo(f"Phase {phase} marked complete")
 
+        finally:
+            await conn.close()
+
+    asyncio.run(_run())
+
+
+@cli.command("run-phase")
+@click.option("--phase", type=int, required=True, help="Phase number")
+@click.option(
+    "--brief",
+    required=True,
+    help="Problem statement handed to the harness runtime.",
+)
+@click.option(
+    "--brain-ids",
+    required=True,
+    help="Comma-separated brain IDs to execute (e.g. brain-01-product-strategy,brain-03-ui-design).",
+)
+@click.option(
+    "--status",
+    type=click.Choice(["in_progress", "completed"]),
+    default="in_progress",
+    show_default=True,
+)
+@click.option("--summary", default="", help="Human-readable summary for the run.")
+@click.option(
+    "--tokens", type=int, default=0, help="Tokens consumed (recorded on completion)."
+)
+@click.option("--commit", default=None, help="Git commit hash at completion.")
+def run_phase(
+    phase: int,
+    brief: str,
+    brain_ids: str,
+    status: str,
+    summary: str,
+    tokens: int,
+    commit: str | None,
+) -> None:
+    """Run the harness end-to-end via `HarnessRunExecutor` and record phase audit."""
+    postgres_url = os.environ.get("DATABASE_URL")
+    if not postgres_url:
+        raise ValueError(
+            "DATABASE_URL environment variable must be set.\n"
+            "Example: export DATABASE_URL=postgresql://user:pass@host:port/db"
+        )
+
+    parsed_brain_ids = tuple(
+        brain_id.strip() for brain_id in brain_ids.split(",") if brain_id.strip()
+    )
+    if not parsed_brain_ids:
+        raise ValueError("--brain-ids must contain at least one brain ID")
+
+    resolved_summary = summary or f"Phase {phase} {status}."
+
+    async def _run() -> None:
+        conn = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
+        try:
+            async with conn.transaction():
+                org_id = os.environ.get("MM_FLOW_ORG_ID", "default-org-id")
+                await conn.execute(
+                    "SELECT set_config('mm_flow.org_id', $1, true)",
+                    org_id,
+                )
+
+                adapter = ProjectAdapter.for_repo(_project_root())
+                memory_service = MemoryService(
+                    build_memory_store_from_env(
+                        postgres_url,
+                        enable_vector=False,
+                        enable_index=True,
+                    )
+                )
+                executor = HarnessRunExecutor(
+                    adapter=adapter,
+                    mcp_client=cast(Any, MCPIntegration(use_mcp=False)),
+                    coordinator_factory=lambda **kwargs: StatelessCoordinator(
+                        CoordinatorConfig(**kwargs)
+                    ),
+                    memory_service=memory_service,
+                    memory_runtime_writer=MemoryRuntimeAdapter(
+                        memory_service=memory_service
+                    ),
+                )
+
+                execution_id = str(uuid.uuid4())
+                if status == "in_progress":
+                    await conn.execute(
+                        """INSERT INTO phase_executions
+                               (id, phase_number, status, started_at, triggered_by)
+                           VALUES ($1, $2, 'in_progress', NOW(), 'skill')
+                           ON CONFLICT DO NOTHING""",
+                        execution_id,
+                        phase,
+                    )
+                    backend = os.environ.get("MM_FLOW_BACKEND", "claude")
+                    _write_runtime_state(
+                        execution_id,
+                        phase,
+                        "EXECUTION_WAVE",
+                        0,
+                        "ACTIVE",
+                        backend,
+                    )
+                    run = await executor.execute_harness_run(
+                        brief=Brief(
+                            problem_statement=brief,
+                            context="",
+                            constraints=[],
+                            target_audience="",
+                        ),
+                        brain_ids=parsed_brain_ids,
+                        status="in_progress",
+                        summary=resolved_summary,
+                        verification_outcome="pending",
+                    )
+                    click.echo(
+                        f"execution_id:{execution_id} project_id:{run.project_id} "
+                        f"validation_passed:{run.validation.passed}"
+                    )
+                else:
+                    execution_id = ""
+                    if RUNTIME_STATE_PATH.exists():
+                        try:
+                            state_data = json.loads(RUNTIME_STATE_PATH.read_text())
+                            execution_id = state_data.get("execution_id", "")
+                        except json.JSONDecodeError as exc:
+                            raise ValueError(
+                                "runtime-state.json is malformed; cannot complete phase."
+                            ) from exc
+                    if not execution_id:
+                        raise ValueError(
+                            "runtime-state.json is missing execution_id; cannot complete phase."
+                        )
+                    update_result = await conn.execute(
+                        """UPDATE phase_executions
+                           SET status='completed', completed_at=NOW(),
+                               git_commit_hash=$2, tokens_consumed=$3, output_summary=$4
+                           WHERE id=$1 AND status='in_progress'""",
+                        execution_id,
+                        commit,
+                        tokens,
+                        resolved_summary,
+                    )
+                    if update_result.endswith("0"):
+                        raise ValueError(
+                            f"No in_progress phase_executions row matched id={execution_id}; "
+                            "cannot complete phase."
+                        )
+                    backend = os.environ.get("MM_FLOW_BACKEND", "claude")
+                    _write_runtime_state(
+                        execution_id,
+                        phase,
+                        "COMPLETED",
+                        0,
+                        "IDLE",
+                        backend,
+                    )
+                    run = await executor.execute_harness_run(
+                        brief=Brief(
+                            problem_statement=brief,
+                            context="",
+                            constraints=[],
+                            target_audience="",
+                        ),
+                        brain_ids=parsed_brain_ids,
+                        status="completed",
+                        summary=resolved_summary,
+                        verification_outcome="passed",
+                    )
+                    archived = (
+                        "archived" if run.archive_record is not None else "no_archive"
+                    )
+                    click.echo(
+                        f"Phase {phase} marked complete execution_id:{execution_id} "
+                        f"project_id:{run.project_id} "
+                        f"validation_passed:{run.validation.passed} {archived}"
+                    )
         finally:
             await conn.close()
 
