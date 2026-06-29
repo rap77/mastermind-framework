@@ -74,6 +74,8 @@
 - UOW-1 code generation plan drafted for the project manifest and source-of-truth rules
 - UOW-4 planning bridge + project adapter now implemented in `apps/api/mastermind_cli/mm_flow/`
 - UOW-2 harness core runtime now implemented in `apps/api/mastermind_cli/orchestrator/runtime_contracts/`
+- Harness run executor (`HarnessRunExecutor`) + IntegratedRun + ValidationReport + AdapterWarnings now implemented in `apps/api/mastermind_cli/mm_flow/`
+- CLI extended with `run-phase` command that drives the full harness via the executor (Postgres audit + runtime-state.json handoff + bridge write-back + archive on completion)
 - Notes:
   - Product discovery inputs are in `Product-Definition/`.
   - Open questions OQ-1 through OQ-8 were resolved in inception artifacts.
