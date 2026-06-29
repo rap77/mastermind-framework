@@ -9,8 +9,30 @@ Tests:
 
 from __future__ import annotations
 
+import pytest
+
 from mastermind_cli.rag import similarity_search  # noqa: F401 (import test)
 from mastermind_cli.rag.embed import compute_hash, encode
+
+
+class _DummySentenceTransformer:
+    """Lightweight stand-in for the external embedding model."""
+
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+
+    def encode(
+        self, texts: list[str], normalize_embeddings: bool = True
+    ) -> list[list[float]]:
+        return [[float(index) for index in range(768)] for _ in texts]
+
+
+@pytest.fixture(autouse=True)
+def _stub_sentence_transformer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Avoid network-backed Hugging Face model loads in unit tests."""
+    monkeypatch.setattr(
+        "mastermind_cli.rag.embed.SentenceTransformer", _DummySentenceTransformer
+    )
 
 
 def test_encode_returns_768_floats() -> None:
