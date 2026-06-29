@@ -184,7 +184,7 @@ def run(
     # ========================================================================
     api_key = os.getenv("MM_API_KEY")
     if not api_key:
-        raise ValueError(
+        raise click.ClickException(
             "MM_API_KEY environment variable not set.\n"
             "Set your API key:\n"
             "  export MM_API_KEY='your-api-key-here'\n"
@@ -195,7 +195,7 @@ def run(
     db_path = os.getenv("MM_DB_PATH", "mastermind.db")
     validated_user_id = validate_api_key(api_key, db_path)
     if validated_user_id is None:
-        raise ValueError(
+        raise click.ClickException(
             "Invalid API key.\n"
             "Your MM_API_KEY is not valid in the standard /api/keys flow."
         )
@@ -212,7 +212,7 @@ def run(
         brief_text = click.get_text_stream("stdin").read().strip()
 
     if not brief_text:
-        raise ValueError(
+        raise click.ClickException(
             "No brief provided. Use --file, provide argument, or pipe via stdin.\n"
             "Examples:\n"
             "  mm orchestrate run 'your brief here'\n"

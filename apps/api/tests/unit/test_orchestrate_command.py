@@ -302,6 +302,9 @@ class TestOutputFormatting:
 
         mock_coord_instance = Mock()
         mock_coord_instance.execute_flow = Mock(return_value=mock_outputs)
+        mock_coord_instance.runtime_evidence_selection = None
+        mock_coord_instance.runtime_task_profile = None
+        mock_coord_instance.runtime_loop_policy = None
         mock_coord_class.return_value = mock_coord_instance
         mock_execute.return_value = mock_outputs
 
@@ -309,7 +312,7 @@ class TestOutputFormatting:
         runner = CliRunner()
 
         with patch.dict(os.environ, {"MM_API_KEY": "test-key"}):
-            runner.invoke(
+            result = runner.invoke(
                 orchestrate,
                 [
                     "run",
@@ -321,6 +324,7 @@ class TestOutputFormatting:
                 ],
             )
 
+            assert result.exit_code == 0
             # Verify file was created
             assert output_file.exists()
             # Verify content is valid JSON
@@ -328,7 +332,8 @@ class TestOutputFormatting:
 
             with open(output_file) as f:
                 content = json.load(f)
-                assert "brain-01-product-strategy" in content
+                assert "results" in content
+                assert "brain-01-product-strategy" in content["results"]
 
 
 class TestErrorHandling:
