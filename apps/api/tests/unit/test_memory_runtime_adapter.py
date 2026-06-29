@@ -77,7 +77,7 @@ async def test_adapter_skips_when_memory_service_missing() -> None:
         project_id="proj-001",
         task_id="task-1",
         run_id="run-1",
-        runtime_result=None,  # type: ignore[arg-type]
+        runtime_result=None,
     )
 
     assert isinstance(write, RuntimeMemoryWrite)
@@ -87,12 +87,26 @@ async def test_adapter_skips_when_memory_service_missing() -> None:
 
 
 @pytest.mark.asyncio
+async def test_adapter_rejects_missing_runtime_result_when_service_exists() -> None:
+    """A configured service still needs a runtime result to persist."""
+    adapter = MemoryRuntimeAdapter(memory_service=FakeMemoryService())
+
+    with pytest.raises(ValueError, match="runtime_result is required"):
+        await adapter.persist_runtime_run(
+            project_id="proj-001",
+            task_id="task-1",
+            run_id="run-1",
+            runtime_result=None,
+        )
+
+
+@pytest.mark.asyncio
 async def test_adapter_persists_checkpoint_decision_and_summary(
     runtime_result: RuntimeExecutionResult,
 ) -> None:
     """Successful runs should persist all three memory artifacts."""
     fake_service = FakeMemoryService()
-    adapter = MemoryRuntimeAdapter(memory_service=fake_service)  # type: ignore[arg-type]
+    adapter = MemoryRuntimeAdapter(memory_service=fake_service)
     snapshot = ContextSnapshot(
         project_id="proj-001",
         summary="Prior checkpoint available.",
@@ -135,7 +149,7 @@ async def test_adapter_persists_checkpoint_decision_and_summary(
 async def test_adapter_uses_concrete_memory_service_when_provided() -> None:
     """Adapter must work with the real `MemoryService` protocol shape."""
     fake_service = FakeMemoryService()
-    adapter = MemoryRuntimeAdapter(memory_service=fake_service)  # type: ignore[arg-type]
+    adapter = MemoryRuntimeAdapter(memory_service=fake_service)
 
     brief = Brief(problem_statement="Review this API metric")
     core = HarnessCore()

@@ -11,7 +11,6 @@ from mastermind_cli.memory_layer.models import (
     DecisionRecord,
     RunSummary,
 )
-from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.orchestrator.runtime_contracts.models import (
     ExecutionEnvelope,
     LoopPolicy,
@@ -47,11 +46,25 @@ class MemoryRuntimeWriter(Protocol):
         """Persist the runtime run and return a traceable write summary."""
 
 
+@runtime_checkable
+class MemoryServiceWriter(Protocol):
+    """Minimal memory-service contract required by the runtime adapter."""
+
+    async def save_checkpoint(self, checkpoint: CheckpointRecord) -> CheckpointRecord:
+        """Persist a checkpoint record."""
+
+    async def save_decision(self, decision: DecisionRecord) -> DecisionRecord:
+        """Persist a decision record."""
+
+    async def save_run_summary(self, run_summary: RunSummary) -> RunSummary:
+        """Persist a run summary record."""
+
+
 @dataclass(frozen=True, slots=True)
 class MemoryRuntimeAdapter:
     """Default writer that translates runtime results into memory records."""
 
-    memory_service: MemoryService | None = None
+    memory_service: MemoryServiceWriter | None = None
 
     async def persist_runtime_run(
         self,
@@ -59,7 +72,7 @@ class MemoryRuntimeAdapter:
         project_id: str,
         task_id: str | None,
         run_id: str,
-        runtime_result: RuntimeExecutionResult,
+        runtime_result: RuntimeExecutionResult | None,
         snapshot: ContextSnapshot | None = None,
     ) -> RuntimeMemoryWrite:
         """Persist checkpoint, decision, and run summary for one execution."""
@@ -71,6 +84,8 @@ class MemoryRuntimeAdapter:
                 decision_id=None,
                 run_summary_id=None,
             )
+        if runtime_result is None:
+            raise ValueError("runtime_result is required when memory_service is set")
 
         checkpoint = self._build_checkpoint(
             project_id=project_id,

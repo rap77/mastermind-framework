@@ -559,6 +559,13 @@ class StatelessCoordinator:
         from .dependency_resolver import DependencyResolver
         from .brain_functions import canonical_brain_id
 
+        if self.flow_config is not None:
+            registry = self.config.brain_registry
+            if registry is None:
+                registry = BrainRegistry()
+            resolver = DependencyResolver(registry)
+            return await resolver.resolve(self.flow_config)
+
         # Get brain registry (create if not provided)
         registry = self.config.brain_registry
         if registry is None:
