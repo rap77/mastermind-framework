@@ -24,6 +24,7 @@ from __future__ import annotations
 # pyright: reportMissingImports=false
 
 import os
+import sys
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -57,7 +58,15 @@ TEST_PASSWORD_HASH_B = bcrypt.hashpw(
 ).decode()
 
 
-def _run_setup(path: str) -> None:
+def _run_setup(
+    path: str,
+    user_id: str,
+    username: str,
+    password_hash: str,
+    user_id_b: str,
+    username_b: str,
+    password_hash_b: str,
+) -> None:
     with closing(sqlite3.connect(path)) as conn:
         conn.executescript("""
             PRAGMA journal_mode=WAL;
@@ -131,20 +140,67 @@ def _run_setup(path: str) -> None:
         """)
         conn.execute(
             "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
-            (TEST_USER_ID, TEST_USERNAME, TEST_PASSWORD_HASH),
+            (user_id, username, password_hash),
         )
         conn.execute(
             "INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)",
-            (TEST_USER_ID_B, TEST_USERNAME_B, TEST_PASSWORD_HASH_B),
+            (user_id_b, username_b, password_hash_b),
         )
         conn.commit()
 
 
+@pytest.fixture(scope="session")
+def _auth_credentials() -> dict[str, str]:
+    """Resolve auth test credentials from the current conftest module namespace.
+
+    pytest reloads the conftest module between collection and execution, which
+    can leave fixtures that captured module-level globals at import time
+    pointing at stale values. This session-scoped fixture reads the values
+    fresh from the live conftest module so every fixture downstream (including
+    ``_run_setup``) sees the same ``TEST_PASSWORD`` that the test module
+    imported.
+    """
+    conftest_path = __file__
+    # Prefer the canonical module name if pytest has registered it, but fall
+    # back to scanning sys.modules by file path because pytest may register the
+    # conftest under a non-canonical name depending on how it was loaded.
+    ns = sys.modules.get("tests.api.conftest")
+    if ns is None or getattr(ns, "__file__", None) != conftest_path:
+        ns = None
+        for module in list(sys.modules.values()):
+            if module is None:
+                continue
+            if getattr(module, "__file__", None) == conftest_path:
+                ns = module
+                break
+    if ns is None:
+        raise RuntimeError(
+            f"Unable to locate conftest module in sys.modules for path {conftest_path}"
+        )
+    return {
+        "user_id": ns.TEST_USER_ID,
+        "username": ns.TEST_USERNAME,
+        "password": ns.TEST_PASSWORD,
+        "password_hash": ns.TEST_PASSWORD_HASH,
+        "user_id_b": ns.TEST_USER_ID_B,
+        "username_b": ns.TEST_USERNAME_B,
+        "password_hash_b": ns.TEST_PASSWORD_HASH_B,
+    }
+
+
 @pytest.fixture
-def db_path(tmp_path: Path) -> str:
+def db_path(tmp_path: Path, _auth_credentials: dict[str, str]) -> str:
     """Create a temporary SQLite database with test schema and users."""
     path = str(tmp_path / "test.db")
-    _run_setup(path)
+    _run_setup(
+        path,
+        user_id=_auth_credentials["user_id"],
+        username=_auth_credentials["username"],
+        password_hash=_auth_credentials["password_hash"],
+        user_id_b=_auth_credentials["user_id_b"],
+        username_b=_auth_credentials["username_b"],
+        password_hash_b=_auth_credentials["password_hash_b"],
+    )
     return path
 
 
