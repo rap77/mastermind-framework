@@ -1,0 +1,279 @@
+schema_version: '1'
+routing_cases:
+- case_id: software-implementation-basic
+  prompt: Implement a safe API change
+  objective_profile:
+    objective_id: software-implementation-basic
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: implementation
+    output_type: artifact
+    verifiability: medium
+    requires_write: true
+    requires_review: false
+    requires_recovery: false
+  expected_primary_harness: implementation-lead
+  expected_supporting_harnesses: []
+  expected_skills:
+  - codebase-scan
+  - safe-edit
+  forbidden_skills:
+  - prd-synthesis
+  expected_references:
+  - references/software-delivery.md
+  max_context_budget: 4000
+- case_id: software-implementation-review
+  prompt: Implement and verify a risky change
+  objective_profile:
+    objective_id: software-implementation-review
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: implementation
+    output_type: artifact
+    verifiability: high
+    requires_write: true
+    requires_review: true
+    requires_recovery: false
+  expected_primary_harness: implementation-lead
+  expected_supporting_harnesses:
+  - acceptance-verifier
+  expected_skills:
+  - codebase-scan
+  - safe-edit
+  - acceptance-check
+  - evidence-readiness
+  forbidden_skills: []
+  expected_references:
+  - references/software-delivery.md
+  - references/verification-policy.md
+  max_context_budget: 4000
+- case_id: software-implementation-recovery
+  prompt: Recover a failed implementation run
+  objective_profile:
+    objective_id: software-implementation-recovery
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: implementation
+    output_type: artifact
+    verifiability: medium
+    requires_write: true
+    requires_review: false
+    requires_recovery: true
+  expected_primary_harness: implementation-lead
+  expected_supporting_harnesses:
+  - recovery-fixer
+  expected_skills:
+  - codebase-scan
+  - safe-edit
+  - failure-triage
+  forbidden_skills: []
+  expected_references:
+  - references/recovery-policy.md
+  max_context_budget: 4000
+- case_id: software-implementation-review-recovery
+  prompt: Patch failed code with verification
+  objective_profile:
+    objective_id: software-implementation-review-recovery
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: implementation
+    output_type: artifact
+    verifiability: high
+    requires_write: true
+    requires_review: true
+    requires_recovery: true
+  expected_primary_harness: implementation-lead
+  expected_supporting_harnesses:
+  - acceptance-verifier
+  - recovery-fixer
+  expected_skills:
+  - codebase-scan
+  - safe-edit
+  - acceptance-check
+  - evidence-readiness
+  - failure-triage
+  forbidden_skills: []
+  expected_references:
+  - references/verification-policy.md
+  - references/recovery-policy.md
+  max_context_budget: 4000
+- case_id: software-architecture-plan
+  prompt: Plan an architecture change
+  objective_profile:
+    objective_id: software-architecture-plan
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: planning
+    output_type: plan
+    verifiability: medium
+    requires_write: false
+    requires_review: false
+    requires_recovery: false
+  expected_primary_harness: architecture-planner
+  expected_supporting_harnesses: []
+  expected_skills:
+  - codebase-scan
+  - architecture-map
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/architecture-planning.md
+  max_context_budget: 4000
+- case_id: software-architecture-review
+  prompt: Plan architecture with verification gate
+  objective_profile:
+    objective_id: software-architecture-review
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: software
+    phase: planning
+    output_type: plan
+    verifiability: high
+    requires_write: false
+    requires_review: true
+    requires_recovery: false
+  expected_primary_harness: architecture-planner
+  expected_supporting_harnesses:
+  - acceptance-verifier
+  expected_skills:
+  - codebase-scan
+  - architecture-map
+  - acceptance-check
+  - evidence-readiness
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/verification-policy.md
+  max_context_budget: 4000
+- case_id: product-prd-discovery
+  prompt: Create a PRD from discovery evidence
+  objective_profile:
+    objective_id: product-prd-discovery
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: product
+    phase: discovery
+    output_type: prd
+    verifiability: medium
+    requires_write: false
+    requires_review: false
+    requires_recovery: false
+  expected_primary_harness: product-strategist
+  expected_supporting_harnesses: []
+  expected_skills:
+  - prd-synthesis
+  - evidence-readiness
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/product-discovery.md
+  max_context_budget: 4000
+- case_id: product-prd-review
+  prompt: Create a PRD with acceptance verification
+  objective_profile:
+    objective_id: product-prd-review
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: product
+    phase: discovery
+    output_type: prd
+    verifiability: high
+    requires_write: false
+    requires_review: true
+    requires_recovery: false
+  expected_primary_harness: product-strategist
+  expected_supporting_harnesses:
+  - acceptance-verifier
+  expected_skills:
+  - prd-synthesis
+  - evidence-readiness
+  - acceptance-check
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/product-discovery.md
+  - references/verification-policy.md
+  max_context_budget: 4000
+- case_id: product-plan
+  prompt: Build a product execution plan
+  objective_profile:
+    objective_id: product-plan
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: product
+    phase: planning
+    output_type: plan
+    verifiability: medium
+    requires_write: false
+    requires_review: false
+    requires_recovery: false
+  expected_primary_harness: product-strategist
+  expected_supporting_harnesses: []
+  expected_skills:
+  - prd-synthesis
+  - evidence-readiness
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/product-discovery.md
+  max_context_budget: 4000
+- case_id: product-plan-recovery
+  prompt: Recover a blocked product plan
+  objective_profile:
+    objective_id: product-plan-recovery
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: product
+    phase: planning
+    output_type: plan
+    verifiability: medium
+    requires_write: false
+    requires_review: false
+    requires_recovery: true
+  expected_primary_harness: product-strategist
+  expected_supporting_harnesses:
+  - recovery-fixer
+  expected_skills:
+  - prd-synthesis
+  - evidence-readiness
+  - failure-triage
+  forbidden_skills:
+  - safe-edit
+  expected_references:
+  - references/recovery-policy.md
+  max_context_budget: 4000

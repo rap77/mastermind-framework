@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
@@ -11,11 +12,18 @@ from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.mm_flow.integrated_run import IntegratedRun
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 from mastermind_cli.orchestrator.runtime_contracts import MemoryRuntimeWriter
+from mastermind_cli.orchestrator.runtime_contracts import (
+    MultiHarnessPipeline,
+    MultiHarnessPipelineResult,
+    ObjectiveProfile,
+)
 from mastermind_cli.orchestrator.stateless_coordinator import (
     CoordinatorConfig,
     StatelessCoordinator,
 )
 from mastermind_cli.types.interfaces import Brief
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -48,6 +56,7 @@ class HarnessRunExecutor:
     coordinator_factory: CoordinatorFactory | None = None
     memory_service: MemoryService | None = None
     memory_runtime_writer: MemoryRuntimeWriter | None = None
+    multi_harness_pipeline: MultiHarnessPipeline | None = None
 
     async def execute_harness_run(
         self,
@@ -60,6 +69,7 @@ class HarnessRunExecutor:
     ) -> IntegratedRun:
         """Run the harness through the full pipeline and persist results."""
         request = self.adapter.load_harness_request()
+        multi_harness_result = self._build_multi_harness_result(request, brief)
         snapshot = await self._load_memory_snapshot()
         coordinator = self._build_coordinator(snapshot)
         await coordinator.execute_flow(brief=brief, brain_ids=list(brain_ids))
@@ -89,7 +99,91 @@ class HarnessRunExecutor:
             archive_record=archive,
             warnings=request.warnings,
             validation=validation,
+            multi_harness_result=multi_harness_result,
         )
+
+    def _build_multi_harness_result(
+        self,
+        request: object,
+        brief: Brief,
+    ) -> MultiHarnessPipelineResult | None:
+        """Build and validate a multi-harness bundle when configured."""
+        if self.multi_harness_pipeline is None:
+            return None
+        profile = self._build_objective_profile(request, brief)
+        result = self.multi_harness_pipeline.build(profile)
+        if result.bundle.validation_status == "failed":
+            raise ValueError(
+                "Multi-harness bundle validation failed: "
+                + "; ".join(result.bundle.validation_errors)
+            )
+        return result
+
+    def _build_objective_profile(
+        self,
+        request: object,
+        brief: Brief,
+    ) -> ObjectiveProfile:
+        """Normalize planning + brief inputs into multi-harness selector signals."""
+        operational_objective = str(getattr(request, "operational_objective", ""))
+        active_uow = str(getattr(request, "active_uow", ""))
+        expected_outputs = tuple(
+            str(item) for item in getattr(request, "expected_outputs", ())
+        )
+        required_checks = tuple(
+            str(item) for item in getattr(request, "required_checks", ())
+        )
+        text = f"{operational_objective} {brief.problem_statement}".lower()
+        return ObjectiveProfile(
+            objective_id=operational_objective or active_uow or "objective",
+            objective_text=brief.problem_statement,
+            domain=self._infer_domain(text),
+            phase=self._infer_phase(text),
+            output_type=self._infer_output_type(text, expected_outputs),
+            complexity="medium",
+            risk_level="medium",
+            verifiability="high" if required_checks else "medium",
+            requires_write=True,
+            requires_fresh_context=False,
+            requires_memory=self.memory_service is not None,
+            requires_mcp=False,
+            requires_review=bool(required_checks),
+            requires_recovery=False,
+            reasons=(
+                f"objective={operational_objective or active_uow or 'objective'}",
+                "source=planning_bridge+brief",
+            ),
+        )
+
+    @staticmethod
+    def _infer_domain(text: str) -> str:
+        """Infer the broad selector domain from objective text."""
+        if any(term in text for term in ("code", "implement", "migration", "runtime")):
+            return "software"
+        if any(term in text for term in ("prd", "product", "strategy")):
+            return "product"
+        return "general"
+
+    @staticmethod
+    def _infer_phase(text: str) -> str:
+        """Infer lifecycle phase from objective text."""
+        if any(term in text for term in ("implement", "code", "fix")):
+            return "implementation"
+        if any(term in text for term in ("discover", "research")):
+            return "discovery"
+        if any(term in text for term in ("verify", "test", "review")):
+            return "verification"
+        return "planning"
+
+    @staticmethod
+    def _infer_output_type(text: str, expected_outputs: tuple[str, ...]) -> str:
+        """Infer expected output type for harness selection."""
+        combined = " ".join((text, *expected_outputs)).lower()
+        if "prd" in combined:
+            return "prd"
+        if "plan" in combined:
+            return "plan"
+        return "artifact"
 
     async def _load_memory_snapshot(self) -> ContextSnapshot | None:
         """Load the project memory snapshot via the injected service when available."""
@@ -100,7 +194,12 @@ class HarnessRunExecutor:
             return None
         try:
             return await self.memory_service.build_context_snapshot(project_id)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - memory snapshot is optional, log and continue
+            logger.warning(
+                "Failed to load memory snapshot for project_id=%s: %s",
+                project_id,
+                exc,
+            )
             return None
 
     def _build_coordinator(

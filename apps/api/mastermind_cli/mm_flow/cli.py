@@ -39,10 +39,17 @@ from mastermind_cli.mm_flow.evidence_selector import (
     UncertaintyLevel,
 )
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
-from mastermind_cli.mm_flow.config_loader import RuntimeState
+from mastermind_cli.mm_flow.config_loader import MMFlowConfig, RuntimeState, load_config
 from mastermind_cli.mm_flow.harness_run_executor import HarnessRunExecutor
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
-from mastermind_cli.orchestrator.runtime_contracts import MemoryRuntimeAdapter
+from mastermind_cli.orchestrator.runtime_contracts import (
+    BehavioralRoutingEvaluator,
+    BehavioralRoutingReport,
+    FileSystemHarnessCatalog,
+    MemoryRuntimeAdapter,
+    MultiHarnessPipeline,
+    RunBundleComposer,
+)
 from mastermind_cli.orchestrator.stateless_coordinator import (
     CoordinatorConfig,
     StatelessCoordinator,
@@ -78,6 +85,58 @@ def _registry_path() -> Path:
 def _runtime_state_path() -> Path:
     """Return the resolved runtime-state.json path under the repo root."""
     return _project_root() / ".planning" / ".mm-flow" / "runtime-state.json"
+
+
+def _config_path(project_root: Path) -> Path:
+    """Return the resolved MM-Flow config path for a project root."""
+    return project_root / ".planning" / ".mm-flow" / "config.yml"
+
+
+def _build_multi_harness_pipeline(
+    project_root: Path,
+    config: MMFlowConfig,
+) -> MultiHarnessPipeline | None:
+    """Build the optional multi-harness pipeline from MM-Flow config."""
+    if not config.harness_library.enabled:
+        return None
+    library_root = project_root / config.harness_library.path
+    if not (library_root / "registry.yaml").is_file():
+        raise ValueError(
+            "harness_library.enabled=true but registry.yaml is missing at "
+            f"{library_root / 'registry.yaml'}"
+        )
+    return MultiHarnessPipeline(
+        catalog=FileSystemHarnessCatalog(library_root),
+        composer=RunBundleComposer(
+            output_root=project_root / config.harness_library.bundle_output_path,
+            library_root=library_root,
+        ),
+    )
+
+
+def _evaluate_harness_routing_cases(
+    project_root: Path,
+    config: MMFlowConfig,
+    cases_path: str | None,
+) -> BehavioralRoutingReport:
+    """Evaluate declarative routing cases against the configured harness library."""
+    if not config.harness_library.enabled:
+        raise ValueError(
+            "harness_library.enabled must be true to evaluate routing cases"
+        )
+    library_root = project_root / config.harness_library.path
+    if not (library_root / "registry.yaml").is_file():
+        raise ValueError(
+            "harness_library.enabled=true but registry.yaml is missing at "
+            f"{library_root / 'registry.yaml'}"
+        )
+    resolved_cases = (
+        Path(cases_path) if cases_path else library_root / "routing-cases.yaml"
+    )
+    if not resolved_cases.is_file():
+        raise ValueError(f"routing cases file is missing at {resolved_cases}")
+    evaluator = BehavioralRoutingEvaluator(FileSystemHarnessCatalog(library_root))
+    return evaluator.evaluate_file(resolved_cases)
 
 
 def _write_runtime_state(
@@ -168,7 +227,7 @@ def run_phase(
     resolved_summary = summary or f"Phase {phase} {status}."
 
     async def _run() -> None:
-        conn = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
+        conn: Any = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
         try:
             async with conn.transaction():
                 org_id = os.environ.get("MM_FLOW_ORG_ID", "default-org-id")
@@ -177,7 +236,9 @@ def run_phase(
                     org_id,
                 )
 
-                adapter = ProjectAdapter.for_repo(_project_root())
+                project_root = _project_root()
+                config = load_config(str(_config_path(project_root)))
+                adapter = ProjectAdapter.for_repo(project_root)
                 memory_service = MemoryService(
                     build_memory_store_from_env(
                         postgres_url,
@@ -194,6 +255,10 @@ def run_phase(
                     memory_service=memory_service,
                     memory_runtime_writer=MemoryRuntimeAdapter(
                         memory_service=memory_service
+                    ),
+                    multi_harness_pipeline=_build_multi_harness_pipeline(
+                        project_root,
+                        config,
                     ),
                 )
 
@@ -295,6 +360,27 @@ def run_phase(
             await conn.close()
 
     asyncio.run(_run())
+
+
+@cli.command("harness-routing-check")
+@click.option(
+    "--config-path",
+    default=None,
+    help="Path to MM-Flow config (defaults to .planning/.mm-flow/config.yml)",
+)
+@click.option(
+    "--cases-path",
+    default=None,
+    help="Path to routing cases YAML (defaults to harness library routing-cases.yaml)",
+)
+def harness_routing_check(config_path: str | None, cases_path: str | None) -> None:
+    """Evaluate behavioral routing cases for the configured harness library."""
+    project_root = _project_root()
+    config = load_config(config_path or str(_config_path(project_root)))
+    report = _evaluate_harness_routing_cases(project_root, config, cases_path)
+    click.echo(json.dumps(asdict(report), indent=2))
+    if not report.passed:
+        raise click.ClickException("behavioral routing cases failed")
 
 
 @cli.command("sync-evidence-registry")

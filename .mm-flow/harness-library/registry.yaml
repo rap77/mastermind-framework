@@ -1,0 +1,90 @@
+schema_version: '1'
+harnesses:
+  - id: implementation-lead
+    path: roles/implementation-lead
+    type: role
+    domains: [software]
+    phases: [implementation]
+    outputs: [artifact]
+    supported_loops: [goal-loop, verification-loop]
+    skills: [codebase-scan, safe-edit]
+    references: [references/software-delivery.md]
+  - id: architecture-planner
+    path: roles/architecture-planner
+    type: role
+    domains: [software]
+    phases: [planning]
+    outputs: [plan]
+    supported_loops: [goal-loop, review-loop]
+    skills: [codebase-scan, architecture-map]
+    references: [references/architecture-planning.md]
+  - id: product-strategist
+    path: roles/product-strategist
+    type: role
+    domains: [product]
+    phases: [discovery, planning]
+    outputs: [prd, plan]
+    supported_loops: [discovery-loop, review-loop]
+    skills: [prd-synthesis, evidence-readiness]
+    references: [references/product-discovery.md]
+  - id: acceptance-verifier
+    path: verification/acceptance-verifier
+    type: verification
+    domains: [software, product]
+    phases: [discovery, planning, implementation, verification]
+    outputs: [artifact, plan, prd]
+    supported_loops: [verification-loop]
+    skills: [acceptance-check, evidence-readiness]
+    references: [references/verification-policy.md]
+  - id: recovery-fixer
+    path: recovery/recovery-fixer
+    type: recovery
+    domains: [software, product]
+    phases: [planning, implementation, verification]
+    outputs: [artifact, plan, prd]
+    supported_loops: [recovery-loop]
+    skills: [failure-triage]
+    references: [references/recovery-policy.md]
+skills:
+  - id: codebase-scan
+    path: shared-skills/codebase-scan
+    domains: [software]
+    phases: [planning, implementation]
+    supported_harnesses: [implementation-lead, architecture-planner]
+    requires_write: false
+  - id: safe-edit
+    path: shared-skills/safe-edit
+    domains: [software]
+    phases: [implementation]
+    supported_harnesses: [implementation-lead]
+    requires_write: true
+  - id: architecture-map
+    path: shared-skills/architecture-map
+    domains: [software]
+    phases: [planning]
+    supported_harnesses: [architecture-planner]
+    requires_write: false
+  - id: prd-synthesis
+    path: shared-skills/prd-synthesis
+    domains: [product]
+    phases: [discovery, planning]
+    supported_harnesses: [product-strategist]
+    requires_write: false
+  - id: evidence-readiness
+    path: shared-skills/evidence-readiness
+    domains: [product, software]
+    phases: [discovery, planning, implementation, verification]
+    supported_harnesses: [product-strategist, acceptance-verifier]
+    requires_write: false
+  - id: acceptance-check
+    path: shared-skills/acceptance-check
+    domains: [product, software]
+    phases: [planning, implementation, verification]
+    supported_harnesses: [acceptance-verifier]
+    requires_write: false
+  - id: failure-triage
+    path: shared-skills/failure-triage
+    domains: [product, software]
+    phases: [implementation, verification]
+    supported_harnesses: [recovery-fixer]
+    requires_write: false

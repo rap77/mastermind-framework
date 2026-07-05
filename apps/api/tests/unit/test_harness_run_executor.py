@@ -14,10 +14,13 @@ from mastermind_cli.mm_flow.harness_run_executor import HarnessRunExecutor
 from mastermind_cli.mm_flow.integrated_run import IntegratedRun
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 from mastermind_cli.orchestrator.runtime_contracts import (
+    FileSystemHarnessCatalog,
     HarnessCore,
+    MultiHarnessPipeline,
     RuntimeExecutionResult,
     RuntimeMemoryWrite,
     RuntimeRequest,
+    RunBundleComposer,
 )
 from mastermind_cli.orchestrator.stateless_coordinator import (
     CoordinatorConfig,
@@ -89,12 +92,21 @@ def _write_planning_fixture(
     )
 
 
+def _brief(problem_statement: str) -> Brief:
+    """Build a pyright-friendly Brief test fixture."""
+    return Brief(
+        problem_statement=problem_statement,
+        context="",
+        target_audience=None,
+    )
+
+
 def _build_runtime_result(project_id: str = "proj-001") -> RuntimeExecutionResult:
     """Build a deterministic `RuntimeExecutionResult` from the harness core."""
     core = HarnessCore()
     selection = core.select_runtime(
         RuntimeRequest(
-            brief=Brief(problem_statement="Implement and design a migration plan"),
+            brief=_brief("Implement and design a migration plan"),
             brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         )
     )
@@ -187,6 +199,70 @@ class _FakeMemoryService:
         return self.snapshot
 
 
+class _FailingMemoryService:
+    """Memory service stub that fails when loading a snapshot."""
+
+    async def build_context_snapshot(self, project_id: str) -> ContextSnapshot:
+        del project_id
+        raise RuntimeError("snapshot unavailable")
+
+
+def _write_harness_library(root: Path) -> None:
+    """Write a minimal Agent Harness library for executor integration tests."""
+    role = root / "roles" / "implementation-lead"
+    role.mkdir(parents=True)
+    (role / "HARNESS.md").write_text(
+        "---\n"
+        "name: Implementation Lead\n"
+        "description: Implement project changes safely.\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    (role / ".leaf-detectors").write_text("skill=SKILL.md\n", encoding="utf-8")
+    skill = root / "shared-skills" / "codebase-scan"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\n"
+        "name: Codebase Scan\n"
+        "description: Inspect codebase context before implementation.\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    verification = root / "verification" / "regression-check"
+    verification.mkdir(parents=True)
+    (verification / "HARNESS.md").write_text(
+        "---\n"
+        "name: Regression Check\n"
+        "description: Check implementation outputs for regressions.\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    (root / "registry.yaml").write_text(
+        "harnesses:\n"
+        "  - id: implementation-lead\n"
+        "    path: roles/implementation-lead\n"
+        "    type: role\n"
+        "    domains: [software]\n"
+        "    phases: [implementation]\n"
+        "    outputs: [artifact]\n"
+        "    supported_loops: [goal-loop]\n"
+        "    skills: [codebase-scan]\n"
+        "  - id: regression-check\n"
+        "    path: verification/regression-check\n"
+        "    type: verification\n"
+        "    domains: [software]\n"
+        "    phases: [implementation]\n"
+        "    outputs: [verdict]\n"
+        "    supported_loops: [verification-loop]\n"
+        "skills:\n"
+        "  - id: codebase-scan\n"
+        "    path: shared-skills/codebase-scan\n"
+        "    domains: [software]\n"
+        "    phases: [implementation]\n",
+        encoding="utf-8",
+    )
+
+
 @pytest.mark.asyncio
 async def test_executor_runs_end_to_end_and_writes_handoff(tmp_path: Path) -> None:
     """The executor should drive the full pipeline and write a planning status."""
@@ -194,6 +270,7 @@ async def test_executor_runs_end_to_end_and_writes_handoff(tmp_path: Path) -> No
     adapter = ProjectAdapter.for_repo(tmp_path)
     snapshot = ContextSnapshot(
         project_id=adapter.project_id,
+        task_id=None,
         summary="Resume from prior checkpoint.",
     )
     memory_service = _FakeMemoryService(snapshot)
@@ -216,7 +293,7 @@ async def test_executor_runs_end_to_end_and_writes_handoff(tmp_path: Path) -> No
     )
 
     run = await executor.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="in_progress",
         summary="Slice 4 integration run.",
@@ -256,6 +333,46 @@ async def test_executor_runs_end_to_end_and_writes_handoff(tmp_path: Path) -> No
 
 
 @pytest.mark.asyncio
+async def test_executor_builds_validated_multi_harness_bundle_when_pipeline_is_injected(
+    tmp_path: Path,
+) -> None:
+    """Injected multi-harness pipeline should produce a validated run bundle."""
+    _write_planning_fixture(tmp_path)
+    library_root = tmp_path / ".mm-flow" / "harness-library"
+    _write_harness_library(library_root)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+
+    def coordinator_factory(**kwargs: Any) -> StatelessCoordinator:
+        coordinator = StatelessCoordinator(CoordinatorConfig(**kwargs))
+        _patch_coordinator(coordinator)
+        return coordinator
+
+    executor = HarnessRunExecutor(
+        adapter=adapter,
+        coordinator_factory=coordinator_factory,
+        multi_harness_pipeline=MultiHarnessPipeline(
+            catalog=FileSystemHarnessCatalog(library_root),
+            composer=RunBundleComposer(
+                output_root=tmp_path / ".run-bundles",
+                library_root=library_root,
+            ),
+        ),
+    )
+
+    run = await executor.execute_harness_run(
+        brief=_brief("Implement a safe code change"),
+        brain_ids=("brain-01-product-strategy",),
+    )
+
+    assert run.multi_harness_result is not None
+    assert run.multi_harness_result.bundle.validation_status == "passed"
+    assert run.multi_harness_result.plan.primary_harness.package_id == (
+        "implementation-lead"
+    )
+    assert Path(run.multi_harness_result.bundle.path, "HARNESS.md").is_file()
+
+
+@pytest.mark.asyncio
 async def test_executor_archives_when_status_is_completed(tmp_path: Path) -> None:
     """Status=completed should produce an archive record and archive block in file."""
     _write_planning_fixture(tmp_path)
@@ -274,7 +391,7 @@ async def test_executor_archives_when_status_is_completed(tmp_path: Path) -> Non
     )
 
     run = await executor.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="completed",
         summary="Slice 4 closed.",
@@ -312,7 +429,7 @@ async def test_executor_skips_memory_write_without_writer(tmp_path: Path) -> Non
     )
 
     run = await executor.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="in_progress",
         summary="Slice 4 integration run.",
@@ -327,6 +444,33 @@ async def test_executor_skips_memory_write_without_writer(tmp_path: Path) -> Non
         encoding="utf-8"
     )
     assert "## Bridge Status" in handoff
+
+
+@pytest.mark.asyncio
+async def test_executor_logs_memory_snapshot_failures(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Snapshot load failures should be logged and execution should continue."""
+    _write_planning_fixture(tmp_path)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+    writer = _RecordingMemoryWriter()
+
+    executor = HarnessRunExecutor(
+        adapter=adapter,
+        memory_service=_FailingMemoryService(),  # type: ignore[arg-type]
+        memory_runtime_writer=writer,  # type: ignore[arg-type]
+    )
+
+    caplog.set_level("WARNING")
+
+    run = await executor.execute_harness_run(
+        brief=_brief("Implement and design a migration plan"),
+        brain_ids=("brain-01-product-strategy",),
+        status="in_progress",
+    )
+
+    assert run.memory_snapshot is None
+    assert "Failed to load memory snapshot" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -346,7 +490,7 @@ async def test_executor_validation_reports_mismatches(tmp_path: Path) -> None:
     )
 
     run = await executor.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="in_progress",
         summary="Slice 4 integration run.",
@@ -390,13 +534,13 @@ async def test_executor_runs_two_projects_in_isolation(tmp_path: Path) -> None:
     )
 
     run_a = await executor_a.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="in_progress",
         summary="Alpha slice 4 integration run.",
     )
     run_b = await executor_b.execute_harness_run(
-        brief=Brief(problem_statement="Implement and design a migration plan"),
+        brief=_brief("Implement and design a migration plan"),
         brain_ids=("brain-01-product-strategy", "brain-03-ui-design"),
         status="in_progress",
         summary="Beta slice 4 integration run.",

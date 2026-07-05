@@ -9,6 +9,8 @@ from types import SimpleNamespace
 import pytest
 
 from mastermind_cli.mm_flow import cli as mm_flow_cli
+from mastermind_cli.mm_flow.config_loader import HarnessLibraryConfig, MMFlowConfig
+from mastermind_cli.mm_flow.config_loader import BrainRoutingRule, ModelProfile
 
 
 class _FakeTransaction:
@@ -37,6 +39,162 @@ class _FakeConnection:
 
     async def close(self) -> None:
         self.closed = True
+
+
+def _minimal_config(enabled: bool = False) -> MMFlowConfig:
+    """Build a minimal config object for CLI helper tests."""
+    return MMFlowConfig(
+        model_profiles={
+            "quality": ModelProfile(model="anthropic:test", use_when="test"),
+            "balanced": ModelProfile(model="anthropic:test", use_when="test"),
+            "budget": ModelProfile(model="anthropic:test", use_when="test"),
+        },
+        brain_routing={
+            "EXECUTION_WAVE": BrainRoutingRule(
+                brains=[7],
+                parallel=False,
+            )
+        },
+        verification_gates={},
+        providers={},
+        harness_library=HarnessLibraryConfig(
+            enabled=enabled,
+            path=".mm-flow/harness-library",
+            bundle_output_path=".run-bundles",
+        ),
+    )
+
+
+def _write_cli_harness_library(root: Path) -> None:
+    """Write a small Agent Harness library for CLI helper tests."""
+    role = root / "roles" / "implementation-lead"
+    role.mkdir(parents=True)
+    (role / "HARNESS.md").write_text(
+        "---\nname: Implementation Lead\ndescription: Implement safely.\n---\n",
+        encoding="utf-8",
+    )
+    (role / ".leaf-detectors").write_text("skill=SKILL.md\n", encoding="utf-8")
+    skill = root / "shared-skills" / "codebase-scan"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: Codebase Scan\ndescription: Scan codebase.\n---\n",
+        encoding="utf-8",
+    )
+    (root / "registry.yaml").write_text(
+        "harnesses:\n"
+        "  - id: implementation-lead\n"
+        "    path: roles/implementation-lead\n"
+        "    type: role\n"
+        "    domains: [software]\n"
+        "    phases: [implementation]\n"
+        "    outputs: [artifact]\n"
+        "    supported_loops: [goal-loop]\n"
+        "    skills: [codebase-scan]\n"
+        "skills:\n"
+        "  - id: codebase-scan\n"
+        "    path: shared-skills/codebase-scan\n"
+        "    domains: [software]\n"
+        "    phases: [implementation]\n",
+        encoding="utf-8",
+    )
+
+
+def _write_cli_routing_cases(path: Path) -> None:
+    """Write routing cases that match the CLI harness library."""
+    path.write_text(
+        "schema_version: '1'\n"
+        "routing_cases:\n"
+        "  - case_id: implementation-change\n"
+        "    prompt: Implement a safe code change\n"
+        "    objective_profile:\n"
+        "      objective_id: obj-001\n"
+        "      domain: software\n"
+        "      phase: implementation\n"
+        "      output_type: artifact\n"
+        "      complexity: medium\n"
+        "      risk_level: medium\n"
+        "      verifiability: medium\n"
+        "      requires_write: true\n"
+        "      requires_fresh_context: false\n"
+        "      requires_memory: false\n"
+        "      requires_mcp: false\n"
+        "      requires_review: false\n"
+        "      requires_recovery: false\n"
+        "    expected_primary_harness: implementation-lead\n"
+        "    expected_supporting_harnesses: []\n"
+        "    expected_skills: [codebase-scan]\n"
+        "    forbidden_skills: []\n"
+        "    max_context_budget: 4000\n",
+        encoding="utf-8",
+    )
+
+
+def _write_enabled_harness_config(root: Path) -> None:
+    """Write MM-Flow config that enables the local harness library."""
+    config_dir = root / ".planning" / ".mm-flow"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.yml").write_text(
+        "harness_library:\n  enabled: true\n",
+        encoding="utf-8",
+    )
+
+
+def test_build_multi_harness_pipeline_respects_disabled_config(tmp_path: Path) -> None:
+    """Disabled harness library config should keep legacy execution unchanged."""
+    assert (
+        mm_flow_cli._build_multi_harness_pipeline(tmp_path, _minimal_config()) is None
+    )
+
+
+def test_build_multi_harness_pipeline_from_enabled_config(tmp_path: Path) -> None:
+    """Enabled config should build a pipeline from `.mm-flow/harness-library`."""
+    _write_cli_harness_library(tmp_path / ".mm-flow" / "harness-library")
+
+    pipeline = mm_flow_cli._build_multi_harness_pipeline(
+        tmp_path,
+        _minimal_config(enabled=True),
+    )
+
+    assert pipeline is not None
+
+
+def test_evaluate_harness_routing_cases_from_enabled_config(tmp_path: Path) -> None:
+    """CLI helper should evaluate routing cases from the configured harness library."""
+    library_root = tmp_path / ".mm-flow" / "harness-library"
+    _write_cli_harness_library(library_root)
+    _write_cli_routing_cases(library_root / "routing-cases.yaml")
+
+    report = mm_flow_cli._evaluate_harness_routing_cases(
+        tmp_path,
+        _minimal_config(enabled=True),
+        cases_path=None,
+    )
+
+    assert report.passed is True
+    assert report.schema_version == "1"
+    assert report.case_results[0].case_id == "implementation-change"
+
+
+def test_harness_routing_check_command_outputs_json(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """harness-routing-check should print a JSON report."""
+    library_root = tmp_path / ".mm-flow" / "harness-library"
+    _write_cli_harness_library(library_root)
+    _write_cli_routing_cases(library_root / "routing-cases.yaml")
+    _write_enabled_harness_config(tmp_path)
+    monkeypatch.chdir(tmp_path)
+
+    mm_flow_cli.harness_routing_check.callback(  # type: ignore[attr-defined]
+        config_path=None,
+        cases_path=None,
+    )
+
+    captured = capsys.readouterr()
+    assert '"passed": true' in captured.out
+    assert '"case_id": "implementation-change"' in captured.out
 
 
 def test_run_phase_in_progress_invokes_executor(

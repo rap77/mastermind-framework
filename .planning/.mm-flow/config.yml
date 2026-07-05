@@ -69,3 +69,10 @@ backend_limits:
     token_limit: 200000
     critical_threshold: 0.95
     priority: 3
+
+# Multi-harness library activation
+# The library remains local and deterministic under .mm-flow/harness-library.
+harness_library:
+  enabled: true
+  path: ".mm-flow/harness-library"
+  bundle_output_path: ".run-bundles"

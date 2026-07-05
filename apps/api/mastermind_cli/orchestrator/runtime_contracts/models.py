@@ -26,6 +26,114 @@ CapabilityCategory = Literal[
 ]
 EnvelopeStatus = Literal["success", "warning", "error"]
 RecoveryAction = Literal["retry", "patch", "replan", "escalate", "stop"]
+HarnessPackageType = Literal[
+    "role",
+    "lifecycle",
+    "verification",
+    "recovery",
+    "shared_skill",
+]
+BundleValidationStatus = Literal["pending", "passed", "failed", "warning"]
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectiveProfile:
+    """Normalized objective signals used for multi-harness composition."""
+
+    objective_id: str
+    objective_text: str
+    domain: str
+    phase: str
+    output_type: str
+    complexity: Complexity
+    risk_level: RiskLevel
+    verifiability: SignalLevel
+    requires_write: bool
+    requires_fresh_context: bool
+    requires_memory: bool
+    requires_mcp: bool
+    requires_review: bool
+    requires_recovery: bool
+    evidence_readiness_gate: str | None = None
+    evidence_readiness_score: float | None = None
+    reasons: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class HarnessPackage:
+    """Agent Harness package discovered from the harness library."""
+
+    package_id: str
+    name: str
+    package_type: HarnessPackageType
+    path: str
+    description: str
+    domains: tuple[str, ...]
+    phases: tuple[str, ...]
+    outputs: tuple[str, ...]
+    supported_loops: tuple[str, ...]
+    skills: tuple[str, ...] = field(default_factory=tuple)
+    references: tuple[str, ...] = field(default_factory=tuple)
+    constraints: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class SkillPackage:
+    """Reusable atomic skill package available to harness compositions."""
+
+    skill_id: str
+    name: str
+    path: str
+    description: str
+    domains: tuple[str, ...]
+    phases: tuple[str, ...]
+    supported_harnesses: tuple[str, ...] = field(default_factory=tuple)
+    requires_mcp: bool = False
+    requires_write: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class HarnessCompositionPlan:
+    """Deterministic plan for composing one primary harness with support."""
+
+    plan_id: str
+    objective_profile: ObjectiveProfile
+    primary_harness: HarnessPackage
+    supporting_harnesses: tuple[HarnessPackage, ...]
+    selected_skills: tuple[SkillPackage, ...]
+    selected_references: tuple[str, ...]
+    selected_loops: tuple[str, ...]
+    precedence_policy: tuple[str, ...]
+    context_budget: int
+    validation_requirements: tuple[str, ...]
+    rejected_candidates: tuple[str, ...] = field(default_factory=tuple)
+    rationale: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class RunBundle:
+    """Materialized Agent Harness-compliant bundle for a single run."""
+
+    bundle_id: str
+    objective_id: str
+    plan_id: str
+    path: str
+    harness_file: str
+    bundle_manifest: str
+    primary_harness_id: str
+    supporting_harness_ids: tuple[str, ...]
+    selected_skill_ids: tuple[str, ...]
+    validation_status: BundleValidationStatus
+    validation_errors: tuple[str, ...] = field(default_factory=tuple)
+    created_at: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class MultiHarnessPipelineResult:
+    """Result of selecting, composing, and validating a multi-harness bundle."""
+
+    plan: HarnessCompositionPlan
+    bundle: RunBundle
 
 
 @dataclass(frozen=True, slots=True)

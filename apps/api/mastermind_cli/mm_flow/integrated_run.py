@@ -10,6 +10,7 @@ from mastermind_cli.mm_flow.planning_bridge import (
     HarnessRequest,
 )
 from mastermind_cli.orchestrator.runtime_contracts import (
+    MultiHarnessPipelineResult,
     RuntimeExecutionResult,
     RuntimeMemoryWrite,
 )
@@ -46,3 +47,4 @@ class IntegratedRun:
     archive_record: ArchiveRecord | None
     warnings: tuple[str, ...]
     validation: ValidationReport
+    multi_harness_result: MultiHarnessPipelineResult | None = None

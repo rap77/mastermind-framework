@@ -70,6 +70,11 @@ _DEFAULTS: dict[str, Any] = {
             "base_url": "https://api.z.ai/v1",
         },
     },
+    "harness_library": {
+        "enabled": False,
+        "path": ".mm-flow/harness-library",
+        "bundle_output_path": ".run-bundles",
+    },
 }
 
 
@@ -127,11 +132,27 @@ class ProviderConfig:
 
 
 @dataclass
+class HarnessLibraryConfig:
+    """Configuration for optional Agent Harness library composition."""
+
+    enabled: bool
+    path: str
+    bundle_output_path: str
+
+
+@dataclass
 class MMFlowConfig:
     model_profiles: dict[str, ModelProfile]
     brain_routing: dict[str, BrainRoutingRule]
     verification_gates: dict[str, Any]
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
+    harness_library: HarnessLibraryConfig = field(
+        default_factory=lambda: HarnessLibraryConfig(
+            enabled=False,
+            path=".mm-flow/harness-library",
+            bundle_output_path=".run-bundles",
+        )
+    )
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -206,11 +227,21 @@ def load_config(path: str = ".planning/.mm-flow/config.yml") -> MMFlowConfig:
         for name, v in providers_raw.items()
     }
 
+    harness_library_raw: dict[str, Any] = data["harness_library"]
+    harness_library = HarnessLibraryConfig(
+        enabled=bool(harness_library_raw.get("enabled", False)),
+        path=str(harness_library_raw.get("path", ".mm-flow/harness-library")),
+        bundle_output_path=str(
+            harness_library_raw.get("bundle_output_path", ".run-bundles")
+        ),
+    )
+
     return MMFlowConfig(
         model_profiles=model_profiles,
         brain_routing=brain_routing,
         verification_gates=data["verification_gates"],
         providers=providers,
+        harness_library=harness_library,
     )
 
 
