@@ -43,6 +43,8 @@ class BrainRecord:
     capabilities: list[str]
     trigger_conditions: list[str]
     enabled: bool
+    token_budget_per_phase: int = 10_000
+    tokens_consumed_total: int = 0
 
     @classmethod
     def from_row(cls, row: asyncpg.Record) -> "BrainRecord":
@@ -63,7 +65,18 @@ class BrainRecord:
             capabilities=list(row["capabilities"] or []),
             trigger_conditions=list(row["trigger_conditions"] or []),
             enabled=row["enabled"],
+            token_budget_per_phase=_row_int(row, "token_budget_per_phase", 10_000),
+            tokens_consumed_total=_row_int(row, "tokens_consumed_total", 0),
         )
+
+
+def _row_int(row: asyncpg.Record, key: str, default: int) -> int:
+    """Return an integer row field with a default for older schemas."""
+    try:
+        value = row[key]
+    except KeyError:
+        return default
+    return int(value)
 
 
 class BrainRegistryRepository:
@@ -87,7 +100,8 @@ class BrainRegistryRepository:
 
     _SELECT_ALL_COLS = (
         "brain_id, name, model_quality, model_balanced, model_budget, "
-        "capabilities, trigger_conditions, enabled"
+        "capabilities, trigger_conditions, enabled, "
+        "token_budget_per_phase, tokens_consumed_total"
     )
 
     def __init__(self, conn: asyncpg.Connection) -> None:

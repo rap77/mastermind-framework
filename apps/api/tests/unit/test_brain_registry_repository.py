@@ -36,6 +36,8 @@ def _make_brain_registry_row(
     capabilities: list[str] | None = None,
     trigger_conditions: list[str] | None = None,
     enabled: bool = True,
+    token_budget_per_phase: int = 10_000,
+    tokens_consumed_total: int = 0,
 ) -> MagicMock:
     """Build a fake asyncpg Record-like object for brain_registry rows.
 
@@ -64,6 +66,8 @@ def _make_brain_registry_row(
         "capabilities": caps,
         "trigger_conditions": triggers,
         "enabled": enabled,
+        "token_budget_per_phase": token_budget_per_phase,
+        "tokens_consumed_total": tokens_consumed_total,
     }
     row.__getitem__ = MagicMock(side_effect=lambda k: data[k])
     return row
@@ -345,6 +349,8 @@ class TestDynamicDispatchEngineUsesRepository:
                     capabilities=["test"],
                     trigger_conditions=["test"],
                     enabled=True,
+                    token_budget_per_phase=10_000,
+                    tokens_consumed_total=0,
                 )
 
             mock_get_by_id.side_effect = _make_record
