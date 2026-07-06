@@ -141,6 +141,29 @@ TIMEOUT=120  # segundos
 
 ---
 
+## Wrapper de MasterMind
+
+En este repo, `apps/api/.gga-wrapper.sh` ya no pasa paths posicionales a `gga run`.
+Eso evita que GGA confunda un archivo staged con el commit message file.
+
+El wrapper hace batching de manera segura así:
+
+1. Lee los archivos staged reales desde `git diff --cached`.
+2. Agrupa en lotes de tamaño `GGA_BATCH_SIZE`.
+3. Construye un índice Git temporal por lote.
+4. Ejecuta `gga run` contra ese índice temporal.
+
+Configuración útil:
+
+```bash
+# Tamaño de lote para GGA en pre-commit
+GGA_BATCH_SIZE=10
+```
+
+Si el valor es inválido, el wrapper falla explícitamente antes de correr GGA.
+
+---
+
 ## Reproducir el fix en futuras actualizaciones de GGA
 
 Cada vez que GGA se actualice, verificar que el `bash -c` inline en
