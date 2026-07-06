@@ -102,4 +102,5 @@ Next step: extend the reuse boundary into a second repo template and operational
 - `../application-design/uow-3-memory-core-spec.md`
 - `../application-design/uow-4-planning-bridge-spec.md`
 - `../application-design/uow-5-project-adapter-integration-spec.md`
+- `../application-design/methodology-registry-spec.md`
 - `../../construction/plans/UOW-1-project-manifest-code-generation-plan.md`

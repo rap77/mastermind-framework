@@ -105,6 +105,7 @@ def test_registries_filter_capabilities_and_harnesses() -> None:
     harnesses = HarnessRegistry().resolve_for_capabilities(capabilities)
 
     assert any(cap.category == "mcp" for cap in capabilities.mcps)
+    assert any(cap.category == "policy" for cap in capabilities.policies)
     assert any(harness.harness_id == "execution-default" for harness in harnesses)
     assert any(harness.harness_id == "review-default" for harness in harnesses)
 

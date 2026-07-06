@@ -41,6 +41,7 @@ class CapabilityRegistry:
             recovery_policies=tuple(
                 c for c in compatible if c.category == "recovery_policy"
             ),
+            policies=tuple(c for c in compatible if c.category == "policy"),
         )
 
     def _default_definitions(self) -> tuple[CapabilityDefinition, ...]:
@@ -136,5 +137,21 @@ class CapabilityRegistry:
                 compatible_harnesses=("execution-default",),
                 compatible_task_classes=("medium", "complex"),
                 requires_fresh_context=True,
+            ),
+            CapabilityDefinition(
+                capability_id="policy-clean-code",
+                category="policy",
+                label="Clean Code Policy",
+                goal_tags=("clean-code", "style", "maintainability"),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=(
+                    "execution-default",
+                    "verification-default",
+                    "review-default",
+                    "recovery-default",
+                ),
+                compatible_task_classes=("simple", "medium", "complex"),
             ),
         )

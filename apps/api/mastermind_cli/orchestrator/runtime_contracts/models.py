@@ -23,6 +23,7 @@ CapabilityCategory = Literal[
     "command",
     "verifier",
     "recovery_policy",
+    "policy",
 ]
 EnvelopeStatus = Literal["success", "warning", "error"]
 RecoveryAction = Literal["retry", "patch", "replan", "escalate", "stop"]
@@ -211,6 +212,7 @@ class CapabilitySet:
     commands: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
     verifiers: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
     recovery_policies: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
+    policies: tuple[CapabilityDefinition, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)
