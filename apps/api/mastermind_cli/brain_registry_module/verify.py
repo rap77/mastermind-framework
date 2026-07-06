@@ -19,14 +19,11 @@ import asyncpg
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres@localhost:5434/mastermind_bd",
-)
+_DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 async def verify_brain_registry(
-    database_url: str = _DEFAULT_DATABASE_URL,
+    database_url: str | None = _DEFAULT_DATABASE_URL,
     expected_count: int = 8,
 ) -> bool:
     """Verify brain_registry has exactly expected_count rows.
@@ -38,6 +35,9 @@ async def verify_brain_registry(
     Returns:
         True if count matches expected_count, False otherwise.
     """
+    if database_url is None:
+        raise ValueError("DATABASE_URL is required to verify brain_registry.")
+
     conn: asyncpg.Connection = await asyncpg.connect(database_url)
     try:
         count = await conn.fetchval("SELECT COUNT(*) FROM brain_registry")
@@ -66,6 +66,8 @@ def main() -> None:
     """Entry point for running verification from the CLI."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     url = _DEFAULT_DATABASE_URL
+    if not url:
+        raise ValueError("DATABASE_URL is required to verify brain_registry.")
     ok = asyncio.run(verify_brain_registry(url))
     if ok:
         sys.stdout.write("PASS: SELECT COUNT(*) FROM brain_registry = 8\n")

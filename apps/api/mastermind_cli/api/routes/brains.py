@@ -35,12 +35,7 @@ router = APIRouter()
 
 _DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    # Dev default for the bundled Docker Postgres (docker-compose.yml).
-    # Production deployments MUST override DATABASE_URL.
-    f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}@"
-    f"{os.getenv('POSTGRES_HOST', 'localhost')}:"
-    f"{os.getenv('POSTGRES_PORT', '5434')}/"
-    f"{os.getenv('POSTGRES_DB', 'mastermind_bd')}",
+    None,
 )
 
 
@@ -83,6 +78,8 @@ async def _get_brains_from_db(
         the table is unreachable (DB down, table missing).
     """
     try:
+        if not _DATABASE_URL:
+            return None
         conn: asyncpg.Connection = await asyncpg.connect(_DATABASE_URL, timeout=3.0)
         try:
             repo = BrainRegistryRepository(conn)

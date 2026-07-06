@@ -21,10 +21,7 @@ import asyncpg
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres@localhost:5434/mastermind_bd",
-)
+_DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL")
 
 # ---------------------------------------------------------------------------
 # Brain definitions extracted from the canonical brain registry config.
@@ -266,7 +263,7 @@ BRAIN_SEED_DATA: list[dict[str, object]] = [
 ]
 
 
-async def seed_brain_registry(database_url: str = _DEFAULT_DATABASE_URL) -> int:
+async def seed_brain_registry(database_url: str | None = _DEFAULT_DATABASE_URL) -> int:
     """Insert the 8 default brain rows into brain_registry.
 
     Uses ON CONFLICT DO NOTHING so re-runs are safe (idempotent).
@@ -280,6 +277,9 @@ async def seed_brain_registry(database_url: str = _DEFAULT_DATABASE_URL) -> int:
     Raises:
         asyncpg.PostgresError: If any INSERT fails.
     """
+    if database_url is None:
+        raise ValueError("DATABASE_URL is required to seed brain_registry.")
+
     conn: asyncpg.Connection = await asyncpg.connect(database_url)
     try:
         inserted = 0
@@ -324,6 +324,8 @@ def main() -> None:
     """Entry point for running seed from the CLI."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     url = _DEFAULT_DATABASE_URL
+    if not url:
+        raise ValueError("DATABASE_URL is required to seed brain_registry.")
     inserted = asyncio.run(seed_brain_registry(url))
     sys.stdout.write(f"Seed complete: {inserted} new brain(s) inserted.\n")
 
