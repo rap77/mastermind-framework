@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from mastermind_cli.memory_layer.exceptions import MemoryPersistenceError
 from mastermind_cli.memory_layer.models import (
     CheckpointRecord,
     ContextSnapshot,
@@ -183,3 +184,39 @@ def test_adapter_keeps_memory_service_optional_in_constructor() -> None:
     adapter = MemoryRuntimeAdapter()
 
     assert adapter.memory_service is None
+
+
+@pytest.mark.asyncio
+async def test_adapter_wraps_persistence_failures() -> None:
+    """Persistence errors should be normalized into a memory-layer exception."""
+
+    class FailingMemoryService(FakeMemoryService):
+        async def save_checkpoint(
+            self, checkpoint: CheckpointRecord
+        ) -> CheckpointRecord:
+            """Always raise to exercise the persistence-error adapter path."""
+            raise RuntimeError("write failed")
+
+    adapter = MemoryRuntimeAdapter(memory_service=FailingMemoryService())
+    core = HarnessCore()
+    selection = core.select_runtime(
+        RuntimeRequest(
+            brief=Brief(problem_statement="Review this API metric"),
+            brain_ids=("brain-07-growth-data",),
+        )
+    )
+    runtime_result = core.build_execution_result(
+        selection,
+        artifacts=("brain-07-growth-data",),
+        next_actions=("continue",),
+    )
+
+    with pytest.raises(
+        MemoryPersistenceError, match="Failed to persist runtime memory"
+    ):
+        await adapter.persist_runtime_run(
+            project_id="proj-002",
+            task_id=None,
+            run_id="run-002",
+            runtime_result=runtime_result,
+        )

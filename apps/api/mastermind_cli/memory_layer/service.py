@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from .exceptions import MemorySnapshotError
 from .contracts import MemoryStore
 from .models import (
     CheckpointRecord,
@@ -206,54 +207,63 @@ class MemoryService:
         limit: int = 10,
     ) -> ContextSnapshot:
         """Assemble a compact resume snapshot from recent project memory."""
-        recent_items = await self._store.list_recent(project_id, limit=limit * 5)
-        checkpoints = [
-            self._to_checkpoint_record(
-                item, fallback_checkpoint_id=item.memory_id or ""
+        try:
+            recent_items = await self._store.list_recent(project_id, limit=limit * 5)
+            checkpoints = [
+                self._to_checkpoint_record(
+                    item, fallback_checkpoint_id=item.memory_id or ""
+                )
+                for item in recent_items
+                if item.memory_type == "checkpoint"
+                and self._matches_task_scope(item, task_id)
+            ][:limit]
+            decisions = [
+                self._to_decision_record(
+                    item, fallback_decision_id=item.memory_id or ""
+                )
+                for item in recent_items
+                if item.memory_type == "decision"
+                and self._matches_task_scope(item, task_id)
+            ][:limit]
+            run_summaries = [
+                self._to_run_summary(item)
+                for item in recent_items
+                if item.memory_type == "session_summary"
+                and self._matches_task_scope(item, task_id)
+            ][:limit]
+            latest_checkpoint = checkpoints[0] if checkpoints else None
+            latest_decision = decisions[0] if decisions else None
+            latest_summary = run_summaries[0] if run_summaries else None
+            summary = (
+                latest_checkpoint.next_step_summary
+                if latest_checkpoint is not None
+                else latest_decision.rationale_markdown
+                if latest_decision is not None
+                else latest_summary.summary
+                if latest_summary is not None
+                else "No stored context yet."
             )
-            for item in recent_items
-            if item.memory_type == "checkpoint"
-            and self._matches_task_scope(item, task_id)
-        ][:limit]
-        decisions = [
-            self._to_decision_record(item, fallback_decision_id=item.memory_id or "")
-            for item in recent_items
-            if item.memory_type == "decision"
-            and self._matches_task_scope(item, task_id)
-        ][:limit]
-        run_summaries = [
-            self._to_run_summary(item)
-            for item in recent_items
-            if item.memory_type == "session_summary"
-            and self._matches_task_scope(item, task_id)
-        ][:limit]
-        latest_checkpoint = checkpoints[0] if checkpoints else None
-        latest_decision = decisions[0] if decisions else None
-        latest_summary = run_summaries[0] if run_summaries else None
-        summary = (
-            latest_checkpoint.next_step_summary
-            if latest_checkpoint is not None
-            else latest_decision.rationale_markdown
-            if latest_decision is not None
-            else latest_summary.summary
-            if latest_summary is not None
-            else "No stored context yet."
-        )
-        open_gaps = []
-        if latest_checkpoint is None:
-            open_gaps.append("No checkpoint available")
-        if latest_decision is None:
-            open_gaps.append("No decision available")
-        return ContextSnapshot(
-            project_id=project_id,
-            task_id=task_id,
-            checkpoints=checkpoints,
-            decisions=decisions,
-            run_summaries=run_summaries,
-            summary=summary,
-            open_gaps=open_gaps,
-            applied_scopes={"project_id": project_id, "task_id": task_id},
-        )
+            open_gaps = []
+            if latest_checkpoint is None:
+                open_gaps.append("No checkpoint available")
+            if latest_decision is None:
+                open_gaps.append("No decision available")
+            return ContextSnapshot(
+                project_id=project_id,
+                task_id=task_id,
+                checkpoints=checkpoints,
+                decisions=decisions,
+                run_summaries=run_summaries,
+                summary=summary,
+                open_gaps=open_gaps,
+                applied_scopes={"project_id": project_id, "task_id": task_id},
+            )
+        except MemorySnapshotError:
+            raise
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            raise MemorySnapshotError(
+                f"Failed to build context snapshot for project_id={project_id}: {exc}"
+            ) from exc
 
     async def fetch_project_context(
         self,

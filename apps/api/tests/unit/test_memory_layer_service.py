@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
 from mastermind_cli.memory_layer.models import (
     ContextSnapshot,
     MemoryItem,
@@ -414,3 +415,14 @@ async def test_build_context_snapshot_compacts_recent_memory() -> None:
     assert snapshot.run_summaries[0].run_id == "run-8"
     assert snapshot.summary == "Resume after review."
     assert snapshot.open_gaps == []
+
+
+@pytest.mark.asyncio
+async def test_build_context_snapshot_wraps_store_failures() -> None:
+    """Snapshot load failures should surface as a memory-layer error."""
+    store = AsyncMock()
+    store.list_recent.side_effect = RuntimeError("backend offline")
+    service = MemoryService(store)
+
+    with pytest.raises(MemorySnapshotError, match="Failed to build context snapshot"):
+        await service.build_context_snapshot("proj-001")
