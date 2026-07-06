@@ -12,20 +12,24 @@ prefix/suffix metadata, and bcrypt verification.
 
 from __future__ import annotations
 
-import os
 import hashlib
+import logging
+import os
 import secrets
 from datetime import datetime, timezone
 from typing import Final
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic import ValidationError
+
+
+logger = logging.getLogger(__name__)
 
 
 # ===== CONSTANTS =====
 
 _KEY_PREFIX: Final = "mmsk_"  # MasterMind Secret Key
 _KEY_LENGTH: Final = 32  # 256-bit key
-_HASH_ALGORITHM: Final = "sha256"
 
 
 # ===== MODELS =====
@@ -156,7 +160,11 @@ def validate_legacy_api_key(api_key: str) -> LegacyAPIKey | None:
                 is_active=True,
                 scopes=["read", "write"],
             )
-        except Exception:
+        except (ValidationError, ValueError):
+            logger.warning(
+                "legacy API key sync validation failed (env path); "
+                "check MM_API_KEY format and permissions"
+            )
             return None
 
     # 2. Check SQLite database (Web UI mode) - synchronous version
@@ -195,9 +203,11 @@ async def validate_legacy_api_key_async(api_key: str) -> LegacyAPIKey | None:
 
         if key_data:
             return LegacyAPIKey(**key_data)
-    except Exception:
-        # Database not available or error
-        pass
+    except (RuntimeError, ValueError, TypeError, OSError) as exc:
+        logger.warning(
+            "legacy API key async validation failed (DB path): %s",
+            type(exc).__name__,
+        )
 
     return None
 
@@ -220,8 +230,8 @@ async def validate_legacy_api_key_hash(api_key_hash: str) -> LegacyAPIKey | None
 
         if key_data:
             return LegacyAPIKey(**key_data)
-    except Exception:
-        pass
+    except RuntimeError as exc:
+        logger.warning("legacy API key hash validation failed: %s", exc)
 
     return None
 
@@ -259,9 +269,8 @@ async def create_legacy_api_key(
 
         db = get_db()
         await db.save_api_key(api_key.model_dump())
-    except Exception:
-        # Database not available - still return the key
-        pass
+    except RuntimeError as exc:
+        logger.warning("legacy API key persistence failed: %s", exc)
 
     response = LegacyAPIKeyResponse(
         key_prefix=key[:8],
@@ -290,7 +299,8 @@ async def revoke_legacy_api_key(key_hash: str) -> bool:
 
         db = get_db()
         return await db.revoke_api_key(key_hash)
-    except Exception:
+    except RuntimeError as exc:
+        logger.warning("legacy API key revoke failed: %s", exc)
         return False
 
 
@@ -321,7 +331,8 @@ async def list_legacy_api_keys(owner: str | None = None) -> list[LegacyAPIKeyRes
             )
             for data in keys_data
         ]
-    except Exception:
+    except RuntimeError as exc:
+        logger.warning("legacy API key list failed: %s", exc)
         return []
 
 
