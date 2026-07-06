@@ -35,6 +35,8 @@ pnpm run <script>      # Run scripts
 - Conventional commits only
 - Never add "Co-Authored-By" to commits
 - Test suite must be at 0 failures before closing phases
+- GGA pre-commit runs through `apps/api/.gga-wrapper.sh`
+- It batches staged files via temporary Git indexes and honors `GGA_BATCH_SIZE`
 
 ### Code Quality
 - **Ruff linter** must pass with no errors
