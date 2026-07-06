@@ -10,7 +10,8 @@ Requirements: ER-02
 
 import pytest
 
-from mastermind_cli.api.routes.keys import validate_api_key_v2
+from mastermind_cli.api.routes.keys import _verify_key, validate_api_key_v2
+from mastermind_cli.api.routes import keys as keys_routes
 
 
 @pytest.mark.asyncio
@@ -244,3 +245,67 @@ async def test_validate_api_key_v2_accepts_injected_db_factory() -> None:
     assert len(fake_dbs) == 1
     assert fake_dbs[0].schema_created is True
     assert len(fake_dbs[0].conn.execute_calls) == 1
+
+
+def test_verify_key_returns_false_for_invalid_bcrypt_hash() -> None:
+    """Malformed bcrypt hashes should be treated as invalid keys."""
+    assert _verify_key("mmsk_12345678deadbeefdeadbeefdeadbeef", "not-a-hash") is False
+
+
+@pytest.mark.asyncio
+async def test_validate_api_key_v2_logs_last_used_update_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Best-effort last_used_at updates should log sqlite failures."""
+    import sqlite3
+
+    raw_key = "mmsk_12345678deadbeefdeadbeefdeadbeef"
+    caplog.set_level("WARNING")
+
+    class _Cursor:
+        def __init__(self) -> None:
+            self._calls = 0
+
+        async def fetchone(self):
+            self._calls += 1
+            if self._calls == 1:
+                return ("key-id", "user-123", "stored-hash")
+            return None
+
+    class _Conn:
+        async def execute(self, sql: str, params=None):
+            del params
+            if sql.startswith("UPDATE api_keys_v2"):
+                raise sqlite3.Error("boom")
+            return _Cursor()
+
+        async def commit(self):
+            return None
+
+    class _FakeDB:
+        def __init__(self, db_path: str) -> None:
+            self.db_path = db_path
+            self.conn = _Conn()
+
+        async def create_api_keys_v2_schema(self) -> None:
+            return None
+
+        async def __aenter__(self) -> "_FakeDB":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            del exc_type, exc, tb
+
+    original_verify = keys_routes._verify_key
+    keys_routes._verify_key = lambda *_args, **_kwargs: True  # type: ignore[assignment]
+    try:
+        result = await validate_api_key_v2(
+            raw_key=raw_key,
+            db_path="keys-test.db",
+            db_factory=lambda db_path: _FakeDB(db_path),
+        )
+    finally:
+        keys_routes._verify_key = original_verify  # type: ignore[assignment]
+
+    assert result == "user-123"
+    assert "api key last_used_at update failed" in caplog.text

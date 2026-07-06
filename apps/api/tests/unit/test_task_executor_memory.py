@@ -8,6 +8,7 @@ from mastermind_cli.mm_flow.task_executor_memory import (
     _build_memory_env_prefix,
     build_query_command,
     format_project_context,
+    parse_brain_memory_results,
 )
 
 
@@ -84,3 +85,13 @@ def test_format_project_context_renders_retrieval_results() -> None:
     assert "Customer graph launch note" in rendered
     assert "fusion:lexical+vector" in rendered
     assert "Launch note for customer graph recall." in rendered
+
+
+def test_parse_brain_memory_results_logs_invalid_json(caplog) -> None:
+    """Invalid JSON should be logged instead of failing silently."""
+    caplog.set_level("WARNING")
+
+    records = parse_brain_memory_results("not-json")
+
+    assert records == []
+    assert "Failed to parse brain memory JSON output" in caplog.text

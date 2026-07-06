@@ -185,3 +185,18 @@ class TestCancellationManager:
         assert (
             0.4 <= elapsed <= 0.6
         ), f"Grace period should be ~0.5s, got {elapsed:.2f}s"
+
+    @pytest.mark.asyncio
+    async def test_cancelled_sleep_propagates(
+        self, manager, mock_executor, monkeypatch
+    ):
+        """CancelledError during the grace sleep should propagate."""
+
+        async def _cancelled_sleep(*args, **kwargs):
+            del args, kwargs
+            raise asyncio.CancelledError()
+
+        monkeypatch.setattr(asyncio, "sleep", _cancelled_sleep)
+
+        with pytest.raises(asyncio.CancelledError):
+            await manager.cancel(mock_executor)

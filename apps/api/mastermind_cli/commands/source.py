@@ -1,5 +1,6 @@
 """Source commands for MasterMind CLI."""
 
+import logging
 import json
 import re
 from datetime import datetime
@@ -15,6 +16,9 @@ from ..utils.validation import validate_brain_sources, find_sources_by_id
 from ..rag.manual_ingestion import build_domain_knowledge_preview
 
 from ..utils.console import get_console as console
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_root() -> Path:
@@ -270,7 +274,7 @@ def source_update(source_id: str, change: str) -> None:
                 border_style="green",
             )
         )
-    except Exception as e:
+    except ValueError as e:
         console().print(f"[yellow]Warning: Could not create git commit: {e}[/yellow]")
         console().print(
             f"[green]✓[/green] Source updated: [bold]{source_id}[/bold] (v{new_version})"
@@ -400,7 +404,8 @@ def source_list() -> None:
                     str(metadata.get("year", "—")),
                     source_file.parent.parent.name.replace("-brain", ""),
                 )
-        except Exception as e:
+        except (OSError, ValueError) as e:
+            logger.warning("source list skipped %s: %s", source_file, e, exc_info=True)
             console().print(
                 f"[yellow]Warning: Could not read {source_file}: {e}[/yellow]"
             )
@@ -458,7 +463,7 @@ def source_status(brain: str) -> None:
                     loaded,
                 )
         except (OSError, ValueError, KeyError):
-            pass
+            logger.warning("source status skipped %s", source_file, exc_info=True)
 
     console().print(table)
 
@@ -490,7 +495,7 @@ def source_export(brain: str, output: str) -> None:
             output_file = output_dir / source_file.name
             output_file.write_text(content, encoding="utf-8")
             exported += 1
-        except Exception as e:
+        except (OSError, ValueError) as e:
             console().print(
                 f"[yellow]Warning: Could not export {source_file}: {e}[/yellow]"
             )

@@ -435,7 +435,7 @@ def run(
 
             click.echo("\n" + traceback.format_exc(), err=True)
         sys.exit(1)
-    except Exception as e:
+    except (OSError, RuntimeError) as e:
         click.echo(f"❌ Orchestration failed: {str(e)}", err=True)
         if verbose:
             import traceback

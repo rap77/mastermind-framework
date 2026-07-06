@@ -6,10 +6,14 @@ allowing in-flight tasks to save checkpoints before hard kill.
 """
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .task_executor import ParallelExecutor
+
+
+logger = logging.getLogger(__name__)
 
 
 class CancellationManager:
@@ -64,7 +68,8 @@ class CancellationManager:
             await asyncio.sleep(self.grace_period)
         except asyncio.CancelledError:
             # If cancellation itself is cancelled, propagate
-            pass
+            logger.debug("cancellation sleep was cancelled; propagating")
+            raise
 
         # Step 3: Force kill remaining tasks
         results = {"graceful": 0, "force_killed": 0}
@@ -77,8 +82,10 @@ class CancellationManager:
                 # Wait for the task to actually be cancelled
                 try:
                     await asyncio.wait_for(task, timeout=0.1)
-                except (asyncio.CancelledError, asyncio.TimeoutError):
-                    pass
+                except asyncio.CancelledError:
+                    logger.debug("task cancellation propagated while force-killing")
+                except asyncio.TimeoutError:
+                    logger.debug("task did not cancel within force-kill timeout")
                 results["force_killed"] += 1
             else:
                 results["graceful"] += 1

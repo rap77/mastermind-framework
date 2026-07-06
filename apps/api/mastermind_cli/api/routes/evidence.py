@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 def _project_root() -> Path:
@@ -25,8 +28,10 @@ def _project_root() -> Path:
         )
         if result.returncode == 0:
             return Path(result.stdout.strip())
-    except Exception:
-        pass
+    except (OSError, subprocess.SubprocessError, TimeoutError, ValueError) as exc:
+        logger.debug(
+            "git root resolution failed, using fallback path: %s", exc, exc_info=True
+        )
     return Path(__file__).resolve().parents[5]
 
 

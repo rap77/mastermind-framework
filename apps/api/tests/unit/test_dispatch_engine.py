@@ -55,6 +55,8 @@ def _make_brain_row(
     role: str = "test-brain",
     model_quality: str = "balanced",
     is_barrier: bool = False,
+    token_budget_per_phase: int = 10_000,
+    tokens_consumed_total: int = 0,
 ) -> MagicMock:
     """Build a fake asyncpg Record-like object for brain_registry rows.
 
@@ -78,6 +80,8 @@ def _make_brain_row(
             "capabilities": ["test"],
             "trigger_conditions": ["test"],
             "enabled": True,
+            "token_budget_per_phase": token_budget_per_phase,
+            "tokens_consumed_total": tokens_consumed_total,
         }[k]
     )
     return row
@@ -573,6 +577,49 @@ class TestBudgetExceededError:
             raise BudgetExceededError("budget exceeded")
 
 
+class TestBudgetTracking:
+    """Budget tracking should reflect registry fields and guard overages."""
+
+    @pytest.mark.asyncio
+    async def test_dispatch_computes_budget_remaining_from_selected_brains(
+        self,
+    ) -> None:
+        """dispatch() should return the sum of remaining tokens for selected brains."""
+        parallel_rows = [
+            _make_brain_row(1, tokens_consumed_total=1_000),
+            _make_brain_row(2, tokens_consumed_total=2_000),
+            _make_brain_row(3, tokens_consumed_total=500),
+        ]
+        barrier_rows = [_make_brain_row(7, is_barrier=True, tokens_consumed_total=100)]
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION")
+
+        assert result.budget_remaining == (9_000 + 8_000 + 9_500 + 9_900)
+
+    @pytest.mark.asyncio
+    async def test_dispatch_raises_when_brain_exceeds_budget_threshold(self) -> None:
+        """dispatch() should fail fast when a brain is over 80% consumed."""
+        parallel_rows = [
+            _make_brain_row(1, tokens_consumed_total=8_100),
+        ]
+        barrier_rows = []
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=_mock_httpx_client()),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            with pytest.raises(BudgetExceededError, match="brain_id=1"):
+                await engine.dispatch(19, "DISCUSSION")
+
+
 # ---------------------------------------------------------------------------
 # B2.5 / B2.6: Brain event notification (POST to Rust hub)
 # ---------------------------------------------------------------------------
@@ -676,6 +723,36 @@ class TestBrainEventNotification:
         # dispatch still returns a valid result
         assert isinstance(result, DispatchResult)
         assert [b.brain_id for b in result.parallel] == [1]
+
+    async def test_langsmith_trace_failure_is_logged(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """LangSmith tracing failures should be logged and ignored."""
+        parallel_rows = [_make_brain_row(1)]
+        barrier_rows = []
+        conn = _make_conn(parallel_rows, barrier_rows)
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=_mock_httpx_response(204))
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_client)
+        cm.__aexit__ = AsyncMock(return_value=None)
+
+        def _boom() -> object:
+            raise RuntimeError("langsmith unavailable")
+
+        caplog.set_level("DEBUG")
+
+        with (
+            patch("asyncpg.connect", new=AsyncMock(return_value=conn)),
+            patch("httpx.AsyncClient", return_value=cm),
+            patch("langsmith.get_current_run_tree", side_effect=_boom),
+        ):
+            engine = DynamicDispatchEngine(postgres_url="postgresql://fake/db")
+            result = await engine.dispatch(19, "DISCUSSION", trace_id="trace-langsmith")
+
+        assert isinstance(result, DispatchResult)
+        assert "LangSmith trace metadata attachment failed" in caplog.text
 
     async def test_post_brain_event_uses_rust_hub_url(self) -> None:
         """_post_brain_event targets the rust_hub_url constructor parameter."""

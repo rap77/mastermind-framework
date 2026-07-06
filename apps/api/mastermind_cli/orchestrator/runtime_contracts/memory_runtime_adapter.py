@@ -11,6 +11,7 @@ from mastermind_cli.memory_layer.models import (
     DecisionRecord,
     RunSummary,
 )
+from mastermind_cli.memory_layer.exceptions import MemoryPersistenceError
 from mastermind_cli.orchestrator.runtime_contracts.models import (
     ExecutionEnvelope,
     LoopPolicy,
@@ -106,9 +107,16 @@ class MemoryRuntimeAdapter:
             runtime_result=runtime_result,
         )
 
-        persisted_checkpoint = await self.memory_service.save_checkpoint(checkpoint)
-        persisted_decision = await self.memory_service.save_decision(decision)
-        persisted_run_summary = await self.memory_service.save_run_summary(run_summary)
+        try:
+            persisted_checkpoint = await self.memory_service.save_checkpoint(checkpoint)
+            persisted_decision = await self.memory_service.save_decision(decision)
+            persisted_run_summary = await self.memory_service.save_run_summary(
+                run_summary
+            )
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            raise MemoryPersistenceError(
+                f"Failed to persist runtime memory for run_id={run_id}: {exc}"
+            ) from exc
 
         return RuntimeMemoryWrite(
             project_id=project_id,

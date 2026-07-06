@@ -128,7 +128,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if _GRPC_ENABLED and not _grpc_server_disabled():
         try:
             _grpc_server = await start_grpc_server()
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError, ValueError) as e:
             logger.warning("Failed to start gRPC server: %s", e)
             # Don't fail app startup if gRPC is optional
             pass
@@ -139,7 +139,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if _grpc_server:
         try:
             await _grpc_server.stop(grace=0.1)
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.warning("Error closing gRPC server: %s", e)
 
 

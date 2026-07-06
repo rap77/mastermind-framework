@@ -7,6 +7,8 @@ Python orchestration system.
 Phase 13-03 Task 1: Python gRPC server (BrainRuntimeServicer)
 """
 
+import asyncio
+import logging
 import time
 import uuid
 from collections.abc import Callable
@@ -23,6 +25,9 @@ from mastermind_cli.project_state.models.task import Task
 from mastermind_cli.project_state.models.task_run import TaskRun
 from mastermind_cli.proto import DispatchTaskRequest, DispatchTaskResponse
 from mastermind_cli.state.database import DatabaseConnection
+from mastermind_cli.api.services.task_runner import run_brain_task
+
+logger = logging.getLogger(__name__)
 
 
 def _project_state_db_url_from_path(db_path: str) -> str:
@@ -102,6 +107,36 @@ def _persist_project_state_dispatch(
         session.commit()
 
 
+def _schedule_brain_execution(
+    *,
+    task_id: str,
+    brief: str,
+    flow: str,
+    db_path: str,
+) -> None:
+    """Schedule the actual brain execution in the background."""
+
+    async def _run() -> None:
+        await run_brain_task(task_id=task_id, brief=brief, flow=flow, db_path=db_path)
+
+    task = asyncio.create_task(_run())
+
+    def _log_failure(completed_task: asyncio.Task[None]) -> None:
+        try:
+            exc = completed_task.exception()
+        except asyncio.CancelledError:
+            return
+        if exc is not None:
+            logger.error(
+                "gRPC brain execution failed for task_id=%s: %s",
+                task_id,
+                exc,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+
+    task.add_done_callback(_log_failure)
+
+
 class BrainRuntimeServicer:
     """gRPC servicer for BrainRuntime service.
 
@@ -145,9 +180,7 @@ class BrainRuntimeServicer:
         user_id = request.user_id
         flow = request.flow if request.flow else self.flow_detector.detect(brief)
 
-        # Create execution record in SQLite
-        # Note: In VS, we simplify to synchronous insert
-        # Full async BackgroundTask execution comes in Phase 15
+        # Create execution record in SQLite and schedule the actual run.
         import os
 
         db_path = os.getenv("MM_DB_PATH", "mastermind.db")
@@ -179,9 +212,15 @@ class BrainRuntimeServicer:
             accepted_at_ms=accepted_at_ms,
         )
 
+        _schedule_brain_execution(
+            task_id=task_id,
+            brief=brief,
+            flow=flow,
+            db_path=db_path,
+        )
+
         # Return response
-        # Note: In VS, we return "pending" immediately
-        # Full orchestration happens in background in Phase 15
+        # Return pending immediately while the background task executes.
         return DispatchTaskResponse(
             task_id=task_id,
             status="pending",

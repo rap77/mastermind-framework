@@ -539,8 +539,10 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
             try:
                 parent_path.rmdir()
                 console().print(f"[dim]✓ Removed empty .claude/{parent_dir}/[/dim]")
-            except OSError:
-                pass
+            except OSError as exc:
+                console().print(
+                    f"[dim]Skipped empty dir cleanup for .claude/{parent_dir}: {exc}[/dim]"
+                )
 
     # Optionally remove config directory
     if not keep_config and mastermind_dir.exists():
@@ -565,7 +567,7 @@ def uninstall(keep_config: bool, remove_readme: bool) -> None:
                     console().print(
                         "[green]✓ Removed MasterMind section from README.md[/green]"
                     )
-            except Exception as e:
+            except OSError as e:
                 console().print(f"[yellow]⚠ Could not update README.md: {e}[/yellow]")
 
     console().print(

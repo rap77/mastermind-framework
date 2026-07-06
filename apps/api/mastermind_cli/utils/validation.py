@@ -127,7 +127,7 @@ def validate_source_file(filepath: str) -> ValidationResult:
                 f"Type must be one of: {', '.join(allowed_types)}",
             )
 
-    except Exception as e:
+    except (FileNotFoundError, OSError, UnicodeError, ValueError) as e:
         result.add_error("file", f"Error reading file: {e}")
 
     return result
@@ -176,7 +176,7 @@ def find_sources_by_id(source_id: str, search_paths: List[str]) -> List[str]:
 
         # Search in sources subdirectories
         for sources_dir in path.rglob("sources"):
-            for source_file in sources_dir.glob(f"{source_id}.md"):
+            for source_file in sources_dir.glob(f"{source_id}*.md"):
                 matches.append(str(source_file))
 
     return matches
@@ -195,7 +195,7 @@ class TypeAdapterParam(click_import.ParamType):
 
     name = "typed"
 
-    def __init__(self, model: TypingAny):
+    def __init__(self, model: TypingAny) -> None:
         self.adapter = PydanticTypeAdapter(model)
         self.model_name = model.__name__ if hasattr(model, "__name__") else str(model)
 

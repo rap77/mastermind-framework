@@ -849,6 +849,44 @@ async def test_stateless_coordinator_persists_runtime_run_via_writer(
 
 
 @pytest.mark.asyncio
+async def test_stateless_coordinator_logs_memory_persistence_error(
+    coordinator_config: CoordinatorConfig, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The coordinator should log runtime memory persistence failures."""
+    from mastermind_cli.memory_layer.exceptions import MemoryPersistenceError
+
+    class FailingMemoryRuntimeWriter:
+        async def persist_runtime_run(
+            self,
+            *,
+            project_id: str,
+            task_id: str | None,
+            run_id: str,
+            runtime_result: object,
+            snapshot: ContextSnapshot | None = None,
+        ) -> object:
+            del project_id, task_id, run_id, runtime_result, snapshot
+            raise MemoryPersistenceError("boom")
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client,
+            enable_logging=False,
+            project_id="proj-001",
+            memory_runtime_writer=FailingMemoryRuntimeWriter(),
+        )
+    )
+    coordinator.runtime_selection = SimpleNamespace(memory_snapshot=None)
+    coordinator.runtime_execution_result = object()
+    caplog.set_level("WARNING")
+
+    await coordinator._persist_runtime_run()
+
+    assert "runtime memory persistence failed" in caplog.text
+    assert coordinator.runtime_memory_write is None
+
+
+@pytest.mark.asyncio
 async def test_stateless_coordinator_skips_persistence_without_project_id(
     coordinator_config: CoordinatorConfig, sample_brief: Brief
 ) -> None:

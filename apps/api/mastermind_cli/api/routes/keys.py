@@ -23,7 +23,9 @@ Security:
 Requirements: ER-02
 """
 
+import logging
 import secrets
+import sqlite3
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import datetime, timezone
@@ -40,6 +42,8 @@ from mastermind_cli.api.routes.auth import get_current_user_any
 from mastermind_cli.state.database import DatabaseConnection
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 # Rate limiter for key validation (Brain #7 gap B)
 _limiter = Limiter(key_func=get_remote_address)
@@ -75,7 +79,13 @@ def _verify_key(key: str, key_hash: str) -> bool:
     """Verify a plaintext key against its bcrypt hash."""
     try:
         return bcrypt.checkpw(key.encode(), key_hash.encode())
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug(
+            "bcrypt verification failed for API key prefix=%s: %s",
+            key[:13],
+            exc,
+            exc_info=True,
+        )
         return False
 
 
@@ -325,7 +335,12 @@ async def validate_api_key_v2(
                 [datetime.now(timezone.utc).isoformat(), key_id],
             )
             await db.conn.commit()
-        except Exception:
-            pass
+        except sqlite3.Error as exc:
+            logger.warning(
+                "api key last_used_at update failed for key_id=%s: %s",
+                key_id,
+                exc,
+                exc_info=True,
+            )
 
         return str(owner_id)

@@ -15,11 +15,7 @@ def _write_package(path: Path, filename: str, name: str, description: str) -> No
     """Write a minimal Agent Harness/Skill markdown package file."""
     path.mkdir(parents=True, exist_ok=True)
     (path / filename).write_text(
-        "---\n"
-        f"name: {name}\n"
-        f"description: {description}\n"
-        "---\n"
-        f"{description}\n",
+        f"---\nname: {name}\ndescription: {description}\n---\n{description}\n",
         encoding="utf-8",
     )
 

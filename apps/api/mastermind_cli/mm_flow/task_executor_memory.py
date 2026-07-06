@@ -34,12 +34,15 @@ Usage (by task-executor agent in system prompt context):
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shlex
 
 # Default path to brain_memory.py (relative to repo root)
 _DEFAULT_BRAIN_MEMORY_PATH = "apps/api/mastermind_cli/tools/brain_memory.py"
 _DEFAULT_PROJECT_MEMORY_PATH = "apps/api/mastermind_cli/tools/project_memory.py"
+
+logger = logging.getLogger(__name__)
 
 
 def _build_memory_env_prefix() -> str:
@@ -192,7 +195,7 @@ def parse_brain_memory_results(
         if isinstance(records, list):
             return records
     except (json.JSONDecodeError, ValueError):
-        pass
+        logger.warning("Failed to parse brain memory JSON output")
     return []
 
 

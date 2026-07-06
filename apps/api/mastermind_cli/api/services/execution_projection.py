@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import binascii
 import base64
+import logging
 import json
 import sqlite3
 from datetime import datetime
@@ -10,6 +12,7 @@ from contextlib import closing
 from typing import Any
 
 from sqlalchemy import asc, desc, select
+from pydantic import ValidationError
 
 from mastermind_cli.api.models.execution import (
     BrainOutput,
@@ -26,6 +29,9 @@ from mastermind_cli.project_state.models.task import Task
 from mastermind_cli.project_state.models.task_run import TaskRun
 
 
+logger = logging.getLogger(__name__)
+
+
 def user_task_project_id(user_id: str) -> str:
     """Return the transitional project_state scope for legacy user executions."""
     return f"user-tasks:{user_id}"
@@ -40,7 +46,8 @@ def decode_cursor(cursor: str) -> str | None:
     """Decode a cursor back to execution ID. Returns None on invalid cursor."""
     try:
         return base64.urlsafe_b64decode(cursor.encode()).decode()
-    except Exception:
+    except (binascii.Error, ValueError, UnicodeDecodeError) as exc:
+        logger.debug("invalid execution cursor: %s", exc, exc_info=True)
         return None
 
 
@@ -51,7 +58,8 @@ def _parse_milestones(raw: str) -> list[SnapshotMilestone]:
         if not isinstance(data, list):
             return []
         return [SnapshotMilestone(**milestone) for milestone in data]
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("failed to parse execution milestones: %s", exc, exc_info=True)
         return []
 
 
@@ -62,7 +70,8 @@ def _parse_brain_outputs(raw: str) -> dict[str, BrainOutput]:
         if not isinstance(data, dict):
             return {}
         return {key: BrainOutput(**value) for key, value in data.items()}
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("failed to parse brain outputs: %s", exc, exc_info=True)
         return {}
 
 
@@ -73,7 +82,8 @@ def _parse_graph_snapshot(raw: str) -> dict[str, object]:
         if not isinstance(data, dict):
             return {}
         return dict(data)
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.debug("failed to parse graph snapshot: %s", exc, exc_info=True)
         return {}
 
 
@@ -171,7 +181,13 @@ def _read_canonical_brain_outputs(
         if isinstance(key, str) and isinstance(value, dict):
             try:
                 parsed[key] = BrainOutput(**value)
-            except Exception:
+            except (AttributeError, TypeError, ValidationError, ValueError) as exc:
+                logger.debug(
+                    "skipping invalid canonical brain output %s: %s",
+                    key,
+                    exc,
+                    exc_info=True,
+                )
                 continue
     return parsed
 

@@ -8,55 +8,62 @@ Validates:
 """
 
 import asyncio
-import pytest
 import json
 from datetime import datetime
 from typing import List
 
 import websockets
 from websockets.exceptions import ConnectionClosed
+import pytest
+import pytest_asyncio
+
+from scripts.run_ws_server import handler
+from websockets.asyncio.server import serve
+
+
+@pytest_asyncio.fixture
+async def websocket_server_uri() -> str:
+    """Start an isolated WebSocket server for the integration tests."""
+    async with serve(handler, "127.0.0.1", 0) as server:
+        socket = server.sockets[0]
+        host, port = socket.getsockname()[:2]
+        yield f"ws://{host}:{port}/ws"
 
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_websocket_ghost_mode_replay():
+async def test_websocket_ghost_mode_replay(websocket_server_uri: str):
     """Test Ghost Mode replay returns last 100 events with P95 latency < 500ms.
 
     Requires WebSocket server running on localhost:8080.
     Run manually: start Rust control plane first (cargo run in rust_control_plane/).
     """
-    uri = "ws://localhost:8080/ws"
+    uri = websocket_server_uri
     latencies: List[float] = []
 
-    try:
-        async with websockets.connect(uri) as websocket:
-            # Request Ghost Mode replay
-            request = {"type": "ghost_replay"}
-            await websocket.send(json.dumps(request))
+    async with websockets.connect(uri) as websocket:
+        # Request Ghost Mode replay
+        request = {"type": "ghost_replay"}
+        await websocket.send(json.dumps(request))
 
-            start_time = datetime.now()
+        start_time = datetime.now()
 
-            # Receive up to 100 events
-            event_count = 0
-            while event_count < 100:
-                try:
-                    message = await asyncio.wait_for(websocket.recv(), timeout=5.0)
-                    event = json.loads(message)
+        # Receive up to 100 events
+        event_count = 0
+        while event_count < 100:
+            try:
+                message = await asyncio.wait_for(websocket.recv(), timeout=5.0)
+                event = json.loads(message)
 
-                    if event.get("type") == "ghost_replay":
-                        latency_ms = (
-                            datetime.now() - start_time
-                        ).total_seconds() * 1000
-                        latencies.append(latency_ms)
-                        event_count += 1
+                if event.get("type") == "ghost_replay":
+                    latency_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    latencies.append(latency_ms)
+                    event_count += 1
 
-                except asyncio.TimeoutError:
-                    break
-                except ConnectionClosed:
-                    break
-
-    except ConnectionRefusedError:
-        pytest.skip("WebSocket server not running")
+            except asyncio.TimeoutError:
+                break
+            except ConnectionClosed:
+                break
 
     # Calculate P95 latency
     if latencies:
@@ -75,40 +82,36 @@ async def test_websocket_ghost_mode_replay():
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_websocket_trace_id_propagation():
+async def test_websocket_trace_id_propagation(websocket_server_uri: str):
     """Test 100% of events contain trace_id (SLI-3).
 
     Requires WebSocket server running on localhost:8080.
     """
-    uri = "ws://localhost:8080/ws"
+    uri = websocket_server_uri
 
-    try:
-        async with websockets.connect(uri) as websocket:
-            # Request Ghost Mode replay
-            request = {"type": "ghost_replay"}
-            await websocket.send(json.dumps(request))
+    async with websockets.connect(uri) as websocket:
+        # Request Ghost Mode replay
+        request = {"type": "ghost_replay"}
+        await websocket.send(json.dumps(request))
 
-            events_without_trace_id = 0
-            total_events = 0
+        events_without_trace_id = 0
+        total_events = 0
 
-            # Receive events
-            try:
-                while True:
-                    message = await asyncio.wait_for(websocket.recv(), timeout=5.0)
-                    event = json.loads(message)
+        # Receive events
+        try:
+            while True:
+                message = await asyncio.wait_for(websocket.recv(), timeout=5.0)
+                event = json.loads(message)
 
-                    total_events += 1
+                total_events += 1
 
-                    if "trace_id" not in event:
-                        events_without_trace_id += 1
+                if "trace_id" not in event:
+                    events_without_trace_id += 1
 
-            except asyncio.TimeoutError:
-                pass
-            except ConnectionClosed:
-                pass  # Connection closed normally
-
-    except ConnectionRefusedError:
-        pytest.skip("WebSocket server not running")
+        except asyncio.TimeoutError:
+            pass
+        except ConnectionClosed:
+            pass  # Connection closed normally
 
     # SLI-3: 100% of events should have trace_id
     if total_events > 0:
@@ -125,21 +128,13 @@ async def test_websocket_trace_id_propagation():
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_websocket_connection_stability():
+async def test_websocket_connection_stability(websocket_server_uri: str):
     """Test 1000 concurrent connections (stress test).
 
     Requires WebSocket server running on localhost:8080.
     """
-    uri = "ws://localhost:8080/ws"
+    uri = websocket_server_uri
     num_connections = 1000
-
-    # First, check if WebSocket server is running with a single connection attempt
-    try:
-        async with websockets.connect(uri) as _:
-            # Server is running, close test connection and continue
-            pass
-    except (ConnectionRefusedError, OSError) as e:
-        pytest.skip(f"WebSocket server not running or unavailable: {type(e).__name__}")
 
     async def single_connection(conn_id: int):
         try:

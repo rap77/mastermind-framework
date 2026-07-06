@@ -430,6 +430,72 @@ def test_run_brain_task_passes_governance_to_factory(
     assert MockCoord.call_args.kwargs["governance"] is not None
 
 
+def test_run_brain_task_wires_memory_components_when_configured(
+    db_with_task: str, task_id: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_brain_task() should inject memory wiring when memory DB is configured."""
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {"result": "ok"}
+    fake_logger = AsyncMock()
+    fake_snapshot = object()
+    fake_memory_service = AsyncMock()
+    fake_memory_service.build_context_snapshot = AsyncMock(return_value=fake_snapshot)
+    fake_writer = object()
+
+    monkeypatch.setenv("MM_MEMORY_DATABASE_URL", "postgresql://memory-url")
+
+    with (
+        patch(
+            "mastermind_cli.api.services.task_runner.create_stateless_coordinator"
+        ) as MockCoord,
+        patch(
+            "mastermind_cli.api.services.task_runner.ExperienceLogger",
+            return_value=fake_logger,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.evaluate_session",
+            return_value=MagicMock(
+                quality_score=0.9, high_value=True, insights=["Looks good"]
+            ),
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._persist_execution_output_artifact"
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.build_memory_store_from_env",
+            return_value=object(),
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.MemoryService",
+            return_value=fake_memory_service,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.MemoryRuntimeAdapter",
+            return_value=fake_writer,
+        ),
+    ):
+        instance = MockCoord.return_value
+        instance.execute_flow = AsyncMock(
+            return_value={"brain-01-product": mock_output}
+        )
+
+        from mastermind_cli.api.services.task_runner import run_brain_task
+
+        asyncio.run(
+            run_brain_task(
+                task_id=task_id,
+                brief="Test brief input",
+                flow="validation_only",
+                db_path=db_with_task,
+            )
+        )
+
+    assert MockCoord.call_args.kwargs["project_id"] == "user-tasks:user-001"
+    assert MockCoord.call_args.kwargs["memory_context_provider"] is not None
+    assert MockCoord.call_args.kwargs["memory_runtime_writer"] is fake_writer
+    assert fake_memory_service.build_context_snapshot.await_count == 1
+
+
 def test_run_brain_task_transitions_to_failed_on_exception(
     db_with_task: str, task_id: str
 ) -> None:
@@ -673,6 +739,89 @@ def test_run_brain_task_persists_canonical_execution_output_artifact(
     assert "brain-01-product" in raw_outputs
 
 
+def test_run_brain_task_logs_best_effort_failures(
+    db_with_task: str, task_id: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Best-effort failures should be logged, not swallowed silently."""
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {"result": "artifact"}
+    mock_eval_result = MagicMock()
+    mock_eval_result.quality_score = 0.9
+    mock_eval_result.high_value = True
+    mock_eval_result.insights = ["Looks good"]
+    fake_logger = AsyncMock()
+    fake_pg_conn = AsyncMock()
+    fake_pg_conn.close = AsyncMock(side_effect=RuntimeError("close failed"))
+
+    caplog.set_level("DEBUG")
+
+    with (
+        patch(
+            "mastermind_cli.api.services.task_runner.create_stateless_coordinator"
+        ) as MockCoord,
+        patch(
+            "mastermind_cli.api.services.task_runner.ExperienceLogger",
+            return_value=fake_logger,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.evaluate_session",
+            return_value=mock_eval_result,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._persist_execution_output_artifact",
+            side_effect=RuntimeError("artifact failed"),
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._update_project_state_status",
+            side_effect=[
+                RuntimeError("running failed"),
+                RuntimeError("completed failed"),
+            ],
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.asyncpg.connect",
+            new=AsyncMock(return_value=fake_pg_conn),
+        ),
+        patch(
+            "mastermind_cli.rag.context_builder.RAGContextBuilder.build",
+            new=AsyncMock(return_value="[RETRIEVED CONTEXT] runtime"),
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._brain_router.route_to_brain",
+            return_value=None,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._DEFAULT_DATABASE_URL",
+            "postgresql://fake/db",
+        ),
+        patch(
+            "langsmith.get_current_run_tree",
+            side_effect=RuntimeError("langsmith unavailable"),
+        ),
+    ):
+        instance = MockCoord.return_value
+        instance.execute_flow = AsyncMock(
+            return_value={"brain-01-product": mock_output}
+        )
+
+        from mastermind_cli.api.services.task_runner import run_brain_task
+
+        asyncio.run(
+            run_brain_task(
+                task_id=task_id,
+                brief="Test brief input",
+                flow="validation_only",
+                db_path=db_with_task,
+            )
+        )
+
+    assert "project_state running status update failed" in caplog.text
+    assert "LangSmith metadata update failed" in caplog.text
+    assert "execution output artifact persistence failed" in caplog.text
+    assert "project_state completed status update failed" in caplog.text
+    assert "failed to close asyncpg RAG connection" in caplog.text
+
+
 def test_run_brain_task_marks_rag_enabled_for_short_brain1_runtime_id(
     db_with_task: str, task_id: str
 ) -> None:
@@ -707,6 +856,10 @@ def test_run_brain_task_marks_rag_enabled_for_short_brain1_runtime_id(
         patch(
             "mastermind_cli.api.services.task_runner._brain_router.route_to_brain",
             return_value=None,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._DEFAULT_DATABASE_URL",
+            "postgresql://fake/db",
         ),
         patch(
             "mastermind_cli.rag.context_builder.RAGContextBuilder.build",

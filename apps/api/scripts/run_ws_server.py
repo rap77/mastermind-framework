@@ -86,7 +86,7 @@ async def handler(websocket: ServerConnection) -> None:
 
     except ConnectionClosed as e:
         logger.info(f"Client disconnected: {e}")
-    except Exception as e:
+    except (RuntimeError, TypeError, ValueError, json.JSONDecodeError) as e:
         logger.error(f"Error handling client: {type(e).__name__}: {e}")
         import traceback
 
@@ -99,7 +99,7 @@ async def main() -> None:
     logger.info("Test endpoint: ws://localhost:8080/ws")
 
     async with serve(handler, "localhost", 8080):
-        print("Server running. Press Ctrl+C to stop.")
+        logger.info("Server running. Press Ctrl+C to stop.")
         await asyncio.Future()  # Run forever
 
 
@@ -107,4 +107,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nServer stopped.")
+        logger.info("\nServer stopped.")

@@ -187,6 +187,26 @@ def test_broadcast_throttling() -> None:
     assert task_id in broadcaster.accumulated
 
 
+def test_broadcast_throttling_logs_disconnected_clients(caplog) -> None:
+    """Disconnected WebSocket clients should be logged and ignored."""
+
+    class FailingWebSocket:
+        async def send_json(self, payload: dict[str, object]) -> None:
+            del payload
+            raise RuntimeError("socket closed")
+
+    task_id = "task-throttle-log-001"
+    broadcaster = ThrottledBroadcaster(interval_ms=0)
+    from mastermind_cli.api import websocket as websocket_module
+
+    websocket_module.connections[task_id] = {FailingWebSocket()}  # type: ignore[assignment]
+    caplog.set_level("DEBUG")
+
+    asyncio.run(broadcaster.add_update(task_id, {"status": "running"}))
+
+    assert "websocket client disconnected during batch flush" in caplog.text
+
+
 def test_multiple_clients() -> None:
     """Multiple clients can connect to the same task_id."""
     task_id = "task-multi-001"

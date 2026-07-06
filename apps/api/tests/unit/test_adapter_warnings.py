@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from unittest.mock import patch
+
+import pytest
+
 
 from mastermind_cli.mm_flow.adapter_warnings import AdapterWarnings
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
@@ -133,3 +137,19 @@ def test_collect_warnings_flags_unclear_source_of_truth(tmp_path: Path) -> None:
 
     codes = {item.code for item in warnings.warnings}
     assert "source_of_truth_split_unclear" in codes
+
+
+def test_detect_project_root_logs_git_failure_and_falls_back_to_cwd(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Git root detection failures should be logged instead of swallowed."""
+    caplog.set_level("DEBUG")
+
+    with (
+        patch("subprocess.run", side_effect=OSError("git unavailable")),
+        patch("pathlib.Path.cwd", return_value=tmp_path),
+    ):
+        adapter = ProjectAdapter.for_repo()
+
+    assert adapter.project_root == tmp_path
+    assert "git root detection failed" in caplog.text

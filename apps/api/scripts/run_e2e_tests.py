@@ -5,13 +5,16 @@ E2E Test Runner for MasterMind Framework.
 Executes test briefs against the orchestrator and validates results.
 """
 
-import re
-import sys
 import json
+import logging
+import re
 import subprocess
-from pathlib import Path
+import sys
 from datetime import datetime
-from typing import Dict, Any
+from pathlib import Path
+from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
 
 
 def extract_brief_from_test_file(test_file: Path) -> str:
@@ -99,18 +102,18 @@ def run_orchestration(brief: str, use_mcp: bool = True) -> Dict[str, Any]:
 
 def print_header(text: str, char: str = "=") -> None:
     """Print a formatted header."""
-    print(f"\n{char * 70}")
-    print(f"  {text}")
-    print(f"{char * 70}\n")
+    logger.info(f"\n{char * 70}")
+    logger.info(f"  {text}")
+    logger.info(f"{char * 70}\n")
 
 
 def print_test_result(test_name: str, passed: bool, details: str = "") -> None:
     """Print test result with color."""
     icon = "✅" if passed else "❌"
     status = "PASS" if passed else "FAIL"
-    print(f"{icon} {test_name}: {status}")
+    logger.info(f"{icon} {test_name}: {status}")
     if details:
-        print(f"   {details}")
+        logger.info(f"   {details}")
 
 
 def main() -> None:
@@ -122,10 +125,10 @@ def main() -> None:
     test_files = sorted(tests_dir.glob("test-marketing-*.md"))
 
     if not test_files:
-        print("❌ No test files found in tests/test-briefs/")
+        logger.info("❌ No test files found in tests/test-briefs/")
         sys.exit(1)
 
-    print(f"Found {len(test_files)} test files\n")
+    logger.info(f"Found {len(test_files)} test files\n")
 
     results: list[dict[str, Any]] = []
     summary = {
@@ -151,13 +154,12 @@ def main() -> None:
             )
             continue
 
-        print(f"📋 Brief Preview: {brief[:100]}...")
-        print(f"   Expected: {expected.get('veredicto', 'N/A')}")
-        print(f"   Complexity: {expected.get('complejidad', 'N/A')}")
-        print()
-
+        logger.info(f"📋 Brief Preview: {brief[:100]}...")
+        logger.info(f"   Expected: {expected.get('veredicto', 'N/A')}")
+        logger.info(f"   Complexity: {expected.get('complejidad', 'N/A')}")
+        logger.info("")
         # Run orchestration
-        print("🔄 Running orchestration...")
+        logger.info("🔄 Running orchestration...")
         try:
             result = run_orchestration(brief, use_mcp=True)
 
@@ -197,7 +199,14 @@ def main() -> None:
                     "expected": expected,
                 }
             )
-        except Exception as e:
+        except (
+            OSError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+            KeyError,
+            IndexError,
+        ) as e:
             print_test_result(test_name, False, str(e))
             summary["failed"] += 1
             results.append(
@@ -209,20 +218,19 @@ def main() -> None:
                 }
             )
 
-        print()
-
+        logger.info("")
     # Print summary
     print_header("Test Summary", "=")
-    print(f"Total Tests:  {summary['total']}")
-    print(f"✅ Passed:     {summary['passed']}")
-    print(f"❌ Failed:     {summary['failed']}")
-    print(f"⏭️  Skipped:    {summary['skipped']}")
+    logger.info(f"Total Tests:  {summary['total']}")
+    logger.info(f"✅ Passed:     {summary['passed']}")
+    logger.info(f"❌ Failed:     {summary['failed']}")
+    logger.info(f"⏭️  Skipped:    {summary['skipped']}")
 
     if summary["passed"] == summary["total"]:
-        print("\n🎉 All tests passed!")
+        logger.info("\n🎉 All tests passed!")
         exit_code = 0
     else:
-        print(f"\n❌ {summary['failed']} test(s) failed")
+        logger.info(f"\n❌ {summary['failed']} test(s) failed")
         exit_code = 1
 
     # Save results to JSON
@@ -241,7 +249,7 @@ def main() -> None:
             indent=2,
         )
     )
-    print(f"\n📄 Results saved to: {results_file}")
+    logger.info(f"\n📄 Results saved to: {results_file}")
 
     sys.exit(exit_code)
 

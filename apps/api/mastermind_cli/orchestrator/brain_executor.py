@@ -153,7 +153,15 @@ evidence:
                     return self._mock_brain_1_response(
                         brief, query, error=response.get("error")
                     )
-            except Exception as e:
+            except (
+                AttributeError,
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as e:
                 # Fallback to mock response if MCP fails
                 return self._mock_brain_1_response(brief, query, error=str(e))
         else:
@@ -229,7 +237,15 @@ Provide your analysis in the following JSON format:
                     return self._format_brain_response(
                         8, response.get("content", ""), brief
                     )
-            except Exception as e:
+            except (
+                AttributeError,
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as e:
                 return self._mock_brain_8_response(brief, query, error=str(e))
 
         return self._mock_brain_8_response(brief, query)
@@ -264,7 +280,15 @@ Please provide your analysis and recommendations.
                     return self._mock_generic_response(
                         brain_id, brief, error=response.get("error")
                     )
-            except Exception as e:
+            except (
+                AttributeError,
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as e:
                 return self._mock_generic_response(brain_id, brief, error=str(e))
         else:
             return self._mock_generic_response(brain_id, brief)

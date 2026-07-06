@@ -21,7 +21,7 @@ class TypeSafeMCPWrapper:
     - Graceful error handling on MCP failures
     """
 
-    def __init__(self, mcp_client: Any):
+    def __init__(self, mcp_client: Any) -> None:
         """Initialize MCP wrapper.
 
         Args:
@@ -88,7 +88,14 @@ class TypeSafeMCPWrapper:
                 },
             )
 
-        except Exception as e:
+        except (
+            AttributeError,
+            ConnectionError,
+            KeyError,
+            TimeoutError,
+            TypeError,
+            ValueError,
+        ) as e:
             # Graceful error handling per CONTEXT.md
             from datetime import datetime, timezone
 

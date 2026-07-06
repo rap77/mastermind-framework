@@ -64,7 +64,7 @@ async def get_brain_costs() -> list[BrainCostMetric]:
     """
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
-    except Exception as e:
+    except (OSError, RuntimeError, TimeoutError, asyncpg.PostgresError) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Database connection failed: {e!s}",
@@ -122,7 +122,14 @@ async def refresh_cost_metrics() -> dict[str, str]:
     """
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
-    except Exception as e:
+    except (
+        OSError,
+        RuntimeError,
+        TimeoutError,
+        TypeError,
+        ValueError,
+        asyncpg.PostgresError,
+    ) as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Database connection failed: {e!s}",
@@ -131,7 +138,13 @@ async def refresh_cost_metrics() -> dict[str, str]:
     try:
         await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY cost_metrics_mv")
         return {"status": "success", "message": "Cost metrics refreshed successfully"}
-    except Exception as e:
+    except (
+        OSError,
+        RuntimeError,
+        TimeoutError,
+        ValueError,
+        asyncpg.PostgresError,
+    ) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Refresh failed: {e!s}",
@@ -149,7 +162,7 @@ async def cost_metrics_health() -> dict[str, Any]:
     """
     try:
         conn = await asyncpg.connect(POSTGRES_DSN)
-    except Exception as e:
+    except (OSError, RuntimeError, TimeoutError, asyncpg.PostgresError) as e:
         return {
             "status": "unhealthy",
             "database": "disconnected",
@@ -167,7 +180,14 @@ async def cost_metrics_health() -> dict[str, Any]:
             "database": "connected",
             "mv_rows": result,
         }
-    except Exception as e:
+    except (
+        OSError,
+        RuntimeError,
+        TimeoutError,
+        TypeError,
+        ValueError,
+        asyncpg.PostgresError,
+    ) as e:
         return {
             "status": "unhealthy",
             "database": "error",

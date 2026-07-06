@@ -31,9 +31,13 @@ during phase execution.
 """
 
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def extract_state_from_state_md(state_md_path: Path) -> dict[str, object]:
@@ -85,6 +89,7 @@ def extract_state_from_state_md(state_md_path: Path) -> dict[str, object]:
     try:
         current_phase = int(phase_str)
     except ValueError:
+        logger.debug("Invalid current_phase in STATE.md; defaulting to 0")
         current_phase = 0
 
     # Count plans from phase_XX_progress block
@@ -99,7 +104,7 @@ def extract_state_from_state_md(state_md_path: Path) -> dict[str, object]:
             try:
                 active_plan = int(plan_num)
             except ValueError:
-                pass
+                logger.debug("Invalid plan number in STATE.md; defaulting to 0")
             break
 
     return {

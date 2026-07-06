@@ -87,8 +87,8 @@ async def test_retry_with_backoff(mock_task_repo, mock_mcp_client, provider_conf
     # Configure mock to fail twice, then succeed
     mock_mcp_client.call_mcp = MagicMock(
         side_effect=[
-            Exception("Network error"),
-            Exception("Timeout"),
+            RuntimeError("Network error"),
+            RuntimeError("Timeout"),
             MCPResponse(
                 brain_id="brain-01", response="success after retries", success=True
             ),
@@ -114,7 +114,7 @@ async def test_retry_with_backoff(mock_task_repo, mock_mcp_client, provider_conf
 async def test_circuit_breaker_opens(mock_task_repo, mock_mcp_client, provider_configs):
     """Test Circuit Breaker opens after 3 consecutive failures."""
     # Configure mock to always fail
-    mock_mcp_client.call_mcp = MagicMock(side_effect=Exception("Permanent failure"))
+    mock_mcp_client.call_mcp = MagicMock(side_effect=RuntimeError("Permanent failure"))
 
     executor = ParallelExecutor(
         task_repo=mock_task_repo,
@@ -186,7 +186,7 @@ async def test_exponential_backoff_with_jitter(
     def track_time(*args, **kwargs):
         with open(temp_file.name, "a") as f:
             f.write(f"{time.time()}\n")
-        raise Exception("Fail")
+        raise RuntimeError("Fail")
 
     mock_mcp_client.call_mcp = track_time
 

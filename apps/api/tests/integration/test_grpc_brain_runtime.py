@@ -6,6 +6,7 @@ Tests follow TDD pattern:
 - REFACTOR: Clean up while keeping tests green
 """
 
+import asyncio
 import pytest
 import sqlite3
 import time
@@ -14,6 +15,7 @@ from datetime import datetime
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock
 
 from mastermind_cli.project_state.database.session import dispose_engines
 
@@ -103,6 +105,18 @@ def isolated_brain_runtime_db(
         _FakeDatabaseConnection,
     )
     yield
+
+
+@pytest.fixture(autouse=True)
+def stub_grpc_background_execution(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
+    """Avoid launching the full task runner in the gRPC smoke tests."""
+
+    runner = AsyncMock(return_value=None)
+    monkeypatch.setattr(
+        "mastermind_cli.api.routes.brain_runtime.run_brain_task",
+        runner,
+    )
+    return runner
 
 
 # These imports will work once we create the gRPC server
@@ -341,3 +355,25 @@ class TestBrainRuntimeGrpcServer:
         assert fake_dbs[0].schema_created is True
         assert fake_dbs[0].conn.committed is True
         assert len(fake_dbs[0].conn.execute_calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_dispatch_task_schedules_background_execution(
+        self, stub_grpc_background_execution: AsyncMock
+    ) -> None:
+        """DispatchTask should schedule the actual brain runner in the background."""
+        from mastermind_cli.proto import DispatchTaskRequest
+        from mastermind_cli.api.routes.brain_runtime import BrainRuntimeServicer
+
+        request = DispatchTaskRequest(
+            brief="Schedule background execution",
+            user_id="test-user-scheduler",
+            flow="validation_only",
+        )
+
+        servicer = BrainRuntimeServicer()
+        response = await servicer.DispatchTask(request, None)
+
+        await asyncio.sleep(0)
+
+        assert response.status == "pending"
+        assert stub_grpc_background_execution.await_count == 1

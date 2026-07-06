@@ -10,6 +10,7 @@ from .commands.framework import framework
 from .commands.orchestrate import orchestrate
 from .commands.install import install
 from .commands.evaluation import evaluation
+from .commands.memory import memory
 
 from .utils.console import get_console
 
@@ -31,6 +32,7 @@ cli.add_command(brain)
 cli.add_command(framework)
 cli.add_command(orchestrate)
 cli.add_command(install)
+cli.add_command(memory)
 # Add evaluation command with alias 'eval' for shorter typing
 cli.add_command(evaluation, name="eval")
 
@@ -51,6 +53,7 @@ def info() -> None:
   mastermind source list           List all sources
   mastermind brain status <id>      Show brain status
   mastermind framework status       Show framework status
+  mastermind memory migrate         Apply memory-layer migrations
 
 [bold]Documentation:[/bold]
 

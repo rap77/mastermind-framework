@@ -1,8 +1,10 @@
 """Tests for Email sender (SMTP + aiosmtplib)"""
 
 import os
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import aiosmtplib
+import pytest
 from routers.email import (
     send_email,
     send_html_email,
@@ -130,7 +132,9 @@ class TestEmailSender:
     async def test_send_email_smtp_error(self, mock_smtp_env, email_message):
         """Test handling SMTP errors"""
         mock_smtp_client = AsyncMock()
-        mock_smtp_client.send_message.side_effect = Exception("SMTP connection failed")
+        mock_smtp_client.send_message.side_effect = aiosmtplib.SMTPException(
+            "SMTP connection failed"
+        )
 
         with patch("routers.email.aiosmtplib.SMTP") as mock_smtp:
             mock_smtp.return_value.__aenter__.return_value = mock_smtp_client

@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 import logging
 from typing import TYPE_CHECKING, Any
 
+from mastermind_cli.memory_layer.exceptions import MemoryPersistenceError
+
 if TYPE_CHECKING:
     from mastermind_cli.memory_layer.service import MemoryService
 
@@ -148,7 +150,13 @@ class ErrorTracker:
                         "made_by": payload["made_by"],
                     },
                 )
-            except Exception:
+            except (
+                AttributeError,
+                MemoryPersistenceError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ):
                 logger.warning(
                     "error tracker pattern memory persistence failed", exc_info=True
                 )
@@ -191,7 +199,13 @@ class ErrorTracker:
                     "made_by": payload["made_by"],
                 },
             )
-        except Exception:
+        except (
+            AttributeError,
+            MemoryPersistenceError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+        ):
             logger.warning(
                 "error tracker resolution memory persistence failed", exc_info=True
             )

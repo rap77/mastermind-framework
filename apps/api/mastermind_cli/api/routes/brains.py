@@ -1,6 +1,6 @@
 """Brains endpoint for Command Center Bento Grid.
 
-This module provides GET /api/brains endpoint that returns all 7 brains
+This module provides GET /api/brains endpoint that returns all 8 brains
 with live metadata from the PostgreSQL brain_registry table.
 
 Phase 08 addition: GET /api/brains/{id}/yaml — returns brain config as YAML
@@ -16,7 +16,7 @@ Requirements: BE-01, ER-03, C1.07
 
 import logging
 import os
-from typing import Annotated
+from typing import Annotated, Any
 
 import asyncpg
 import yaml
@@ -35,7 +35,12 @@ router = APIRouter()
 
 _DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:devpassword@localhost:5434/mastermind_bd",
+    # Dev default for the bundled Docker Postgres (docker-compose.yml).
+    # Production deployments MUST override DATABASE_URL.
+    f"postgresql://{os.getenv('POSTGRES_USER', 'postgres')}@"
+    f"{os.getenv('POSTGRES_HOST', 'localhost')}:"
+    f"{os.getenv('POSTGRES_PORT', '5434')}/"
+    f"{os.getenv('POSTGRES_DB', 'mastermind_bd')}",
 )
 
 
@@ -84,32 +89,56 @@ async def _get_brains_from_db(
             all_records = await repo.get_all()
         finally:
             await conn.close()
-    except Exception as exc:  # noqa: BLE001
+    except (
+        OSError,
+        RuntimeError,
+        TimeoutError,
+        asyncpg.PostgresError,
+    ) as exc:  # noqa: BLE001
         log.warning(
             "brain_registry unavailable (%s) — falling back to YAML registry", exc
         )
         return None
 
+    # Merge DB rows with the canonical registry so a partially seeded DB
+    # does not hide valid brains from the UI.
+    records_by_id = {record.brain_id: record for record in all_records}
+    brain_ids = sorted(set(BRAIN_CONFIGS) | set(records_by_id))
+
+    if len(brain_ids) != len(all_records):
+        log.warning(
+            "brain_registry row count mismatch (db=%s, canonical=%s); using merged registry",
+            len(all_records),
+            len(brain_ids),
+        )
+
     # Paginate
     page_size = min(page_size, 100)
     offset = (page - 1) * page_size
-    paginated = all_records[offset : offset + page_size]
+    paginated_ids = brain_ids[offset : offset + page_size]
 
-    brains = [
-        BrainMetadata(
-            id=f"brain-{r.brain_id:02d}",
-            name=r.name,
-            niche="software-development",  # brain_registry v1: single niche
-            status="idle" if r.enabled else "error",
-            uptime=0.0,
-            last_called_at=None,
+    brains: list[BrainMetadata] = []
+    for brain_id in paginated_ids:
+        record = records_by_id.get(brain_id)
+        config: dict[str, Any] = BRAIN_CONFIGS.get(brain_id, {})
+        brains.append(
+            BrainMetadata(
+                id=f"brain-{brain_id:02d}",
+                name=record.name
+                if record is not None
+                else config.get("name", "Unknown"),
+                niche=config.get("niche", "software-development"),
+                status="idle"
+                if record is None
+                else ("idle" if record.enabled else "error"),
+                uptime=0.0,
+                last_called_at=None,
+            )
         )
-        for r in paginated
-    ]
 
     return PaginatedBrainsResponse(
         brains=brains,
-        total=len(all_records),
+        total=len(brain_ids),
         page=page,
         page_size=page_size,
     )

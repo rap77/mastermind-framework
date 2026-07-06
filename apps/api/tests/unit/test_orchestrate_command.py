@@ -364,14 +364,14 @@ class TestErrorHandling:
     @patch("mastermind_cli.commands.orchestrate.MCPIntegration")
     @patch("mastermind_cli.commands.orchestrate.StatelessCoordinator")
     @patch("mastermind_cli.commands.orchestrate.execute_flow_sync")
-    def test_generic_exception_caught(
+    def test_runtime_error_caught(
         self: object,
         mock_execute: Mock,
         mock_coord_class: Mock,
         mock_mcp: Mock,
         mock_validate: Mock,
     ) -> None:
-        """Test that generic exceptions are caught."""
+        """Test that runtime execution errors are caught."""
         mock_validate.return_value = Mock(owner="test-user")
         mock_execute.side_effect = RuntimeError("Unexpected error")
 

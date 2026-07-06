@@ -62,7 +62,13 @@ class Evaluator:
             with open(matrix_file, "r") as f:
                 result: dict[str, Any] = yaml.safe_load(f) or {}
                 return result
-        except Exception as e:
+        except (
+            FileNotFoundError,
+            OSError,
+            UnicodeError,
+            ValueError,
+            yaml.YAMLError,
+        ) as e:
             return {"error": f"Failed to load matrix: {str(e)}", "matrix_id": matrix_id}
 
     def _list_matrices(self) -> List[str]:

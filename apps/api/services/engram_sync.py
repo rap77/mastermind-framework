@@ -24,6 +24,7 @@ from enum import Enum
 from uuid import UUID
 import logging
 import json
+import sqlite3
 import re
 import aiosqlite
 from pathlib import Path
@@ -136,7 +137,7 @@ class EngramSyncService:
     def __init__(
         self,
         db_conn: Optional[aiosqlite.Connection] = None,
-    ):
+    ) -> None:
         """
         Initialize sync service with database connection.
 
@@ -332,7 +333,13 @@ class EngramSyncService:
                         )
                     results["synced_count"] += 1
 
-                except Exception as e:
+                except (
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                    sqlite3.Error,
+                ) as e:
                     results["failed_count"] += 1
                     error_msg = (
                         f"Failed to sync decision {engram_decision.engram_id}: {str(e)}"
@@ -340,7 +347,7 @@ class EngramSyncService:
                     results["errors"].append(error_msg)
                     self.logger.error(error_msg)
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             results["errors"].append(f"Sync operation failed: {str(e)}")
             self.logger.error(f"Decision sync failed: {e}")
 
@@ -418,14 +425,20 @@ class EngramSyncService:
                         }
                     )
 
-                except Exception as e:
+                except (
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                    sqlite3.Error,
+                ) as e:
                     results["failed_count"] += 1
                     results["errors"].append(
                         f"Failed to sync feedback {feedback.engram_id}: {str(e)}"
                     )
                     self.logger.error(f"Feedback sync error: {e}")
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             results["errors"].append(f"Feedback sync failed: {str(e)}")
             self.logger.error(f"Brain feedback sync failed: {e}")
 
@@ -482,7 +495,7 @@ class EngramSyncService:
             self.logger.info(f"Found {len(decisions)} decisions from Engram")
             return decisions
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError) as e:
             self.logger.warning(
                 f"Failed to query Engram decisions (graceful degradation): {e}"
             )
@@ -526,7 +539,7 @@ class EngramSyncService:
                                         decisions.append(parsed)
                             if decisions:
                                 return decisions
-                    except Exception as e:
+                    except (OSError, TypeError, ValueError) as e:
                         self.logger.debug(f"Could not read {obs_file}: {e}")
                         continue
 
@@ -570,7 +583,7 @@ class EngramSyncService:
             self.logger.info(f"Found {len(feedback)} feedback items from Engram")
             return feedback
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError) as e:
             self.logger.warning(
                 f"Failed to query Engram brain feedback (graceful degradation): {e}"
             )
@@ -610,7 +623,7 @@ class EngramSyncService:
                                         feedback.append(parsed)
                             if feedback:
                                 return feedback
-                    except Exception as e:
+                    except (OSError, TypeError, ValueError) as e:
                         self.logger.debug(f"Could not read {obs_file}: {e}")
                         continue
 
@@ -683,7 +696,7 @@ class EngramSyncService:
             )
             return UUID(new_id)
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             self.logger.error(f"Failed to find/create phase execution: {e}")
             return None
 
@@ -709,7 +722,7 @@ class EngramSyncService:
 
             return False
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             self.logger.warning(f"Error checking if decision synced: {e}")
             return False
 
@@ -810,7 +823,7 @@ class EngramSyncService:
             await db.commit()
             return UUID(decision_id)
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             self.logger.error(f"Failed to upsert decision: {e}")
             import uuid
 
@@ -894,7 +907,7 @@ class EngramSyncService:
             await db.commit()
             return UUID(feedback_id)
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             self.logger.error(f"Failed to upsert brain feedback: {e}")
             import uuid
 
@@ -921,7 +934,7 @@ class EngramSyncService:
 
             self.logger.info(f"Marked decision {decision_id} as synced")
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, sqlite3.Error) as e:
             self.logger.error(f"Failed to mark decision as synced: {e}")
 
     def _parse_engram_decision(
@@ -972,7 +985,7 @@ class EngramSyncService:
                     created_at = datetime.fromisoformat(
                         engram_obs["created_at"].replace("Z", "+00:00")
                     )
-                except Exception:
+                except ValueError:
                     created_at = None
 
             return EngramDecision(
@@ -990,7 +1003,7 @@ class EngramSyncService:
                 created_at=created_at if created_at is not None else datetime.utcnow(),
             )
 
-        except Exception as e:
+        except (AttributeError, RuntimeError, TypeError, ValueError) as e:
             self.logger.warning(f"Failed to parse engram decision: {e}")
             return None
 
@@ -1069,7 +1082,7 @@ class EngramSyncService:
                     created_at = datetime.fromisoformat(
                         engram_obs["created_at"].replace("Z", "+00:00")
                     )
-                except Exception:
+                except ValueError:
                     created_at = None
 
             confidence = engram_obs.get("confidence", 0.6)
@@ -1089,7 +1102,7 @@ class EngramSyncService:
                 created_at=created_at if created_at is not None else datetime.utcnow(),
             )
 
-        except Exception as e:
+        except (AttributeError, RuntimeError, TypeError, ValueError) as e:
             self.logger.warning(f"Failed to parse engram feedback: {e}")
             return None
 

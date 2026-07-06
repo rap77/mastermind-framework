@@ -78,6 +78,8 @@ class BrainDispatch(BaseModel):
     model: str
     provider: str
     is_barrier: bool
+    token_budget_per_phase: int = 10_000
+    tokens_consumed_total: int = 0
 
 
 class DispatchResult(BaseModel):
@@ -208,7 +210,7 @@ class DynamicDispatchEngine:
                         brain_id,
                         trace_id,
                     )
-        except Exception as exc:  # noqa: BLE001
+        except (ConnectionError, OSError, RuntimeError, TimeoutError) as exc:  # noqa: BLE001
             log.warning(
                 "Failed to POST brain event to Rust hub: %s (brain=%s, trace=%s)",
                 exc,
@@ -253,7 +255,10 @@ class DynamicDispatchEngine:
         trace_id = trace_id or str(uuid.uuid4())
         routing = self.config.brain_routing[moment]
 
-        conn = await asyncio.wait_for(asyncpg.connect(self.postgres_url), timeout=5.0)
+        # NOTE: asyncpg.connect() accepts its own ``timeout=`` argument so we do
+        # NOT use asyncio.wait_for here — C3 explicitly bans wait_for anywhere
+        # in this codebase.
+        conn = await asyncpg.connect(self.postgres_url, timeout=5.0)
         try:
             parallel_brains = await self._get_brains_from_registry(
                 conn, routing.brains, is_barrier=False, profile_override=profile
@@ -264,7 +269,7 @@ class DynamicDispatchEngine:
         finally:
             await conn.close()
 
-        self._check_budget(parallel_brains + barrier_brains)
+        budget_remaining = self._check_budget(parallel_brains + barrier_brains)
 
         # B2.5 — notify Rust hub that each brain is being dispatched
         # Include model and provider (C2.05) so WS events carry the full model info.
@@ -287,7 +292,7 @@ class DynamicDispatchEngine:
             moment=moment,
             parallel=[b for b in parallel_brains if not b.is_barrier],
             barrier=barrier_brains,
-            budget_remaining=100_000,  # placeholder — real value queries tokens_consumed_total
+            budget_remaining=budget_remaining,
             execution_id=str(uuid.uuid4()),
         )
 
@@ -326,8 +331,11 @@ class DynamicDispatchEngine:
                         "phase": phase,
                     }
                 )
-        except Exception:  # noqa: BLE001
-            pass  # LangSmith is optional — never fail dispatch because of tracing
+        except (AttributeError, RuntimeError, TypeError, ValueError):  # noqa: BLE001
+            log.debug(
+                "LangSmith trace metadata attachment failed; continuing without tracing",
+                exc_info=True,
+            )  # LangSmith is optional — never fail dispatch because of tracing
 
         return result
 
@@ -437,6 +445,8 @@ class DynamicDispatchEngine:
                     model=model_str,
                     provider=provider,
                     is_barrier=is_barrier,
+                    token_budget_per_phase=record.token_budget_per_phase,
+                    tokens_consumed_total=record.tokens_consumed_total,
                 )
             )
         return results
@@ -453,10 +463,13 @@ class DynamicDispatchEngine:
         Raises:
             BudgetExceededError: If any brain is over budget (future implementation).
         """
-        # Real budget tracking would query tokens_consumed_total from agent_registry
-        # and compare to token_budget_per_phase. Left as placeholder per plan spec.
-        return 100_000
-
-
-def foo() -> None:
-    pass
+        total_remaining = 0
+        for brain in brains:
+            budget = max(brain.token_budget_per_phase, 0)
+            consumed = max(brain.tokens_consumed_total, 0)
+            if budget > 0 and consumed > budget * 0.8:
+                raise BudgetExceededError(
+                    f"brain_id={brain.brain_id} consumed {consumed}/{budget} tokens"
+                )
+            total_remaining += max(budget - consumed, 0)
+        return total_remaining

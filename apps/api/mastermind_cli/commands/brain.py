@@ -1,5 +1,6 @@
 """Brain commands for MasterMind CLI."""
 
+import logging
 from pathlib import Path
 
 import click
@@ -8,6 +9,9 @@ from rich.panel import Panel
 
 from ..utils.yaml import read_yaml_frontmatter
 from ..utils.console import get_console
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_root() -> Path:
@@ -68,8 +72,13 @@ def brain_status(brain_id: str) -> None:
                 expert_id = metadata.get("expert_id")
                 if expert_id:
                     experts.add(expert_id)
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            logger.warning(
+                "brain status skipped source file %s: %s",
+                source_file,
+                exc,
+                exc_info=True,
+            )
 
     # Display status
     get_console().print(
@@ -104,8 +113,13 @@ def brain_status(brain_id: str) -> None:
                     metadata.get("author", "—"),
                     f"[{quality_color}]{quality}[/{quality_color}]",
                 )
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            logger.warning(
+                "brain status skipped source file %s: %s",
+                source_file,
+                exc,
+                exc_info=True,
+            )
 
     get_console().print("\n")
     get_console().print(table)

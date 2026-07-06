@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TypeVar, Generic, Any, Callable
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 # Type variables for generic wrapper
 T = TypeVar("T", bound=BaseModel)
@@ -128,7 +128,7 @@ class LegacyBrainAdapter(Generic[T]):
                 brief=brief_text,
                 orchestrator=local_orchestrator,
             )
-        except Exception as e:
+        except (AttributeError, RuntimeError, TypeError, ValueError) as e:
             raise RuntimeError(
                 f"Legacy brain #{self.brain_id} execution failed: {e}"
             ) from e
@@ -139,7 +139,7 @@ class LegacyBrainAdapter(Generic[T]):
         # Convert dict to Pydantic model
         try:
             return self.output_model(**normalized_dict)
-        except Exception as e:
+        except (TypeError, ValidationError, ValueError) as e:
             # Provide helpful error message
             raise ValueError(
                 f"Legacy brain #{self.brain_id} output doesn't match "

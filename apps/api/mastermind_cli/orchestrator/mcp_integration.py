@@ -24,7 +24,7 @@ class MCPIntegration:
         7: "d8de74d6-7028-44ed-b4d5-784d6a9256e6",  # Growth/Data
     }
 
-    def __init__(self, use_mcp: bool = False):
+    def __init__(self, use_mcp: bool = False) -> None:
         """Initialize MCP integration.
 
         Args:
@@ -92,7 +92,7 @@ class MCPIntegration:
             except json.JSONDecodeError:
                 answer = raw
             return {"response": answer, "success": True}
-        except Exception as e:
+        except (OSError, subprocess.TimeoutExpired, ValueError, RuntimeError) as e:
             return {"response": "", "success": False, "error": str(e)}
 
     def query_notebook(
@@ -139,7 +139,7 @@ class MCPIntegration:
         try:
             result = self._execute_nl_mcp("notebook_query", query_spec, timeout)
             return {"status": "success", "content": result, "raw": result}
-        except Exception as e:
+        except (OSError, subprocess.TimeoutExpired, ValueError, RuntimeError) as e:
             return {"status": "error", "error": str(e), "query_spec": query_spec}
 
     def _execute_nl_mcp(

@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 import logging
 
+from pydantic import ValidationError
+
 from .models import EvaluationEntry, EvaluationScore, EvaluationVerdict, Issue
 from .storage import YamlStorage
 
@@ -13,7 +15,9 @@ logger = logging.getLogger(__name__)
 class EvaluationLogger:
     """Logger for brain #7 evaluations."""
 
-    def __init__(self, storage_path: Optional[Path] = None, enabled: bool = True):
+    def __init__(
+        self, storage_path: Optional[Path] = None, enabled: bool = True
+    ) -> None:
         """
         Initialize evaluation logger.
 
@@ -109,7 +113,7 @@ class EvaluationLogger:
             logger.info(f"Logged evaluation {eval_id} for project '{project}'")
             return eval_id
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValidationError, ValueError) as e:
             logger.error(f"Failed to log evaluation: {e}")
             return None
 

@@ -119,9 +119,7 @@ class BrainRegistryRepository:
             List of BrainRecord instances, one per row in brain_registry.
         """
         rows = await self._conn.fetch(
-            f"SELECT {self._SELECT_ALL_COLS} "
-            "FROM brain_registry "
-            "ORDER BY brain_id ASC"
+            f"SELECT {self._SELECT_ALL_COLS} FROM brain_registry ORDER BY brain_id ASC"
         )
         return [BrainRecord.from_row(r) for r in rows]
 
@@ -135,9 +133,7 @@ class BrainRegistryRepository:
             BrainRecord if found, None otherwise.
         """
         row = await self._conn.fetchrow(
-            f"SELECT {self._SELECT_ALL_COLS} "
-            "FROM brain_registry "
-            "WHERE brain_id = $1",
+            f"SELECT {self._SELECT_ALL_COLS} FROM brain_registry WHERE brain_id = $1",
             brain_id,
         )
         if row is None:

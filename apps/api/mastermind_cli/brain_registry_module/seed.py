@@ -1,7 +1,7 @@
 """
 Brain Registry seed script.
 
-Inserts the 7 default MasterMind brain agents into brain_registry.
+Inserts the 8 default MasterMind brain agents into brain_registry.
 Reads capabilities and trigger conditions from the agent definition files
 under .claude/agents/mm/.
 
@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 
 import asyncpg
 
@@ -22,15 +23,15 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:devpassword@localhost:5434/mastermind_bd",
+    "postgresql://postgres@localhost:5434/mastermind_bd",
 )
 
 # ---------------------------------------------------------------------------
-# Brain definitions extracted from .claude/agents/mm/brain-0{1..7}-*/
+# Brain definitions extracted from the canonical brain registry config.
 # ---------------------------------------------------------------------------
 #
 # Fields per row:
-#   brain_id        : int  (1-7, matches agent numbering)
+#   brain_id        : int  (1-8, matches agent numbering)
 #   name            : str  (human-readable)
 #   model_quality   : str  (claude-opus-4-6 — used for critical decisions)
 #   model_balanced  : str  (claude-sonnet-4-6 — standard domain brains)
@@ -235,11 +236,38 @@ BRAIN_SEED_DATA: list[dict[str, object]] = [
         ],
         "enabled": True,
     },
+    {
+        "brain_id": 8,
+        "name": "Master Interviewer",
+        "model_quality": "claude-opus-4-6",
+        "model_balanced": "claude-sonnet-4-6",
+        "model_budget": "claude-haiku-4-5",
+        "capabilities": [
+            "discovery",
+            "requirements-clarification",
+            "problem-definition",
+            "socratic-questioning",
+            "gap-detection",
+            "interview-methodology",
+            "brief-analysis",
+        ],
+        "trigger_conditions": [
+            "brief",
+            "vago",
+            "ambiguo",
+            "no sé qué necesito",
+            "descubrimiento",
+            "discovery",
+            "requirements",
+            "clarify",
+        ],
+        "enabled": True,
+    },
 ]
 
 
 async def seed_brain_registry(database_url: str = _DEFAULT_DATABASE_URL) -> int:
-    """Insert the 7 default brain rows into brain_registry.
+    """Insert the 8 default brain rows into brain_registry.
 
     Uses ON CONFLICT DO NOTHING so re-runs are safe (idempotent).
 
@@ -297,7 +325,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     url = _DEFAULT_DATABASE_URL
     inserted = asyncio.run(seed_brain_registry(url))
-    print(f"Seed complete: {inserted} new brain(s) inserted.")
+    sys.stdout.write(f"Seed complete: {inserted} new brain(s) inserted.\n")
 
 
 if __name__ == "__main__":

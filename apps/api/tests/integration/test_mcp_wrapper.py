@@ -15,7 +15,7 @@ class MockMCPClient:
 
     def query_brain(self, brain_id, query, timeout):
         if self.raises_error:
-            raise Exception("MCP connection failed")
+            raise ConnectionError("MCP connection failed")
         return {
             "response": f"Mock response for {brain_id}: {query}",
             "success": True,

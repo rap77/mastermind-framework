@@ -6,12 +6,15 @@ concurrently with retry logic, Circuit Breaker, and state persistence.
 """
 
 import asyncio
+import logging
 import random
 from typing import Any, Dict, List, Optional
 
 from ..types.parallel import FlowConfig, ProviderConfig, TaskState
 from ..state.repositories import TaskRepository
 from ..orchestrator.mcp_wrapper import TypeSafeMCPWrapper
+
+logger = logging.getLogger(__name__)
 
 
 class ParallelExecutor:
@@ -34,7 +37,7 @@ class ParallelExecutor:
         task_repo: TaskRepository,
         mcp_client: TypeSafeMCPWrapper,
         provider_configs: List[ProviderConfig],
-    ):
+    ) -> None:
         """Initialize executor with repository, MCP client, and provider configs.
 
         Args:
@@ -114,7 +117,7 @@ class ParallelExecutor:
                     await self.task_repo.update_status(task_id, TaskState.CANCELLED)
                     raise
 
-                except Exception as e:
+                except RuntimeError as e:
                     is_last_attempt = attempt == max_attempts - 1
 
                     if is_last_attempt:
@@ -169,7 +172,7 @@ class ParallelExecutor:
         if response.success:
             return {"response": response.response}
         else:
-            raise Exception(response.error or "MCP call failed")
+            raise RuntimeError(response.error or "MCP call failed")
 
     async def execute_brains_parallel(
         self, flow: FlowConfig, brief: str
@@ -206,10 +209,10 @@ class ParallelExecutor:
             for brain_id, task in tasks.items():
                 results[brain_id] = task.result()
 
-        except* Exception as eg:
+        except* RuntimeError as eg:
             # Handle exception group (multiple failures)
             for exc in eg.exceptions:
-                print(f"Task failed: {exc}")
+                logger.error("Task failed: %s", exc)
 
         return results
 

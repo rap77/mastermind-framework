@@ -30,6 +30,10 @@ from mastermind_cli.mm_flow.evidence_selector import (
     EvidenceSelectionRequest,
     EvidenceSelectionResult,
 )
+from mastermind_cli.memory_layer.exceptions import (
+    MemoryPersistenceError,
+    MemorySnapshotError,
+)
 from mastermind_cli.orchestrator.runtime_contracts import (
     HarnessCore,
     ExecutionEnvelope,
@@ -124,7 +128,7 @@ class StatelessCoordinator:
         }
     )
 
-    def __init__(self, config: CoordinatorConfig):
+    def __init__(self, config: CoordinatorConfig) -> None:
         """
         Initialize coordinator with immutable configuration.
 
@@ -304,7 +308,14 @@ class StatelessCoordinator:
             try:
                 output = await task
                 results[brain_id] = output
-            except Exception as e:
+            except (
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as e:
                 # Log error and continue (don't fail entire flow)
                 if self.config.enable_logging:
                     logger.exception(
@@ -665,9 +676,8 @@ class StatelessCoordinator:
                 )
             )
             return await memory_service.build_context_snapshot(self._project_id)
-        except Exception:
-            if self.config.enable_logging:
-                logger.warning("runtime memory snapshot load failed", exc_info=True)
+        except (MemorySnapshotError, OSError, ValueError):
+            logger.warning("runtime memory snapshot load failed", exc_info=True)
             return None
 
     def _finalize_runtime_envelope(self, results: dict[str, BaseModel]) -> None:
@@ -713,9 +723,8 @@ class StatelessCoordinator:
                 runtime_result=runtime_result,
                 snapshot=snapshot,
             )
-        except Exception:
-            if self.config.enable_logging:
-                logger.warning("runtime memory persistence failed", exc_info=True)
+        except MemoryPersistenceError:
+            logger.warning("runtime memory persistence failed", exc_info=True)
 
 
 # =============================================================================
@@ -727,6 +736,11 @@ def create_stateless_coordinator(
     mcp_client: MCPClient,
     enable_logging: bool = True,
     governance: GovernanceInterceptor | None = None,
+    project_id: str | None = None,
+    memory_context_provider: (
+        Callable[[str, str | None], ContextSnapshot | None] | None
+    ) = None,
+    memory_runtime_writer: MemoryRuntimeWriter | None = None,
 ) -> StatelessCoordinator:
     """
     Factory function to create a stateless coordinator.
@@ -751,5 +765,8 @@ def create_stateless_coordinator(
         mcp_client=mcp_client,
         enable_logging=enable_logging,
         governance=governance,
+        project_id=project_id,
+        memory_context_provider=memory_context_provider,
+        memory_runtime_writer=memory_runtime_writer,
     )
     return StatelessCoordinator(config)

@@ -104,7 +104,7 @@ class EmailMessage(BaseModel):
 class EmailError(Exception):
     """Custom exception for email sending errors"""
 
-    def __init__(self, message: str, status_code: int = 500):
+    def __init__(self, message: str, status_code: int = 500) -> None:
         self.message = message
         self.status_code = status_code
         super().__init__(self.message)
@@ -180,7 +180,7 @@ async def send_email(message: EmailMessage) -> dict[str, str]:
                 else f"sent-{os.urandom(4).hex()}"
             )
             return {"message_id": f"<{message_id}>"}
-    except Exception as e:
+    except (aiosmtplib.SMTPException, OSError, ValueError) as e:
         raise EmailError(f"Failed to send email: {str(e)}")
 
 

@@ -1,7 +1,7 @@
 """
 Brain Registry verification script.
 
-Runs after seed to verify the brain_registry table has exactly 7 rows.
+Runs after seed to verify the brain_registry table has exactly 8 rows.
 
 Usage:
     uv run python -m mastermind_cli.brain_registry_module.verify
@@ -21,19 +21,19 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:devpassword@localhost:5434/mastermind_bd",
+    "postgresql://postgres@localhost:5434/mastermind_bd",
 )
 
 
 async def verify_brain_registry(
     database_url: str = _DEFAULT_DATABASE_URL,
-    expected_count: int = 7,
+    expected_count: int = 8,
 ) -> bool:
     """Verify brain_registry has exactly expected_count rows.
 
     Args:
         database_url: PostgreSQL DSN to connect to.
-        expected_count: Expected number of brain rows (default: 7).
+        expected_count: Expected number of brain rows (default: 8).
 
     Returns:
         True if count matches expected_count, False otherwise.
@@ -68,10 +68,10 @@ def main() -> None:
     url = _DEFAULT_DATABASE_URL
     ok = asyncio.run(verify_brain_registry(url))
     if ok:
-        print("PASS: SELECT COUNT(*) FROM brain_registry = 7")
+        sys.stdout.write("PASS: SELECT COUNT(*) FROM brain_registry = 8\n")
         sys.exit(0)
     else:
-        print("FAIL: brain_registry count mismatch")
+        sys.stdout.write("FAIL: brain_registry count mismatch\n")
         sys.exit(1)
 
 

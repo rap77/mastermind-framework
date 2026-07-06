@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from .models import (
     AuditEvent,
     GovernanceDecision,
@@ -10,6 +12,9 @@ from .models import (
     TaskContext,
 )
 from .policies import AuditWriter, GovernancePolicy
+
+
+logger = logging.getLogger(__name__)
 
 
 class GovernanceInterceptor:
@@ -50,7 +55,14 @@ class GovernanceInterceptor:
 
         try:
             audit_ref = self._audit_writer.append(event)
-        except Exception:
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            logger.warning(
+                "governance audit write failed for task_id=%s session_id=%s: %s",
+                context.task_id,
+                context.session_id,
+                exc,
+                exc_info=True,
+            )
             return GovernanceDecision(
                 final_verdict=PolicyVerdict.DENY,
                 triggering_policy="AuditWriter",

@@ -28,8 +28,11 @@ from mastermind.worker.worker_pb2_grpc import (
 
 # Import channel senders
 from routers.whatsapp import send_whatsapp_message, WhatsAppMessage
+from routers.whatsapp import WhatsAppError
 from routers.instagram import send_instagram_comment, InstagramComment
+from routers.instagram import InstagramError
 from routers.email import send_email, EmailMessage
+from routers.email import EmailError
 
 logger = structlog.get_logger(__name__)
 
@@ -84,7 +87,14 @@ class WorkerService(WorkerServicer):
                 processing_duration_ms=100,  # Simulated AI processing time
             )
 
-        except Exception as e:
+        except (
+            EmailError,
+            InstagramError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+            WhatsAppError,
+        ) as e:
             logger.error(
                 "Webhook processing failed",
                 trace_id=request.trace_id,

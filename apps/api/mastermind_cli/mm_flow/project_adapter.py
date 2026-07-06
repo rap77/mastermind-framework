@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -12,13 +13,17 @@ import re
 from .planning_bridge import (
     ArchiveRecord,
     HarnessRequest,
+    PlanningBridgeError,
     PlanningBridge,
+    PlanningManifestError,
     ProjectManifest,
     StructuredStatus,
     build_default_planning_bridge,
 )
 from .integrated_run import ValidationCheck, ValidationReport
 from .adapter_warnings import AdapterWarning, AdapterWarnings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,7 +168,7 @@ class ProjectAdapter:
         else:
             try:
                 manifest = self.planning_bridge.load_manifest()
-            except Exception as exc:
+            except (PlanningBridgeError, PlanningManifestError) as exc:
                 items.append(
                     AdapterWarning(
                         code="manifest_unparseable",
@@ -260,6 +265,6 @@ def _detect_project_root() -> Path:
         )
         if result.returncode == 0:
             return Path(result.stdout.strip())
-    except Exception:
-        pass
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("git root detection failed; falling back to cwd: %s", exc)
     return Path.cwd()

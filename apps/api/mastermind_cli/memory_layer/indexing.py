@@ -28,8 +28,7 @@ class UnsupportedMemoryIndexProvider:
         """Fail fast when an unwired index backend is selected."""
         del payload
         raise NotImplementedError(
-            f"Index backend '{self._backend}' todavía no está conectado: "
-            f"{self._reason}"
+            f"Index backend '{self._backend}' todavía no está conectado: {self._reason}"
         )
 
 
@@ -68,8 +67,7 @@ def create_memory_index_provider(
         )
 
     raise ValueError(
-        f"Unsupported memory index backend: {backend!r}. "
-        "Usa none, pgvector o qdrant."
+        f"Unsupported memory index backend: {backend!r}. Usa none, pgvector o qdrant."
     )
 
 

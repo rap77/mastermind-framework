@@ -85,26 +85,16 @@ class NotebookLMClient:
                 "brain_name": self.BRAIN_NAMES.get(brain_id, f"Brain {brain_id}"),
             }
 
-        # Try to use MCP tool (will be available in Claude Code)
-        try:
-            # This will be called via the MCP tool in the actual execution
-            # For now, return a structure that indicates what we need
-            return {
-                "status": "mcp_required",
-                "notebook_id": notebook_id,
-                "brain_id": brain_id,
-                "brain_name": self.BRAIN_NAMES[brain_id],
-                "query": query,
-                "source_ids": source_ids,
-                "message": "MCP tool call required - use notebook_query tool",
-            }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "brain_id": brain_id,
-                "brain_name": self.BRAIN_NAMES.get(brain_id),
-            }
+        # This is a pure planning stub; the actual MCP tool call happens elsewhere.
+        return {
+            "status": "mcp_required",
+            "notebook_id": notebook_id,
+            "brain_id": brain_id,
+            "brain_name": self.BRAIN_NAMES[brain_id],
+            "query": query,
+            "source_ids": source_ids,
+            "message": "MCP tool call required - use notebook_query tool",
+        }
 
     def parse_yaml_response(self, response_text: str) -> dict[str, Any]:
         """
@@ -138,7 +128,7 @@ class NotebookLMClient:
         try:
             parsed: dict[str, Any] = yaml.safe_load(yaml_content)
             return parsed
-        except Exception as e:
+        except yaml.YAMLError as e:
             return {
                 "error": f"Failed to parse YAML: {str(e)}",
                 "raw_response": response_text,

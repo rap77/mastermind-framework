@@ -1,14 +1,19 @@
 """Framework commands for MasterMind CLI."""
 
+import logging
 from pathlib import Path
 
 import click
+from git.exc import GitCommandError
 from rich.table import Table
 from rich.panel import Panel
 
 from ..utils.yaml import read_yaml_frontmatter
 
 from ..utils.console import get_console as console
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_root() -> Path:
@@ -62,8 +67,13 @@ def framework_status() -> None:
                         complete_count += 1
                     if metadata.get("loaded_in_notebook"):
                         loaded_count += 1
-            except Exception:
-                pass
+            except (OSError, ValueError) as exc:
+                logger.warning(
+                    "framework status skipped source file %s: %s",
+                    source_file,
+                    exc,
+                    exc_info=True,
+                )
 
         brains_data.append(
             {
@@ -142,6 +152,6 @@ def framework_release(version: str, message: str) -> None:
             )
         )
 
-    except Exception as e:
+    except (ValueError, GitCommandError) as e:
         console().print(f"[red]Error creating release: {e}[/red]")
         raise click.Abort()

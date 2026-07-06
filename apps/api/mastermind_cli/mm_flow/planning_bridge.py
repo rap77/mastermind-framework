@@ -6,6 +6,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import re
 
+from .exceptions import PlanningBridgeError, PlanningManifestError
+
+__all__ = [
+    "ArchiveRecord",
+    "HandoffRecord",
+    "HarnessRequest",
+    "PlanningBridge",
+    "PlanningBridgeError",
+    "PlanningIntent",
+    "PlanningManifestError",
+    "ProjectManifest",
+    "StructuredStatus",
+    "build_default_planning_bridge",
+]  # noqa: F822 - dataclass-generated attributes resolved at import time
+
 
 @dataclass(frozen=True, slots=True)
 class ProjectManifest:
@@ -113,7 +128,12 @@ class PlanningBridge:
 
     def load_manifest(self) -> ProjectManifest:
         """Parse the canonical project manifest from AI-DLC state."""
-        content = self.manifest_path.read_text(encoding="utf-8")
+        try:
+            content = self.manifest_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise PlanningManifestError(
+                f"Failed to read manifest at {self.manifest_path}: {exc}"
+            ) from exc
         fields = self._parse_key_value_section(content, self._MANIFEST_HEADING)
         return ProjectManifest(
             project_name=fields["project_name"],
@@ -135,7 +155,12 @@ class PlanningBridge:
 
     def load_intent(self) -> PlanningIntent:
         """Parse the active `.planning` handoff into a normalized intent."""
-        content = self.handoff_path.read_text(encoding="utf-8")
+        try:
+            content = self.handoff_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise PlanningBridgeError(
+                f"Failed to read handoff at {self.handoff_path}: {exc}"
+            ) from exc
         objective_section = self._parse_bullet_section(
             content,
             self._HANDOFF_OBJECTIVE_HEADING,
@@ -258,7 +283,9 @@ class PlanningBridge:
         }
         missing = sorted(required_fields - fields.keys())
         if missing:
-            raise ValueError(f"Missing manifest fields: {', '.join(missing)}")
+            raise PlanningManifestError(
+                f"Missing manifest fields: {', '.join(missing)}"
+            )
         return fields
 
     def _parse_bullet_section(self, content: str, heading: str) -> list[str]:

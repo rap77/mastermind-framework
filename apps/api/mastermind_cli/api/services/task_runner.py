@@ -31,10 +31,12 @@ Brain #5/#6 guidance:
 """
 
 import asyncio
+import inspect
 import hashlib
 import json
 import logging
 import os
+import sqlite3
 import time
 import uuid
 from collections.abc import Callable
@@ -43,13 +45,21 @@ from typing import Any, Mapping, Protocol
 
 import asyncpg
 import httpx
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from mastermind_cli.experience.logger import ExperienceLogger
+from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
+from mastermind_cli.memory_layer.models import ContextSnapshot
+from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
+from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.orchestrator import brain_router as _brain_router
 from mastermind_cli.orchestrator.brain7_evaluator import evaluate_session
 from mastermind_cli.orchestrator.flow_detector import FlowDetector
 from mastermind_cli.orchestrator.governance import GovernanceInterceptor
+from mastermind_cli.orchestrator.runtime_contracts.memory_runtime_adapter import (
+    MemoryRuntimeAdapter,
+)
 from mastermind_cli.project_state.database.session import (
     get_session_factory,
     initialize_database,
@@ -64,6 +74,11 @@ from mastermind_cli.state.database import DatabaseConnection
 from mastermind_cli.types.interfaces import Brief
 
 log = logging.getLogger(__name__)
+
+
+class TaskShutdownWriteError(RuntimeError):
+    """Raised when best-effort shutdown bookkeeping cannot be completed."""
+
 
 _DEFAULT_DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -113,6 +128,16 @@ def _build_experience_logger(
     if factory is not None:
         return factory(db)
     return ExperienceLogger(db)
+
+
+def _load_task_project_id(db_path: str, task_id: str) -> str | None:
+    """Load the project ID for a task from project_state."""
+    database_url = _project_state_db_url_from_path(db_path)
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+    with session_factory() as session:
+        task = session.get(Task, task_id)
+        return task.project_id if task is not None else None
 
 
 def _update_project_state_status(
@@ -264,9 +289,14 @@ async def _post_session_evaluated_event(
                 f"{_RUST_CONTROL_PLANE_URL}/internal/brain-event",
                 json=payload,
             )
-    except Exception:
+    except httpx.HTTPError as exc:
+        log.debug(
+            "session_evaluated event delivery failed for task_id=%s: %s",
+            task_id,
+            exc,
+            exc_info=True,
+        )
         # Non-fatal — Rust may be down; Python side is already persisted
-        pass
 
 
 async def run_brain_task(
@@ -308,19 +338,98 @@ async def run_brain_task(
             "running",
             mark_run_finished=False,
         )
-    except Exception:
-        pass
+    except (OSError, RuntimeError, TypeError, ValueError, SQLAlchemyError) as exc:
+        log.warning(
+            "project_state running status update failed for task_id=%s: %s",
+            task_id,
+            exc,
+            exc_info=True,
+        )
 
     detector = FlowDetector()
     flow_type = flow if flow else detector.detect(brief)
     brain_ints = detector.get_flow_sequence(flow_type)
     brain_ids = [BRAIN_ID_MAP[n] for n in brain_ints if n in BRAIN_ID_MAP]
 
+    project_id = _load_task_project_id(db_path, task_id)
+    memory_context_provider: (
+        Callable[[str, str | None], ContextSnapshot | None] | None
+    ) = None
+    memory_runtime_writer: MemoryRuntimeAdapter | None = None
+    memory_service: MemoryService | None = None
+    memory_snapshot: ContextSnapshot | None = None
+
+    if project_id is not None:
+        memory_database_url = os.environ.get(
+            "MM_MEMORY_DATABASE_URL"
+        ) or os.environ.get("DATABASE_URL")
+        if memory_database_url:
+            try:
+                memory_service = MemoryService(
+                    build_memory_store_from_env(
+                        memory_database_url,
+                        enable_vector=False,
+                        enable_index=True,
+                    )
+                )
+                memory_snapshot = await memory_service.build_context_snapshot(
+                    project_id
+                )
+                memory_runtime_writer = MemoryRuntimeAdapter(
+                    memory_service=memory_service
+                )
+
+                def _snapshot_provider(
+                    _project_id: str, _task_id: str | None
+                ) -> ContextSnapshot | None:
+                    return memory_snapshot
+
+                memory_context_provider = _snapshot_provider
+            except (MemorySnapshotError, OSError, ValueError) as exc:
+                log.warning(
+                    "memory snapshot load failed for task_id=%s project_id=%s: %s",
+                    task_id,
+                    project_id,
+                    exc,
+                    exc_info=True,
+                )
+                if memory_service is not None:
+                    memory_runtime_writer = MemoryRuntimeAdapter(
+                        memory_service=memory_service
+                    )
+
     coordinator = create_stateless_coordinator(
         _PassthroughMCPClient(),
         governance=governance,
+        project_id=project_id,
+        memory_context_provider=memory_context_provider,
+        memory_runtime_writer=memory_runtime_writer,
     )
     start_ms = int(time.time() * 1000)
+
+    async def _mark_execution_failed_during_shutdown() -> None:
+        """Best-effort shutdown bookkeeping for failed executions."""
+        failures: list[str] = []
+        try:
+            async with DatabaseConnection(db_path) as db:
+                await db.conn.execute(
+                    "UPDATE executions SET status = ? WHERE id = ?",
+                    ["failed", task_id],
+                )
+                await db.conn.commit()
+        except sqlite3.Error as exc:
+            failures.append(f"execution status update failed during shutdown: {exc}")
+        try:
+            _update_project_state_status(
+                db_path,
+                task_id,
+                "failed",
+                mark_run_finished=True,
+            )
+        except (OSError, RuntimeError, TypeError, ValueError, SQLAlchemyError) as exc:
+            failures.append(f"project_state failed status update failed: {exc}")
+        if failures:
+            raise TaskShutdownWriteError("; ".join(failures))
 
     # Phase 21: open asyncpg connection for RAG retrieval.
     # If PostgreSQL is unavailable, conn stays None and RAG is skipped gracefully.
@@ -328,12 +437,26 @@ async def run_brain_task(
     if _DEFAULT_DATABASE_URL:
         try:
             pg_conn = await asyncpg.connect(_DEFAULT_DATABASE_URL)
-        except Exception as exc:  # noqa: BLE001
+        except (
+            OSError,
+            RuntimeError,
+            TimeoutError,
+            ValueError,
+            asyncpg.PostgresError,
+        ) as exc:  # noqa: BLE001
             log.warning("RAG skipped — asyncpg connect failed: %s", exc)
 
     try:
         brief_obj = Brief(problem_statement=brief, context="", target_audience=None)
-        results = await coordinator.execute_flow(brief_obj, brain_ids, conn=pg_conn)
+        execute_flow = coordinator.execute_flow
+        signature = inspect.signature(execute_flow)
+        if "conn" in signature.parameters or any(
+            param.kind == inspect.Parameter.VAR_KEYWORD
+            for param in signature.parameters.values()
+        ):
+            results = await execute_flow(brief_obj, brain_ids, conn=pg_conn)
+        else:
+            results = await execute_flow(brief_obj, brain_ids)
         elapsed_ms = int(time.time() * 1000) - start_ms
 
         # 21.19: rag_enabled = True only if Brain #1 retrieved real context.
@@ -394,8 +517,19 @@ async def run_brain_task(
                     rt = get_current_run_tree()
                     if rt is not None:
                         rt.metadata.update({"rag_enabled": rag_enabled})
-                except Exception:  # noqa: BLE001
-                    pass  # LangSmith optional — never fail brain execution
+                except (
+                    AttributeError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                ) as exc:  # noqa: BLE001
+                    log.debug(
+                        "LangSmith metadata update failed for task_id=%s brain_id=%s: %s",
+                        task_id,
+                        brain_id,
+                        exc,
+                        exc_info=True,
+                    )  # LangSmith optional — never fail brain execution
 
                 await logger.log_execution(
                     brain_id=brain_id,
@@ -420,8 +554,13 @@ async def run_brain_task(
                 "completed",
                 mark_run_finished=True,
             )
-        except Exception:
-            pass
+        except (OSError, RuntimeError, TypeError, ValueError, SQLAlchemyError) as exc:
+            log.warning(
+                "project_state completed status update failed for task_id=%s: %s",
+                task_id,
+                exc,
+                exc_info=True,
+            )
         try:
             canonical_outputs = {
                 brain_id: (output.model_dump() if hasattr(output, "model_dump") else {})
@@ -433,8 +572,13 @@ async def run_brain_task(
                 task_id=task_id,
                 brain_outputs=canonical_outputs,
             )
-        except Exception:
-            pass
+        except (OSError, RuntimeError, TypeError, ValueError, SQLAlchemyError) as exc:
+            log.warning(
+                "execution output artifact persistence failed for task_id=%s: %s",
+                task_id,
+                exc,
+                exc_info=True,
+            )
 
         # C3.06: POST session_evaluated event to Rust control plane (outside DB ctx)
         await _post_session_evaluated_event(
@@ -489,35 +633,60 @@ async def run_brain_task(
                             status="success",
                             trace_context_id=task_id,
                         )
-            except Exception:
-                pass  # Routed brain failure is isolated — parent stays completed
+            except (
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                TypeError,
+                ValueError,
+            ) as exc:
+                log.warning(
+                    "routed brain execution failed for task_id=%s from=%s to=%s: %s",
+                    task_id,
+                    brain_id,
+                    target_brain,
+                    exc,
+                    exc_info=True,
+                )  # Routed brain failure is isolated — parent stays completed
 
-    except (Exception, asyncio.CancelledError):
-        # CancelledError is BaseException — must be listed explicitly
+    except asyncio.CancelledError:
+        # CancelledError is BaseException — must be handled explicitly
         # Brain #6: status must be written even on shutdown signal
         elapsed_ms = int(time.time() * 1000) - start_ms
         try:
-            async with DatabaseConnection(db_path) as db:
-                await db.conn.execute(
-                    "UPDATE executions SET status = ? WHERE id = ?",
-                    ["failed", task_id],
-                )
-                await db.conn.commit()
-        except Exception:
-            pass  # DB write on shutdown — best-effort only
-        try:
-            _update_project_state_status(
-                db_path,
+            await _mark_execution_failed_during_shutdown()
+        except TaskShutdownWriteError:
+            log.warning(
+                "shutdown bookkeeping failed for task_id=%s",
                 task_id,
-                "failed",
-                mark_run_finished=True,
+                exc_info=True,
             )
-        except Exception:
-            pass
+    except (OSError, RuntimeError, TypeError, ValueError, SQLAlchemyError):
+        elapsed_ms = int(time.time() * 1000) - start_ms
+        try:
+            await _mark_execution_failed_during_shutdown()
+        except TaskShutdownWriteError:
+            log.warning(
+                "shutdown bookkeeping failed for task_id=%s",
+                task_id,
+                exc_info=True,
+            )
     finally:
         # Phase 21: always close the asyncpg RAG connection (if opened)
         if pg_conn is not None:
             try:
                 await pg_conn.close()
-            except Exception:  # noqa: BLE001
-                pass
+            except (
+                ConnectionError,
+                OSError,
+                RuntimeError,
+                TimeoutError,
+                ValueError,
+            ) as exc:  # noqa: BLE001
+                log.debug(
+                    "failed to close asyncpg RAG connection for task_id=%s: %s",
+                    task_id,
+                    exc,
+                    exc_info=True,
+                )

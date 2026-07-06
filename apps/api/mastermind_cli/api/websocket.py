@@ -7,12 +7,12 @@ Requirements: UI-04, PAR-08, PERF-03
 """
 
 import asyncio
+import logging
 import os
 import time
 import uuid
 from collections import deque
 from typing import Any
-import warnings
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
@@ -20,20 +20,17 @@ from starlette.websockets import WebSocketState
 
 from mastermind_cli.api.dependencies import get_db_path
 
-_DEFAULT_JWT_SECRET = "your-secret-key-change-in-production"
+logger = logging.getLogger(__name__)
 
 
 def _jwt_secret() -> str:
     """Return the configured JWT secret."""
-    secret = (
-        os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET") or _DEFAULT_JWT_SECRET
-    )
-    if secret == _DEFAULT_JWT_SECRET:
-        warnings.warn(
-            "Using default JWT secret. Set MM_SECRET_KEY or JWT_SECRET in production!",
-            stacklevel=2,
+    secret = os.getenv("MM_SECRET_KEY") or os.getenv("JWT_SECRET")
+    if not secret:
+        raise RuntimeError(
+            "JWT secret not configured. Set MM_SECRET_KEY or JWT_SECRET."
         )
-    return str(secret)
+    return secret
 
 
 def _jwt_algorithm() -> str:
@@ -70,8 +67,12 @@ class ThrottledBroadcaster:
         for ws in connections.get(task_id, set()):
             try:
                 await ws.send_json({"type": "task_update_batch", "data": updates})
-            except Exception:
-                pass  # Client disconnected
+            except RuntimeError as exc:
+                logger.debug(
+                    "websocket client disconnected during batch flush: %s",
+                    exc,
+                    exc_info=True,
+                )  # Client disconnected
 
         self.accumulated[task_id] = []
         self.last_broadcast[task_id] = time.time()

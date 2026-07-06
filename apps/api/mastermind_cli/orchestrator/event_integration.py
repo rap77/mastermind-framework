@@ -2,15 +2,18 @@
 
 import time
 import uuid
+import logging
 from typing import Any, Dict
 
 from .event_emitter import EventEmitter
+
+logger = logging.getLogger(__name__)
 
 
 class EventIntegration:
     """Integrates event emission into brain execution."""
 
-    def __init__(self, event_emitter: EventEmitter | None = None):
+    def __init__(self, event_emitter: EventEmitter | None = None) -> None:
         """Initialize event integration.
 
         Args:
@@ -53,9 +56,9 @@ class EventIntegration:
                 brief=query,
                 flow_config={"provider": provider_name},
             )
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError) as e:
             # Don't fail execution if event emission fails
-            print(f"Warning: Failed to emit brain_started event: {e}")
+            logger.warning("Failed to emit brain_started event: %s", e)
 
         # Execute brain
         try:
@@ -75,12 +78,12 @@ class EventIntegration:
                         "summary": str(result.get("result", ""))[:200],
                     },
                 )
-            except Exception as e:
-                print(f"Warning: Failed to emit brain_completed event: {e}")
+            except (ConnectionError, OSError, RuntimeError, TimeoutError) as e:
+                logger.warning("Failed to emit brain_completed event: %s", e)
 
             return result
 
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError) as e:
             duration_ms = int((time.time() - start_time) * 1000)
 
             # Emit brain_failed event
@@ -91,8 +94,8 @@ class EventIntegration:
                     error=str(e),
                     stage="execution",
                 )
-            except Exception as event_err:
-                print(f"Warning: Failed to emit brain_failed event: {event_err}")
+            except (ConnectionError, OSError, RuntimeError, TimeoutError) as event_err:
+                logger.warning("Failed to emit brain_failed event: %s", event_err)
 
             raise
 

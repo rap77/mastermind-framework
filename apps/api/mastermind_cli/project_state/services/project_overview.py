@@ -842,7 +842,7 @@ class ProjectOverviewService:
                 if isinstance(item, dict):
                     rules.append(
                         DoctrineRuleResponse(
-                            rule_id=str(item.get("rule_id", f"rule-{idx+1}")),
+                            rule_id=str(item.get("rule_id", f"rule-{idx + 1}")),
                             summary=str(item.get("summary", "")),
                             severity=str(item.get("severity", default_severity)),
                             check=(
@@ -855,7 +855,7 @@ class ProjectOverviewService:
                 else:
                     rules.append(
                         DoctrineRuleResponse(
-                            rule_id=f"rule-{idx+1}",
+                            rule_id=f"rule-{idx + 1}",
                             summary=str(item),
                             severity=default_severity,
                             check=None,

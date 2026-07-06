@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from pytest import MonkeyPatch
 
+from mastermind_cli.mm_flow.exceptions import PlanningManifestError
 from mastermind_cli.mm_flow.planning_bridge import PlanningBridge, StructuredStatus
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 
@@ -103,6 +105,29 @@ def test_planning_bridge_writes_structured_status(tmp_path: Path) -> None:
     assert "- next_action: continue_slice_3" in content
     assert "- verification_outcome: pending" in content
     assert record.objective == "harness-memory-unification"
+
+
+def test_planning_bridge_raises_domain_error_for_missing_fields(tmp_path: Path) -> None:
+    """Malformed manifests should fail with a planning-specific error."""
+    (tmp_path / "aidlc-docs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "aidlc-docs" / "aidlc-state.md").write_text(
+        "\n".join(
+            [
+                "# AI-DLC State",
+                "",
+                "## Project Manifest",
+                "- project_name: MasterMind",
+                "- canonical_scope: reusable harness core",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    bridge = PlanningBridge(project_root=tmp_path)
+
+    with pytest.raises(PlanningManifestError, match="Missing manifest fields"):
+        bridge.load_manifest()
 
 
 def test_project_adapter_exposes_repo_paths(tmp_path: Path) -> None:

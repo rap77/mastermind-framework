@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -421,15 +422,11 @@ async def log_brain_execution(
             self.explicit_error = error
 
     timer = Timer()
-    caught_exception: BaseException | None = None
-
     try:
         yield timer
-    except BaseException as e:
-        caught_exception = e
-        raise
     finally:
         duration_ms = int((time.time() - start_time) * 1000)
+        caught_exception = sys.exc_info()[1]
 
         # Determine status and error message
         status: str

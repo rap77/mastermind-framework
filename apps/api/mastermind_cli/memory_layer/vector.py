@@ -134,7 +134,7 @@ def create_vector_search_provider(
         )
 
     raise ValueError(
-        f"Unsupported vector backend: {backend!r}. " "Usa none, pgvector o qdrant."
+        f"Unsupported vector backend: {backend!r}. Usa none, pgvector o qdrant."
     )
 
 

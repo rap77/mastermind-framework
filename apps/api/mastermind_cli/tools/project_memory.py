@@ -30,6 +30,7 @@ import os
 import sys
 from typing import cast
 
+from pydantic import ValidationError
 from sqlalchemy import Table, func, select, text
 
 # Allow running from repo root or from apps/api/
@@ -314,7 +315,8 @@ def _collect_status(project_id: str | None = None) -> dict[str, object]:
     graph_recall_configured = True
     try:
         build_graph_recall_from_env(database_url)
-    except Exception:
+    except (TypeError, ValidationError, ValueError, json.JSONDecodeError) as exc:
+        logger.debug("graph recall configuration probe failed: %s", exc, exc_info=True)
         graph_recall_configured = False
 
     return {

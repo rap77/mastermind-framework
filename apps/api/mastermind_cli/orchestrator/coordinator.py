@@ -275,7 +275,7 @@ class Coordinator:
                     # Try to use interview logger if available
                     # Fallback: log as evaluation
                     self._log_interview_as_evaluation(interview_doc, brief)
-                except Exception as e:
+                except (OSError, RuntimeError, ValueError) as e:
                     logger.warning("Could not log interview: %s", e)
 
             return {
@@ -297,7 +297,15 @@ class Coordinator:
                 "flow_type": "discovery",
                 "message": "Discovery interview interrupted by user",
             }
-        except Exception as e:
+        except (
+            AttributeError,
+            ConnectionError,
+            OSError,
+            RuntimeError,
+            TimeoutError,
+            TypeError,
+            ValueError,
+        ) as e:
             return self._error_report(f"Discovery flow error: {str(e)}")
 
     def _format_interview_deliverable(self, interview_doc: dict[str, Any]) -> str:
@@ -960,7 +968,7 @@ class Coordinator:
                 tags=tags,
                 brains_involved=[1, 7],
             )
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             # Don't fail orchestration if logging fails
             emit(f"Warning: Failed to log evaluation: {e}")
 
@@ -1143,7 +1151,7 @@ Keep the JSON format clean and parseable.
             # Fallback: Generate basic plan locally
             return self._generate_basic_interview_plan(brief)
 
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError, ValueError) as e:
             emit(
                 self.formatter.format_warning(
                     f"Brain #8 query failed: {e}. Using basic plan."
@@ -1307,9 +1315,13 @@ Keep the JSON format clean and parseable.
                         )
                     )
                 emit(self.formatter.format_separator())
-        except Exception:
+        except (OSError, RuntimeError, ValueError) as exc:
+            emit(
+                self.formatter.format_info(
+                    f"⚠ interview history enrichment skipped: {exc}"
+                )
+            )
             # Non-blocking: if learning fails, continue without it
-            pass
 
         strategy = interview_plan.get("plan", {}).get("interview_strategy", {})
         categories = strategy.get("categories", [])
@@ -1484,7 +1496,7 @@ Format as JSON:
             # Fallback: basic follow-up
             return self._generate_basic_follow_up(question, answer)
 
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError, ValueError) as e:
             emit(self.formatter.format_warning(f"Domain brain query failed: {e}"))
             return {
                 "has_follow_up": False,

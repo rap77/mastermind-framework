@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Tests for framework CLI commands."""
 
-from unittest.mock import patch, MagicMock
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+from git.exc import GitCommandError
 import pytest
 from click.testing import CliRunner
 
@@ -12,13 +16,13 @@ from mastermind_cli.commands.framework import (
 
 
 @pytest.fixture
-def runner():
+def runner() -> CliRunner:
     """Click CLI test runner."""
     return CliRunner()
 
 
 @pytest.fixture
-def temp_project_structure(tmp_path):
+def temp_project_structure(tmp_path: Path) -> Any:
     """Create a temporary project structure with brain directories."""
     # Create software-development directory structure
     sw_dev = tmp_path / "docs" / "software-development"
@@ -61,7 +65,7 @@ This is test content for source {i + 1}.
 # =============================================================================
 
 
-def test_get_project_root_finds_marker(tmp_path):
+def test_get_project_root_finds_marker(tmp_path: Path) -> None:
     """Test get_project_root finds project root by marker file."""
     (tmp_path / "CLAUDE.md").write_text("# Test")
 
@@ -70,7 +74,7 @@ def test_get_project_root_finds_marker(tmp_path):
         assert root == tmp_path
 
 
-def test_get_project_root_finds_design_marker(tmp_path):
+def test_get_project_root_finds_design_marker(tmp_path: Path) -> None:
     """Test get_project_root finds project root by design marker."""
     design_dir = tmp_path / "docs" / "design"
     design_dir.mkdir(parents=True)
@@ -81,14 +85,14 @@ def test_get_project_root_finds_design_marker(tmp_path):
         assert root == tmp_path
 
 
-def test_get_project_root_returns_current_when_no_marker(tmp_path):
+def test_get_project_root_returns_current_when_no_marker(tmp_path: Path) -> None:
     """Test get_project_root returns current dir when no marker found."""
     with patch("pathlib.Path.cwd", return_value=tmp_path):
         root = get_project_root()
         assert root == tmp_path
 
 
-def test_get_project_root_searches_parent_directories(tmp_path):
+def test_get_project_root_searches_parent_directories(tmp_path: Path) -> None:
     """Test get_project_root searches parent directories."""
     # Create marker in parent
     (tmp_path / "CLAUDE.md").write_text("# Test")
@@ -107,7 +111,7 @@ def test_get_project_root_searches_parent_directories(tmp_path):
 # =============================================================================
 
 
-def test_framework_group_exists(runner):
+def test_framework_group_exists(runner: CliRunner) -> None:
     """Test that framework command group can be invoked."""
     result = runner.invoke(framework, ["--help"])
     assert result.exit_code == 0
@@ -119,7 +123,9 @@ def test_framework_group_exists(runner):
 # =============================================================================
 
 
-def test_framework_status_displays_overview(temp_project_structure, runner):
+def test_framework_status_displays_overview(
+    temp_project_structure: Any, runner: CliRunner
+) -> None:
     """Test framework status displays framework overview."""
     with patch("pathlib.Path.cwd", return_value=temp_project_structure):
         result = runner.invoke(framework, ["status"])
@@ -131,7 +137,9 @@ def test_framework_status_displays_overview(temp_project_structure, runner):
         assert "Total Sources: 9" in result.output
 
 
-def test_framework_status_displays_brain_table(temp_project_structure, runner):
+def test_framework_status_displays_brain_table(
+    temp_project_structure: Any, runner: CliRunner
+) -> None:
     """Test framework status displays brains table."""
     with patch("pathlib.Path.cwd", return_value=temp_project_structure):
         result = runner.invoke(framework, ["status"])
@@ -141,7 +149,9 @@ def test_framework_status_displays_brain_table(temp_project_structure, runner):
         assert "brain-03" in result.output
 
 
-def test_framework_status_calculates_progress(temp_project_structure, runner):
+def test_framework_status_calculates_progress(
+    temp_project_structure: Any, runner: CliRunner
+) -> None:
     """Test framework status calculates completion progress."""
     with patch("pathlib.Path.cwd", return_value=temp_project_structure):
         result = runner.invoke(framework, ["status"])
@@ -150,7 +160,9 @@ def test_framework_status_calculates_progress(temp_project_structure, runner):
         assert "66%" in result.output or "67%" in result.output  # Rounding may vary
 
 
-def test_framework_status_counts_sources_per_brain(temp_project_structure, runner):
+def test_framework_status_counts_sources_per_brain(
+    temp_project_structure, runner
+) -> None:
     """Test framework status counts sources per brain."""
     with patch("pathlib.Path.cwd", return_value=temp_project_structure):
         result = runner.invoke(framework, ["status"])
@@ -163,7 +175,9 @@ def test_framework_status_counts_sources_per_brain(temp_project_structure, runne
             assert "3" in line  # Each has 3 sources
 
 
-def test_framework_status_counts_loaded_in_notebook(temp_project_structure, runner):
+def test_framework_status_counts_loaded_in_notebook(
+    temp_project_structure, runner
+) -> None:
     """Test framework status counts sources loaded in notebook."""
     with patch("pathlib.Path.cwd", return_value=temp_project_structure):
         result = runner.invoke(framework, ["status"])
@@ -173,7 +187,9 @@ def test_framework_status_counts_loaded_in_notebook(temp_project_structure, runn
         # The progress column shows "complete/total"
 
 
-def test_framework_status_no_software_dev_directory(tmp_path, runner):
+def test_framework_status_no_software_dev_directory(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status handles missing software-development directory."""
     with patch("pathlib.Path.cwd", return_value=tmp_path):
         result = runner.invoke(framework, ["status"])
@@ -181,7 +197,9 @@ def test_framework_status_no_software_dev_directory(tmp_path, runner):
         assert "software-development directory not found" in result.output
 
 
-def test_framework_status_empty_brain_directory(tmp_path, runner):
+def test_framework_status_empty_brain_directory(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status with empty brain directory."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -193,7 +211,9 @@ def test_framework_status_empty_brain_directory(tmp_path, runner):
         assert "Total Sources: 0" in result.output
 
 
-def test_framework_status_ignores_non_brain_directories(tmp_path, runner):
+def test_framework_status_ignores_non_brain_directories(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status ignores directories not ending with -brain."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -213,7 +233,9 @@ def test_framework_status_ignores_non_brain_directories(tmp_path, runner):
         # Non-brain directory should be ignored
 
 
-def test_framework_status_handles_missing_sources_directory(tmp_path, runner):
+def test_framework_status_handles_missing_sources_directory(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status handles brain directory without sources."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -229,7 +251,9 @@ def test_framework_status_handles_missing_sources_directory(tmp_path, runner):
         assert "0" in result.output  # No sources
 
 
-def test_framework_status_handles_invalid_yaml_in_sources(tmp_path, runner):
+def test_framework_status_handles_invalid_yaml_in_sources(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test framework status handles invalid YAML in source files."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -266,14 +290,17 @@ loaded_in_notebook: false
 """
     )
 
+    caplog.set_level("WARNING")
+
     with patch("pathlib.Path.cwd", return_value=tmp_path):
-        result = runner.invoke(framework, ["status"])
-        assert result.exit_code == 0
-        # Should handle invalid YAML gracefully
-        assert "brain-01" in result.output
+        framework.commands["status"].callback()
+
+    assert str(source_file) in caplog.text
 
 
-def test_framework_status_handles_sources_without_yaml(tmp_path, runner):
+def test_framework_status_handles_sources_without_yaml(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status handles source files without YAML front matter."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -294,7 +321,7 @@ def test_framework_status_handles_sources_without_yaml(tmp_path, runner):
         assert "brain-01" in result.output
 
 
-def test_framework_status_zero_sources_division(tmp_path):
+def test_framework_status_zero_sources_division(tmp_path: Path) -> None:
     """Test framework status handles zero total sources without division by zero."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -317,7 +344,7 @@ def test_framework_status_zero_sources_division(tmp_path):
 # =============================================================================
 
 
-def test_framework_release_creates_tag(runner):
+def test_framework_release_creates_tag(runner: CliRunner) -> None:
     """Test framework release creates git tag."""
     with patch("mastermind_cli.utils.git.get_repo") as mock_get_repo:
         import mastermind_cli.commands.framework as fw_module
@@ -333,7 +360,7 @@ def test_framework_release_creates_tag(runner):
         mock_repo.create_tag.assert_called_once_with("1.0.0", message="Release 1.0.0")
 
 
-def test_framework_release_with_message(runner):
+def test_framework_release_with_message(runner: CliRunner) -> None:
     """Test framework release includes custom message."""
     # Patch the import before it happens
     with patch("mastermind_cli.utils.git.get_repo") as mock_get_repo:
@@ -354,7 +381,7 @@ def test_framework_release_with_message(runner):
         )
 
 
-def test_framework_release_multiline_message(runner):
+def test_framework_release_multiline_message(runner: CliRunner) -> None:
     """Test framework release handles multiline messages."""
     with patch("mastermind_cli.utils.git.get_repo") as mock_get_repo:
         import mastermind_cli.commands.framework as fw_module
@@ -379,7 +406,7 @@ def test_framework_release_multiline_message(runner):
         assert "New features" in result.output
 
 
-def test_framework_release_not_git_repository(runner):
+def test_framework_release_not_git_repository(runner: CliRunner) -> None:
     """Test framework release handles non-git repository."""
     with patch(
         "mastermind_cli.utils.git.get_repo", side_effect=ValueError("Not a git repo")
@@ -393,14 +420,14 @@ def test_framework_release_not_git_repository(runner):
         assert "Error creating release" in result.output
 
 
-def test_framework_release_requires_version(runner):
+def test_framework_release_requires_version(runner: CliRunner) -> None:
     """Test framework release requires version parameter."""
     result = runner.invoke(framework, ["release"])
     assert result.exit_code != 0
     assert "Missing option" in result.output or "--version" in result.output
 
 
-def test_framework_release_handles_git_error(runner):
+def test_framework_release_handles_git_error(runner: CliRunner) -> None:
     """Test framework release handles git errors."""
     with patch("mastermind_cli.utils.git.get_repo") as mock_get_repo:
         import mastermind_cli.commands.framework as fw_module
@@ -409,7 +436,9 @@ def test_framework_release_handles_git_error(runner):
 
         mock_repo = MagicMock()
         mock_get_repo.return_value = mock_repo
-        mock_repo.create_tag.side_effect = Exception("Git error: tag already exists")
+        mock_repo.create_tag.side_effect = GitCommandError(
+            ("git", "tag", "1.0.0"), 1, stderr="tag already exists"
+        )
 
         result = runner.invoke(framework, ["release", "--version", "1.0.0"])
         # Should catch the exception and show error
@@ -421,7 +450,9 @@ def test_framework_release_handles_git_error(runner):
 # =============================================================================
 
 
-def test_framework_status_with_realistic_structure(tmp_path, runner):
+def test_framework_status_with_realistic_structure(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status with realistic project structure."""
     # Create structure similar to actual project
     sw_dev = tmp_path / "docs" / "software-development"
@@ -482,7 +513,9 @@ loaded_in_notebook: true
         assert "80%" in result.output or "12/15" in result.output
 
 
-def test_framework_status_with_non_source_files(tmp_path, runner):
+def test_framework_status_with_non_source_files(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status ignores non-source files in sources directory."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -516,7 +549,9 @@ loaded_in_notebook: false
         assert "Total Sources: 1" in result.output
 
 
-def test_framework_status_nested_project_marker(tmp_path, runner):
+def test_framework_status_nested_project_marker(
+    tmp_path: Path, runner: CliRunner
+) -> None:
     """Test framework status finds project root from nested directory."""
     # Create marker in root
     (tmp_path / "CLAUDE.md").write_text("# Project Root")
@@ -556,7 +591,9 @@ loaded_in_notebook: false
 # =============================================================================
 
 
-def test_framework_status_handles_permission_errors(tmp_path, runner):
+def test_framework_status_handles_permission_errors(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test framework status handles permission errors gracefully."""
     sw_dev = tmp_path / "docs" / "software-development"
     sw_dev.mkdir(parents=True)
@@ -580,18 +617,21 @@ loaded_in_notebook: false
     )
 
     # Mock read_yaml_frontmatter to raise permission error
+    caplog.set_level("WARNING")
+
     with patch(
         "mastermind_cli.commands.framework.read_yaml_frontmatter",
         side_effect=PermissionError("Permission denied"),
     ):
         with patch("pathlib.Path.cwd", return_value=tmp_path):
-            runner = CliRunner()
-            result = runner.invoke(framework, ["status"])
-            # Should handle gracefully, not crash
-            assert result.exit_code == 0 or "Error" in result.output
+            framework.commands["status"].callback()
+
+    assert "Permission denied" in caplog.text
 
 
-def test_framework_release_with_special_characters_in_message(runner):
+def test_framework_release_with_special_characters_in_message(
+    runner: CliRunner,
+) -> None:
     """Test framework release handles special characters in message."""
     with patch("mastermind_cli.utils.git.get_repo") as mock_get_repo:
         mock_repo = MagicMock()

@@ -14,6 +14,7 @@ Requirements: SV-01, SV-02
 
 import json
 import logging
+import sqlite3
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -192,7 +193,7 @@ async def write_execution(
 
             return exec_id
 
-    except Exception as e:
+    except (OSError, RuntimeError, sqlite3.Error, ValueError) as e:
         # Structured error log — never re-raise (WS flow must not be blocked)
         logger.error(
             "execution_write_failed",
