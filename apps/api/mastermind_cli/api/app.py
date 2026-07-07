@@ -31,6 +31,9 @@ from mastermind_cli.api.routes.keys import (
 from mastermind_cli.api.websocket import router as websocket_router
 from mastermind_cli.api.companies import router as companies_router
 from mastermind_cli.api.routes.project_overview import router as project_overview_router
+from mastermind_cli.api.routes.runtime_contracts import (
+    router as runtime_contracts_router,
+)
 from mastermind_cli.api.routes.project_participants import (
     router as project_participants_router,
 )
@@ -249,6 +252,9 @@ def create_app(
         project_overview_router,
         prefix="/api/projects",
         tags=["Project State"],
+    )
+    app.include_router(
+        runtime_contracts_router, prefix="/api", tags=["Runtime Contracts"]
     )
     app.include_router(
         project_participants_router,

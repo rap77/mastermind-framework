@@ -467,6 +467,7 @@ class DoctrineUpdateRequest(StrictRequestModel):
     methodology: str | None = None
     methodology_reason: str | None = None
     required_phases: list[str] | None = None
+    policies: list[str] | None = None
     mandatory_rules: list[DoctrineRuleRequest] | None = None
     recommended_rules: list[DoctrineRuleRequest] | None = None
     architecture_constraints: list[str] | None = None
@@ -481,6 +482,7 @@ class ProjectDoctrineResponse(BaseModel):
     methodology: str
     methodology_reason: str
     required_phases: list[str]
+    policies: list[str]
     mandatory_rules: list[DoctrineRuleResponse]
     recommended_rules: list[DoctrineRuleResponse]
     architecture_constraints: list[str]
@@ -518,6 +520,9 @@ class DoctrineProjectionResponse(BaseModel):
     generated_at: datetime = Field(..., description="Projection generation timestamp")
     methodology: DoctrineMethodologyResponse = Field(
         ..., description="Active methodology"
+    )
+    policies: list[str] = Field(
+        default_factory=list, description="Active policy selections"
     )
     mandatory_rules: list[DoctrineRuleResponse] = Field(
         default_factory=list, description="Mandatory doctrine rules"

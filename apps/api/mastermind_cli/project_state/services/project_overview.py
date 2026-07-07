@@ -60,6 +60,23 @@ from mastermind_cli.project_state.schemas.overview import (
     TokenUsageListResponse,
     UpdateTaskStatusRequest,
 )
+from mastermind_cli.orchestrator.runtime_contracts.capability_registry import (
+    CapabilityRegistry,
+)
+from mastermind_cli.orchestrator.runtime_contracts.harness_registry import (
+    HarnessRegistry,
+)
+
+DEFAULT_CAPABILITY_REGISTRY = CapabilityRegistry()
+DEFAULT_HARNESS_REGISTRY = HarnessRegistry()
+
+METHODOLOGY_ALLOWED_HARNESSES: dict[str, tuple[str, ...]] = {
+    "Discovery": ("execution-default",),
+    "Onboarding": ("execution-default",),
+    "AI-DLC": ("execution-default", "verification-default"),
+    "SDD": ("execution-default", "verification-default"),
+    "TDD": ("execution-default", "verification-default", "review-default"),
+}
 
 
 class ProjectOverviewService:
@@ -371,6 +388,8 @@ class ProjectOverviewService:
             doctrine["methodology_reason"] = request.methodology_reason
         if request.required_phases is not None:
             doctrine["required_phases"] = request.required_phases
+        if request.policies is not None:
+            doctrine["policies"] = request.policies
         if request.mandatory_rules is not None:
             doctrine["mandatory_rules"] = [
                 r.model_dump(exclude_none=True) for r in request.mandatory_rules
@@ -385,6 +404,15 @@ class ProjectOverviewService:
             doctrine["quality_gates"] = request.quality_gates
         if request.exception_policy is not None:
             doctrine["exception_policy"] = request.exception_policy
+
+        policies_raw = doctrine.get("policies")
+        if isinstance(policies_raw, list):
+            resulting_policies = [
+                str(item) for item in policies_raw if isinstance(item, str)
+            ]
+            self._validate_policy_selection(
+                str(doctrine.get("methodology", "SDD")), resulting_policies
+            )
 
         metadata["doctrine"] = doctrine
         project.metadata_json = metadata
@@ -405,6 +433,15 @@ class ProjectOverviewService:
             for r in (doctrine.get("mandatory_rules") or [])
             if isinstance(r, dict)
         ]
+        policies_raw = doctrine.get("policies")
+        if isinstance(policies_raw, list):
+            policies = [str(item) for item in policies_raw if isinstance(item, str)]
+        else:
+            policies = [
+                rule.rule_id
+                for rule in mandatory
+                if rule.rule_id in self.valid_policy_ids
+            ]
         recommended = [
             _to_rule(r)
             for r in (doctrine.get("recommended_rules") or [])
@@ -423,6 +460,7 @@ class ProjectOverviewService:
                 for p in (doctrine.get("required_phases") or [])
                 if isinstance(p, str)
             ],
+            policies=policies,
             mandatory_rules=mandatory,
             recommended_rules=recommended,
             architecture_constraints=[
@@ -437,7 +475,12 @@ class ProjectOverviewService:
             ],
         )
 
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        capability_registry: CapabilityRegistry | None = None,
+        harness_registry: HarnessRegistry | None = None,
+    ) -> None:
         """Initialize service repositories from a shared session."""
         self.session = session
         self.projects = ProjectsRepository(session)
@@ -448,6 +491,56 @@ class ProjectOverviewService:
         self.decisions = DecisionsRepository(session)
         self.telemetry = TelemetryRepository(session)
         self.artifacts = ArtifactRepository(session)
+        self.capability_registry = capability_registry or DEFAULT_CAPABILITY_REGISTRY
+        self.harness_registry = harness_registry or DEFAULT_HARNESS_REGISTRY
+        self.valid_policy_ids = set(self.capability_registry.policy_capability_ids())
+        self.valid_harness_ids = set(self.harness_registry.harness_ids())
+        self.policy_compatible_harnesses = {
+            definition.capability_id: definition.compatible_harnesses
+            for definition in self.capability_registry.policy_definitions()
+        }
+
+    def _allowed_harness_ids_for_methodology(self, methodology: str) -> tuple[str, ...]:
+        """Return the harness identifiers permitted by a methodology."""
+        allowed = METHODOLOGY_ALLOWED_HARNESSES.get(methodology)
+        if allowed is not None:
+            return allowed
+        return tuple(sorted(self.valid_harness_ids))
+
+    def _policy_is_compatible(
+        self, policy_id: str, allowed_harness_ids: set[str]
+    ) -> bool:
+        """Check whether a policy can run under at least one allowed harness."""
+        compatible_harnesses = self.policy_compatible_harnesses.get(policy_id, ())
+        return any(
+            harness_id in allowed_harness_ids for harness_id in compatible_harnesses
+        )
+
+    def _validate_policy_selection(
+        self, methodology: str, policy_ids: list[str]
+    ) -> None:
+        """Reject unknown or incompatible policy selections."""
+        invalid_policies = [
+            policy for policy in policy_ids if policy not in self.valid_policy_ids
+        ]
+        if invalid_policies:
+            raise ValueError(
+                f"Unknown policy IDs: {', '.join(sorted(invalid_policies))}"
+            )
+
+        allowed_harness_ids = set(
+            self._allowed_harness_ids_for_methodology(methodology)
+        )
+        incompatible_policies = [
+            policy
+            for policy in policy_ids
+            if not self._policy_is_compatible(policy, allowed_harness_ids)
+        ]
+        if incompatible_policies:
+            raise ValueError(
+                "Policies incompatible with "
+                f"{methodology}: {', '.join(sorted(incompatible_policies))}"
+            )
 
     def get_artifact_lineage(self, artifact_id: str) -> ArtifactLineageResponse | None:
         """Return the causal lineage graph for a logical artifact.
@@ -896,6 +989,20 @@ class ProjectOverviewService:
             else []
         )
 
+        policies_raw = doctrine_meta.get(
+            "policies", project_doctrine_meta.get("policies", [])
+        )
+        if isinstance(policies_raw, list):
+            policies = [str(item) for item in policies_raw if isinstance(item, str)]
+        else:
+            policies = []
+        if not policies:
+            policies = [
+                rule.rule_id
+                for rule in _normalize_rules(mandatory_rules_raw, "mandatory")
+                if rule.rule_id in self.valid_policy_ids
+            ]
+
         exception_policy_raw = doctrine_meta.get(
             "exception_policy", project_doctrine_meta.get("exception_policy", {})
         )
@@ -912,6 +1019,7 @@ class ProjectOverviewService:
                 reason=methodology_reason,
                 required_phases=required_phases,
             ),
+            policies=policies,
             mandatory_rules=_normalize_rules(mandatory_rules_raw, "mandatory"),
             recommended_rules=_normalize_rules(recommended_rules_raw, "recommended"),
             architecture_constraints=architecture_constraints,

@@ -25,6 +25,7 @@ import type {
   ProjectStateTask,
   ProjectTimeSummary,
   RunDetail,
+  PolicyOption,
   TaskContextProjection,
   TaskDependency,
   TokenUsageEvent,
@@ -56,6 +57,7 @@ export interface ProjectStateDashboardProps {
   kdTemplates: KnowledgeTemplateSummary[]
   contextProjection: TaskContextProjection | null
   doctrineProjection: DoctrineProjection | null
+  policyOptions: PolicyOption[]
 }
 
 function formatCurrency(value: number): string {
@@ -88,6 +90,10 @@ function formatMinutes(totalMinutes: number): string {
 function formatRatio(numerator: number, denominator: number): string {
   if (denominator <= 0) return '0/0'
   return `${numerator}/${denominator}`
+}
+
+function getPolicyCompatibility(policyId: string, policyOptions: PolicyOption[]): string[] {
+  return policyOptions.find((policy) => policy.capability_id === policyId)?.compatible_harnesses ?? []
 }
 
 function buildProjectHref(projectId: string): string {
@@ -167,6 +173,7 @@ export function ProjectStateDashboard({
   kdTemplates,
   contextProjection,
   doctrineProjection,
+  policyOptions,
 }: ProjectStateDashboardProps) {
   if (projects.length === 0) {
     return (
@@ -749,6 +756,8 @@ export function ProjectStateDashboard({
             selectedTaskId={selectedTaskId}
             runs={runs}
             contextProjection={contextProjection}
+            doctrineProjection={doctrineProjection}
+            policyOptions={policyOptions}
           />
 
           <Card>
@@ -869,6 +878,32 @@ export function ProjectStateDashboard({
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Policies
+                    </p>
+                    {doctrineProjection.policies.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {doctrineProjection.policies.map((policy) => {
+                          const compatibleHarnesses = getPolicyCompatibility(policy, policyOptions)
+
+                          return (
+                            <div key={policy} className="flex flex-col gap-1 rounded-md bg-muted/20 px-3 py-2">
+                              <Badge variant="secondary">{policy}</Badge>
+                              {compatibleHarnesses.length > 0 ? (
+                                <p className="text-[11px] leading-tight text-muted-foreground">
+                                  Compatible: {compatibleHarnesses.join(', ')}
+                                </p>
+                              ) : null}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No explicit policies selected.</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Mandatory rules
                     </p>
                     {doctrineProjection.mandatory_rules.map((rule) => (
@@ -915,7 +950,7 @@ export function ProjectStateDashboard({
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Select a task to inspect the projected methodology and mandatory rules.
+                  Select a task to inspect the projected methodology, policies and mandatory rules.
                 </p>
               )}
             </CardContent>

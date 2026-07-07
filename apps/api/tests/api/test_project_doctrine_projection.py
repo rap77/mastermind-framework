@@ -66,6 +66,7 @@ async def test_task_doctrine_projection_returns_seeded_projection(
                         "methodology": "hybrid",
                         "methodology_reason": "critical runtime work",
                         "required_phases": ["spec", "implementation", "review"],
+                        "policies": ["policy-clean-code", "policy-security"],
                         "architecture_constraints": [
                             "Keep core and adapter boundaries explicit"
                         ],
@@ -132,6 +133,7 @@ async def test_task_doctrine_projection_returns_seeded_projection(
         "implementation",
         "review",
     ]
+    assert body["policies"] == ["policy-clean-code", "policy-security"]
     assert body["mandatory_rules"][0]["rule_id"] == "explicit-projection-route"
     assert body["recommended_rules"][0]["rule_id"] == "projection-kept-compact"
     assert body["architecture_constraints"] == [
@@ -192,6 +194,7 @@ async def test_patch_project_doctrine_write_read_cycle(tmp_path: Path) -> None:
                 "methodology": "TDD",
                 "methodology_reason": "reliability-critical path",
                 "required_phases": ["spec", "implementation", "review"],
+                "policies": ["policy-testing-discipline"],
                 "mandatory_rules": [
                     {
                         "rule_id": "write-tests-first",
@@ -210,7 +213,7 @@ async def test_patch_project_doctrine_write_read_cycle(tmp_path: Path) -> None:
         assert patch_body["methodology"] == "TDD"
         assert patch_body["methodology_reason"] == "reliability-critical path"
         assert patch_body["required_phases"] == ["spec", "implementation", "review"]
-        assert patch_body["mandatory_rules"][0]["rule_id"] == "write-tests-first"
+        assert patch_body["policies"] == ["policy-testing-discipline"]
         assert patch_body["architecture_constraints"] == [
             "No direct DB access from routes"
         ]
@@ -224,7 +227,44 @@ async def test_patch_project_doctrine_write_read_cycle(tmp_path: Path) -> None:
         proj_body = projection_response.json()
         assert proj_body["methodology"]["active"] == "TDD"
         assert proj_body["methodology"]["reason"] == "reliability-critical path"
+        assert proj_body["policies"] == ["policy-testing-discipline"]
         assert proj_body["mandatory_rules"][0]["rule_id"] == "write-tests-first"
         assert proj_body["architecture_constraints"] == [
             "No direct DB access from routes"
         ]
+
+        invalid_response = await client.patch(
+            "/api/projects/project-doctrine-write/doctrine",
+            json={"policies": ["policy-invented"]},
+            headers=auth_headers,
+        )
+        assert invalid_response.status_code == 400, invalid_response.text
+
+
+@pytest.mark.asyncio
+async def test_policy_catalog_returns_canonical_policy_ids(tmp_path: Path) -> None:
+    """Expose the canonical policy catalog for the project-state UI."""
+    db_path = str(tmp_path / "test.db")
+    database_url = f"sqlite:///{db_path}.project_state"
+    dispose_engines()
+    initialize_database(database_url)
+    app = _build_test_app(db_path, database_url)
+    auth_headers = {
+        "Authorization": f"Bearer {create_access_token('test-user-id-003')}"
+    }
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/policies", headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert [policy["capability_id"] for policy in body["policies"]] == [
+        "policy-clean-code",
+        "policy-security",
+        "policy-architecture",
+        "policy-naming",
+        "policy-testing-discipline",
+    ]
+    assert body["policies"][0]["compatible_harnesses"]

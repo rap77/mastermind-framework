@@ -6,6 +6,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 from mastermind_cli.project_state.database.session import (
     dispose_engines,
     get_session_factory,
@@ -21,6 +23,16 @@ from mastermind_cli.project_state.models.task_run import TaskRun
 from mastermind_cli.project_state.models.token_usage import TokenUsageEvent
 from mastermind_cli.project_state.services.project_overview import (
     ProjectOverviewService,
+)
+from mastermind_cli.orchestrator.runtime_contracts.capability_registry import (
+    CapabilityRegistry,
+)
+from mastermind_cli.orchestrator.runtime_contracts.harness_registry import (
+    HarnessRegistry,
+)
+from mastermind_cli.orchestrator.runtime_contracts.models import (
+    CapabilityDefinition,
+    HarnessDefinition,
 )
 from mastermind_cli.project_state.schemas.overview import (
     CreateCheckpointRequest,
@@ -136,6 +148,154 @@ def test_project_overview_service_builds_expected_summary(tmp_path: Path) -> Non
     assert overview.latest_checkpoint.checkpoint_id == checkpoint_id
     assert overview.latest_decision is not None
     assert overview.latest_decision.decision_id == decision_id
+
+
+def test_project_overview_service_rejects_incompatible_policies(tmp_path: Path) -> None:
+    """Reject policies whose compatible harnesses do not match the methodology."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+
+    capability_registry = CapabilityRegistry(
+        definitions=(
+            CapabilityDefinition(
+                capability_id="policy-review-only",
+                category="policy",
+                label="Review Only",
+                goal_tags=("review",),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=("review-default",),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+        )
+    )
+    harness_registry = HarnessRegistry(
+        definitions=(
+            HarnessDefinition(
+                harness_id="execution-default",
+                name="Execution Harness",
+                category="execution",
+                purpose="Run the requested brains and capture outputs.",
+                supported_loops=("single-pass",),
+                required_inputs=("brief",),
+                output_contract="ExecutionEnvelope",
+            ),
+        )
+    )
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-compat",
+                name="Project Compat",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={},
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(
+            session,
+            capability_registry=capability_registry,
+            harness_registry=harness_registry,
+        )
+
+        with pytest.raises(ValueError, match="Policies incompatible with Discovery"):
+            service.update_project_doctrine(
+                "project-compat",
+                DoctrineUpdateRequest(
+                    methodology="Discovery",
+                    methodology_reason="Need a lightweight intake route.",
+                    policies=["policy-review-only"],
+                ),
+            )
+
+
+def test_project_overview_service_rejects_methodology_only_updates_that_break_policy_compatibility(
+    tmp_path: Path,
+) -> None:
+    """Reject a methodology change when existing policies would become invalid."""
+    database_url = f"sqlite:///{tmp_path / 'project_state.db'}"
+    dispose_engines()
+    initialize_database(database_url)
+    session_factory = get_session_factory(database_url)
+
+    capability_registry = CapabilityRegistry(
+        definitions=(
+            CapabilityDefinition(
+                capability_id="policy-review-only",
+                category="policy",
+                label="Review Only",
+                goal_tags=("review",),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=("review-default",),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+        )
+    )
+    harness_registry = HarnessRegistry(
+        definitions=(
+            HarnessDefinition(
+                harness_id="execution-default",
+                name="Execution Harness",
+                category="execution",
+                purpose="Run the requested brains and capture outputs.",
+                supported_loops=("single-pass",),
+                required_inputs=("brief",),
+                output_contract="ExecutionEnvelope",
+            ),
+            HarnessDefinition(
+                harness_id="review-default",
+                name="Review Harness",
+                category="review",
+                purpose="Provide maker-checker separation for medium/high risk work.",
+                supported_loops=("review",),
+                required_inputs=("execution_result",),
+                output_contract="ExecutionEnvelope",
+            ),
+        )
+    )
+
+    with session_factory() as session:
+        session.add(
+            Project(
+                project_id="project-compat-change",
+                name="Project Compat Change",
+                status="active",
+                adapter_id="default-adapter",
+                metadata_json={
+                    "doctrine": {
+                        "methodology": "TDD",
+                        "methodology_reason": "Initial review-capable route.",
+                        "policies": ["policy-review-only"],
+                    }
+                },
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        service = ProjectOverviewService(
+            session,
+            capability_registry=capability_registry,
+            harness_registry=harness_registry,
+        )
+
+        with pytest.raises(ValueError, match="Policies incompatible with Discovery"):
+            service.update_project_doctrine(
+                "project-compat-change",
+                DoctrineUpdateRequest(
+                    methodology="Discovery",
+                    methodology_reason="Switch to intake-only",
+                ),
+            )
 
 
 def test_project_overview_service_returns_task_detail_and_latest_checkpoint(
@@ -1166,6 +1326,7 @@ def test_project_overview_service_updates_task_status_and_project_doctrine(
                 methodology="SDD",
                 methodology_reason="High coordination work",
                 required_phases=["discover", "plan", "verify"],
+                policies=["policy-clean-code", "policy-testing-discipline"],
                 quality_gates=["gga", "uat"],
             ),
         )
@@ -1178,6 +1339,7 @@ def test_project_overview_service_updates_task_status_and_project_doctrine(
     assert doctrine.project_id == "project-doctrine-write"
     assert doctrine.methodology == "SDD"
     assert doctrine.required_phases == ["discover", "plan", "verify"]
+    assert doctrine.policies == ["policy-clean-code", "policy-testing-discipline"]
     assert doctrine.quality_gates == ["gga", "uat"]
 
 

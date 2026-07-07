@@ -34,6 +34,10 @@ class HarnessRegistry:
             if definition.harness_id in allowed
         )
 
+    def harness_ids(self) -> tuple[str, ...]:
+        """Return the canonical harness identifiers."""
+        return tuple(definition.harness_id for definition in self._definitions)
+
     def _default_definitions(self) -> tuple[HarnessDefinition, ...]:
         """Return the MVP harness inventory."""
         return (

@@ -30,6 +30,14 @@ interface CreateDecisionInput {
   metadata?: JsonObject
 }
 
+interface UpdateDoctrineInput {
+  projectId: string
+  methodology: string
+  methodologyReason: string
+  requiredPhases: string[]
+  policies?: string[]
+}
+
 async function getAuthHeaders(): Promise<HeadersInit> {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
@@ -58,8 +66,10 @@ export async function createProjectCheckpoint(
   try {
     const headers = await getAuthHeaders()
     const apiUrl = process.env.AGENT_RUNTIME_URL || DEFAULT_API_URL
+    const projectId = encodeURIComponent(input.projectId)
+    const taskId = encodeURIComponent(input.taskId)
     const response = await fetch(
-      `${apiUrl}/api/projects/${input.projectId}/tasks/${input.taskId}/checkpoints`,
+      `${apiUrl}/api/projects/${projectId}/tasks/${taskId}/checkpoints`,
       {
         method: 'POST',
         headers,
@@ -111,8 +121,10 @@ export async function updateProjectTaskStatus(
   try {
     const headers = await getAuthHeaders()
     const apiUrl = process.env.AGENT_RUNTIME_URL || DEFAULT_API_URL
+    const projectId = encodeURIComponent(input.projectId)
+    const taskId = encodeURIComponent(input.taskId)
     const response = await fetch(
-      `${apiUrl}/api/projects/${input.projectId}/tasks/${input.taskId}/status`,
+      `${apiUrl}/api/projects/${projectId}/tasks/${taskId}/status`,
       {
         method: 'PATCH',
         headers,
@@ -159,7 +171,8 @@ export async function createProjectDecision(
   try {
     const headers = await getAuthHeaders()
     const apiUrl = process.env.AGENT_RUNTIME_URL || DEFAULT_API_URL
-    const response = await fetch(`${apiUrl}/api/projects/${input.projectId}/decisions`, {
+    const projectId = encodeURIComponent(input.projectId)
+    const response = await fetch(`${apiUrl}/api/projects/${projectId}/decisions`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -185,6 +198,54 @@ export async function createProjectDecision(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to record decision',
+    }
+  }
+}
+
+export async function updateProjectDoctrine(
+  input: UpdateDoctrineInput
+): Promise<ActionResult> {
+  if (!input.projectId) {
+    return { success: false, error: 'Project is required' }
+  }
+
+  if (!input.methodology.trim()) {
+    return { success: false, error: 'Methodology is required' }
+  }
+
+  if (!input.methodologyReason.trim()) {
+    return { success: false, error: 'Methodology reason is required' }
+  }
+
+  try {
+    const headers = await getAuthHeaders()
+    const apiUrl = process.env.AGENT_RUNTIME_URL || DEFAULT_API_URL
+    const projectId = encodeURIComponent(input.projectId)
+    const response = await fetch(`${apiUrl}/api/projects/${projectId}/doctrine`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        methodology: input.methodology.trim(),
+        methodology_reason: input.methodologyReason.trim(),
+        required_phases: input.requiredPhases,
+        policies: input.policies ?? [],
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as { detail?: string }
+      return {
+        success: false,
+        error: errorData.detail || 'Failed to update doctrine',
+      }
+    }
+
+    revalidatePath('/project-state')
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update doctrine',
     }
   }
 }

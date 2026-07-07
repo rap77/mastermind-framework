@@ -144,6 +144,14 @@ const baseProps: ProjectStateDashboardProps = {
   ],
   contextProjection: null,
   doctrineProjection: null,
+  policyOptions: [
+    {
+      capability_id: 'policy-clean-code',
+      label: 'Clean Code',
+      summary: 'Keep the implementation readable, small, and easy to change.',
+      compatible_harnesses: ['execution-default', 'verification-default'],
+    },
+  ],
 }
 
 describe('ProjectStateDashboard', () => {
@@ -162,6 +170,42 @@ describe('ProjectStateDashboard', () => {
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('42.0%')).toBeInTheDocument()
     expect(screen.getByText('Discovery brief synthesis')).toBeInTheDocument()
+  })
+
+  it('renders doctrine policies when they are present', () => {
+    render(
+      <ProjectStateDashboard
+        {...baseProps}
+        doctrineProjection={{
+          project_id: 'project-1',
+          task_id: 'task-1',
+          scope: 'task',
+          generated_at: '2026-06-06T12:00:00Z',
+          methodology: {
+            active: 'SDD',
+            reason: 'Spec-first delivery',
+            required_phases: ['discover', 'plan', 'verify'],
+          },
+          policies: ['policy-clean-code', 'policy-security'],
+          mandatory_rules: [],
+          recommended_rules: [],
+          architecture_constraints: [],
+          quality_gates: [],
+          exception_policy: {
+            human_approval_required_for_overrides: true,
+            pause_if_mandatory_rule_cannot_be_met: true,
+          },
+        }}
+        policyOptions={baseProps.policyOptions}
+      />
+    )
+
+    expect(screen.getByText('Policies')).toBeInTheDocument()
+    expect(screen.getByText('policy-clean-code')).toBeInTheDocument()
+    expect(screen.getByText('policy-security')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Compatible:\s*execution-default, verification-default/i)
+    ).toBeInTheDocument()
   })
 
   it('renders estimate coverage diagnostics for the current ETA', () => {

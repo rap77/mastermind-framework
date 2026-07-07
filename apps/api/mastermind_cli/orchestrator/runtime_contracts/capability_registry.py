@@ -44,6 +44,22 @@ class CapabilityRegistry:
             policies=tuple(c for c in compatible if c.category == "policy"),
         )
 
+    def policy_capability_ids(self) -> tuple[str, ...]:
+        """Return the canonical policy capability identifiers."""
+        return tuple(
+            definition.capability_id
+            for definition in self._definitions
+            if definition.category == "policy"
+        )
+
+    def policy_definitions(self) -> tuple[CapabilityDefinition, ...]:
+        """Return the canonical policy capability definitions."""
+        return tuple(
+            definition
+            for definition in self._definitions
+            if definition.category == "policy"
+        )
+
     def _default_definitions(self) -> tuple[CapabilityDefinition, ...]:
         """Return the MVP capability inventory."""
         return (
@@ -143,6 +159,70 @@ class CapabilityRegistry:
                 category="policy",
                 label="Clean Code Policy",
                 goal_tags=("clean-code", "style", "maintainability"),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=(
+                    "execution-default",
+                    "verification-default",
+                    "review-default",
+                    "recovery-default",
+                ),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+            CapabilityDefinition(
+                capability_id="policy-security",
+                category="policy",
+                label="Security Policy",
+                goal_tags=("security", "hardening"),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=(
+                    "execution-default",
+                    "verification-default",
+                    "review-default",
+                    "recovery-default",
+                ),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+            CapabilityDefinition(
+                capability_id="policy-architecture",
+                category="policy",
+                label="Architecture Policy",
+                goal_tags=("architecture", "boundaries"),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=(
+                    "execution-default",
+                    "verification-default",
+                    "review-default",
+                    "recovery-default",
+                ),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+            CapabilityDefinition(
+                capability_id="policy-naming",
+                category="policy",
+                label="Naming Policy",
+                goal_tags=("naming", "clarity"),
+                cost_level="low",
+                risk_level="low",
+                prerequisites=(),
+                compatible_harnesses=(
+                    "execution-default",
+                    "verification-default",
+                    "review-default",
+                    "recovery-default",
+                ),
+                compatible_task_classes=("simple", "medium", "complex"),
+            ),
+            CapabilityDefinition(
+                capability_id="policy-testing-discipline",
+                category="policy",
+                label="Testing Discipline Policy",
+                goal_tags=("testing", "quality"),
                 cost_level="low",
                 risk_level="low",
                 prerequisites=(),

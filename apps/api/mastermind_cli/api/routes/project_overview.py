@@ -453,9 +453,12 @@ async def update_project_doctrine(
     """Set or merge project-level doctrine into project metadata."""
     del user_id  # Reserved for future RBAC/ownership checks.
     session_factory = get_session_factory(database_url)
-    with session_factory() as session:
-        service = ProjectOverviewService(session)
-        result = service.update_project_doctrine(project_id, request)
+    try:
+        with session_factory() as session:
+            service = ProjectOverviewService(session)
+            result = service.update_project_doctrine(project_id, request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return result

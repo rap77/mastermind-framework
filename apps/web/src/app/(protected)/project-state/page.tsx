@@ -13,6 +13,7 @@ import {
   fetchProjectTimeSummary,
   fetchProjectTasks,
   fetchProjectTokenUsage,
+  fetchPolicyOptions,
   fetchTaskContextProjection,
   fetchTaskDependencies,
   fetchTaskDoctrineProjection,
@@ -58,6 +59,7 @@ export default async function ProjectStatePage({
         kdTemplates={[]}
         contextProjection={null}
         doctrineProjection={null}
+        policyOptions={[]}
       />
     )
   }
@@ -98,6 +100,7 @@ export default async function ProjectStatePage({
   const kdOutcomeMetrics =
     kdOutcomeMetricsResult.status === 'fulfilled' ? kdOutcomeMetricsResult.value : null
   const kdTemplates = kdTemplatesResult.status === 'fulfilled' ? kdTemplatesResult.value : []
+  const policyOptions = await fetchPolicyOptions()
 
   const selectedTaskId = params.task ?? tasks[0]?.task_id ?? null
 
@@ -135,6 +138,7 @@ export default async function ProjectStatePage({
       kdTemplates={kdTemplates}
       contextProjection={contextProjection}
       doctrineProjection={doctrineProjection}
+      policyOptions={policyOptions}
     />
   )
 }

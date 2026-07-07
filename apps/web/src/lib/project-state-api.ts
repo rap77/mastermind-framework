@@ -166,6 +166,7 @@ export interface DoctrineProjection {
     reason: string
     required_phases: string[]
   }
+  policies: string[]
   mandatory_rules: Array<{
     rule_id: string
     summary: string
@@ -184,6 +185,13 @@ export interface DoctrineProjection {
     human_approval_required_for_overrides: boolean
     pause_if_mandatory_rule_cannot_be_met: boolean
   }
+}
+
+export interface PolicyOption {
+  capability_id: string
+  label: string
+  summary: string
+  compatible_harnesses: string[]
 }
 
 export interface KnowledgeDistillationSystemHealth {
@@ -392,6 +400,11 @@ export async function fetchTaskDoctrineProjection(
   return fetchProjectState<DoctrineProjection>(
     `/api/projects/${encodePathSegment(projectId)}/tasks/${encodePathSegment(taskId)}/doctrine-projection`
   )
+}
+
+export async function fetchPolicyOptions(): Promise<PolicyOption[]> {
+  const data = await fetchProjectState<{ policies: PolicyOption[] }>('/api/policies')
+  return data.policies
 }
 
 export async function fetchKnowledgeDistillationSystemHealth(): Promise<KnowledgeDistillationSystemHealth> {
