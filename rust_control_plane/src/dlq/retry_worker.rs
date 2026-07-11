@@ -95,7 +95,7 @@ impl RetryWorker {
                 Err(_) => {
                     tracing::warn!(
                         id = %webhook.id,
-                        "Failed to resubmit webhook to queue (queue depth > 90%)"
+                        "Failed to resubmit webhook to queue (queue depth >= 90%)"
                     );
                     // Don't increment retry_count - queue is full
                 }

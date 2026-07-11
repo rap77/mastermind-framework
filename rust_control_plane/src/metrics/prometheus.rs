@@ -42,7 +42,7 @@ lazy_static! {
         gauge
     };
     static ref WEBHOOK_QUEUE_REJECTION_TOTAL: IntGauge = {
-        let opts = Opts::new("webhook_queue_rejection_total", "Total webhooks rejected due to queue depth > 90%");
+        let opts = Opts::new("webhook_queue_rejection_total", "Total webhooks rejected due to queue depth >= 90%");
         let gauge = IntGauge::with_opts(opts).unwrap();
         REGISTRY.register(Box::new(gauge.clone())).unwrap();
         gauge

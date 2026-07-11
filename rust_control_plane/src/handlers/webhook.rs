@@ -109,7 +109,7 @@ async fn is_duplicate(db: &PgPool, external_id: &str, channel: &str) -> anyhow::
 /// - 200 OK: Webhook accepted and queued
 /// - 204 No Content: Duplicate webhook (idempotent)
 /// - 401 Unauthorized: Invalid HMAC signature
-/// - 503 Service Unavailable: Queue depth > 90%
+/// - 503 Service Unavailable: Queue depth >= 90%
 pub async fn webhook_receiver(
     Path(channel): Path<String>,
     State(state): State<crate::state::AppState>,
@@ -208,11 +208,11 @@ pub async fn webhook_receiver(
         .webhook_queue
         .send_with_backpressure(event)
         .await
-        .map_err(|_: tokio::sync::mpsc::error::SendError<WebhookEvent>| {
+        .map_err(|_: tokio::sync::mpsc::error::TrySendError<WebhookEvent>| {
             warn!(
                 channel = %channel,
                 trace_id = %trace_id,
-                "Queue depth > 90%, webhook rejected"
+                "Queue depth >= 90%, webhook rejected"
             );
             StatusCode::SERVICE_UNAVAILABLE // 503
         })?;

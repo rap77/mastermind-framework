@@ -14,7 +14,6 @@ use serde_json::Value;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tokio::sync::Semaphore;
 
 /// Webhook event from external providers
 #[derive(Debug, Clone)]
@@ -32,8 +31,8 @@ pub struct WebhookEvent {
 pub struct WebhookQueue {
     /// Inner mpsc channel
     sender: mpsc::Sender<WebhookEvent>,
-    /// Semaphore for tracking available permits (capacity)
-    capacity_semaphore: Arc<Semaphore>,
+    /// Pending webhook count shared with the worker
+    pending_count: Arc<AtomicU64>,
     /// Queue capacity (const)
     capacity: usize,
     /// Rejection counter (Brain #7 Condition #1 - CRITICAL)
@@ -44,12 +43,12 @@ impl WebhookQueue {
     /// Create new bounded queue with specified capacity
     pub fn new(capacity: usize) -> Self {
         let (sender, _receiver) = mpsc::channel(capacity);
-        let capacity_semaphore = Arc::new(Semaphore::new(capacity));
+        let pending_count = Arc::new(AtomicU64::new(0));
         let rejection_count = Arc::new(AtomicU64::new(0));
 
         Self {
             sender,
-            capacity_semaphore,
+            pending_count,
             capacity,
             rejection_count,
         }
@@ -61,18 +60,27 @@ impl WebhookQueue {
             return 0.0;
         }
 
-        let available = self.capacity_semaphore.available_permits();
-        let used = self.capacity - available;
+        let used = self.pending_count.load(Ordering::Relaxed).min(self.capacity as u64) as usize;
         (used as f64 / self.capacity as f64) * 100.0
     }
 
-    /// Send webhook with backpressure (rejects if depth > 90%)
+    /// Send webhook with backpressure (rejects if depth >= 90%)
     pub async fn send_with_backpressure(
         &self,
         event: WebhookEvent,
-    ) -> Result<(), mpsc::error::SendError<WebhookEvent>> {
-        // Reject if queue depth > 90% (Brain #7 Condition #2)
-        if self.queue_depth_percent() > 90.0 {
+    ) -> Result<(), mpsc::error::TrySendError<WebhookEvent>> {
+        // Reserve a slot before enqueueing so depth reflects queued work.
+        let pending_after_reserve = self.pending_count.fetch_add(1, Ordering::Relaxed) + 1;
+        let depth_after_reserve = if self.capacity == 0 {
+            0.0
+        } else {
+            (pending_after_reserve.min(self.capacity as u64) as f64 / self.capacity as f64) * 100.0
+        };
+
+        // Reject if queue depth >= 90% (Brain #7 Condition #2)
+        if depth_after_reserve >= 90.0 {
+            self.pending_count.fetch_sub(1, Ordering::Relaxed);
+
             // Increment rejection counter (Brain #7 Condition #1)
             self.rejection_count.fetch_add(1, Ordering::Relaxed);
 
@@ -82,22 +90,18 @@ impl WebhookQueue {
             tracing::warn!(
                 channel = %event.channel,
                 trace_id = %event.trace_id,
-                queue_depth = %self.queue_depth_percent(),
-                "Webhook rejected: queue depth > 90%"
+                queue_depth = %depth_after_reserve,
+                "Webhook rejected: queue depth >= 90%"
             );
-            return Err(mpsc::error::SendError(event));
+            return Err(mpsc::error::TrySendError::Full(event));
         }
 
-        // Acquire permit before sending
-        let _permit = self.capacity_semaphore.acquire().await.unwrap();
-        self.sender.send(event).await
-    }
+        if let Err(err) = self.sender.try_send(event) {
+            self.pending_count.fetch_sub(1, Ordering::Relaxed);
+            return Err(err);
+        }
 
-    /// Non-blocking receive (for worker)
-    pub fn try_recv(&self) -> Option<WebhookEvent> {
-        // Note: This is a simplified version
-        // In practice, the receiver should be held by the worker
-        None
+        Ok(())
     }
 
     /// Get queue capacity
@@ -107,7 +111,7 @@ impl WebhookQueue {
 
     /// Get approximate current length
     pub fn len(&self) -> usize {
-        self.capacity - self.capacity_semaphore.available_permits()
+        self.pending_count.load(Ordering::Relaxed) as usize
     }
 
     /// Check if queue is empty
@@ -126,10 +130,14 @@ impl WebhookQueue {
     }
 
     /// Create from existing sender (for worker)
-    pub fn from_sender(sender: mpsc::Sender<WebhookEvent>, capacity: usize) -> Self {
+    pub fn from_sender(
+        sender: mpsc::Sender<WebhookEvent>,
+        capacity: usize,
+        pending_count: Arc<AtomicU64>,
+    ) -> Self {
         Self {
             sender,
-            capacity_semaphore: Arc::new(Semaphore::new(capacity)),
+            pending_count,
             capacity,
             rejection_count: Arc::new(AtomicU64::new(0)),
         }
@@ -157,8 +165,24 @@ mod tests {
     fn test_rejection_threshold() {
         let queue = WebhookQueue::new(100);
 
-        // At 90% capacity, should reject
-        // Note: This is a simplified test - in practice, we'd need to fill the queue
-        assert!(queue.queue_depth_percent() <= 90.0);
+        queue.pending_count.store(91, Ordering::Relaxed);
+
+        // At >=90% capacity, the queue should report the overload condition.
+        assert!(queue.queue_depth_percent() > 90.0);
+    }
+
+    #[tokio::test]
+    async fn test_send_rejects_when_queue_exceeds_threshold() {
+        let queue = WebhookQueue::new(100);
+        queue.pending_count.store(91, Ordering::Relaxed);
+
+        let event = WebhookEvent {
+            channel: "whatsapp".to_string(),
+            payload: serde_json::json!({"message": "hello"}),
+            trace_id: "trace-1".to_string(),
+        };
+
+        assert!(queue.send_with_backpressure(event).await.is_err());
+        assert_eq!(queue.rejection_count(), 1);
     }
 }

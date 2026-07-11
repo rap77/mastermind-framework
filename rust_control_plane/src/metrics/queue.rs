@@ -27,7 +27,7 @@ lazy_static! {
     /// Queue rejection count (guardrail metric - Brain #7 Condition #2)
     pub static ref WEBHOOK_QUEUE_REJECTION_TOTAL: IntGauge = IntGauge::new(
         "webhook_queue_rejection_total",
-        "Total number of webhooks rejected due to queue depth > 90%"
+        "Total number of webhooks rejected due to queue depth >= 90%"
     ).unwrap();
 
     /// Pending webhook count in memory (guardrail metric - Brain #7 Condition #2)

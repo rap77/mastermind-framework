@@ -10,6 +10,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use std::time::Duration;
 use tokio::net::TcpListener;
 
@@ -73,7 +74,13 @@ async fn main() -> Result<()> {
 
     // Create application state
     let websocket_hub = Arc::new(WebSocketHub::new());
-    let webhook_queue = Arc::new(WebhookQueue::new(1000));
+    let (webhook_sender, webhook_receiver) = tokio::sync::mpsc::channel(1000);
+    let webhook_pending_count = Arc::new(AtomicU64::new(0));
+    let webhook_queue = Arc::new(WebhookQueue::from_sender(
+        webhook_sender.clone(),
+        1000,
+        webhook_pending_count.clone(),
+    ));
     let latency_tracker = Arc::new(LatencyTracker::new());
 
     let ai_worker_runtime = initialize_ai_worker_runtime().await;
@@ -91,9 +98,15 @@ async fn main() -> Result<()> {
     // Worker processes queued webhooks asynchronously
     {
         let db = state.pool.clone();
-        let (sender, receiver) = tokio::sync::mpsc::channel(1000);
         let latency_tracker = state.latency_tracker.clone();
-        queue::start_worker(db, receiver, sender, latency_tracker, ai_worker_runtime);
+        queue::start_worker(
+            db,
+            webhook_receiver,
+            webhook_sender,
+            webhook_pending_count,
+            latency_tracker,
+            ai_worker_runtime,
+        );
     }
 
     // Public routes — no auth required
@@ -113,6 +126,7 @@ async fn main() -> Result<()> {
         // Kubernetes-style health probes
         .route("/health/live", get(health::live::liveness_probe))
         .route("/health/ready", get(health::ready::readiness_check))
+        .route("/health/realtime", get(handlers::health::realtime_health))
         // Webhook endpoint
         .route("/webhooks/:channel", post(handlers::webhook::webhook_receiver))
         // Auth routes (login/refresh are public by definition)

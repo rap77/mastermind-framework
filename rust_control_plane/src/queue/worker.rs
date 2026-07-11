@@ -11,7 +11,7 @@ use crate::state::AiWorkerRuntimeMode;
 use chrono::Utc;
 use serde_json::Value;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{error, info, warn};
@@ -21,6 +21,7 @@ pub struct WebhookWorker {
     db: PgPool,
     webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
     webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
+    pending_count: Arc<AtomicU64>,
     dlq: DeadLetterQueue,
     latency_tracker: Arc<LatencyTracker>,
     ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
@@ -86,6 +87,7 @@ impl WebhookWorker {
         db: PgPool,
         webhook_queue: tokio::sync::mpsc::Receiver<WebhookEvent>,
         webhook_sender: tokio::sync::mpsc::Sender<WebhookEvent>,
+        pending_count: Arc<AtomicU64>,
         latency_tracker: Arc<LatencyTracker>,
         ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
     ) -> Self {
@@ -94,6 +96,7 @@ impl WebhookWorker {
             db,
             webhook_queue,
             webhook_sender,
+            pending_count,
             dlq,
             latency_tracker,
             ai_worker_runtime,
@@ -136,6 +139,11 @@ impl WebhookWorker {
                 return Err(anyhow::anyhow!("Webhook queue disconnected"));
             }
         };
+
+        // The event left the in-memory queue, so release its pending slot.
+        self.pending_count.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            Some(current.saturating_sub(1))
+        }).ok();
 
         // Extract external message ID
         let external_id = self.extract_external_id(&event.payload, &event.channel)?;
@@ -280,10 +288,15 @@ impl WebhookWorker {
                 .await?;
 
             // Re-queue event
+            let pending_count = Arc::clone(&self.pending_count);
+            pending_count.fetch_add(1, Ordering::Relaxed);
             self.webhook_sender
                 .send(event.clone())
                 .await
-                .map_err(|_| anyhow::anyhow!("Failed to re-queue webhook"))?;
+                .map_err(|_| {
+                    pending_count.fetch_sub(1, Ordering::Relaxed);
+                    anyhow::anyhow!("Failed to re-queue webhook")
+                })?;
         } else {
             self.record_failed_ai_worker_response(message_id, event, error, retry_count, true)
                 .await?;
@@ -510,11 +523,12 @@ pub fn start_worker(
     db: PgPool,
     receiver: tokio::sync::mpsc::Receiver<WebhookEvent>,
     sender: tokio::sync::mpsc::Sender<WebhookEvent>,
+    pending_count: Arc<AtomicU64>,
     latency_tracker: Arc<LatencyTracker>,
     ai_worker_runtime: Arc<AiWorkerRuntimeMode>,
 ) {
     tokio::spawn(async move {
-        let mut worker = WebhookWorker::new(db, receiver, sender, latency_tracker, ai_worker_runtime);
+        let mut worker = WebhookWorker::new(db, receiver, sender, pending_count, latency_tracker, ai_worker_runtime);
         worker.start().await;
     });
 }
