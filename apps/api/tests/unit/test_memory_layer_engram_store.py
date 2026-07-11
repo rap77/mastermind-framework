@@ -7,8 +7,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from mastermind_cli.memory_layer import EngramMemoryStore, build_engram_memory_store
 from mastermind_cli.memory_layer.models import MemoryItem
-from mastermind_cli.memory_layer.store_engram import EngramMemoryStore
+from mastermind_cli.memory_layer.store_engram import BridgeMemoryStore
 
 
 @pytest.mark.asyncio
@@ -30,7 +31,7 @@ async def test_save_item_maps_memory_item_to_engram_payload() -> None:
             "updated_at": "2026-06-16T12:30:00Z",
         }
     )
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=save_observation,
         search_observations=AsyncMock(return_value=[]),
     )
@@ -67,11 +68,17 @@ async def test_save_item_maps_memory_item_to_engram_payload() -> None:
     assert saved.updated_at == datetime(2026, 6, 16, 12, 30, tzinfo=timezone.utc)
 
 
+def test_public_engram_adapter_exports_are_available() -> None:
+    """The memory layer should expose the ML2 public adapter names."""
+    assert EngramMemoryStore is BridgeMemoryStore
+    assert build_engram_memory_store is not None
+
+
 @pytest.mark.asyncio
 async def test_save_item_filters_non_string_tags() -> None:
     """Saving an item should not forward malformed tags to Engram."""
     save_observation = AsyncMock(return_value={"id": 42, "tags": ["auth"]})
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=save_observation,
         search_observations=AsyncMock(return_value=[]),
     )
@@ -116,7 +123,7 @@ async def test_get_item_maps_engram_observation_to_memory_item() -> None:
             "created_at": "2026-06-16T08:00:00Z",
         }
     )
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=AsyncMock(return_value={}),
         search_observations=AsyncMock(return_value=[]),
         get_observation=get_observation,
@@ -152,7 +159,7 @@ async def test_search_maps_engram_results_to_memory_search_results() -> None:
             }
         ]
     )
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=AsyncMock(return_value={}),
         search_observations=search_observations,
     )
@@ -179,7 +186,7 @@ async def test_search_maps_engram_results_to_memory_search_results() -> None:
 async def test_save_session_summary_uses_dedicated_engram_hook_when_present() -> None:
     """Session summaries should use a dedicated hook when the bridge provides one."""
     save_session_summary = AsyncMock(return_value=None)
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=AsyncMock(return_value={}),
         search_observations=AsyncMock(return_value=[]),
         save_session_summary=save_session_summary,
@@ -204,7 +211,7 @@ async def test_save_session_summary_uses_dedicated_engram_hook_when_present() ->
 async def test_save_preference_falls_back_to_canonical_memory_item() -> None:
     """Preferences should be stored as canonical memory items through the adapter."""
     save_observation = AsyncMock(return_value={"id": 81})
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=save_observation,
         search_observations=AsyncMock(return_value=[]),
     )
@@ -246,7 +253,7 @@ async def test_list_recent_uses_search_scope_and_returns_memory_items() -> None:
             }
         ]
     )
-    store = EngramMemoryStore(
+    store = BridgeMemoryStore(
         save_observation=AsyncMock(return_value={}),
         search_observations=search_observations,
     )

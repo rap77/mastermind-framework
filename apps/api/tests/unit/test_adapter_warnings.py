@@ -10,6 +10,7 @@ import pytest
 
 
 from mastermind_cli.mm_flow.adapter_warnings import AdapterWarnings
+from mastermind_cli.mm_flow.exceptions import PlanningBridgeError
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 
 
@@ -19,6 +20,8 @@ def _write_planning_fixture(
     project_name: str = "MasterMind Unified Harness + Memory",
     include_source_of_truth: bool = True,
     include_bridge_contract: bool = True,
+    include_objective: bool = True,
+    include_next_command: bool = True,
 ) -> None:
     """Write the minimal aidlc-docs + .planning fixture used by the adapter."""
     (root / "aidlc-docs").mkdir(parents=True, exist_ok=True)
@@ -64,19 +67,20 @@ def _write_planning_fixture(
     (root / "aidlc-docs" / "aidlc-state.md").write_text(
         "\n".join(lines), encoding="utf-8"
     )
+    handoff_lines = [
+        "# Handoff",
+        "",
+        "## Next recommended objective",
+    ]
+    if include_objective:
+        handoff_lines.append("- `harness-core-runtime-v1` — unified harness")
+    handoff_lines.append("")
+    handoff_lines.append("## Next command")
+    if include_next_command:
+        handoff_lines.append("- Continue.")
+    handoff_lines.append("")
     (root / ".planning" / "HANDOFF-CURRENT.md").write_text(
-        "\n".join(
-            [
-                "# Handoff",
-                "",
-                "## Next recommended objective",
-                "- `harness-core-runtime-v1` — unified harness",
-                "",
-                "## Next command",
-                "- Continue.",
-                "",
-            ]
-        ),
+        "\n".join(handoff_lines),
         encoding="utf-8",
     )
 
@@ -126,6 +130,37 @@ def test_collect_warnings_flags_missing_handoff(tmp_path: Path) -> None:
     codes = {item.code for item in warnings.warnings}
     assert "handoff_missing" in codes
     assert warnings.passed is True
+
+
+def test_collect_warnings_flags_incomplete_handoff(tmp_path: Path) -> None:
+    """An objective-less handoff should be reported as a blocking warning."""
+    _write_planning_fixture(tmp_path, include_objective=False)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+
+    warnings = adapter.collect_warnings()
+
+    codes = {item.code for item in warnings.errors}
+    assert "handoff_incomplete" in codes
+    assert warnings.passed is False
+
+
+def test_collect_warnings_flags_unparseable_handoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A malformed handoff should be reported instead of crashing the adapter."""
+    _write_planning_fixture(tmp_path)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+    monkeypatch.setattr(
+        adapter.planning_bridge,
+        "load_intent",
+        lambda: (_ for _ in ()).throw(PlanningBridgeError("boom")),
+    )
+
+    warnings = adapter.collect_warnings()
+
+    codes = {item.code for item in warnings.errors}
+    assert "handoff_unparseable" in codes
+    assert warnings.passed is False
 
 
 def test_collect_warnings_flags_unclear_source_of_truth(tmp_path: Path) -> None:

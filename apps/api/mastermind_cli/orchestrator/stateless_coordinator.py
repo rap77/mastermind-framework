@@ -47,9 +47,12 @@ from mastermind_cli.orchestrator.runtime_contracts import (
     RuntimeSelection,
     VerificationOutcome,
 )
-from mastermind_cli.memory_layer.models import ContextSnapshot
-from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
-from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
+    ContextSnapshot,
+    build_latest_checkpoint_snapshot,
+)
+from mastermind_cli.memory_layer.runtime import build_memory_service_from_env
 from mastermind_cli.types.protocol import BrainEnvelope, BrainOutputType
 from mastermind_cli.types.parallel import ExecutionGraph, FlowConfig
 from mastermind_cli.brain_registry import BrainRegistry
@@ -668,17 +671,34 @@ class StatelessCoordinator:
             return None
 
         try:
-            memory_service = MemoryService(
-                build_memory_store_from_env(
-                    database_url,
-                    enable_vector=False,
-                    enable_index=True,
-                )
+            memory_service = build_memory_service_from_env(
+                database_url,
+                enable_vector=False,
+                enable_index=True,
             )
-            return await memory_service.build_context_snapshot(self._project_id)
-        except (MemorySnapshotError, OSError, ValueError):
+        except (OSError, ValueError):
             logger.warning("runtime memory snapshot load failed", exc_info=True)
             return None
+
+        try:
+            snapshot = await memory_service.build_context_snapshot(self._project_id)
+            if snapshot.checkpoints:
+                return snapshot
+            checkpoint_reader = getattr(memory_service, "load_latest_checkpoint", None)
+            if checkpoint_reader is None:
+                return snapshot
+        except MemorySnapshotError:
+            logger.warning("runtime memory snapshot load failed", exc_info=True)
+            checkpoint_reader = getattr(memory_service, "load_latest_checkpoint", None)
+            if checkpoint_reader is None:
+                return None
+
+        latest_checkpoint: CheckpointRecord | None = await checkpoint_reader(
+            self._project_id
+        )
+        if latest_checkpoint is None:
+            return None
+        return build_latest_checkpoint_snapshot(self._project_id, latest_checkpoint)
 
     def _finalize_runtime_envelope(self, results: dict[str, BaseModel]) -> None:
         """Build and validate the execution envelope for the completed flow."""

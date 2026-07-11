@@ -1,8 +1,19 @@
 use axum::{Json, extract::State, response::IntoResponse, http::StatusCode};
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::db::health_check as db_health_check;
 use crate::state::AppState;
+
+fn realtime_hub_snapshot(active_connections: usize, active_latency_timers: usize) -> Value {
+    json!({
+        "status": "healthy",
+        "service": "rust-control-plane",
+        "realtime_hub": {
+            "active_connections": active_connections,
+            "active_latency_timers": active_latency_timers
+        }
+    })
+}
 
 /// Basic health check endpoint (does not query database)
 ///
@@ -39,5 +50,28 @@ pub async fn db_health(State(state): State<AppState>) -> impl IntoResponse {
                 }))
             ).into_response()
         }
+    }
+}
+
+/// Real-time hub health endpoint (WebSocket + latency observability)
+pub async fn realtime_health(State(state): State<AppState>) -> impl IntoResponse {
+    let active_connections = state.websocket_hub.get_connection_count().await;
+    let active_latency_timers = state.latency_tracker.active_count();
+
+    Json(realtime_hub_snapshot(active_connections, active_latency_timers))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::realtime_hub_snapshot;
+
+    #[test]
+    fn test_realtime_hub_snapshot_shape() {
+        let snapshot = realtime_hub_snapshot(7, 3);
+
+        assert_eq!(snapshot["status"], "healthy");
+        assert_eq!(snapshot["service"], "rust-control-plane");
+        assert_eq!(snapshot["realtime_hub"]["active_connections"], 7);
+        assert_eq!(snapshot["realtime_hub"]["active_latency_timers"], 3);
     }
 }

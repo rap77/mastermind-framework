@@ -22,7 +22,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import BaseModel
-from mastermind_cli.memory_layer.models import ContextSnapshot
+from mastermind_cli.memory_layer.models import CheckpointRecord, ContextSnapshot
+from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
 from mastermind_cli.types.interfaces import BrainInput
 from mastermind_cli.types.interfaces import (
     Brief,
@@ -684,10 +685,11 @@ async def test_stateless_coordinator_loads_memory_snapshot_from_env(
     calls: dict[str, object] = {}
 
     class FakeMemoryService:
-        def __init__(self, store: object) -> None:
-            calls["store"] = store
+        def __init__(self) -> None:
+            calls["service"] = self
 
         async def build_context_snapshot(self, project_id: str) -> ContextSnapshot:
+            """Return the prebuilt snapshot for the requested project."""
             calls["project_id"] = project_id
             return snapshot
 
@@ -695,17 +697,8 @@ async def test_stateless_coordinator_loads_memory_snapshot_from_env(
     monkeypatch.setenv("MM_MEMORY_DATABASE_URL", "postgresql://memory")
     monkeypatch.setattr(
         stateless_coordinator_module,
-        "build_memory_store_from_env",
-        lambda database_url, enable_vector, enable_index: {
-            "database_url": database_url,
-            "enable_vector": enable_vector,
-            "enable_index": enable_index,
-        },
-    )
-    monkeypatch.setattr(
-        stateless_coordinator_module,
-        "MemoryService",
-        FakeMemoryService,
+        "build_memory_service_from_env",
+        lambda database_url, enable_vector, enable_index: FakeMemoryService(),
     )
 
     coordinator = StatelessCoordinator(
@@ -718,7 +711,63 @@ async def test_stateless_coordinator_loads_memory_snapshot_from_env(
 
     assert loaded_snapshot == snapshot
     assert calls["project_id"] == "proj-001"
-    assert calls["store"]["database_url"] == "postgresql://memory"
+    assert isinstance(calls["service"], FakeMemoryService)
+
+
+@pytest.mark.asyncio
+async def test_stateless_coordinator_falls_back_to_latest_checkpoint_when_snapshot_fails(
+    coordinator_config: CoordinatorConfig,
+    sample_brief: Brief,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The coordinator should still resume from the latest checkpoint when compaction fails."""
+    checkpoint = CheckpointRecord(
+        checkpoint_id="ckpt-9",
+        project_id="proj-001",
+        task_id="task-9",
+        run_id="run-9",
+        context_summary={"brief": "build"},
+        resume_state={"phase": "review"},
+        next_step_summary="Resume after review.",
+    )
+
+    class FailingMemoryService:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        async def build_context_snapshot(self, project_id: str) -> ContextSnapshot:
+            """Simulate a snapshot load failure for the requested project."""
+            self.calls.append(project_id)
+            raise MemorySnapshotError("snapshot unavailable")
+
+        async def load_latest_checkpoint(
+            self, project_id: str
+        ) -> CheckpointRecord | None:
+            """Return the fallback checkpoint after a snapshot failure."""
+            self.calls.append(project_id)
+            return checkpoint
+
+    monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-001")
+    monkeypatch.setenv("MM_MEMORY_DATABASE_URL", "postgresql://memory")
+    monkeypatch.setattr(
+        stateless_coordinator_module,
+        "build_memory_service_from_env",
+        lambda database_url, enable_vector, enable_index: FailingMemoryService(),
+    )
+
+    coordinator = StatelessCoordinator(
+        CoordinatorConfig(
+            mcp_client=coordinator_config.mcp_client, enable_logging=False
+        )
+    )
+
+    loaded_snapshot = await coordinator._load_memory_snapshot()
+
+    assert loaded_snapshot is not None
+    assert loaded_snapshot.project_id == "proj-001"
+    assert loaded_snapshot.task_id == "task-9"
+    assert loaded_snapshot.checkpoints[0].checkpoint_id == "ckpt-9"
+    assert loaded_snapshot.summary == "Resume after review."
 
 
 @pytest.mark.asyncio
@@ -806,6 +855,7 @@ async def test_stateless_coordinator_persists_runtime_run_via_writer(
             runtime_result: RuntimeExecutionResult,
             snapshot: ContextSnapshot | None = None,
         ) -> RuntimeMemoryWrite:
+            """Capture the runtime write request and return a stub result."""
             writer_calls.append(
                 {
                     "project_id": project_id,
@@ -865,6 +915,7 @@ async def test_stateless_coordinator_logs_memory_persistence_error(
             runtime_result: object,
             snapshot: ContextSnapshot | None = None,
         ) -> object:
+            """Raise the expected persistence error for this test."""
             del project_id, task_id, run_id, runtime_result, snapshot
             raise MemoryPersistenceError("boom")
 
@@ -908,6 +959,7 @@ async def test_stateless_coordinator_skips_persistence_without_project_id(
             runtime_result: object,
             snapshot: ContextSnapshot | None = None,
         ) -> RuntimeMemoryWrite:
+            """Capture the runtime write request for the no-project-id branch."""
             calls.append({"project_id": project_id})
             return RuntimeMemoryWrite(
                 project_id=project_id,

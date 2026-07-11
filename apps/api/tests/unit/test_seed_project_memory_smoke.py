@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+from types import ModuleType
 from types import SimpleNamespace
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from mastermind_cli.memory_layer.store_postgres import PostgresMemoryStore
 from mastermind_cli.project_state.database.session import dispose_engines
 
 
-def _load_seed_module():
+def _load_seed_module() -> ModuleType:
     """Load the smoke seed script module directly from disk for testing."""
     script_path = (
         Path(__file__).resolve().parents[2] / "scripts" / "seed_project_memory_smoke.py"
@@ -69,6 +70,7 @@ def test_smoke_seed_main_links_prior_items_as_related_memory_ids(
 
     class FakeService:
         async def record_learning(self, **kwargs: object) -> SimpleNamespace:
+            """Record the call arguments and return a minimal memory handle."""
             calls.append(dict(kwargs))
             return SimpleNamespace(
                 memory_id=f"mem-{len(calls)}",
@@ -79,10 +81,9 @@ def test_smoke_seed_main_links_prior_items_as_related_memory_ids(
     monkeypatch.setenv("MM_MEMORY_PROJECT_ID", "proj-semantic-smoke")
     monkeypatch.setattr(
         module,
-        "build_memory_store_from_env",
-        lambda *args, **kwargs: object(),
+        "build_memory_service_from_env",
+        lambda *args, **kwargs: FakeService(),
     )
-    monkeypatch.setattr(module, "MemoryService", lambda store: FakeService())
 
     asyncio.run(module.main())
 

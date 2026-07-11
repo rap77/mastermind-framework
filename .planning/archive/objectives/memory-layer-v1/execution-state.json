@@ -1,0 +1,49 @@
+{
+  "objective_slug": "memory-layer-v1",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md",
+  "tasks": {
+    "ML1": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": "2026-07-09T17:27:55.546658",
+      "completed_at": "2026-07-09T17:27:55.546658",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md"
+    },
+    "ML2": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": "2026-07-09T17:44:03.489052",
+      "completed_at": "2026-07-09T17:44:03.489052",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md"
+    },
+    "ML3": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": "2026-07-09T21:43:41Z",
+      "completed_at": "2026-07-09T21:43:41Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md"
+    },
+    "ML4": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": "2026-07-09T22:17:09Z",
+      "completed_at": "2026-07-09T22:17:09Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md"
+    },
+    "ML5": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": "2026-07-09T22:31:07Z",
+      "completed_at": "2026-07-09T22:31:07Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-layer-v1/todo.md"
+    }
+  },
+  "updated_at": "2026-07-09T22:31:07Z",
+  "bootstrapped_from_artifacts": true
+}

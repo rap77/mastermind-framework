@@ -1,0 +1,60 @@
+{
+  "objective_slug": "memory-graph-recall-v1",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/todo.md",
+  "tasks": {
+    "GR1": {
+      "status": "completed",
+      "subtasks": {
+        "GR1.1": {
+          "description": "Execute GR1 end-to-end",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": "2026-07-09T15:46:46.649859",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T15:46:46.649859"
+        }
+      },
+      "started_at": null,
+      "completed_at": "2026-07-09T15:46:46.649859",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/todo.md"
+    },
+    "GR2": {
+      "status": "completed",
+      "subtasks": {
+        "GR2.1": {
+          "description": "Execute GR2 end-to-end",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": "2026-07-09T15:46:46.649859",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T15:46:46.649859"
+        }
+      },
+      "started_at": null,
+      "completed_at": "2026-07-09T15:46:46.649859",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/todo.md"
+    },
+    "GR3": {
+      "status": "completed",
+      "subtasks": {
+        "GR3.1": {
+          "description": "Execute GR3 end-to-end",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": "2026-07-09T15:46:46.649859",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T15:46:46.649859"
+        }
+      },
+      "started_at": null,
+      "completed_at": "2026-07-09T15:46:46.649859",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-graph-recall-v1/todo.md"
+    }
+  },
+  "updated_at": "2026-07-09T15:46:46.649859",
+  "bootstrapped_from_artifacts": true
+}

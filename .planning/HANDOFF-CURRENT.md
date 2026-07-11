@@ -1,11 +1,11 @@
-# Handoff — unified harness + memory kickoff
+# Handoff — no active objective
 
 ## Last archived
-- `window-scheduler` — archived at 2026-06-21T19:23:46
+- `knowledge-ingestion-manual` — archived at 2026-07-10T19:35:46
 
 ## Next recommended objective
-- `harness-memory-unification` — unified harness + memory platform
-- Build a reusable harness core plus memory layer, then bridge `.planning` into it through adapters.
+- `multi-channel-gateway` — Multi-channel Gateway
+- Unified inbox across WhatsApp + Instagram + Email with webhook reliability
 
 ## Next command
-- Review `aidlc-docs/inception/plans/harness-memory-roadmap.md` and define the project manifest.
+- `/mm:activate-next-objective`

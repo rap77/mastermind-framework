@@ -50,8 +50,12 @@ from sqlalchemy.orm import Session
 
 from mastermind_cli.experience.logger import ExperienceLogger
 from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
-from mastermind_cli.memory_layer.models import ContextSnapshot
-from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
+from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
+    ContextSnapshot,
+    build_latest_checkpoint_snapshot,
+)
+from mastermind_cli.memory_layer.runtime import build_memory_service_from_env
 from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.orchestrator import brain_router as _brain_router
 from mastermind_cli.orchestrator.brain7_evaluator import evaluate_session
@@ -364,27 +368,53 @@ async def run_brain_task(
             "MM_MEMORY_DATABASE_URL"
         ) or os.environ.get("DATABASE_URL")
         if memory_database_url:
+            checkpoint_reader: Any | None = None
             try:
-                memory_service = MemoryService(
-                    build_memory_store_from_env(
-                        memory_database_url,
-                        enable_vector=False,
-                        enable_index=True,
-                    )
+                memory_service = build_memory_service_from_env(
+                    memory_database_url,
+                    enable_vector=False,
+                    enable_index=True,
+                )
+                checkpoint_reader = getattr(
+                    memory_service, "load_latest_checkpoint", None
                 )
                 memory_snapshot = await memory_service.build_context_snapshot(
                     project_id
                 )
-                memory_runtime_writer = MemoryRuntimeAdapter(
-                    memory_service=memory_service
-                )
+                if memory_snapshot.checkpoints or checkpoint_reader is None:
+                    memory_runtime_writer = MemoryRuntimeAdapter(
+                        memory_service=memory_service
+                    )
 
-                def _snapshot_provider(
-                    _project_id: str, _task_id: str | None
-                ) -> ContextSnapshot | None:
-                    return memory_snapshot
+                    def _snapshot_provider(
+                        _project_id: str, _task_id: str | None
+                    ) -> ContextSnapshot | None:
+                        return memory_snapshot
 
-                memory_context_provider = _snapshot_provider
+                    memory_context_provider = _snapshot_provider
+                    checkpoint_reader = None
+                elif checkpoint_reader is not None:
+                    latest_checkpoint: (
+                        CheckpointRecord | None
+                    ) = await checkpoint_reader(project_id)
+                    if latest_checkpoint is not None:
+                        memory_snapshot = build_latest_checkpoint_snapshot(
+                            project_id, latest_checkpoint
+                        )
+                        memory_runtime_writer = MemoryRuntimeAdapter(
+                            memory_service=memory_service
+                        )
+
+                        def _snapshot_provider(
+                            _project_id: str, _task_id: str | None
+                        ) -> ContextSnapshot | None:
+                            return memory_snapshot
+
+                        memory_context_provider = _snapshot_provider
+                    else:
+                        memory_runtime_writer = MemoryRuntimeAdapter(
+                            memory_service=memory_service
+                        )
             except (MemorySnapshotError, OSError, ValueError) as exc:
                 log.warning(
                     "memory snapshot load failed for task_id=%s project_id=%s: %s",
@@ -394,6 +424,22 @@ async def run_brain_task(
                     exc_info=True,
                 )
                 if memory_service is not None:
+                    checkpoint_reader = getattr(
+                        memory_service, "load_latest_checkpoint", None
+                    )
+                    if checkpoint_reader is not None:
+                        latest_checkpoint = await checkpoint_reader(project_id)
+                        if latest_checkpoint is not None:
+                            memory_snapshot = build_latest_checkpoint_snapshot(
+                                project_id, latest_checkpoint
+                            )
+
+                            def _snapshot_provider(
+                                _project_id: str, _task_id: str | None
+                            ) -> ContextSnapshot | None:
+                                return memory_snapshot
+
+                            memory_context_provider = _snapshot_provider
                     memory_runtime_writer = MemoryRuntimeAdapter(
                         memory_service=memory_service
                     )

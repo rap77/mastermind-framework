@@ -29,8 +29,7 @@ from typing import Any, cast
 import asyncpg
 import click
 
-from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
-from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.memory_layer.runtime import build_memory_service_from_env
 from mastermind_cli.mm_flow.evidence_selector import (
     EvidenceHarnessSelector,
     EvidenceSelectionRequest,
@@ -40,6 +39,7 @@ from mastermind_cli.mm_flow.evidence_selector import (
 )
 from mastermind_cli.mm_flow.evidence_registry_service import EvidenceRegistryService
 from mastermind_cli.mm_flow.config_loader import MMFlowConfig, RuntimeState, load_config
+from mastermind_cli.mm_flow.exceptions import PlanningBridgeError
 from mastermind_cli.mm_flow.harness_run_executor import HarnessRunExecutor
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 from mastermind_cli.orchestrator.runtime_contracts import (
@@ -58,6 +58,13 @@ from mastermind_cli.types.interfaces import Brief
 from mastermind_cli.orchestrator.mcp_integration import MCPIntegration
 
 logger = logging.getLogger(__name__)
+
+
+def _bridge_click_exception(
+    adapter: ProjectAdapter, exc: PlanningBridgeError
+) -> click.ClickException:
+    """Wrap bridge failures with the handoff path for user-facing CLI errors."""
+    return click.ClickException(f"{exc} (handoff: {adapter.handoff_path})")
 
 
 def _project_root() -> Path:
@@ -82,9 +89,64 @@ def _registry_path() -> Path:
     return _project_root() / ".planning" / "evidence" / "evidence-registry.json"
 
 
-def _runtime_state_path() -> Path:
+def _runtime_state_path(project_root: Path | None = None) -> Path:
     """Return the resolved runtime-state.json path under the repo root."""
-    return _project_root() / ".planning" / ".mm-flow" / "runtime-state.json"
+    root = project_root or _project_root()
+    return root / ".planning" / ".mm-flow" / "runtime-state.json"
+
+
+def _validate_completed_runtime_state(project_root: Path) -> str:
+    """Load and validate the runtime-state before closing a completed phase."""
+    runtime_state_path = _runtime_state_path(project_root)
+    if not runtime_state_path.exists():
+        raise ValueError(
+            "runtime-state.json is missing execution_id; cannot complete phase."
+        )
+    try:
+        state_data = json.loads(runtime_state_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "runtime-state.json is malformed; cannot complete phase."
+        ) from exc
+    if state_data.get("current_moment") == "COMPLETED":
+        raise ValueError(
+            "runtime-state.json already marked COMPLETED; "
+            "cannot complete phase again."
+        )
+    execution_id = str(state_data.get("execution_id", ""))
+    if not execution_id:
+        raise ValueError(
+            "runtime-state.json is missing execution_id; cannot complete phase."
+        )
+    return execution_id
+
+
+def _build_harness_executor(
+    project_root: Path,
+    postgres_url: str,
+) -> tuple[ProjectAdapter, HarnessRunExecutor]:
+    """Build the shared runtime wiring for MM-Flow phase execution."""
+    config = load_config(str(_config_path(project_root)))
+    adapter = ProjectAdapter.for_repo(project_root)
+    memory_service = build_memory_service_from_env(
+        postgres_url,
+        enable_vector=False,
+        enable_index=True,
+    )
+    executor = HarnessRunExecutor(
+        adapter=adapter,
+        mcp_client=cast(Any, MCPIntegration(use_mcp=False)),
+        coordinator_factory=lambda **kwargs: StatelessCoordinator(
+            CoordinatorConfig(**kwargs)
+        ),
+        memory_service=memory_service,
+        memory_runtime_writer=MemoryRuntimeAdapter(memory_service=memory_service),
+        multi_harness_pipeline=_build_multi_harness_pipeline(
+            project_root,
+            config,
+        ),
+    )
+    return adapter, executor
 
 
 def _config_path(project_root: Path) -> Path:
@@ -211,13 +273,6 @@ def run_phase(
     commit: str | None,
 ) -> None:
     """Run the harness end-to-end via `HarnessRunExecutor` and record phase audit."""
-    postgres_url = os.environ.get("DATABASE_URL")
-    if not postgres_url:
-        raise ValueError(
-            "DATABASE_URL environment variable must be set.\n"
-            "Example: export DATABASE_URL=postgresql://user:pass@host:port/db"
-        )
-
     parsed_brain_ids = tuple(
         brain_id.strip() for brain_id in brain_ids.split(",") if brain_id.strip()
     )
@@ -225,6 +280,16 @@ def run_phase(
         raise ValueError("--brain-ids must contain at least one brain ID")
 
     resolved_summary = summary or f"Phase {phase} {status}."
+    project_root = _project_root()
+    completed_execution_id = (
+        _validate_completed_runtime_state(project_root) if status == "completed" else ""
+    )
+    postgres_url = os.environ.get("DATABASE_URL")
+    if not postgres_url:
+        raise ValueError(
+            "DATABASE_URL environment variable must be set.\n"
+            "Example: export DATABASE_URL=postgresql://user:pass@host:port/db"
+        )
 
     async def _run() -> None:
         conn: Any = await asyncio.wait_for(asyncpg.connect(postgres_url), timeout=5.0)
@@ -236,34 +301,11 @@ def run_phase(
                     org_id,
                 )
 
-                project_root = _project_root()
-                config = load_config(str(_config_path(project_root)))
-                adapter = ProjectAdapter.for_repo(project_root)
-                memory_service = MemoryService(
-                    build_memory_store_from_env(
-                        postgres_url,
-                        enable_vector=False,
-                        enable_index=True,
-                    )
-                )
-                executor = HarnessRunExecutor(
-                    adapter=adapter,
-                    mcp_client=cast(Any, MCPIntegration(use_mcp=False)),
-                    coordinator_factory=lambda **kwargs: StatelessCoordinator(
-                        CoordinatorConfig(**kwargs)
-                    ),
-                    memory_service=memory_service,
-                    memory_runtime_writer=MemoryRuntimeAdapter(
-                        memory_service=memory_service
-                    ),
-                    multi_harness_pipeline=_build_multi_harness_pipeline(
-                        project_root,
-                        config,
-                    ),
-                )
-
                 execution_id = str(uuid.uuid4())
                 if status == "in_progress":
+                    adapter, executor = _build_harness_executor(
+                        project_root, postgres_url
+                    )
                     await conn.execute(
                         """INSERT INTO phase_executions
                                (id, phase_number, status, started_at, triggered_by)
@@ -281,49 +323,45 @@ def run_phase(
                         "ACTIVE",
                         backend,
                     )
-                    run = await executor.execute_harness_run(
-                        brief=Brief(
-                            problem_statement=brief,
-                            context="",
-                            constraints=[],
-                            target_audience="",
-                        ),
-                        brain_ids=parsed_brain_ids,
-                        status="in_progress",
-                        summary=resolved_summary,
-                        verification_outcome="pending",
-                    )
+                    try:
+                        run = await executor.execute_harness_run(
+                            brief=Brief(
+                                problem_statement=brief,
+                                context="",
+                                constraints=[],
+                                target_audience="",
+                            ),
+                            brain_ids=parsed_brain_ids,
+                            status="in_progress",
+                            summary=resolved_summary,
+                            verification_outcome="pending",
+                        )
+                    except PlanningBridgeError as exc:
+                        raise _bridge_click_exception(adapter, exc) from exc
                     click.echo(
                         f"execution_id:{execution_id} project_id:{run.project_id} "
                         f"validation_passed:{run.validation.passed}"
                     )
                 else:
-                    execution_id = ""
-                    runtime_state_path = _runtime_state_path()
-                    if runtime_state_path.exists():
-                        try:
-                            state_data = json.loads(runtime_state_path.read_text())
-                            execution_id = state_data.get("execution_id", "")
-                        except json.JSONDecodeError as exc:
-                            raise ValueError(
-                                "runtime-state.json is malformed; cannot complete phase."
-                            ) from exc
-                    if not execution_id:
-                        raise ValueError(
-                            "runtime-state.json is missing execution_id; cannot complete phase."
-                        )
-                    run = await executor.execute_harness_run(
-                        brief=Brief(
-                            problem_statement=brief,
-                            context="",
-                            constraints=[],
-                            target_audience="",
-                        ),
-                        brain_ids=parsed_brain_ids,
-                        status="completed",
-                        summary=resolved_summary,
-                        verification_outcome="passed",
+                    execution_id = completed_execution_id
+                    adapter, executor = _build_harness_executor(
+                        project_root, postgres_url
                     )
+                    try:
+                        run = await executor.execute_harness_run(
+                            brief=Brief(
+                                problem_statement=brief,
+                                context="",
+                                constraints=[],
+                                target_audience="",
+                            ),
+                            brain_ids=parsed_brain_ids,
+                            status="completed",
+                            summary=resolved_summary,
+                            verification_outcome="passed",
+                        )
+                    except PlanningBridgeError as exc:
+                        raise _bridge_click_exception(adapter, exc) from exc
                     update_result = await conn.execute(
                         """UPDATE phase_executions
                            SET status='completed', completed_at=NOW(),
@@ -339,6 +377,23 @@ def run_phase(
                             f"No in_progress phase_executions row matched id={execution_id}; "
                             "cannot complete phase."
                         )
+                    memory_service = getattr(executor, "memory_service", None)
+                    if memory_service is not None:
+                        record_session_summary = getattr(
+                            memory_service, "record_session_summary", None
+                        )
+                        if record_session_summary is not None:
+                            await record_session_summary(
+                                session_id=execution_id,
+                                summary=resolved_summary,
+                                project_id=run.project_id,
+                                metadata={
+                                    "phase": phase,
+                                    "status": status,
+                                    "tokens": tokens,
+                                    "commit": commit,
+                                },
+                            )
                     backend = os.environ.get("MM_FLOW_BACKEND", "claude")
                     _write_runtime_state(
                         execution_id,

@@ -10,8 +10,7 @@ import os
 import sys
 from typing import NotRequired, TypedDict
 
-from mastermind_cli.memory_layer.runtime import build_memory_store_from_env
-from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.memory_layer.runtime import build_memory_service_from_env
 
 
 logger = logging.getLogger(__name__)
@@ -87,12 +86,11 @@ async def main() -> None:
     database_url = os.environ["MM_MEMORY_DATABASE_URL"]
     project_id = os.environ["MM_MEMORY_PROJECT_ID"]
 
-    store = build_memory_store_from_env(
+    service = build_memory_service_from_env(
         database_url,
         enable_vector=False,
         enable_index=True,
     )
-    service = MemoryService(store)
 
     seeded_items = []
     seeded_memory_ids: list[str] = []

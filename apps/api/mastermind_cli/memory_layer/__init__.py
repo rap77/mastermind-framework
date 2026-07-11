@@ -52,11 +52,15 @@ from .evaluation_baseline import (
     seed_retrieval_baseline_fixture,
 )
 from .service import MemoryService
+from .store_engram import BridgeMemoryStore
 from .store_engram import EngramMemoryStore
 from .pgvector import PgvectorMemoryIndexProvider, PgvectorVectorSearchProvider
 from .runtime import (
+    build_engram_bridge_store,
+    build_engram_memory_store,
     build_graph_recall_from_env,
     build_index_provider_from_env,
+    build_memory_service_from_env,
     build_memory_store_from_env,
     build_reranker_from_env,
     build_vector_provider_from_env,
@@ -86,6 +90,7 @@ __all__ = [
     "DecisionStore",
     "MemoryReranker",
     "MemoryIndexProvider",
+    "BridgeMemoryStore",
     "EngramMemoryStore",
     "MemoryItem",
     "MemorySearchResult",
@@ -116,6 +121,9 @@ __all__ = [
     "VectorSearchProvider",
     "build_graph_recall_from_env",
     "build_index_provider_from_env",
+    "build_engram_bridge_store",
+    "build_engram_memory_store",
+    "build_memory_service_from_env",
     "build_memory_embedding_text",
     "build_memory_index_payload",
     "build_memory_store_from_env",

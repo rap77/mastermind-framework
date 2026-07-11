@@ -3,14 +3,13 @@
 
 use anyhow::Result;
 use chrono::{Duration, Utc};
+use sha2::{Digest, Sha256};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation, Header};
 use uuid::Uuid;
 
 use crate::auth::models::{User, Claims};
 
 const ACCESS_TOKEN_EXPIRY: i64 = 1800;  // 30 minutes (matches Python)
-const REFRESH_TOKEN_EXPIRY: i64 = 86400;  // 24 hours (matches Python)
-
 /// Generate JWT access token for user
 pub fn generate_access_token(user: &User, secret: &str) -> Result<String> {
     let expiration = Utc::now()
@@ -37,6 +36,12 @@ pub fn generate_access_token(user: &User, secret: &str) -> Result<String> {
 /// Generate refresh token (random UUID)
 pub fn generate_refresh_token() -> String {
     Uuid::new_v4().to_string()
+}
+
+/// Hash refresh token for deterministic database lookup.
+pub fn hash_refresh_token(token: &str) -> String {
+    let digest = Sha256::digest(token.as_bytes());
+    hex::encode(digest)
 }
 
 /// Validate JWT access token and return claims
@@ -98,5 +103,13 @@ mod tests {
         let token2 = generate_refresh_token();
         assert_ne!(token1, token2); // Should be random
         assert_eq!(token1.len(), 36); // UUID format
+    }
+
+    #[test]
+    fn test_hash_refresh_token_is_deterministic() {
+        let token = "refresh-token-value";
+
+        assert_eq!(hash_refresh_token(token), hash_refresh_token(token));
+        assert_ne!(hash_refresh_token(token), hash_refresh_token("other-token"));
     }
 }

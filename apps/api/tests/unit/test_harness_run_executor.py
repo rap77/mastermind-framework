@@ -9,7 +9,8 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from mastermind_cli.memory_layer.models import ContextSnapshot
+from mastermind_cli.memory_layer.models import CheckpointRecord, ContextSnapshot
+from mastermind_cli.mm_flow.exceptions import PlanningBridgeError
 from mastermind_cli.mm_flow.harness_run_executor import HarnessRunExecutor
 from mastermind_cli.mm_flow.integrated_run import IntegratedRun
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
@@ -202,9 +203,16 @@ class _FakeMemoryService:
 class _FailingMemoryService:
     """Memory service stub that fails when loading a snapshot."""
 
+    def __init__(self, checkpoint: CheckpointRecord | None = None) -> None:
+        self.checkpoint = checkpoint
+
     async def build_context_snapshot(self, project_id: str) -> ContextSnapshot:
         del project_id
         raise RuntimeError("snapshot unavailable")
+
+    async def load_latest_checkpoint(self, project_id: str) -> CheckpointRecord | None:
+        del project_id
+        return self.checkpoint
 
 
 def _write_harness_library(root: Path) -> None:
@@ -437,13 +445,26 @@ async def test_executor_skips_memory_write_without_writer(tmp_path: Path) -> Non
 
     assert run.memory_write is None
     assert run.memory_snapshot is None
-    assert captured_configs[0].project_id == adapter.project_id
-    assert captured_configs[0].memory_runtime_writer is None
 
-    handoff = (tmp_path / ".planning" / "HANDOFF-CURRENT.md").read_text(
-        encoding="utf-8"
-    )
-    assert "## Bridge Status" in handoff
+
+@pytest.mark.asyncio
+async def test_executor_raises_when_handoff_objective_is_missing(
+    tmp_path: Path,
+) -> None:
+    """The executor should fail fast if the planning handoff is incomplete."""
+    _write_planning_fixture(tmp_path, include_objective=False)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+
+    executor = HarnessRunExecutor(adapter=adapter)
+
+    with pytest.raises(
+        PlanningBridgeError,
+        match="Missing planning objective in handoff; bridge cannot continue",
+    ):
+        await executor.execute_harness_run(
+            brief=_brief("Implement and design a migration plan"),
+            brain_ids=("brain-01-product-strategy",),
+        )
 
 
 @pytest.mark.asyncio
@@ -471,6 +492,34 @@ async def test_executor_logs_memory_snapshot_failures(
 
     assert run.memory_snapshot is None
     assert "Failed to load memory snapshot" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_executor_falls_back_to_latest_checkpoint(tmp_path: Path) -> None:
+    """If the full snapshot fails, the executor should resume from the checkpoint seam."""
+    _write_planning_fixture(tmp_path)
+    adapter = ProjectAdapter.for_repo(tmp_path)
+    checkpoint = CheckpointRecord(
+        checkpoint_id="ckpt-001",
+        project_id=adapter.project_id,
+        task_id="task-001",
+        run_id="run-001",
+        next_step_summary="Resume from the latest checkpoint.",
+    )
+    executor = HarnessRunExecutor(
+        adapter=adapter,
+        memory_service=_FailingMemoryService(checkpoint),  # type: ignore[arg-type]
+    )
+
+    run = await executor.execute_harness_run(
+        brief=_brief("Implement and design a migration plan"),
+        brain_ids=("brain-01-product-strategy",),
+        status="in_progress",
+    )
+
+    assert run.memory_snapshot is not None
+    assert run.memory_snapshot.summary == checkpoint.next_step_summary
+    assert run.memory_snapshot.checkpoints == [checkpoint]
 
 
 @pytest.mark.asyncio

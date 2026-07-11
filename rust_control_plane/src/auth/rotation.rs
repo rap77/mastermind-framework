@@ -4,7 +4,8 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 use anyhow::Result;
-use bcrypt;
+
+use crate::auth::jwt::hash_refresh_token;
 
 /// Rotate refresh token: delete old session, create new one with incremented rotation_count
 /// This prevents token reuse attacks by invalidating old tokens immediately
@@ -14,7 +15,7 @@ pub async fn rotate_refresh_token(
     old_refresh_token_hash: &str,
     new_refresh_token: &str,
 ) -> Result<()> {
-    let new_hash = bcrypt::hash(new_refresh_token, bcrypt::DEFAULT_COST)?;
+    let new_hash = hash_refresh_token(new_refresh_token);
 
     // Start transaction for atomicity
     let mut tx = pool.begin().await?;
@@ -51,7 +52,7 @@ pub async fn store_refresh_token(
     user_id: Uuid,
     refresh_token: &str,
 ) -> Result<()> {
-    let refresh_hash = bcrypt::hash(refresh_token, bcrypt::DEFAULT_COST)?;
+    let refresh_hash = hash_refresh_token(refresh_token);
 
     sqlx::query(
         "INSERT INTO sessions (id, user_id, refresh_token_hash, created_at, expires_at, rotation_count)
@@ -82,7 +83,6 @@ pub async fn revoke_all_tokens(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::jwt::generate_refresh_token;
 
     #[tokio::test]
     #[ignore = "requires PostgreSQL database"]

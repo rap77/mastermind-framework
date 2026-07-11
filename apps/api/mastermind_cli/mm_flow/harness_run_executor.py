@@ -7,7 +7,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
-from mastermind_cli.memory_layer.models import ContextSnapshot
+from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
+    ContextSnapshot,
+    build_latest_checkpoint_snapshot,
+)
 from mastermind_cli.memory_layer.service import MemoryService
 from mastermind_cli.mm_flow.integrated_run import IntegratedRun
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
@@ -192,15 +196,24 @@ class HarnessRunExecutor:
         project_id = self.adapter.project_id
         if not project_id:
             return None
+        checkpoint_reader = getattr(self.memory_service, "load_latest_checkpoint", None)
         try:
-            return await self.memory_service.build_context_snapshot(project_id)
+            snapshot = await self.memory_service.build_context_snapshot(project_id)
+            if snapshot.checkpoints or checkpoint_reader is None:
+                return snapshot
         except Exception as exc:  # noqa: BLE001 - memory snapshot is optional, log and continue
             logger.warning(
                 "Failed to load memory snapshot for project_id=%s: %s",
                 project_id,
                 exc,
             )
+            if checkpoint_reader is None:
+                return None
+
+        latest_checkpoint: CheckpointRecord | None = await checkpoint_reader(project_id)
+        if latest_checkpoint is None:
             return None
+        return build_latest_checkpoint_snapshot(project_id, latest_checkpoint)
 
     def _build_coordinator(
         self, snapshot: ContextSnapshot | None

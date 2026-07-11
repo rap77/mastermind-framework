@@ -15,13 +15,15 @@ import asyncio
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timezone
-from typing import Any
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy import select
 
+from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
+from mastermind_cli.memory_layer.models import CheckpointRecord, ContextSnapshot
 from mastermind_cli.project_state.database.session import (
     dispose_engines,
     get_session_factory,
@@ -437,7 +439,24 @@ def test_run_brain_task_wires_memory_components_when_configured(
     mock_output = MagicMock()
     mock_output.model_dump.return_value = {"result": "ok"}
     fake_logger = AsyncMock()
-    fake_snapshot = object()
+    checkpoint = CheckpointRecord(
+        checkpoint_id="ckpt-task-001",
+        project_id="user-tasks:user-001",
+        task_id=task_id,
+        run_id="run-001",
+        next_step_summary="Resume from the latest checkpoint.",
+    )
+    fake_snapshot = ContextSnapshot(
+        project_id="user-tasks:user-001",
+        task_id=task_id,
+        summary=checkpoint.next_step_summary,
+        checkpoints=[checkpoint],
+        open_gaps=[],
+        applied_scopes={
+            "project_id": "user-tasks:user-001",
+            "task_id": task_id,
+        },
+    )
     fake_memory_service = AsyncMock()
     fake_memory_service.build_context_snapshot = AsyncMock(return_value=fake_snapshot)
     fake_writer = object()
@@ -462,11 +481,7 @@ def test_run_brain_task_wires_memory_components_when_configured(
             "mastermind_cli.api.services.task_runner._persist_execution_output_artifact"
         ),
         patch(
-            "mastermind_cli.api.services.task_runner.build_memory_store_from_env",
-            return_value=object(),
-        ),
-        patch(
-            "mastermind_cli.api.services.task_runner.MemoryService",
+            "mastermind_cli.api.services.task_runner.build_memory_service_from_env",
             return_value=fake_memory_service,
         ),
         patch(
@@ -494,6 +509,80 @@ def test_run_brain_task_wires_memory_components_when_configured(
     assert MockCoord.call_args.kwargs["memory_context_provider"] is not None
     assert MockCoord.call_args.kwargs["memory_runtime_writer"] is fake_writer
     assert fake_memory_service.build_context_snapshot.await_count == 1
+
+
+def test_run_brain_task_falls_back_to_latest_checkpoint_when_snapshot_fails(
+    db_with_task: str, task_id: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_brain_task() should resume from the latest checkpoint on snapshot failure."""
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {"result": "ok"}
+    fake_logger = AsyncMock()
+    checkpoint = CheckpointRecord(
+        checkpoint_id="ckpt-task-001",
+        project_id="user-tasks:user-001",
+        task_id=task_id,
+        run_id="run-001",
+        next_step_summary="Resume from the latest checkpoint.",
+    )
+    fake_memory_service = AsyncMock()
+    fake_memory_service.build_context_snapshot = AsyncMock(
+        side_effect=MemorySnapshotError("snapshot unavailable")
+    )
+    fake_memory_service.load_latest_checkpoint = AsyncMock(return_value=checkpoint)
+    fake_writer = object()
+
+    monkeypatch.setenv("MM_MEMORY_DATABASE_URL", "postgresql://memory-url")
+
+    with (
+        patch(
+            "mastermind_cli.api.services.task_runner.create_stateless_coordinator"
+        ) as MockCoord,
+        patch(
+            "mastermind_cli.api.services.task_runner.ExperienceLogger",
+            return_value=fake_logger,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.evaluate_session",
+            return_value=MagicMock(
+                quality_score=0.9, high_value=True, insights=["Looks good"]
+            ),
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner._persist_execution_output_artifact"
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.build_memory_service_from_env",
+            return_value=fake_memory_service,
+        ),
+        patch(
+            "mastermind_cli.api.services.task_runner.MemoryRuntimeAdapter",
+            return_value=fake_writer,
+        ),
+    ):
+        instance = MockCoord.return_value
+        instance.execute_flow = AsyncMock(
+            return_value={"brain-01-product": mock_output}
+        )
+
+        from mastermind_cli.api.services.task_runner import run_brain_task
+
+        asyncio.run(
+            run_brain_task(
+                task_id=task_id,
+                brief="Test brief input",
+                flow="validation_only",
+                db_path=db_with_task,
+            )
+        )
+
+    provider = MockCoord.call_args.kwargs["memory_context_provider"]
+    assert provider is not None
+    snapshot = provider("user-tasks:user-001", None)
+    assert isinstance(snapshot, ContextSnapshot)
+    assert snapshot.summary == checkpoint.next_step_summary
+    assert snapshot.checkpoints == [checkpoint]
+    assert fake_memory_service.load_latest_checkpoint.await_count == 1
 
 
 def test_run_brain_task_transitions_to_failed_on_exception(

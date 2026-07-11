@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
 
 from mastermind_cli.memory_layer.exceptions import MemorySnapshotError
 from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
     ContextSnapshot,
     MemoryItem,
     MemorySearchResult,
@@ -300,6 +302,79 @@ async def test_record_checkpoint_delegates_to_store_as_checkpoint() -> None:
 
 
 @pytest.mark.asyncio
+async def test_record_checkpoint_uses_dedicated_checkpoint_store_when_available() -> (
+    None
+):
+    """Dedicated checkpoint stores should receive the canonical checkpoint record."""
+
+    class CheckpointStoreStub:
+        def __init__(self) -> None:
+            self.saved_items: list[MemoryItem] = []
+            self.saved_checkpoints: list[CheckpointRecord] = []
+
+        async def save_item(self, item: MemoryItem) -> MemoryItem:
+            self.saved_items.append(item)
+            return item
+
+        async def save_checkpoint(
+            self, checkpoint: CheckpointRecord
+        ) -> CheckpointRecord:
+            self.saved_checkpoints.append(checkpoint)
+            return checkpoint
+
+    store = CheckpointStoreStub()
+    service = MemoryService(store)
+
+    checkpoint = await service.record_checkpoint(
+        checkpoint_id="ckpt-1",
+        project_id="proj-001",
+        task_id="task-9",
+        run_id="run-7",
+        context_summary={"brief": "build"},
+        resume_state={"phase": "verify"},
+        next_step_summary="Resume from the latest safe boundary.",
+    )
+
+    assert len(store.saved_items) == 1
+    assert len(store.saved_checkpoints) == 1
+    assert store.saved_checkpoints[0].checkpoint_id == "ckpt-1"
+    assert checkpoint.checkpoint_id == "ckpt-1"
+
+
+@pytest.mark.asyncio
+async def test_load_latest_checkpoint_uses_dedicated_checkpoint_store_when_available() -> (
+    None
+):
+    """The service should delegate latest-checkpoint reads to the dedicated seam."""
+
+    class CheckpointStoreStub:
+        async def save_item(self, item: MemoryItem) -> MemoryItem:
+            return item
+
+        async def get_latest_checkpoint(
+            self, project_id: str, task_id: str | None = None
+        ) -> CheckpointRecord | None:
+            del project_id, task_id
+            return CheckpointRecord(
+                checkpoint_id="ckpt-9",
+                project_id="proj-001",
+                task_id="task-9",
+                run_id="run-7",
+                context_summary={"brief": "build"},
+                resume_state={"phase": "verify"},
+                next_step_summary="Resume from the latest safe boundary.",
+            )
+
+    service = MemoryService(CheckpointStoreStub())
+
+    checkpoint = await service.load_latest_checkpoint("proj-001", "task-9")
+
+    assert checkpoint is not None
+    assert checkpoint.checkpoint_id == "ckpt-9"
+    assert checkpoint.task_id == "task-9"
+
+
+@pytest.mark.asyncio
 async def test_save_run_summary_delegates_to_session_summary() -> None:
     """Run summaries should reuse the session-summary persistence path."""
     store = AsyncMock()
@@ -415,6 +490,105 @@ async def test_build_context_snapshot_compacts_recent_memory() -> None:
     assert snapshot.run_summaries[0].run_id == "run-8"
     assert snapshot.summary == "Resume after review."
     assert snapshot.open_gaps == []
+
+
+@pytest.mark.asyncio
+async def test_build_context_snapshot_uses_dedicated_checkpoint_store() -> None:
+    """Checkpoint snapshots should prefer the dedicated checkpoint backend when present."""
+
+    class CheckpointAwareStore:
+        def __init__(self) -> None:
+            self.list_recent_calls: list[tuple[str, int]] = []
+            self.list_recent_checkpoints_calls: list[tuple[str, int]] = []
+
+        async def list_recent_checkpoints(
+            self, project_id: str, limit: int = 10
+        ) -> list[CheckpointRecord]:
+            self.list_recent_checkpoints_calls.append((project_id, limit))
+            return [
+                CheckpointRecord(
+                    checkpoint_id="ckpt-dedicated",
+                    project_id=project_id,
+                    task_id="task-9",
+                    run_id="run-8",
+                    context_summary={"brief": "build"},
+                    resume_state={"phase": "review"},
+                    next_step_summary="Resume after review.",
+                    created_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+                )
+            ]
+
+        async def list_recent(
+            self, project_id: str, limit: int = 10
+        ) -> list[MemoryItem]:
+            self.list_recent_calls.append((project_id, limit))
+            return [
+                MemoryItem(
+                    memory_id="dec-2",
+                    memory_type="decision",
+                    title="Prefer deterministic loops",
+                    content="Keep selection explainable.",
+                    project_id=project_id,
+                    visibility="project",
+                    metadata={"decision_id": "dec-2", "task_id": "task-9"},
+                )
+            ]
+
+    store = CheckpointAwareStore()
+    service = MemoryService(store)
+
+    snapshot = await service.build_context_snapshot("proj-001", task_id="task-9")
+
+    assert store.list_recent_checkpoints_calls == [("proj-001", 10)]
+    assert store.list_recent_calls == [("proj-001", 50)]
+    assert snapshot.checkpoints[0].checkpoint_id == "ckpt-dedicated"
+    assert snapshot.summary == "Resume after review."
+
+
+@pytest.mark.asyncio
+async def test_build_context_snapshot_prefers_latest_checkpoint() -> None:
+    """The service should resume from the most recent checkpoint, not list order."""
+    store = AsyncMock()
+    store.list_recent.return_value = [
+        MemoryItem(
+            memory_id="ckpt-old",
+            memory_type="checkpoint",
+            title="Checkpoint: ckpt-old",
+            content="Earlier step.",
+            project_id="proj-001",
+            visibility="project",
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            metadata={
+                "checkpoint_id": "ckpt-old",
+                "task_id": "task-9",
+                "run_id": "run-1",
+                "resume_state": {},
+                "next_step_summary": "Earlier step.",
+            },
+        ),
+        MemoryItem(
+            memory_id="ckpt-new",
+            memory_type="checkpoint",
+            title="Checkpoint: ckpt-new",
+            content="Latest step.",
+            project_id="proj-001",
+            visibility="project",
+            created_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            metadata={
+                "checkpoint_id": "ckpt-new",
+                "task_id": "task-9",
+                "run_id": "run-2",
+                "resume_state": {"phase": "review"},
+                "next_step_summary": "Latest step.",
+            },
+        ),
+    ]
+    service = MemoryService(store)
+
+    snapshot = await service.build_context_snapshot("proj-001", task_id="task-9")
+
+    assert snapshot.checkpoints[0].checkpoint_id == "ckpt-new"
+    assert snapshot.summary == "Latest step."
 
 
 @pytest.mark.asyncio

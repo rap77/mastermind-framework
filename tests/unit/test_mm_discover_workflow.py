@@ -452,10 +452,25 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(roadmap_result.returncode, 0, msg=roadmap_result.stderr)
 
+        # Simulate a stale roadmap snapshot that disagrees with the canonical JSON.
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        (roadmap_dir / "objectives.md").write_text(
+            "# Objective Roadmap\n\n## Recommended next objective\n\n"
+            "- `token-cost-quality-telemetry`\n"
+            "- Why: stale snapshot that should be regenerated\n",
+            encoding="utf-8",
+        )
+
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("STATUS: PASSED", result.stdout)
         self.assertIn("backend-service-boundary-for-agents", result.stdout)
+
+        refreshed_objectives_md = (roadmap_dir / "objectives.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("`backend-service-boundary-for-agents`", refreshed_objectives_md)
+        self.assertNotIn("`token-cost-quality-telemetry`", refreshed_objectives_md)
 
         objective_dir = (
             self.temp_dir

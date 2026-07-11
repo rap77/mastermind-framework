@@ -18,7 +18,7 @@
 - project_root: /home/rpadron/proy/mastermind
 - operational_layer: .planning
 - design_layer: aidlc-docs
-- memory_layer: Engram persistent memory
+- memory_layer: first-party memory service/store; Engram bridge only
 - harness_layer: apps/api/mastermind_cli and tools/mastermind-cli
 - adapter_name: mastermind-adapter
 - bridge_contract: aidlc-docs/inception/plans/planning-bridge-contract.md

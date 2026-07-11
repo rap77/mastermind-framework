@@ -105,7 +105,10 @@ class PlanningBridge:
     """Translate `.planning` state into a harness request and back."""
 
     _MANIFEST_HEADING = "## Project Manifest"
-    _HANDOFF_OBJECTIVE_HEADING = "## Next recommended objective"
+    _HANDOFF_OBJECTIVE_HEADING_CANDIDATES = (
+        "## Next recommended objective",
+        "## Current objective",
+    )
     _HANDOFF_COMMAND_HEADING = "## Next command"
     _BRIDGE_SECTION_START = "<!-- bridge-status:start -->"
     _BRIDGE_SECTION_END = "<!-- bridge-status:end -->"
@@ -161,10 +164,11 @@ class PlanningBridge:
             raise PlanningBridgeError(
                 f"Failed to read handoff at {self.handoff_path}: {exc}"
             ) from exc
-        objective_section = self._parse_bullet_section(
-            content,
-            self._HANDOFF_OBJECTIVE_HEADING,
-        )
+        objective_section: list[str] = []
+        for heading in self._HANDOFF_OBJECTIVE_HEADING_CANDIDATES:
+            objective_section = self._parse_bullet_section(content, heading)
+            if objective_section:
+                break
         command_section = self._parse_bullet_section(
             content,
             self._HANDOFF_COMMAND_HEADING,
@@ -189,11 +193,12 @@ class PlanningBridge:
         manifest = self.load_manifest()
         intent = self.load_intent()
         warnings: list[str] = []
-        operational_objective = intent.active_objective or manifest.active_objective
-        if (
-            intent.active_objective
-            and intent.active_objective != manifest.active_objective
-        ):
+        if not intent.active_objective:
+            raise PlanningBridgeError(
+                "Missing planning objective in handoff; bridge cannot continue"
+            )
+        operational_objective = intent.active_objective
+        if intent.active_objective != manifest.active_objective:
             warnings.append("planning_objective_differs_from_design_objective")
         if intent.next_command is None:
             warnings.append("planning_next_command_missing")

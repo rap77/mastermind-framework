@@ -1,0 +1,77 @@
+{
+  "objective_slug": "memory-retrieval-v1",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/todo.md",
+  "tasks": {
+    "MR1": {
+      "status": "completed",
+      "subtasks": {
+        "MR1.1": {
+          "description": "Execute MR1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:41:00Z",
+          "completed_at": "2026-07-09T22:41:00Z",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T22:41:00Z"
+        }
+      },
+      "started_at": "2026-07-09T22:41:00Z",
+      "completed_at": "2026-07-09T22:41:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/todo.md"
+    },
+    "MR2": {
+      "status": "completed",
+      "subtasks": {
+        "MR2.1": {
+          "description": "Execute MR2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:41:00Z",
+          "completed_at": "2026-07-09T22:41:00Z",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T22:41:00Z"
+        }
+      },
+      "started_at": "2026-07-09T22:41:00Z",
+      "completed_at": "2026-07-09T22:41:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/todo.md"
+    },
+    "MR3": {
+      "status": "completed",
+      "subtasks": {
+        "MR3.1": {
+          "description": "Execute MR3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:41:00Z",
+          "completed_at": "2026-07-09T22:41:00Z",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T22:41:00Z"
+        }
+      },
+      "started_at": "2026-07-09T22:41:00Z",
+      "completed_at": "2026-07-09T22:41:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/todo.md"
+    },
+    "MR4": {
+      "status": "completed",
+      "subtasks": {
+        "MR4.1": {
+          "description": "Execute MR4 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:41:00Z",
+          "completed_at": "2026-07-09T22:41:00Z",
+          "duration_seconds": 0,
+          "updated_at": "2026-07-09T22:41:00Z"
+        }
+      },
+      "started_at": "2026-07-09T22:41:00Z",
+      "completed_at": "2026-07-09T22:41:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-retrieval-v1/todo.md"
+    }
+  },
+  "updated_at": "2026-07-09T22:41:00Z",
+  "bootstrapped_from_artifacts": true
+}

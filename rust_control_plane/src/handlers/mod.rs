@@ -8,6 +8,7 @@ pub mod dlq;
 pub mod brain_event;
 
 pub use health::{health_check, db_health};
+pub use health::{realtime_health};
 pub use auth::{login, refresh, logout};
 pub use migrate::{inspect_sqlite};
 pub use audit::{get_activity_log, get_brain_timeline};

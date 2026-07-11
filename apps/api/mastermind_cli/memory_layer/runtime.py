@@ -16,6 +16,14 @@ from .graph_recall import (
     NoopMemoryGraphRecallProvider,
     StaticMemoryGraphRecallProvider,
 )
+from .service import MemoryService
+from .store_engram import (
+    EngramMemoryStore,
+    GetObservationCallable,
+    SaveObservationCallable,
+    SaveSessionSummaryCallable,
+    SearchObservationsCallable,
+)
 from .indexing import create_memory_index_provider
 from .models import MemorySearchResult
 from .reranking import HeuristicMemoryReranker, NoopMemoryReranker
@@ -142,9 +150,60 @@ def build_memory_store_from_env(
     )
 
 
+def build_memory_service_from_env(
+    database_url: str,
+    *,
+    enable_vector: bool = True,
+    enable_index: bool = True,
+) -> MemoryService:
+    """Build the first-party MemoryService from the current process environment."""
+    return MemoryService(
+        build_memory_store_from_env(
+            database_url,
+            enable_vector=enable_vector,
+            enable_index=enable_index,
+        )
+    )
+
+
+def build_engram_memory_store(
+    *,
+    save_observation: SaveObservationCallable,
+    search_observations: SearchObservationsCallable,
+    get_observation: GetObservationCallable | None = None,
+    save_session_summary: SaveSessionSummaryCallable | None = None,
+) -> EngramMemoryStore:
+    """Create the transitional Engram bridge store from raw hooks."""
+    return EngramMemoryStore(
+        save_observation=save_observation,
+        search_observations=search_observations,
+        get_observation=get_observation,
+        save_session_summary=save_session_summary,
+    )
+
+
+def build_engram_bridge_store(
+    *,
+    save_observation: SaveObservationCallable,
+    search_observations: SearchObservationsCallable,
+    get_observation: GetObservationCallable | None = None,
+    save_session_summary: SaveSessionSummaryCallable | None = None,
+) -> EngramMemoryStore:
+    """Backward-compatible alias for the transitional Engram bridge store."""
+    return build_engram_memory_store(
+        save_observation=save_observation,
+        search_observations=search_observations,
+        get_observation=get_observation,
+        save_session_summary=save_session_summary,
+    )
+
+
 __all__ = [
+    "build_engram_memory_store",
     "build_graph_recall_from_env",
     "build_index_provider_from_env",
+    "build_engram_bridge_store",
+    "build_memory_service_from_env",
     "build_memory_store_from_env",
     "build_reranker_from_env",
     "build_vector_provider_from_env",

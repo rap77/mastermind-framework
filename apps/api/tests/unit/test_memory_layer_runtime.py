@@ -6,8 +6,10 @@ import pytest
 
 from mastermind_cli.memory_layer.pgvector import PgvectorVectorSearchProvider
 from mastermind_cli.memory_layer.runtime import (
+    build_engram_bridge_store,
     build_graph_recall_from_env,
     build_index_provider_from_env,
+    build_memory_service_from_env,
     build_memory_store_from_env,
     build_reranker_from_env,
     build_vector_provider_from_env,
@@ -17,6 +19,8 @@ from mastermind_cli.memory_layer.graph_recall import (
     StaticMemoryGraphRecallProvider,
 )
 from mastermind_cli.memory_layer.reranking import HeuristicMemoryReranker
+from mastermind_cli.memory_layer.service import MemoryService
+from mastermind_cli.memory_layer.store_engram import BridgeMemoryStore
 from mastermind_cli.memory_layer.store_postgres import PostgresMemoryStore
 from mastermind_cli.memory_layer.vector import NoopVectorSearchProvider
 
@@ -172,6 +176,42 @@ def test_build_memory_store_from_env_wires_reranker_and_graph_recall(
     assert isinstance(store, PostgresMemoryStore)
     assert isinstance(store._reranker, HeuristicMemoryReranker)  # type: ignore[attr-defined]
     assert isinstance(store._graph_recall, StaticMemoryGraphRecallProvider)  # type: ignore[attr-defined]
+
+
+def test_build_memory_service_from_env_wraps_shared_store() -> None:
+    """The runtime helper should build the first-party service over the shared store."""
+
+    service = build_memory_service_from_env(
+        "sqlite:///memory.db",
+        enable_vector=False,
+        enable_index=False,
+    )
+
+    assert isinstance(service, MemoryService)
+
+
+def test_build_engram_bridge_store_builds_adapter() -> None:
+    """The runtime helper should expose the transitional Engram bridge as a store."""
+
+    async def save_observation(**_: object) -> dict[str, object]:
+        return {"id": "mem-1"}
+
+    async def search_observations(**_: object) -> list[dict[str, object]]:
+        return []
+
+    store = build_memory_store_from_env(
+        "sqlite:///memory.db",
+        enable_vector=False,
+        enable_index=False,
+    )
+    assert isinstance(store, PostgresMemoryStore)
+
+    engram_store = build_engram_bridge_store(
+        save_observation=save_observation,
+        search_observations=search_observations,
+    )
+
+    assert isinstance(engram_store, BridgeMemoryStore)
 
 
 def test_build_index_provider_from_env_defaults_to_noop(

@@ -19,11 +19,12 @@ Routes under test (prefix: /api/audit):
   10. GET  /projects/{id}/summary
   11. GET  /projects/{id}/phase-comparison
   12. GET  /projects/{id}/brain-feedback
-  13. GET  /projects/{id}/engram-sync-status
+  13. GET  /projects/{id}/memory-sync-status
 """
 
 import ast
 import pathlib
+import sqlite3
 import uuid
 from typing import Any
 
@@ -49,7 +50,7 @@ ROUTES_GET = [
     f"/api/audit/projects/{PROJECT_ID}/summary",
     f"/api/audit/projects/{PROJECT_ID}/phase-comparison",
     f"/api/audit/projects/{PROJECT_ID}/brain-feedback",
-    f"/api/audit/projects/{PROJECT_ID}/engram-sync-status",
+    f"/api/audit/projects/{PROJECT_ID}/memory-sync-status",
 ]
 
 POST_DECISION_URL = f"/api/audit/projects/{PROJECT_ID}/phase/{PHASE_NUM}/decision"
@@ -156,9 +157,9 @@ async def test_401_brain_feedback(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_401_engram_sync_status(client: AsyncClient) -> None:
-    """GET /engram-sync-status requires auth."""
-    resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/engram-sync-status")
+async def test_401_memory_sync_status(client: AsyncClient) -> None:
+    """GET /memory-sync-status requires auth."""
+    resp = await client.get(f"/api/audit/projects/{PROJECT_ID}/memory-sync-status")
     assert resp.status_code == 401
 
 
@@ -312,15 +313,61 @@ async def test_auth_brain_feedback(
 
 
 @pytest.mark.asyncio
-async def test_auth_engram_sync_status(
+async def test_auth_memory_sync_status(
     client: AsyncClient, auth_headers: dict[str, str]
 ) -> None:
-    """GET /engram-sync-status with valid JWT → not 401."""
+    """GET /memory-sync-status with valid JWT → not 401."""
     resp = await client.get(
-        f"/api/audit/projects/{PROJECT_ID}/engram-sync-status", headers=auth_headers
+        f"/api/audit/projects/{PROJECT_ID}/memory-sync-status", headers=auth_headers
     )
     assert resp.status_code != 401
     assert resp.status_code != 403
+
+
+@pytest.mark.asyncio
+async def test_memory_sync_status_reads_current_table_rows(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    db_path: str,
+) -> None:
+    """The new table should be read directly by the audit endpoint."""
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS memory_sync_status (
+                project_id TEXT PRIMARY KEY,
+                last_sync_timestamp TIMESTAMP,
+                synced_items_count INTEGER DEFAULT 0,
+                sync_status TEXT DEFAULT 'idle'
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO memory_sync_status (
+                project_id,
+                last_sync_timestamp,
+                synced_items_count,
+                sync_status
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (
+                PROJECT_ID,
+                "2026-07-08T12:00:00",
+                3,
+                "active",
+            ),
+        )
+        connection.commit()
+
+    resp = await client.get(
+        f"/api/audit/projects/{PROJECT_ID}/memory-sync-status", headers=auth_headers
+    )
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["sync_status"] == "active"
+    assert payload["synced_items_count"] == 3
 
 
 # ===========================================================================

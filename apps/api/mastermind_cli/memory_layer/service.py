@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from inspect import ismethod
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any, cast
 
 from .exceptions import MemorySnapshotError
 from .contracts import MemoryStore
@@ -166,7 +168,16 @@ class MemoryService:
                 "next_step_summary": next_step_summary,
             },
         )
-        return self._to_checkpoint_record(item, fallback_checkpoint_id=checkpoint_id)
+        checkpoint = self._to_checkpoint_record(
+            item, fallback_checkpoint_id=checkpoint_id
+        )
+        checkpoint_writer = cast(
+            Callable[[CheckpointRecord], Awaitable[CheckpointRecord]] | None,
+            self._checkpoint_method("save_checkpoint"),
+        )
+        if checkpoint_writer is not None:
+            return await checkpoint_writer(checkpoint)
+        return checkpoint
 
     async def record_decision(
         self,
@@ -208,15 +219,12 @@ class MemoryService:
     ) -> ContextSnapshot:
         """Assemble a compact resume snapshot from recent project memory."""
         try:
+            checkpoints = await self._load_recent_checkpoints(
+                project_id,
+                task_id,
+                limit=limit,
+            )
             recent_items = await self._store.list_recent(project_id, limit=limit * 5)
-            checkpoints = [
-                self._to_checkpoint_record(
-                    item, fallback_checkpoint_id=item.memory_id or ""
-                )
-                for item in recent_items
-                if item.memory_type == "checkpoint"
-                and self._matches_task_scope(item, task_id)
-            ][:limit]
             decisions = [
                 self._to_decision_record(
                     item, fallback_decision_id=item.memory_id or ""
@@ -224,13 +232,19 @@ class MemoryService:
                 for item in recent_items
                 if item.memory_type == "decision"
                 and self._matches_task_scope(item, task_id)
-            ][:limit]
+            ]
             run_summaries = [
                 self._to_run_summary(item)
                 for item in recent_items
                 if item.memory_type == "session_summary"
                 and self._matches_task_scope(item, task_id)
-            ][:limit]
+            ]
+            checkpoints.sort(key=lambda record: record.created_at, reverse=True)
+            decisions.sort(key=lambda record: record.created_at, reverse=True)
+            run_summaries.sort(key=lambda record: record.created_at, reverse=True)
+            checkpoints = checkpoints[:limit]
+            decisions = decisions[:limit]
+            run_summaries = run_summaries[:limit]
             latest_checkpoint = checkpoints[0] if checkpoints else None
             latest_decision = decisions[0] if decisions else None
             latest_summary = run_summaries[0] if run_summaries else None
@@ -264,6 +278,20 @@ class MemoryService:
             raise MemorySnapshotError(
                 f"Failed to build context snapshot for project_id={project_id}: {exc}"
             ) from exc
+
+    async def load_latest_checkpoint(
+        self,
+        project_id: str,
+        task_id: str | None = None,
+    ) -> CheckpointRecord | None:
+        """Load the latest checkpoint when the backend exposes the checkpoint seam."""
+        checkpoint_reader = cast(
+            Callable[[str, str | None], Awaitable[CheckpointRecord | None]] | None,
+            self._checkpoint_method("get_latest_checkpoint"),
+        )
+        if checkpoint_reader is None:
+            return None
+        return await checkpoint_reader(project_id, task_id)
 
     async def fetch_project_context(
         self,
@@ -312,6 +340,38 @@ class MemoryService:
         if task_id is None:
             return True
         return str(item.metadata.get("task_id") or "") == task_id
+
+    async def _load_recent_checkpoints(
+        self,
+        project_id: str,
+        task_id: str | None,
+        *,
+        limit: int,
+    ) -> list[CheckpointRecord]:
+        """Load checkpoints from a dedicated backend when available."""
+        checkpoint_lister = cast(
+            Callable[[str, int], Awaitable[list[CheckpointRecord]]] | None,
+            self._checkpoint_method("list_recent_checkpoints"),
+        )
+        if checkpoint_lister is not None:
+            checkpoints = await checkpoint_lister(project_id, limit)
+            return [
+                checkpoint
+                for checkpoint in checkpoints
+                if task_id is None or checkpoint.task_id == task_id
+            ]
+
+        recent_items = await self._store.list_recent(project_id, limit=limit * 5)
+        checkpoints = [
+            self._to_checkpoint_record(
+                item, fallback_checkpoint_id=item.memory_id or ""
+            )
+            for item in recent_items
+            if item.memory_type == "checkpoint"
+            and self._matches_task_scope(item, task_id)
+        ]
+        checkpoints.sort(key=lambda record: record.created_at, reverse=True)
+        return checkpoints[:limit]
 
     def _to_checkpoint_record(
         self,
@@ -378,3 +438,10 @@ class MemoryService:
         if isinstance(value, dict):
             return dict(value)
         return {}
+
+    def _checkpoint_method(self, name: str) -> Any | None:
+        """Return a bound checkpoint method when the backend exposes one."""
+        method = getattr(self._store, name, None)
+        if method is None or not ismethod(method):
+            return None
+        return method

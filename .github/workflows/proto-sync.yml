@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - 'proto/**'
-      - 'apps/control-plane/src/proto/**'
+      - 'rust_control_plane/src/proto/**'
       - 'apps/api/mastermind_cli/proto/**'
       - 'apps/web/src/proto/**'
 
@@ -17,7 +17,7 @@ jobs:
       - name: Check proto files exist
         run: |
           # Rust proto
-          test -f apps/control-plane/src/proto/mod.rs || echo "WARNING: Rust proto module not found"
+          test -f rust_control_plane/src/proto/mod.rs || echo "WARNING: Rust proto module not found"
           # Python proto
           test -f apps/api/mastermind_cli/proto/__init__.py || echo "WARNING: Python proto module not found"
           # TypeScript proto
@@ -26,7 +26,7 @@ jobs:
 
       - name: Verify proto imports (Rust)
         run: |
-          if ! grep -q "mod proto" apps/control-plane/src/main.rs; then
+          if ! grep -q "mod proto" rust_control_plane/src/main.rs; then
             echo "ERROR: Proto module not imported in Rust main.rs"
             exit 1
           fi

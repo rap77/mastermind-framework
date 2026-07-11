@@ -1,6 +1,6 @@
 # Marketing Digital y Redes Sociales - MasterMind Framework Niche
 
-**Status:** 🟡 Foundation Complete | Knowledge Base Pending
+**Status:** 🟡 Foundation Complete | M1-M8 Knowledge Complete | M9-M16 Pending
 
 Este nicho proporciona 16 cerebros especializados para cubrir **full-stack marketing agency** con modelo de growth partnership.
 
@@ -12,7 +12,7 @@ Este nicho proporciona 16 cerebros especializados para cubrir **full-stack marke
 |---------|---------|
 | **Cerebros** | 16 especializados (M1-M16) |
 | **Estado Foundation** | ✅ Completado (PRP-MARKETING-001) |
-| **Estado Knowledge** | 🟡 Pendiente (PRP-MARKETING-002/003) |
+| **Estado Knowledge** | 🟢 M1-M8 complete (PRP-MARKETING-002) / 🟡 M9-M16 pending (PRP-MARKETING-003) |
 | **System Prompts** | ✅ 16 creados en `agents/brains/marketing-*.md` |
 | **Config** | ✅ `mastermind_cli/config/brains-marketing.yaml` |
 
@@ -77,7 +77,7 @@ docs/nichos/marketing-digital/
 ├── PROPUESTA-16-CEREBROS.md        ← Propuesta original (status updated)
 ├── PRP-MARKETING-DIGITAL-NICHO.md  ← Plan de implementación
 ├── README.md                        ← Este archivo
-└── sources/                         ← Fuentes maestras (para PRP-002/003)
+└── sources/                         ← Fuentes maestras (M1-M8 complete; M9-M16 in PRP-003)
     ├── BRAIN-01-STRATEGY/           ← Vacío (pendiente de PRP-002)
     ├── BRAIN-02-BRAND/
     ├── BRAIN-03-CONTENT/
@@ -121,7 +121,7 @@ agents/brains/
 
 ## Cómo Contribuir Fuentes Maestras
 
-Las fuentes maestras (libros, artículos, videos) se agregarán en **PRP-MARKETING-002** y **PRP-MARKETING-003**.
+Las fuentes maestras (libros, artículos, videos) de M1-M8 ya están completas. Las de M9-M16 se agregarán en **PRP-MARKETING-003**.
 
 ### Formato de Fuentes
 
@@ -170,10 +170,9 @@ hispánico_expert: true|false
 
 ## Próximos Pasos
 
-1. **PRP-MARKETING-002** (~30-40h): Knowledge base para M1-M8 (80 fuentes maestras)
-2. **PRP-MARKETING-003** (~30-40h): Knowledge base para M9-M16 (80 fuentes maestras)
-3. **Testing**: E2E tests con briefs reales de agencia de marketing
-4. **Release v1.2.0**: Marketing Digital niche production ready
+1. **PRP-MARKETING-003** (~30-40h): Knowledge base para M9-M16 (80 fuentes maestras)
+2. **Testing**: E2E tests con briefs reales de agencia de marketing
+3. **Release v1.2.0**: Marketing Digital niche production ready
 
 ---
 

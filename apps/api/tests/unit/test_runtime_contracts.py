@@ -134,7 +134,7 @@ def test_execution_envelope_validates_success_shape() -> None:
 
 
 def test_synthesize_execution_envelope_uses_most_restrictive_verdict() -> None:
-    """Final envelope should prefer warning/error over optimistic base status."""
+    """Final envelope should preserve the base status when no new verdicts exist."""
     selector = LoopSelector()
     profile = selector.classify_task(
         Brief(
@@ -159,7 +159,38 @@ def test_synthesize_execution_envelope_uses_most_restrictive_verdict() -> None:
         recovery_decision=None,
     )
 
-    assert final_envelope.status == "success"
+    assert final_envelope.status == base_envelope.status
+    assert final_envelope.next_actions == base_envelope.next_actions
+
+
+def test_synthesize_execution_envelope_keeps_warning_without_new_verdicts() -> None:
+    """A review-required base envelope should not be upgraded to success implicitly."""
+    selector = LoopSelector()
+    profile = selector.classify_task(
+        Brief(
+            problem_statement="Implement and design a production migration plan",
+            context="Need latest research and design review",
+            constraints=["Use current sources"],
+        ),
+        ["brain-01-product-strategy", "brain-03-ui-design"],
+    )
+    capabilities = CapabilityRegistry().resolve_for_task(profile)
+    policy = selector.select_loop(profile, capabilities)
+    base_envelope = build_execution_envelope(
+        task_profile=profile,
+        loop_policy=policy,
+        artifacts=("brain-01-product-strategy",),
+        next_actions=("continue",),
+    )
+
+    final_envelope = synthesize_execution_envelope(
+        base_envelope=base_envelope,
+        review_outcome=None,
+        recovery_decision=None,
+    )
+
+    assert base_envelope.status == "warning"
+    assert final_envelope.status == "warning"
     assert final_envelope.next_actions == ("continue",)
 
 

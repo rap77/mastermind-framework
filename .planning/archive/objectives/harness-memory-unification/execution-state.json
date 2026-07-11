@@ -1,0 +1,49 @@
+{
+  "objective_slug": "harness-memory-unification",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md",
+  "tasks": {
+    "HM1": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": "2026-07-07T18:20:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md"
+    },
+    "HM2": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": "2026-07-07T18:20:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md"
+    },
+    "HM3": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": "2026-07-07T18:30:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md"
+    },
+    "HM4": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": "2026-07-07T18:40:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md"
+    },
+    "HM5": {
+      "status": "completed",
+      "subtasks": {},
+      "started_at": null,
+      "completed_at": "2026-07-09T15:05:00Z",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/harness-memory-unification/todo.md"
+    }
+  },
+  "updated_at": "2026-07-09T15:05:00Z",
+  "bootstrapped_from_artifacts": true
+}

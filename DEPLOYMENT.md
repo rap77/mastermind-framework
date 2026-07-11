@@ -432,6 +432,19 @@ ls -la .claude/commands/mm/*.py
 python3 --version
 ```
 
+### Staging Automation
+
+The repo includes `.github/workflows/staging-deploy.yml` to build and push the API
+image to GHCR, then poll `GET /health` on the configured staging URL.
+
+Required configuration:
+
+- `STAGING_URL` repository variable or secret, or `workflow_dispatch` input
+- GitHub Packages write access for the workflow token
+
+If the staging health check fails, the workflow opens or comments on a
+`staging-failure` issue with the run URL.
+
 ### Command Issues
 
 **Problem:** Discover agent doesn't generate files

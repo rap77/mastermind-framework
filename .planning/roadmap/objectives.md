@@ -19,12 +19,12 @@ _Generated: 2026-05-29T19:40:58_
 | 2 | `collaboration-rbac` | done | yes | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
 | 3 | `dashboard-realtime` | done | yes | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
 | 4 | `window-scheduler` | done | yes | 76 | no | yes | — | Captured in canonical implementation docs. | docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md |
-| 5 | `context-projection` | planned | yes | 72 | no | yes | postgres-hybrid-data-model, project-state-mvp | Captured in canonical implementation docs. | docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md |
-| 6 | `rust-control-plane-hardening` | planned | yes | 70 | no | yes | backend-service-boundary-for-agents | Captured in canonical implementation docs. | docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md |
-| 7 | `rust-control-plane` | planned | yes | 68 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
-| 8 | `observability-real-time-hub` | planned | yes | 66 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
-| 9 | `knowledge-distillation` | planned | yes | 62 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
-| 10 | `knowledge-ingestion-manual` | planned | yes | 60 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP-v3.2.md |
+| 5 | `context-projection` | done | yes | 72 | no | yes | postgres-hybrid-data-model, project-state-mvp | Captured in canonical implementation docs. | docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md |
+| 6 | `rust-control-plane-hardening` | done | yes | 70 | no | yes | backend-service-boundary-for-agents | Captured in canonical implementation docs. | docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md |
+| 7 | `rust-control-plane` | done | yes | 68 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
+| 8 | `observability-real-time-hub` | done | yes | 66 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
+| 9 | `knowledge-distillation` | done | yes | 62 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
+| 10 | `knowledge-ingestion-manual` | done | yes | 60 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP-v3.2.md |
 | 11 | `multi-channel-gateway` | planned | yes | 58 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP.md |
 | 12 | `pgvector-schema-langsmith-foundation-paralelo` | planned | yes | 56 | no | yes | — | Declared roadmap phase in planning sources. | .planning/ROADMAP-v3.2.md |
 | 13 | `task-time-and-estimation` | planned | yes | 55 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md |

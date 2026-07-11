@@ -3,6 +3,10 @@
 **Sesión:** PRP-MARKETING-002 (Knowledge M1-M8)
 **Branch:** feature/prp-marketing-002-knowledge-m1-m8
 
+**Legacy note:** This is historical session context, not canonical state.
+For active harness planning, read `aidlc-docs/aidlc-state.md` and
+`.planning/HANDOFF-CURRENT.md` first.
+
 ## Completado en esta sesión
 
 ### 1. Estructura de Directorios Estandarizada ✅
@@ -32,26 +36,24 @@
 - **TEMPLATE-UNIVERSAL.md** creado para futuros nichos
 - **TECHNICAL-DEBT.md** tracking 122 fuentes de software necesitan campos YAML extra
 
-## Pendiente - PRP-MARKETING-002
+## PRP-MARKETING-002 Complete
 
-| Brain | Fuentes | NotebookLM | Estado |
-|-------|---------|------------|--------|
-| M1 Strategy | 10/10 | ✅ 8ece7ed3... | COMPLETADO |
-| M2 Brand | 10/10 | ✅ 4eefaf90... | COMPLETADO |
-| M3 Content | 10/10 | ✅ 9a6853fe... | COMPLETADO |
-| M4 Social Organic | 10/10 | ✅ 560260f4... | COMPLETADO ✅ |
-| M5 Social Paid | 0/10 | - | ⏳ Pendiente |
-| M6 Search PPC | 0/10 | - | ⏳ Pendiente |
-| M7 SEO Technical | 0/10 | - | ⏳ Pendiente |
-| M8 SEO Content | 0/10 | - | ⏳ Pendiente |
+| Cerebro | Fuentes | NotebookLM ID |
+|---------|---------|---------------|
+| M1 STRATEGY | 10 | `8ece7ed3...` |
+| M2 BRAND | 10 | `4eefaf90...` |
+| M3 CONTENT | 10 | `b45a0716...` |
+| M4 SOCIAL ORGANIC | 10 | `429743dd...` |
+| M5 SOCIAL PAID | 10 | `435d6319...` |
+| M6 SEARCH PPC | 10 | `a6da3c46...` |
+| M7 SEO TECHNICAL | 10 | `73e4c8c7...` |
+| M8 SEO CONTENT | 10 | `955783cb...` |
 
-**Progreso:** 40/80 fuentes (50%) 🎯
+**Total:** 80/80 fuentes creadas y cargadas en NotebookLM (100%)
 
 ## Próximos Pasos
 
-1. **Continuar PRP-MARKETING-002:** Agregar fuentes para M5 (Social Paid)
-2. **Completar M6-M8:** 30 fuentes restantes
-3. **Technical Debt:** Actualizar 122 fuentes de software con campos YAML extra (post-Marketing)
+1. **Iniciar PRP-MARKETING-003:** Completar fuentes M9-M16
 
 ## Notas Técnicas
 

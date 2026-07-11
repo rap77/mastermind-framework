@@ -6,7 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+import click
 import pytest
+from unittest.mock import AsyncMock
 
 from mastermind_cli.mm_flow import cli as mm_flow_cli
 from mastermind_cli.mm_flow.config_loader import HarnessLibraryConfig, MMFlowConfig
@@ -17,7 +19,12 @@ class _FakeTransaction:
     async def __aenter__(self) -> "_FakeTransaction":
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> bool:
+    async def __aexit__(
+        self,
+        exc_type: object | None,
+        exc: object | None,
+        tb: object | None,
+    ) -> bool:
         del exc_type, exc, tb
         return False
 
@@ -248,7 +255,7 @@ def test_run_phase_in_progress_invokes_executor(
                 ),
             )
 
-    def fake_build_memory_store_from_env(
+    def fake_build_memory_service_from_env(
         database_url: str, enable_vector: bool, enable_index: bool
     ) -> SimpleNamespace:
         del database_url, enable_vector, enable_index
@@ -264,7 +271,9 @@ def test_run_phase_in_progress_invokes_executor(
     monkeypatch.setenv("DATABASE_URL", "postgresql://example.test/db")
     monkeypatch.setattr(mm_flow_cli.asyncpg, "connect", fake_connect)
     monkeypatch.setattr(
-        mm_flow_cli, "build_memory_store_from_env", fake_build_memory_store_from_env
+        mm_flow_cli,
+        "build_memory_service_from_env",
+        fake_build_memory_service_from_env,
     )
     monkeypatch.setattr(mm_flow_cli, "_write_runtime_state", fake_write_runtime_state)
     monkeypatch.setattr(mm_flow_cli, "HarnessRunExecutor", FakeExecutor)
@@ -309,6 +318,7 @@ def test_run_phase_completed_archives_bridge_status(
     executor_calls: list[dict[str, object]] = []
     runtime_state_calls: list[tuple[object, ...]] = []
     started_execution_id = "exec-aaaa-1111"
+    record_session_summary = AsyncMock(return_value=None)
     runtime_state_dir = tmp_path / ".planning" / ".mm-flow"
     runtime_state_dir.mkdir(parents=True, exist_ok=True)
     (runtime_state_dir / "runtime-state.json").write_text(
@@ -319,7 +329,9 @@ def test_run_phase_completed_archives_bridge_status(
 
     class FakeExecutor:
         def __init__(self, **_: object) -> None:
-            pass
+            self.memory_service = SimpleNamespace(
+                record_session_summary=record_session_summary
+            )
 
         async def execute_harness_run(self, **kwargs: object) -> IntegratedRun:
             executor_calls.append(kwargs)
@@ -361,7 +373,7 @@ def test_run_phase_completed_archives_bridge_status(
     def fake_write_runtime_state(*args: object) -> None:
         runtime_state_calls.append(args)
 
-    def fake_build_memory_store_from_env(
+    def fake_build_memory_service_from_env(
         database_url: str, enable_vector: bool, enable_index: bool
     ) -> SimpleNamespace:
         del database_url, enable_vector, enable_index
@@ -372,7 +384,9 @@ def test_run_phase_completed_archives_bridge_status(
         mm_flow_cli.asyncpg, "connect", lambda url: _async_return(fake_conn)
     )
     monkeypatch.setattr(
-        mm_flow_cli, "build_memory_store_from_env", fake_build_memory_store_from_env
+        mm_flow_cli,
+        "build_memory_service_from_env",
+        fake_build_memory_service_from_env,
     )
     monkeypatch.setattr(mm_flow_cli, "_write_runtime_state", fake_write_runtime_state)
     monkeypatch.setattr(mm_flow_cli, "HarnessRunExecutor", FakeExecutor)
@@ -393,10 +407,112 @@ def test_run_phase_completed_archives_bridge_status(
     assert len(runtime_state_calls) == 1
     assert runtime_state_calls[0][0] == started_execution_id
     assert runtime_state_calls[0][2] == "COMPLETED"
+    record_session_summary.assert_awaited_once_with(
+        session_id=started_execution_id,
+        summary="Alpha slice 6 closed.",
+        project_id="proj-001",
+        metadata={"phase": 21, "status": "completed", "tokens": 42, "commit": "abc123"},
+    )
     update_sql, update_args = fake_conn.executed[-1]
     assert "UPDATE phase_executions" in update_sql
     assert update_args[0] == started_execution_id
     assert fake_conn.closed is True
+
+
+def test_run_phase_completed_rejects_already_completed_runtime_state(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A completed runtime-state should not be re-closed."""
+    executor_inits: list[object] = []
+    connect_calls: list[str] = []
+
+    async def fake_connect(database_url: str) -> _FakeConnection:
+        connect_calls.append(database_url)
+        raise AssertionError("DB connect should not happen for completed runtime-state")
+
+    runtime_state_dir = tmp_path / ".planning" / ".mm-flow"
+    runtime_state_dir.mkdir(parents=True, exist_ok=True)
+    (runtime_state_dir / "runtime-state.json").write_text(
+        '{"execution_id": "exec-aaaa-1111", "current_moment": "COMPLETED"}',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mm_flow_cli.asyncpg, "connect", fake_connect)
+
+    class FakeExecutor:
+        def __init__(self, **_: object) -> None:
+            executor_inits.append(object())
+
+        async def execute_harness_run(self, **_: object) -> object:
+            raise AssertionError("executor should not be constructed")
+
+    monkeypatch.setattr(mm_flow_cli, "HarnessRunExecutor", FakeExecutor)
+
+    with pytest.raises(
+        ValueError,
+        match="runtime-state.json already marked COMPLETED; cannot complete phase again.",
+    ):
+        mm_flow_cli.run_phase.callback(  # type: ignore[attr-defined]
+            phase=21,
+            brief="Implement and design a migration plan",
+            brain_ids="brain-01-product-strategy",
+            status="completed",
+            summary="Alpha slice 6 closed.",
+            tokens=42,
+            commit="abc123",
+        )
+
+    assert executor_inits == []
+    assert connect_calls == []
+
+
+def test_run_phase_surfaces_planning_bridge_errors_as_click_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """run-phase should present bridge failures as user-facing click errors."""
+    from mastermind_cli.mm_flow.exceptions import PlanningBridgeError
+
+    fake_conn = _FakeConnection()
+
+    class FakeExecutor:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        async def execute_harness_run(self, **_: object) -> object:
+            raise PlanningBridgeError("Missing planning objective in handoff")
+
+    def fake_build_memory_service_from_env(
+        database_url: str, enable_vector: bool, enable_index: bool
+    ) -> SimpleNamespace:
+        del database_url, enable_vector, enable_index
+        return SimpleNamespace()
+
+    async def fake_connect(database_url: str) -> _FakeConnection:
+        del database_url
+        return fake_conn
+
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example.test/db")
+    monkeypatch.setattr(mm_flow_cli.asyncpg, "connect", fake_connect)
+    monkeypatch.setattr(
+        mm_flow_cli,
+        "build_memory_service_from_env",
+        fake_build_memory_service_from_env,
+    )
+    monkeypatch.setattr(mm_flow_cli, "HarnessRunExecutor", FakeExecutor)
+
+    with pytest.raises(
+        click.ClickException,
+        match=r"Missing planning objective.*handoff: .*\.planning/HANDOFF-CURRENT\.md",
+    ):
+        mm_flow_cli.run_phase.callback(  # type: ignore[attr-defined]
+            phase=21,
+            brief="Implement and design a migration plan",
+            brain_ids="brain-01-product-strategy",
+            status="in_progress",
+            summary="Alpha slice 6 run.",
+            tokens=0,
+            commit=None,
+        )
 
 
 async def _async_return(value: object) -> object:

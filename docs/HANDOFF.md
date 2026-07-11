@@ -4,6 +4,10 @@
 **Sesión:** Marketing Nicho Definition + Pyright Fixes
 **Estado:** ✅ Framework v1.1.0 + Nicho Marketing Digital Planeado
 
+**Legacy note:** This is a historical handoff snapshot, not canonical state.
+For active harness planning, use `aidlc-docs/aidlc-state.md` and
+`.planning/HANDOFF-CURRENT.md`.
+
 ---
 
 ## Para Continuar en Próxima Sesión

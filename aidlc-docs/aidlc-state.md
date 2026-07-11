@@ -12,12 +12,12 @@
 - canonical_scope: reusable harness core, memory core, and project adapters
 - source_of_truth_ai_dlc: true
 - source_of_truth_planning: true
-- active_objective: harness-core-runtime-v1
-- active_uow: UOW-5-closed
+- active_objective: manifest-contract-bridge-v1
+- active_uow: UOW-1
 - project_root: /home/rpadron/proy/mastermind
 - operational_layer: .planning
 - design_layer: aidlc-docs
-- memory_layer: Engram persistent memory
+- memory_layer: first-party memory service/store; Engram bridge only
 - harness_layer: apps/api/mastermind_cli and tools/mastermind-cli
 - adapter_name: mastermind-adapter
 - bridge_contract: aidlc-docs/inception/plans/planning-bridge-contract.md
@@ -59,10 +59,10 @@
 
 ## Current Status
 - Last completed stage: Slice 5 — Project Adapter cross-project reuse (UOW-5 closed and pushed as `d5f3561a`)
-- Current working stage: Slice 5 closed; unified harness + memory initiative is end-to-end runnable across projects
-- Next recommended stage: Operational maintenance + extend reuse boundary into a second repo template
+- Current working stage: `manifest-contract-bridge-v1` / `harness-memory-unification` active
+- Next recommended stage: formalize the manifest contract and then expand harness + memory runtime slices
 - Unified initiative kickoff: `manifest-contract-bridge-v1` defined for harness + memory reuse across projects
-- Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, and planning bridge contract
+- Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, planning bridge contract, and adapter boundary
 - Application design drafted for the unified harness + memory architecture
 - Unit-of-work map drafted for the unified harness + memory architecture
 - UOW-1 implementation plan drafted for the project manifest and source-of-truth rules

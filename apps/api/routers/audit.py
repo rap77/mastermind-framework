@@ -291,9 +291,9 @@ async def _ensure_audit_schema(db: DatabaseConnection) -> None:
         )
     """)
 
-    # Engram sync status table
+    # Memory sync status table
     await db.conn.execute("""
-        CREATE TABLE IF NOT EXISTS engram_sync_status (
+        CREATE TABLE IF NOT EXISTS memory_sync_status (
             project_id TEXT PRIMARY KEY,
             last_sync_timestamp TIMESTAMP,
             synced_items_count INTEGER DEFAULT 0,
@@ -1527,22 +1527,20 @@ async def get_brain_feedback(
 
 
 # ============================================================================
-# ENGRAM SYNC STATUS
+# MEMORY SYNC STATUS
 # ============================================================================
-
-
 @router.get(
-    "/projects/{project_id}/engram-sync-status",
-    summary="Check Engram synchronization status",
-    description="See which decisions/feedback have been synced to Engram memory",
+    "/projects/{project_id}/memory-sync-status",
+    summary="Check memory synchronization status",
+    description="See which decisions/feedback have been synced to project memory",
 )
-async def get_engram_sync_status(
+async def get_memory_sync_status(
     project_id: UUID,
     _current_user: str = Depends(get_current_user_any),
     db_path: str = Depends(get_db_path),
 ) -> Dict[str, Any]:
     """
-    Check Engram sync status for project.
+    Check memory sync status for project.
 
     Returns:
     - Last sync timestamp
@@ -1551,17 +1549,17 @@ async def get_engram_sync_status(
     - Failed syncs and retry queue
 
     Useful for:
-    - Ensuring decisions are persisted to Engram
+    - Ensuring decisions are persisted to project memory
     - Troubleshooting sync issues
     - Manual sync triggers
     """
     async with DatabaseConnection(db_path) as db:
         await _ensure_audit_schema(db)
 
-        # Get Engram sync status for this project
+        # Get project memory sync status for this project
         cursor = await db.conn.execute(
             """SELECT last_sync_timestamp, synced_items_count, sync_status
-               FROM engram_sync_status WHERE project_id = ?""",
+               FROM memory_sync_status WHERE project_id = ?""",
             [str(project_id)],
         )
         sync_row = await cursor.fetchone()

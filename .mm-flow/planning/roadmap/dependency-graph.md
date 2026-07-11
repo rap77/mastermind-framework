@@ -2,9 +2,6 @@
 
 ## Edges
 
-- `project-state-mvp` has no declared prerequisites
-- `window-scheduler` has no declared prerequisites
-- `window-scheduler` -> `context-window-management`
 - `postgres-hybrid-data-model` -> `context-projection`
 - `project-state-mvp` -> `context-projection`
 - `backend-service-boundary-for-agents` -> `rust-control-plane-hardening`
@@ -12,6 +9,9 @@
 - `observability-real-time-hub` has no declared prerequisites
 - `knowledge-distillation` has no declared prerequisites
 - `knowledge-ingestion-manual` has no declared prerequisites
+- `project-state-mvp` has no declared prerequisites
+- `window-scheduler` has no declared prerequisites
+- `window-scheduler` -> `context-window-management`
 - `multi-channel-gateway` has no declared prerequisites
 - `pgvector-schema-langsmith-foundation-paralelo` has no declared prerequisites
 - `project-state-mvp` -> `task-time-and-estimation`
@@ -59,4 +59,4 @@
 
 ## Recommended next active objective
 
-- `project-state-mvp`
+- `context-projection`

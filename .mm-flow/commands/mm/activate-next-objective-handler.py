@@ -98,6 +98,22 @@ def load_roadmap() -> object:
     return json.loads(ROADMAP_JSON.read_text(encoding="utf-8"))
 
 
+def refresh_roadmap() -> subprocess.CompletedProcess[str]:
+    """Regenerate roadmap artifacts before selecting the next objective."""
+    return subprocess.run(
+        [
+            "python3",
+            str(DISCOVER_HANDLER),
+            "--roadmap",
+            "--existing",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def get_recommended_next(
     roadmap: object,
 ) -> dict[str, object] | None:
@@ -157,6 +173,16 @@ def run_discover_for_objective(
 def main() -> int:
     """Activate the next recommended roadmap objective."""
     args = parse_args()
+
+    refresh_result = refresh_roadmap()
+    if refresh_result.returncode != 0:
+        logger.error("STATUS: FAILED")
+        logger.error("- roadmap refresh failed before activation")
+        if refresh_result.stdout.strip():
+            logger.error("%s", refresh_result.stdout.strip())
+        if refresh_result.stderr.strip():
+            logger.error("%s", refresh_result.stderr.strip())
+        return refresh_result.returncode
 
     try:
         roadmap = load_roadmap()

@@ -5,7 +5,7 @@ use axum::{extract::{Request, State}, http::StatusCode, Json};
 use uuid::Uuid;
 
 use crate::auth::models::{User, LoginRequest, RefreshRequest, TokenResponse};
-use crate::auth::jwt::{generate_access_token, generate_refresh_token, verify_password};
+use crate::auth::jwt::{generate_access_token, generate_refresh_token, hash_refresh_token, verify_password};
 use crate::auth::rotation::{rotate_refresh_token, store_refresh_token, revoke_all_tokens};
 use crate::auth::middleware::AuthenticatedRequest;
 use crate::state::AppState;
@@ -17,20 +17,6 @@ use axum::body::Body;
 struct ActiveSessionRow {
     user_id: Uuid,
     refresh_token_hash: String,
-}
-
-fn find_matching_refresh_session<'a>(
-    sessions: &'a [ActiveSessionRow],
-    presented_refresh_token: &str,
-) -> Result<&'a ActiveSessionRow, StatusCode> {
-    for session in sessions {
-        let matches = bcrypt::verify(presented_refresh_token, &session.refresh_token_hash)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-        if matches {
-            return Ok(session);
-        }
-    }
-    Err(StatusCode::UNAUTHORIZED)
 }
 
 fn extract_authenticated_request(
@@ -94,13 +80,17 @@ pub async fn refresh(
     State(state): State<AppState>,
     Json(req): Json<RefreshRequest>,
 ) -> Result<Json<TokenResponse>, StatusCode> {
-    let sessions: Vec<ActiveSessionRow> = sqlx::query_as(
-        "SELECT user_id, refresh_token_hash FROM sessions WHERE expires_at > NOW()",
+    let refresh_token_hash = hash_refresh_token(&req.refresh_token);
+
+    let matching_session: ActiveSessionRow = sqlx::query_as(
+        "SELECT user_id, refresh_token_hash FROM sessions WHERE refresh_token_hash = $1 AND expires_at > NOW()",
     )
-    .fetch_all(&state.pool)
+    .bind(&refresh_token_hash)
+    .fetch_optional(&state.pool)
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let matching_session = find_matching_refresh_session(&sessions, &req.refresh_token)?;
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::UNAUTHORIZED)?;
+
     let user_id = matching_session.user_id;
 
     // Get user
@@ -158,7 +148,7 @@ pub async fn logout(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::jwt::{generate_refresh_token, hash_password};
+    use crate::auth::jwt::{generate_refresh_token, hash_refresh_token};
 
     #[test]
     fn test_login_request_deserialization() {
@@ -176,35 +166,10 @@ mod tests {
     }
 
     #[test]
-    fn test_find_matching_refresh_session_returns_matching_row() {
-        let refresh_token = generate_refresh_token();
-        let matching_hash = hash_password(&refresh_token).unwrap();
-        let non_matching_hash = hash_password("another-token").unwrap();
-        let expected_user_id = Uuid::new_v4();
-        let sessions = vec![
-            ActiveSessionRow {
-                user_id: Uuid::new_v4(),
-                refresh_token_hash: non_matching_hash,
-            },
-            ActiveSessionRow {
-                user_id: expected_user_id,
-                refresh_token_hash: matching_hash,
-            },
-        ];
+    fn test_hash_refresh_token_matches_deterministically() {
+        let token = generate_refresh_token();
 
-        let matched = find_matching_refresh_session(&sessions, &refresh_token).unwrap();
-        assert_eq!(matched.user_id, expected_user_id);
-    }
-
-    #[test]
-    fn test_find_matching_refresh_session_rejects_unknown_token() {
-        let sessions = vec![ActiveSessionRow {
-            user_id: Uuid::new_v4(),
-            refresh_token_hash: hash_password("stored-token").unwrap(),
-        }];
-
-        let result = find_matching_refresh_session(&sessions, "missing-token");
-        assert_eq!(result.unwrap_err(), StatusCode::UNAUTHORIZED);
+        assert_eq!(hash_refresh_token(&token), hash_refresh_token(&token));
     }
 
     #[test]

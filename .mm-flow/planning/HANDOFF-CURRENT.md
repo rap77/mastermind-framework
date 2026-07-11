@@ -1,7 +1,7 @@
-# Handoff — project-state-mvp
+# Handoff — multi-channel-gateway
 
 ## Current objective
-- `project-state-mvp`
+- `multi-channel-gateway`
 
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
@@ -12,8 +12,8 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- `PS1` from `tasks.md` — depends on None.
+- Start with `T1` from `tasks.md`.
 
 ## Validation commands
-- `/mm:discover-contract-check --objective project-state-mvp`
+- `/mm:discover-contract-check --objective multi-channel-gateway`
 - Run targeted tests for touched files before handing off again

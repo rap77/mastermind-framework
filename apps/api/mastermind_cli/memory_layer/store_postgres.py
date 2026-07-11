@@ -25,7 +25,7 @@ from .contracts import (
 from .graph_recall import NoopMemoryGraphRecallProvider
 from .embeddings import build_memory_index_payload
 from .indexing import NoopMemoryIndexProvider
-from .models import MemoryItem, MemorySearchResult, VectorCandidate
+from .models import CheckpointRecord, MemoryItem, MemorySearchResult, VectorCandidate
 from .reranking import NoopMemoryReranker
 from .vector import (
     CallableVectorSearchProvider,
@@ -113,6 +113,26 @@ class MemorySessionRecord(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+
+
+class MemoryCheckpointRecord(Base):
+    """Dedicated relational record for persisted checkpoints."""
+
+    __tablename__ = "mm_memory_checkpoints"
+
+    checkpoint_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    task_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    context_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    resume_state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    next_step_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
 
 
@@ -282,6 +302,77 @@ class PostgresMemoryStore:
             )
         return [self._to_memory_item(row) for row in rows]
 
+    async def save_checkpoint(self, checkpoint: CheckpointRecord) -> CheckpointRecord:
+        """Persist a resumable checkpoint into the dedicated checkpoint table."""
+        self._ensure_schema()
+        with self._session_factory() as session:
+            record = session.get(MemoryCheckpointRecord, checkpoint.checkpoint_id)
+            if record is None:
+                record = MemoryCheckpointRecord(
+                    checkpoint_id=checkpoint.checkpoint_id,
+                    project_id=checkpoint.project_id,
+                    task_id=checkpoint.task_id,
+                    run_id=checkpoint.run_id,
+                    context_summary=self._normalize_metadata_json(
+                        checkpoint.context_summary
+                    ),
+                    resume_state=self._normalize_metadata_json(checkpoint.resume_state),
+                    next_step_summary=checkpoint.next_step_summary,
+                    created_at=checkpoint.created_at,
+                )
+                session.add(record)
+            else:
+                record.project_id = checkpoint.project_id
+                record.task_id = checkpoint.task_id
+                record.run_id = checkpoint.run_id
+                record.context_summary = self._normalize_metadata_json(
+                    checkpoint.context_summary
+                )
+                record.resume_state = self._normalize_metadata_json(
+                    checkpoint.resume_state
+                )
+                record.next_step_summary = checkpoint.next_step_summary
+                record.created_at = checkpoint.created_at
+            session.commit()
+            session.refresh(record)
+        return self._to_checkpoint_record(record)
+
+    async def get_latest_checkpoint(
+        self,
+        project_id: str,
+        task_id: str | None = None,
+    ) -> CheckpointRecord | None:
+        """Return the most recent checkpoint for a project or task."""
+        self._ensure_schema()
+        with self._session_factory() as session:
+            statement = select(MemoryCheckpointRecord).where(
+                MemoryCheckpointRecord.project_id == project_id
+            )
+            if task_id is not None:
+                statement = statement.where(MemoryCheckpointRecord.task_id == task_id)
+            record = session.scalar(
+                statement.order_by(MemoryCheckpointRecord.created_at.desc()).limit(1)
+            )
+        return self._to_checkpoint_record(record) if record is not None else None
+
+    async def list_recent_checkpoints(
+        self,
+        project_id: str,
+        limit: int = 10,
+    ) -> list[CheckpointRecord]:
+        """List recent checkpoints for a project ordered by recency."""
+        self._ensure_schema()
+        with self._session_factory() as session:
+            rows = list(
+                session.scalars(
+                    select(MemoryCheckpointRecord)
+                    .where(MemoryCheckpointRecord.project_id == project_id)
+                    .order_by(MemoryCheckpointRecord.created_at.desc())
+                    .limit(limit)
+                )
+            )
+        return [self._to_checkpoint_record(row) for row in rows]
+
     async def save_session_summary(
         self,
         session_id: str,
@@ -350,6 +441,7 @@ class PostgresMemoryStore:
                 cast(Table, MemoryItemRecord.__table__),
                 cast(Table, MemoryPreferenceRecord.__table__),
                 cast(Table, MemorySessionRecord.__table__),
+                cast(Table, MemoryCheckpointRecord.__table__),
             ],
         )
         self._schema_ready = True
@@ -389,6 +481,22 @@ class PostgresMemoryStore:
             metadata=dict(record.metadata_json or {}),
             created_at=self._ensure_utc(record.created_at),
             updated_at=self._ensure_utc(record.updated_at),
+        )
+
+    def _to_checkpoint_record(
+        self,
+        record: MemoryCheckpointRecord,
+    ) -> CheckpointRecord:
+        """Map a relational checkpoint record into the canonical model."""
+        return CheckpointRecord(
+            checkpoint_id=record.checkpoint_id,
+            project_id=record.project_id,
+            task_id=record.task_id,
+            run_id=record.run_id,
+            context_summary=dict(record.context_summary or {}),
+            resume_state=dict(record.resume_state or {}),
+            next_step_summary=record.next_step_summary,
+            created_at=self._ensure_utc(record.created_at),
         )
 
     def _to_search_result(

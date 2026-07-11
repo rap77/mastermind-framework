@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 from collections.abc import Awaitable
@@ -16,6 +17,7 @@ from mastermind_cli.memory_layer.store_postgres import (
     PostgresMemoryStore,
 )
 from mastermind_cli.memory_layer.models import (
+    CheckpointRecord,
     MemoryIndexPayload,
     MemoryItem,
     MemorySearchResult,
@@ -67,6 +69,57 @@ def test_save_and_get_item_round_trip(tmp_path: Path) -> None:
     assert fetched.project_id == "proj-001"
     assert fetched.tags == ["executions", "artifacts"]
     assert fetched.metadata == {"confidence": "high"}
+
+
+def test_checkpoint_round_trip_and_latest_selection(tmp_path: Path) -> None:
+    """Checkpoint persistence should round-trip and resolve the latest record."""
+    database_url = f"sqlite:///{tmp_path / 'memory_layer.db'}"
+    dispose_engines()
+    store = PostgresMemoryStore(database_url)
+
+    older = run_async(
+        store.save_checkpoint(
+            CheckpointRecord(
+                checkpoint_id="ckpt-old",
+                project_id="proj-001",
+                task_id="task-1",
+                run_id="run-1",
+                context_summary={"step": 1},
+                resume_state={"phase": "draft"},
+                next_step_summary="Earlier step.",
+                created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            )
+        )
+    )
+    newer = run_async(
+        store.save_checkpoint(
+            CheckpointRecord(
+                checkpoint_id="ckpt-new",
+                project_id="proj-001",
+                task_id="task-2",
+                run_id="run-2",
+                context_summary={"step": 2},
+                resume_state={"phase": "review"},
+                next_step_summary="Latest step.",
+                created_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            )
+        )
+    )
+
+    latest = run_async(store.get_latest_checkpoint("proj-001"))
+    task_1_latest = run_async(store.get_latest_checkpoint("proj-001", "task-1"))
+    recent = run_async(store.list_recent_checkpoints("proj-001", limit=10))
+
+    assert older.checkpoint_id == "ckpt-old"
+    assert newer.checkpoint_id == "ckpt-new"
+    assert latest is not None
+    assert latest.checkpoint_id == "ckpt-new"
+    assert task_1_latest is not None
+    assert task_1_latest.checkpoint_id == "ckpt-old"
+    assert [checkpoint.checkpoint_id for checkpoint in recent] == [
+        "ckpt-new",
+        "ckpt-old",
+    ]
 
 
 def test_save_item_upserts_saved_memory_into_index_provider(tmp_path: Path) -> None:

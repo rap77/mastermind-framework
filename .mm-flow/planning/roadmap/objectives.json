@@ -1,6 +1,151 @@
 [
   {
     "rank": 1,
+    "stable_id": "context-projection",
+    "slug": "context-projection",
+    "name": "Context Projection",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/context-projection.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 72,
+    "recommended_next": true,
+    "mvp": true,
+    "dependencies": [
+      "postgres-hybrid-data-model",
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/context-projection",
+      ".mm-flow/planning/changes/context-projection",
+      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 2,
+    "stable_id": "rust-control-plane-hardening",
+    "slug": "rust-control-plane-hardening",
+    "name": "Rust Control Plane Hardening",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane-hardening.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 70,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "backend-service-boundary-for-agents"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/rust-control-plane-hardening",
+      ".mm-flow/planning/changes/rust-control-plane-hardening",
+      "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 3,
+    "stable_id": "rust-control-plane",
+    "slug": "rust-control-plane",
+    "name": "Rust Control Plane",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 68,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/rust-control-plane",
+      ".mm-flow/planning/changes/rust-control-plane"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 4,
+    "stable_id": "observability-real-time-hub",
+    "slug": "observability-real-time-hub",
+    "name": "Observability Real Time Hub",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/observability-real-time-hub.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 66,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/observability-real-time-hub",
+      ".mm-flow/planning/changes/observability-real-time-hub"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 5,
+    "stable_id": "knowledge-distillation",
+    "slug": "knowledge-distillation",
+    "name": "Knowledge Distillation",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-distillation.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 62,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/knowledge-distillation",
+      ".mm-flow/planning/changes/knowledge-distillation"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 6,
+    "stable_id": "knowledge-ingestion-manual",
+    "slug": "knowledge-ingestion-manual",
+    "name": "Knowledge Ingestion Manual",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-ingestion-manual.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 60,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/knowledge-ingestion-manual",
+      ".mm-flow/planning/changes/knowledge-ingestion-manual"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 7,
     "stable_id": "project-state-mvp",
     "slug": "project-state-mvp",
     "name": "Project State Mvp",
@@ -8,7 +153,7 @@
     "status": "active",
     "ready_now": true,
     "priority_score": 40,
-    "recommended_next": true,
+    "recommended_next": false,
     "mvp": true,
     "dependencies": [],
     "why_it_matters": "Structured planning package already exists.",
@@ -22,7 +167,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 2,
+    "rank": 8,
     "stable_id": "backend-service-boundary-for-agents",
     "slug": "backend-service-boundary-for-agents",
     "name": "Backend Service Boundary For Agents",
@@ -46,7 +191,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 3,
+    "rank": 9,
     "stable_id": "postgres-hybrid-data-model",
     "slug": "postgres-hybrid-data-model",
     "name": "Postgres Hybrid Data Model",
@@ -70,7 +215,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 4,
+    "rank": 10,
     "stable_id": "engineering-doctrine-layer",
     "slug": "engineering-doctrine-layer",
     "name": "Engineering Doctrine Layer",
@@ -94,7 +239,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 5,
+    "rank": 11,
     "stable_id": "token-cost-quality-telemetry",
     "slug": "token-cost-quality-telemetry",
     "name": "Token Cost and Quality Telemetry",
@@ -118,7 +263,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 6,
+    "rank": 12,
     "stable_id": "collaboration-rbac",
     "slug": "collaboration-rbac",
     "name": "Collaboration and RBAC",
@@ -142,7 +287,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 7,
+    "rank": 13,
     "stable_id": "dashboard-realtime",
     "slug": "dashboard-realtime",
     "name": "Dashboard Realtime",
@@ -166,7 +311,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 8,
+    "rank": 14,
     "stable_id": "artifact-versioning-and-lineage",
     "slug": "artifact-versioning-and-lineage",
     "name": "Artifact Versioning and Lineage",
@@ -190,7 +335,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 9,
+    "rank": 15,
     "stable_id": "window-scheduler",
     "slug": "window-scheduler",
     "name": "Window Scheduler",
@@ -214,7 +359,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 10,
+    "rank": 16,
     "stable_id": "context-window-management",
     "slug": "context-window-management",
     "name": "Context Window Management",
@@ -231,145 +376,6 @@
     "evidence_sources": [
       ".mm-flow/planning/archive/objectives/context-window-management",
       "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 11,
-    "stable_id": "context-projection",
-    "slug": "context-projection",
-    "name": "Context Projection",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/context-projection.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 72,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "postgres-hybrid-data-model",
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/context-projection",
-      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 12,
-    "stable_id": "rust-control-plane-hardening",
-    "slug": "rust-control-plane-hardening",
-    "name": "Rust Control Plane Hardening",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane-hardening.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 70,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "backend-service-boundary-for-agents"
-    ],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/rust-control-plane-hardening",
-      "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 13,
-    "stable_id": "rust-control-plane",
-    "slug": "rust-control-plane",
-    "name": "Rust Control Plane",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rust-control-plane.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 68,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/rust-control-plane"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 14,
-    "stable_id": "observability-real-time-hub",
-    "slug": "observability-real-time-hub",
-    "name": "Observability Real Time Hub",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/observability-real-time-hub.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 66,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/observability-real-time-hub"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 15,
-    "stable_id": "knowledge-distillation",
-    "slug": "knowledge-distillation",
-    "name": "Knowledge Distillation",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-distillation.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 62,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/knowledge-distillation"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 16,
-    "stable_id": "knowledge-ingestion-manual",
-    "slug": "knowledge-ingestion-manual",
-    "name": "Knowledge Ingestion Manual",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/knowledge-ingestion-manual.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 60,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/knowledge-ingestion-manual"
     ],
     "gate_status": "NO_CANONICAL",
     "gate_guidance": "",

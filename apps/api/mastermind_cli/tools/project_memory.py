@@ -45,7 +45,7 @@ from mastermind_cli.memory_layer.indexing import create_memory_index_provider
 from mastermind_cli.memory_layer.models import MemoryItem
 from mastermind_cli.memory_layer.runtime import (
     build_graph_recall_from_env,
-    build_memory_store_from_env,
+    build_memory_service_from_env,
     build_vector_provider_from_env,
 )
 from mastermind_cli.memory_layer.service import MemoryService
@@ -176,12 +176,10 @@ async def _cmd_query(
     service: MemoryService | None = None,
 ) -> None:
     """Query project-scoped first-party memory results."""
-    memory_service = service or MemoryService(
-        build_memory_store_from_env(
-            _get_database_url(),
-            enable_vector=True,
-            enable_index=False,
-        )
+    memory_service = service or build_memory_service_from_env(
+        _get_database_url(),
+        enable_vector=True,
+        enable_index=False,
     )
     results = await memory_service.fetch_project_context(
         project_id=args.project_id,

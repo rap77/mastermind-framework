@@ -1,0 +1,60 @@
+{
+  "objective_slug": "memory-reranking-v1",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/todo.md",
+  "tasks": {
+    "RR1": {
+      "status": "completed",
+      "subtasks": {
+        "RR1.1": {
+          "description": "Execute RR1 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:21:17.227550",
+          "completed_at": "2026-07-09T22:21:17.328396",
+          "duration_seconds": 0.1,
+          "updated_at": "2026-07-09T22:21:17.328396"
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/todo.md"
+    },
+    "RR2": {
+      "status": "completed",
+      "subtasks": {
+        "RR2.1": {
+          "description": "Execute RR2 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:24:36.649246",
+          "completed_at": "2026-07-09T22:24:36.768053",
+          "duration_seconds": 0.12,
+          "updated_at": "2026-07-09T22:24:36.768053"
+        }
+      },
+      "started_at": "2026-07-09T22:24:36.649246",
+      "completed_at": "2026-07-09T22:24:36.768053",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/todo.md"
+    },
+    "RR3": {
+      "status": "completed",
+      "subtasks": {
+        "RR3.1": {
+          "description": "Execute RR3 end-to-end",
+          "status": "completed",
+          "started_at": "2026-07-09T22:27:41.102276",
+          "completed_at": "2026-07-09T22:27:41.216076",
+          "duration_seconds": 0.11,
+          "updated_at": "2026-07-09T22:27:41.216076"
+        }
+      },
+      "started_at": "2026-07-09T22:27:41.102276",
+      "completed_at": "2026-07-09T22:27:41.216076",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/memory-reranking-v1/todo.md"
+    }
+  },
+  "updated_at": "2026-07-09T22:27:41.216076",
+  "bootstrapped_from_artifacts": true
+}

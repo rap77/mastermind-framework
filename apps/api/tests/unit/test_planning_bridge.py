@@ -7,12 +7,17 @@ from pathlib import Path
 import pytest
 from pytest import MonkeyPatch
 
-from mastermind_cli.mm_flow.exceptions import PlanningManifestError
+from mastermind_cli.mm_flow.exceptions import PlanningBridgeError, PlanningManifestError
 from mastermind_cli.mm_flow.planning_bridge import PlanningBridge, StructuredStatus
 from mastermind_cli.mm_flow.project_adapter import ProjectAdapter
 
 
-def _write_planning_fixture(root: Path) -> None:
+def _write_planning_fixture(
+    root: Path,
+    *,
+    include_objective: bool = True,
+    include_next_command: bool = True,
+) -> None:
     (root / "aidlc-docs").mkdir(parents=True, exist_ok=True)
     (root / ".planning").mkdir(parents=True, exist_ok=True)
     (root / "aidlc-docs" / "aidlc-state.md").write_text(
@@ -39,23 +44,30 @@ def _write_planning_fixture(root: Path) -> None:
         ),
         encoding="utf-8",
     )
-    (root / ".planning" / "HANDOFF-CURRENT.md").write_text(
-        "\n".join(
+    handoff_lines = [
+        "# Handoff — unified harness + memory kickoff",
+        "",
+        "## Last archived",
+        "- `window-scheduler` — archived at 2026-06-21T19:23:46",
+        "",
+        "## Next recommended objective",
+    ]
+    if include_objective:
+        handoff_lines.extend(
             [
-                "# Handoff — unified harness + memory kickoff",
-                "",
-                "## Last archived",
-                "- `window-scheduler` — archived at 2026-06-21T19:23:46",
-                "",
-                "## Next recommended objective",
                 "- `harness-memory-unification` — unified harness + memory platform",
                 "- Build a reusable harness core plus memory layer, then bridge `.planning` into it through adapters.",
-                "",
-                "## Next command",
-                "- Review `aidlc-docs/inception/plans/harness-memory-roadmap.md` and define the project manifest.",
-                "",
             ]
-        ),
+        )
+    handoff_lines.append("")
+    handoff_lines.append("## Next command")
+    if include_next_command:
+        handoff_lines.append(
+            "- Review `aidlc-docs/inception/plans/harness-memory-roadmap.md` and define the project manifest."
+        )
+    handoff_lines.append("")
+    (root / ".planning" / "HANDOFF-CURRENT.md").write_text(
+        "\n".join(handoff_lines),
         encoding="utf-8",
     )
 
@@ -76,6 +88,19 @@ def test_planning_bridge_builds_normalized_harness_request(tmp_path: Path) -> No
         in request.constraints
     )
     assert request.warnings == ("planning_objective_differs_from_design_objective",)
+
+
+def test_planning_bridge_rejects_missing_planning_objective(tmp_path: Path) -> None:
+    """The bridge should stop when the handoff has no explicit objective."""
+    _write_planning_fixture(tmp_path, include_objective=False)
+
+    bridge = PlanningBridge(project_root=tmp_path)
+
+    with pytest.raises(
+        PlanningBridgeError,
+        match="Missing planning objective in handoff; bridge cannot continue",
+    ):
+        bridge.build_request()
 
 
 def test_planning_bridge_writes_structured_status(tmp_path: Path) -> None:
@@ -128,6 +153,31 @@ def test_planning_bridge_raises_domain_error_for_missing_fields(tmp_path: Path) 
 
     with pytest.raises(PlanningManifestError, match="Missing manifest fields"):
         bridge.load_manifest()
+
+
+def test_repo_manifest_matches_unified_harness_objective() -> None:
+    """The checked-in AI-DLC manifest should point at the active unified slice."""
+    repo_root = Path(__file__).resolve().parents[4]
+    bridge = PlanningBridge(project_root=repo_root)
+
+    manifest = bridge.load_manifest()
+
+    assert manifest.project_name == "MasterMind Unified Harness + Memory"
+    assert (
+        manifest.canonical_scope
+        == "reusable harness core, memory core, and project adapters"
+    )
+    assert manifest.source_of_truth_ai_dlc is True
+    assert manifest.source_of_truth_planning is True
+    assert manifest.active_objective == "manifest-contract-bridge-v1"
+    assert manifest.active_uow == "UOW-1"
+    assert manifest.project_root == repo_root
+    assert manifest.operational_layer == ".planning"
+    assert manifest.design_layer == "aidlc-docs"
+    assert (
+        manifest.bridge_contract
+        == "aidlc-docs/inception/plans/planning-bridge-contract.md"
+    )
 
 
 def test_project_adapter_exposes_repo_paths(tmp_path: Path) -> None:

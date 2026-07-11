@@ -108,15 +108,21 @@ def synthesize_execution_envelope(
         status = (
             "error" if recovery_decision.action in {"escalate", "stop"} else "warning"
         )
-    elif review_outcome is not None and not review_outcome.approved:
-        next_actions = [review_outcome.recommended_next_action]
-        status = "warning"
-    elif verification_outcome is not None and not verification_outcome.passed:
-        next_actions = ["patch"]
-        status = "warning"
-    else:
-        next_actions = ["continue"]
-        status = "success"
+    elif review_outcome is not None:
+        if review_outcome.approved:
+            next_actions = ["continue"]
+            status = "success"
+        else:
+            next_actions = [review_outcome.recommended_next_action]
+            status = "warning"
+    elif verification_outcome is not None:
+        if verification_outcome.passed:
+            if base_envelope.status != "warning":
+                next_actions = ["continue"]
+                status = "success"
+        else:
+            next_actions = ["patch"]
+            status = "warning"
 
     return ExecutionEnvelope(
         status=status,

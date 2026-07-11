@@ -1,36 +1,36 @@
 # Objective Roadmap
 
-_Generated: 2026-06-12T21:41:19_
+_Generated: 2026-07-10T20:07:04_
 
 ## Recommended next objective
 
-- `project-state-mvp`
-- Why: ready now, highest deterministic priority (40), unlocks 9 downstream objective(s).
+- `context-projection`
+- Why: ready now, highest deterministic priority (72), unlocks 0 downstream objective(s).
 
 ## Status summary
 
-- Active: 1
+- Active: 7
 - Planned/blocked: 7
-- Done: 45
+- Done: 39
 
 | Rank | Objective | Status | Ready Now | Gate | Priority | Recommended | MVP | Dependencies | Why it matters | Evidence |
 |---:|---|---|---|---|---:|---|---|---|---|---|
-| 1 | `project-state-mvp` | active | yes | n/a | 40 | yes | yes | — | Structured planning package already exists. | .mm-flow/planning/changes/project-state-mvp |
-| 2 | `backend-service-boundary-for-agents` | planned | yes | n/a | 95 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md |
-| 3 | `postgres-hybrid-data-model` | planned | yes | n/a | 92 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md |
-| 4 | `engineering-doctrine-layer` | planned | yes | n/a | 86 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md |
-| 5 | `token-cost-quality-telemetry` | planned | yes | n/a | 84 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md |
-| 6 | `collaboration-rbac` | planned | yes | n/a | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
-| 7 | `dashboard-realtime` | planned | yes | n/a | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
-| 8 | `artifact-versioning-and-lineage` | planned | yes | n/a | 40 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md |
-| 9 | `window-scheduler` | done | no | n/a | 76 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/window-scheduler, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md, docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md |
-| 10 | `context-window-management` | done | no | n/a | 74 | no | yes | window-scheduler | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-window-management, docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md |
-| 11 | `context-projection` | done | no | n/a | 72 | no | yes | postgres-hybrid-data-model, project-state-mvp | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-projection, docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md |
-| 12 | `rust-control-plane-hardening` | done | no | n/a | 70 | no | yes | backend-service-boundary-for-agents | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rust-control-plane-hardening, docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md |
-| 13 | `rust-control-plane` | done | no | n/a | 68 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rust-control-plane |
-| 14 | `observability-real-time-hub` | done | no | n/a | 66 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/observability-real-time-hub |
-| 15 | `knowledge-distillation` | done | no | n/a | 62 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-distillation |
-| 16 | `knowledge-ingestion-manual` | done | no | n/a | 60 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-ingestion-manual |
+| 1 | `context-projection` | active | yes | n/a | 72 | yes | yes | postgres-hybrid-data-model, project-state-mvp | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-projection, .mm-flow/planning/changes/context-projection, docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md |
+| 2 | `rust-control-plane-hardening` | active | yes | n/a | 70 | no | yes | backend-service-boundary-for-agents | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rust-control-plane-hardening, .mm-flow/planning/changes/rust-control-plane-hardening, docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md |
+| 3 | `rust-control-plane` | active | yes | n/a | 68 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rust-control-plane, .mm-flow/planning/changes/rust-control-plane |
+| 4 | `observability-real-time-hub` | active | yes | n/a | 66 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/observability-real-time-hub, .mm-flow/planning/changes/observability-real-time-hub |
+| 5 | `knowledge-distillation` | active | yes | n/a | 62 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-distillation, .mm-flow/planning/changes/knowledge-distillation |
+| 6 | `knowledge-ingestion-manual` | active | yes | n/a | 60 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-ingestion-manual, .mm-flow/planning/changes/knowledge-ingestion-manual |
+| 7 | `project-state-mvp` | active | yes | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/changes/project-state-mvp |
+| 8 | `backend-service-boundary-for-agents` | planned | yes | n/a | 95 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md |
+| 9 | `postgres-hybrid-data-model` | planned | yes | n/a | 92 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md |
+| 10 | `engineering-doctrine-layer` | planned | yes | n/a | 86 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md |
+| 11 | `token-cost-quality-telemetry` | planned | yes | n/a | 84 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md |
+| 12 | `collaboration-rbac` | planned | yes | n/a | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
+| 13 | `dashboard-realtime` | planned | yes | n/a | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
+| 14 | `artifact-versioning-and-lineage` | planned | yes | n/a | 40 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md |
+| 15 | `window-scheduler` | done | no | n/a | 76 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/window-scheduler, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md, docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md |
+| 16 | `context-window-management` | done | no | n/a | 74 | no | yes | window-scheduler | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-window-management, docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md |
 | 17 | `multi-channel-gateway` | done | no | n/a | 58 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/multi-channel-gateway |
 | 18 | `pgvector-schema-langsmith-foundation-paralelo` | done | no | n/a | 56 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/pgvector-schema-langsmith-foundation-paralelo |
 | 19 | `task-time-and-estimation` | done | no | n/a | 55 | no | yes | project-state-mvp | Structured planning package already exists. | .mm-flow/planning/archive/objectives/task-time-and-estimation, docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md |

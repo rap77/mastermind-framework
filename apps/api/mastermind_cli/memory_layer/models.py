@@ -172,6 +172,25 @@ class ContextSnapshot(BaseModel):
     )
 
 
+def build_latest_checkpoint_snapshot(
+    project_id: str,
+    checkpoint: CheckpointRecord,
+) -> ContextSnapshot:
+    """Build a minimal resume snapshot from the latest checkpoint."""
+    return ContextSnapshot(
+        project_id=project_id,
+        task_id=checkpoint.task_id,
+        checkpoints=[checkpoint],
+        summary=checkpoint.next_step_summary,
+        open_gaps=[],
+        applied_scopes={
+            "project_id": project_id,
+            "task_id": checkpoint.task_id,
+            "resume_source": "latest_checkpoint",
+        },
+    )
+
+
 RetrievalResult: TypeAlias = MemorySearchResult
 
 

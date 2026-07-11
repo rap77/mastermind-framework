@@ -9,16 +9,16 @@ IMAGE_NAME="mastermind-framework"
 
 echo "Building Docker image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 
-# Build image
-docker build -t ${REGISTRY}/${IMAGE_NAME}:${VERSION} .
+# Build image using the repo-level Dockerfile.
+docker build -f "../../docker/api/Dockerfile" -t "${REGISTRY}/${IMAGE_NAME}:${VERSION}" "."
 
 # Tag as latest
-docker tag ${REGISTRY}/${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:latest
+docker tag "${REGISTRY}/${IMAGE_NAME}:${VERSION}" "${REGISTRY}/${IMAGE_NAME}:latest"
 
 # Push to registry
 echo "Pushing to registry..."
-docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
-docker push ${REGISTRY}/${IMAGE_NAME}:latest
+docker push "${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+docker push "${REGISTRY}/${IMAGE_NAME}:latest"
 
 echo "✅ Deployment complete!"
 echo "Image: ${REGISTRY}/${IMAGE_NAME}:${VERSION}"

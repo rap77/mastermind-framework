@@ -16,6 +16,7 @@ from .planning_bridge import (
     PlanningBridgeError,
     PlanningBridge,
     PlanningManifestError,
+    PlanningIntent,
     ProjectManifest,
     StructuredStatus,
     build_default_planning_bridge,
@@ -179,6 +180,7 @@ class ProjectAdapter:
                         severity="error",
                     )
                 )
+        intent: PlanningIntent | None = None
         if not self.handoff_path.exists():
             items.append(
                 AdapterWarning(
@@ -191,6 +193,33 @@ class ProjectAdapter:
                     severity="warning",
                 )
             )
+        else:
+            try:
+                intent = self.planning_bridge.load_intent()
+            except (PlanningBridgeError, PlanningManifestError) as exc:
+                items.append(
+                    AdapterWarning(
+                        code="handoff_unparseable",
+                        message=(
+                            "Planning handoff could not be parsed: "
+                            f"{exc}. The bridge cannot continue."
+                        ),
+                        severity="error",
+                    )
+                )
+            else:
+                if not intent.active_objective:
+                    items.append(
+                        AdapterWarning(
+                            code="handoff_incomplete",
+                            message=(
+                                "Planning handoff does not declare an active "
+                                "objective; the bridge cannot continue until it is "
+                                "completed."
+                            ),
+                            severity="error",
+                        )
+                    )
         if not self.state_path.exists():
             items.append(
                 AdapterWarning(
