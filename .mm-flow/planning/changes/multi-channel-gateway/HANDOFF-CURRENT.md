@@ -6,15 +6,15 @@
 ## Decisions already made
 - Use a per-objective planning package instead of relying on a single root planning surface forever.
 - Another model should be able to resume from artifacts, not from chat memory alone.
-- The current Rust slice now uses a shared pending counter for queue depth/backpressure, and retry re-queues participate in the same accounting.
+- The follow-up slice is reliability semantics attached to the canonical inbound event contract, not a full gateway rebuild.
+- The canonical inbound contract already lives in `apps/api/routers/canonical_events.py` and its test coverage is the reference boundary.
 
 ## Blockers / risks
-- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
+- The package is narrow and should stay read-only / contract-first.
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
-- Static verification still matters here because the repo is under a no-build-after-changes constraint.
 
 ## Exact next recommended task
-- Archive this objective or open a narrower follow-up around queue reliability / canonical inbound verification.
+- Start with `T2` from `tasks.md`: attach reliability semantics to the canonical inbound contract.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective multi-channel-gateway`
