@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from routers.canonical_events import CanonicalInboundEvent, normalize_inbound_event
@@ -130,3 +132,57 @@ def test_normalize_rejects_unsupported_channel() -> None:
     """Unsupported channels fail fast with a descriptive error."""
     with pytest.raises(ValueError, match="Unsupported channel"):
         normalize_inbound_event("sms", {})
+
+
+def test_canonical_event_idempotency_key_is_stable() -> None:
+    """The dedupe key should stay stable across equivalent payload shapes."""
+    dict_payload = {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "value": {
+                            "messages": [
+                                {
+                                    "from": "15551234567",
+                                    "id": "wamid.example123",
+                                    "timestamp": "1712829600",
+                                    "text": {"body": "Hello from WhatsApp"},
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    json_payload = json.dumps(dict_payload)
+
+    dict_event = normalize_inbound_event("whatsapp", dict_payload)
+    json_event = normalize_inbound_event("whatsapp", json_payload)
+
+    assert dict_event.idempotency_key() == "whatsapp:wamid.example123"
+    assert dict_event.idempotency_key() == json_event.idempotency_key()
+
+
+def test_canonical_event_verification_digest_is_deterministic() -> None:
+    """The replay fingerprint should stay stable for the same normalized event."""
+    payload = {
+        "events": [
+            {
+                "sg_message_id": "sendgrid-msg-001",
+                "email": "sender@example.com",
+                "to": "ops@example.com",
+                "subject": "Hello",
+                "text": "Plain text body",
+                "timestamp": 1712829800,
+                "headers": {"References": "<thread@example.com>"},
+            }
+        ]
+    }
+
+    event_a = normalize_inbound_event("email", payload)
+    event_b = normalize_inbound_event("email", json.dumps(payload))
+
+    assert event_a.verification_digest() == event_b.verification_digest()
+    assert len(event_a.verification_digest()) == 64

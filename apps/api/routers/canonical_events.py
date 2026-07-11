@@ -31,6 +31,32 @@ class CanonicalInboundEvent(BaseModel):
     occurred_at_epoch_ms: int | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    def idempotency_key(self) -> str:
+        """Return the stable deduplication key for this canonical event."""
+        return f"{self.channel}:{self.external_message_id}"
+
+    def verification_digest(self) -> str:
+        """Return a deterministic fingerprint for replay / verification checks."""
+        canonical_payload = {
+            "channel": self.channel,
+            "content_text": self.content_text,
+            "external_message_id": self.external_message_id,
+            "media_url": self.media_url,
+            "message_type": self.message_type,
+            "metadata": self.metadata,
+            "occurred_at_epoch_ms": self.occurred_at_epoch_ms,
+            "recipient_id": self.recipient_id,
+            "sender_id": self.sender_id,
+            "thread_id": self.thread_id,
+        }
+        normalized = json.dumps(
+            canonical_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
 
 def normalize_inbound_event(
     channel: str,

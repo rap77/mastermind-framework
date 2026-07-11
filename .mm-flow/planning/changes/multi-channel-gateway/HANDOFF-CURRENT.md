@@ -14,7 +14,7 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- Start with `T2` from `tasks.md`: attach reliability semantics to the canonical inbound contract.
+- Start with `T3` from `tasks.md`: refresh handoff and archive the objective package when ready.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective multi-channel-gateway`
