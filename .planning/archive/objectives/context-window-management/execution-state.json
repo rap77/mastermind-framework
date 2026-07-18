@@ -1,0 +1,141 @@
+{
+  "objective_slug": "context-window-management",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Add failing unit tests for layered budget validation and canonical fit outcomes",
+          "status": "completed",
+          "started_at": "2026-07-17T23:48:24.858132",
+          "completed_at": "2026-07-17T23:48:55.339600",
+          "duration_seconds": 30.48,
+          "updated_at": "2026-07-17T23:48:55.339600"
+        },
+        "T1.2": {
+          "description": "Add immutable context budget and segment contracts beside the existing fit evaluator",
+          "status": "completed",
+          "started_at": "2026-07-17T23:49:05.646863",
+          "completed_at": "2026-07-17T23:49:40.806298",
+          "duration_seconds": 35.16,
+          "updated_at": "2026-07-17T23:49:40.806298"
+        },
+        "T1.3": {
+          "description": "Validate negative limits, required output capacity and missing capability profiles",
+          "status": "completed",
+          "started_at": "2026-07-17T23:49:40.918681",
+          "completed_at": "2026-07-17T23:50:01.197934",
+          "duration_seconds": 20.28,
+          "updated_at": "2026-07-17T23:50:01.197934"
+        }
+      },
+      "started_at": "2026-07-17T23:48:24.858132",
+      "completed_at": "2026-07-17T23:50:01.197934",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Add failing packer tests for priority ordering and optional-segment omission",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T23:56:38.128637"
+        },
+        "T2.2": {
+          "description": "Implement a pure packager that emits selected references and compression rationale",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T23:56:38.239839"
+        },
+        "T2.3": {
+          "description": "Validate that core and decision-critical segments cannot be silently discarded",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T23:56:38.347950"
+        }
+      },
+      "started_at": "2026-07-17T23:56:38.128637",
+      "completed_at": "2026-07-17T23:56:38.347950",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Add failing scheduler tests for clean, compression-required and blocked candidate fits",
+          "status": "completed",
+          "started_at": "2026-07-18T00:05:55.150931",
+          "completed_at": "2026-07-18T00:05:58.511715",
+          "duration_seconds": 3.36,
+          "updated_at": "2026-07-18T00:05:58.511715"
+        },
+        "T3.2": {
+          "description": "Compose context-fit and packing verdicts into the existing switch decision boundary",
+          "status": "completed",
+          "started_at": "2026-07-18T00:06:05.690159",
+          "completed_at": "2026-07-18T00:06:10.236821",
+          "duration_seconds": 4.55,
+          "updated_at": "2026-07-18T00:06:10.236821"
+        },
+        "T3.3": {
+          "description": "Preserve checkpoint references and switch rationale for context-safe resume",
+          "status": "completed",
+          "started_at": "2026-07-18T00:06:13.380497",
+          "completed_at": "2026-07-18T00:06:16.823392",
+          "duration_seconds": 3.44,
+          "updated_at": "2026-07-18T00:06:16.823392"
+        }
+      },
+      "started_at": "2026-07-18T00:05:55.150931",
+      "completed_at": "2026-07-18T00:06:16.823392",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/todo.md"
+    },
+    "T4": {
+      "status": "completed",
+      "subtasks": {
+        "T4.1": {
+          "description": "Add an integration scenario covering fit, packing, switch gate and resume references",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T00:12:51.423149"
+        },
+        "T4.2": {
+          "description": "Run context-fit and scheduler regressions with ruff and mypy checks",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T00:12:51.560431"
+        },
+        "T4.3": {
+          "description": "Reconcile canonical status and operator handoff with the validated evidence",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T00:12:51.669959"
+        }
+      },
+      "started_at": "2026-07-18T00:12:51.423149",
+      "completed_at": "2026-07-18T00:12:51.669959",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/context-window-management/todo.md"
+    }
+  },
+  "updated_at": "2026-07-18T00:12:51.669959",
+  "bootstrapped_from_artifacts": true
+}

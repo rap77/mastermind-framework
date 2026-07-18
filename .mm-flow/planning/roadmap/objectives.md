@@ -1,6 +1,8 @@
-# Objective Roadmap
+# Objective Roadmap (legacy mirror)
 
-_Generated: 2026-07-10T20:07:04_
+_Canonical active roadmap lives in `.planning/roadmap/objectives.md`._
+
+_Generated: 2026-07-12T19:21:58_
 
 ## Recommended next objective
 
@@ -9,9 +11,9 @@ _Generated: 2026-07-10T20:07:04_
 
 ## Status summary
 
-- Active: 7
+- Active: 8
 - Planned/blocked: 7
-- Done: 39
+- Done: 38
 
 | Rank | Objective | Status | Ready Now | Gate | Priority | Recommended | MVP | Dependencies | Why it matters | Evidence |
 |---:|---|---|---|---|---:|---|---|---|---|---|
@@ -21,23 +23,23 @@ _Generated: 2026-07-10T20:07:04_
 | 4 | `observability-real-time-hub` | active | yes | n/a | 66 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/observability-real-time-hub, .mm-flow/planning/changes/observability-real-time-hub |
 | 5 | `knowledge-distillation` | active | yes | n/a | 62 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-distillation, .mm-flow/planning/changes/knowledge-distillation |
 | 6 | `knowledge-ingestion-manual` | active | yes | n/a | 60 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/knowledge-ingestion-manual, .mm-flow/planning/changes/knowledge-ingestion-manual |
-| 7 | `project-state-mvp` | active | yes | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/changes/project-state-mvp |
-| 8 | `backend-service-boundary-for-agents` | planned | yes | n/a | 95 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md |
-| 9 | `postgres-hybrid-data-model` | planned | yes | n/a | 92 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md |
-| 10 | `engineering-doctrine-layer` | planned | yes | n/a | 86 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md |
-| 11 | `token-cost-quality-telemetry` | planned | yes | n/a | 84 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md |
-| 12 | `collaboration-rbac` | planned | yes | n/a | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
-| 13 | `dashboard-realtime` | planned | yes | n/a | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
-| 14 | `artifact-versioning-and-lineage` | planned | yes | n/a | 40 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md |
-| 15 | `window-scheduler` | done | no | n/a | 76 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/window-scheduler, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md, docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md |
-| 16 | `context-window-management` | done | no | n/a | 74 | no | yes | window-scheduler | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-window-management, docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md |
-| 17 | `multi-channel-gateway` | done | no | n/a | 58 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/multi-channel-gateway |
+| 7 | `multi-channel-gateway` | active | yes | n/a | 58 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/multi-channel-gateway, .mm-flow/planning/changes/multi-channel-gateway |
+| 8 | `rag-evaluation-gate` | active | yes | n/a | 54 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-evaluation-gate, .mm-flow/planning/changes/rag-evaluation-gate |
+| 9 | `backend-service-boundary-for-agents` | planned | yes | n/a | 95 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md |
+| 10 | `postgres-hybrid-data-model` | planned | yes | n/a | 92 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md |
+| 11 | `engineering-doctrine-layer` | planned | yes | n/a | 86 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md |
+| 12 | `token-cost-quality-telemetry` | planned | yes | n/a | 84 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md |
+| 13 | `collaboration-rbac` | planned | yes | n/a | 82 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md |
+| 14 | `dashboard-realtime` | planned | yes | n/a | 78 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md |
+| 15 | `artifact-versioning-and-lineage` | planned | yes | n/a | 40 | no | yes | project-state-mvp | Captured in canonical implementation docs. | docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md |
+| 16 | `window-scheduler` | done | no | n/a | 76 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/window-scheduler, docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md, docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md |
+| 17 | `context-window-management` | done | no | n/a | 74 | no | yes | window-scheduler | Structured planning package already exists. | .mm-flow/planning/archive/objectives/context-window-management, docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md |
 | 18 | `pgvector-schema-langsmith-foundation-paralelo` | done | no | n/a | 56 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/pgvector-schema-langsmith-foundation-paralelo |
 | 19 | `task-time-and-estimation` | done | no | n/a | 55 | no | yes | project-state-mvp | Structured planning package already exists. | .mm-flow/planning/archive/objectives/task-time-and-estimation, docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md |
-| 20 | `rag-evaluation-gate` | done | no | n/a | 54 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-evaluation-gate |
-| 21 | `rag-pilot-brain-1-only` | done | no | n/a | 53 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-pilot-brain-1-only |
-| 22 | `rag-scale-out-brains-2-7` | done | no | n/a | 52 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-scale-out-brains-2-7 |
-| 23 | `vertical-slice` | done | no | n/a | 50 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/vertical-slice |
+| 20 | `rag-pilot-brain-1-only` | done | no | n/a | 53 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-pilot-brain-1-only |
+| 21 | `rag-scale-out-brains-2-7` | done | no | n/a | 52 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/rag-scale-out-brains-2-7 |
+| 22 | `vertical-slice` | done | no | n/a | 50 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/vertical-slice |
+| 23 | `project-state-mvp` | done | no | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/changes/project-state-mvp |
 | 24 | `mastermind-cli` | done | no | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/mastermind-cli |
 | 25 | `mm-flow-cli` | done | no | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/mm-flow-cli |
 | 26 | `mm-harness-active-objective-coordination` | done | no | n/a | 40 | no | yes | — | Structured planning package already exists. | .mm-flow/planning/archive/objectives/mm-harness-active-objective-coordination |

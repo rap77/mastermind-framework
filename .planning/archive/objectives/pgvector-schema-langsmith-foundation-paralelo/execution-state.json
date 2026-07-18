@@ -1,0 +1,84 @@
+{
+  "objective_slug": "pgvector-schema-langsmith-foundation-paralelo",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/todo.md",
+  "tasks": {
+    "T1": {
+      "status": "completed",
+      "subtasks": {
+        "T1.1": {
+          "description": "Run the focused Phase 20 unit tests for foundation verification and LangSmith instrumentation.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:05:50.308681"
+        },
+        "T1.2": {
+          "description": "Generate the credential-free foundation report and compare its checks with archived tasks 20.01 through 20.25.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:05:50.465088"
+        }
+      },
+      "started_at": "2026-07-18T12:05:50.308681",
+      "completed_at": "2026-07-18T12:05:50.465088",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/todo.md"
+    },
+    "T2": {
+      "status": "completed",
+      "subtasks": {
+        "T2.1": {
+          "description": "Update the Phase 20 status in the canonical v3.2 roadmap from pending to complete using T1 evidence.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:06:33.382164"
+        },
+        "T2.2": {
+          "description": "Validate the reconciled package with the objective discovery contract check.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:06:33.562894"
+        }
+      },
+      "started_at": "2026-07-18T12:06:33.382164",
+      "completed_at": "2026-07-18T12:06:33.562894",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/todo.md"
+    },
+    "T3": {
+      "status": "completed",
+      "subtasks": {
+        "T3.1": {
+          "description": "Confirm the reconciled requirements, design, task plan, and validation evidence are complete.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:06:56.818448"
+        },
+        "T3.2": {
+          "description": "Verify required archive artifacts exist and the lifecycle can close the objective after T3 completes.",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-18T12:06:56.981734"
+        }
+      },
+      "started_at": "2026-07-18T12:06:56.818448",
+      "completed_at": "2026-07-18T12:06:56.981734",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/pgvector-schema-langsmith-foundation-paralelo/todo.md"
+    }
+  },
+  "updated_at": "2026-07-18T12:06:56.981734",
+  "bootstrapped_from_artifacts": true
+}

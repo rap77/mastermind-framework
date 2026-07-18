@@ -129,7 +129,20 @@ Defines:
 - likely files / areas touched
 - validation commands
 - acceptance checklists per task
+- exactly one non-empty `### Execution Subtasks` block per root task
+- authoritative unique root-task/subtask IDs, order, and descriptions
 - execution order
+
+Discovery packages intentionally omit synthetic execution children and remain non-executable scaffolds until explicitly refined with this topology. Discovery and execution use the same preferred planning surface, and normal rediscovery preserves existing refined artifacts and ledgers. During migration, an unmarked legacy package may derive topology only from explicit unique child IDs and non-placeholder descriptions scoped below the matching todo root. Every child-like line inside the selected root must match the legacy grammar; one malformed, duplicated, or unrecognized child invalidates the entire scoped topology. No fallback children are synthesized.
+
+### `execution-state.json`
+
+Defines:
+- durable task and subtask status
+- validated timestamps, durations, retries, and checkpoint metadata
+- objective-scoped execution history
+
+It does not own topology. Its task and subtask sets must match the current `tasks.md` contract exactly.
 
 ### `todo.md`
 
@@ -138,7 +151,27 @@ Defines:
 - task/subtask states (`[ ]`, `[~]`, `[x]`)
 - dependency hints
 - validation hints
-- the exact checklist consumed by `/mm:complete-task`
+- a projected operator view generated from plan topology and durable state
+
+### Execution authority and normalization
+
+The precedence is `tasks.md` topology/descriptions, then `execution-state.json` durable truth, then matching objective-scoped runtime advancement. `todo.md`, acceptance checkboxes, and handoff files are projections.
+
+Resume, checkpoint mutation, reset-stale, reconcile, and resync normalize durable/runtime entries to the exact resolved topology: removed entries are pruned, missing entries become `pending`, and parent state is recomputed. A previously completed parent reopens when a newly planned child is not complete. Fresh start and resume own the outer transaction across runtime, durable state, acceptance, todo, and handoff. Reconcile and stale reset use the same artifact boundary. Any reconcile, save, acceptance, projection, or readback failure restores the original bytes and exits nonzero. A reset with no stale child performs no normalization or projection writes. Resync consumes runtime evidence only through the normal validated loader and removes invalid runtime after successful recovery. Legacy runtimes that omit required primary fields such as `session_id` are rejected rather than interpreted by a weaker loader.
+
+Resync includes the global handoff in its transaction, reprojects acceptance after parent recomputation, and never deletes or normalizes runtime owned by another objective. Status validates every objective before writing and projects all objective todo/handoff files in one rollback boundary. Resume requires a valid durable ledger and fails read-only with a resync instruction when it is absent. Runtime timestamps must be parseable ISO datetimes with compatible offset-awareness.
+
+Completion and prior-task acceptance require an exact durable child set with every child and parent `completed`, plus written and read-back-verified acceptance, todo, and handoff projections. `TASK COMPLETE` is emitted only after those checks. Any malformed checkbox-like criterion invalidates the complete acceptance block and prevents partial projection. Checkpoint persistence/projection failures restore runtime, ledger, acceptance, todo, and objective handoff bytes; durable seeding precedes runtime initialization and launch.
+
+Todo is an exact deterministic projection of current topology and durable status, not a patch over stale lines. Exactly one `## Execution Checklist` is allowed; duplicates fail before mutation. Objective artifact paths (`tasks.md`, `todo.md`, `execution-state.json`, `HANDOFF-CURRENT.md`) must resolve within the objective directory; symlink escapes are rejected before I/O.
+
+For unmarked legacy packages, todo contributes IDs and descriptions only. Checkbox state never seeds durable completion; new entries start pending unless valid durable or matching runtime evidence advances them.
+
+Git commits are never execution evidence. Exact objective-scoped conventional subjects may be reported informationally, but no Git history path can promote runtime or durable state.
+
+All mutating complete-task CLI modes serialize through a nonblocking `fcntl.flock` file under the active planning directory. Lock contention fails before mutation. Since status can project todo/handoff, it is locked; brief and help remain unlocked. Explicit `--continue` requires an existing runtime checkpoint and never falls through to fresh start.
+
+Notification delivery and `completion_notified_at` are best-effort operational metadata, not execution truth. Metadata persistence uses atomic replacement; failure warns without traceback or invalid JSON and does not roll back verified durable completion.
 
 ### `HANDOFF-CURRENT.md`
 
@@ -213,7 +246,7 @@ Current command:
 Current script behind it:
 
 ```bash
-python3 .claude/commands/mm/discover-contract-check.py
+python3 .mm-flow/commands/mm/discover-contract-check.py --objective <objective>
 ```
 
 ### What it validates
@@ -301,6 +334,12 @@ Performed by the execution flow through targeted tests, review, and safe-commit.
 ### B. Objective-level completion review
 When all tasks in the objective are done, create a completion summary and archive the objective package.
 
+Current command:
+
+```bash
+/mm:archive-objective <objective>
+```
+
 Recommended archive result:
 
 ```text
@@ -322,6 +361,14 @@ After archiving the completed objective:
 2. generate or refresh its package
 3. validate it
 4. execute it
+
+Current activation command:
+
+```bash
+/mm:activate-next-objective
+```
+
+Do not manually choose or mark the next objective active before archival.
 
 This prevents the active planning surface from becoming an unmanageable pile of stale specs.
 

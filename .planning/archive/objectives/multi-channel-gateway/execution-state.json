@@ -1,0 +1,240 @@
+{
+  "objective_slug": "multi-channel-gateway",
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md",
+  "tasks": {
+    "MCG0": {
+      "status": "completed",
+      "subtasks": {
+        "MCG0.1": {
+          "description": "Add messaging module and validated config owner",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG0.2": {
+          "description": "Add dedicated non-skipping PostgreSQL test helper",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG0.3": {
+          "description": "Validate disabled/enabled/failing config cases",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG1": {
+      "status": "completed",
+      "subtasks": {
+        "MCG1.1": {
+          "description": "Write shared valid/invalid WhatsApp text fixtures",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG1.2": {
+          "description": "Add schema v1 and align Python/Rust models",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG1.3": {
+          "description": "Run cross-language contract validation",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG2": {
+      "status": "completed",
+      "subtasks": {
+        "MCG2.1": {
+          "description": "Write GET challenge and raw-byte signature tests",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG2.2": {
+          "description": "Add exact feature-gated GET/POST handlers",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        },
+        "MCG2.3": {
+          "description": "Validate invalid requests cannot cross the boundary",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": null
+        }
+      },
+      "started_at": null,
+      "completed_at": null,
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG3": {
+      "status": "completed",
+      "subtasks": {
+        "MCG3.1": {
+          "description": "Write schema, concurrency and missing-database tests",
+          "status": "completed",
+          "started_at": "2026-07-14T20:04:30.247555",
+          "completed_at": "2026-07-14T20:08:24.948044",
+          "duration_seconds": 234.7,
+          "updated_at": "2026-07-14T20:08:24.948044"
+        },
+        "MCG3.2": {
+          "description": "Add messaging migration 001 and insert-or-get repository",
+          "status": "completed",
+          "started_at": "2026-07-14T20:08:25.118404",
+          "completed_at": "2026-07-14T20:09:58.397290",
+          "duration_seconds": 93.28,
+          "updated_at": "2026-07-14T20:09:58.397290"
+        },
+        "MCG3.3": {
+          "description": "Validate data minimization and retention expiry",
+          "status": "completed",
+          "started_at": "2026-07-14T20:09:58.551093",
+          "completed_at": "2026-07-14T20:15:34.534874",
+          "duration_seconds": 335.98,
+          "updated_at": "2026-07-14T20:15:34.534874"
+        }
+      },
+      "started_at": "2026-07-14T20:04:30.247555",
+      "completed_at": "2026-07-14T20:15:34.534874",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG4": {
+      "status": "completed",
+      "subtasks": {
+        "MCG4.1": {
+          "description": "Write endpoint happy/duplicate/unsupported tests",
+          "status": "completed",
+          "started_at": "2026-07-14T20:26:00.046757",
+          "completed_at": "2026-07-14T20:29:10.634217",
+          "duration_seconds": 190.59,
+          "updated_at": "2026-07-14T20:29:10.634217"
+        },
+        "MCG4.2": {
+          "description": "Connect verification, adapter and repository",
+          "status": "completed",
+          "started_at": "2026-07-14T20:29:10.793687",
+          "completed_at": "2026-07-14T20:32:24.585770",
+          "duration_seconds": 193.79,
+          "updated_at": "2026-07-14T20:32:24.585770"
+        },
+        "MCG4.3": {
+          "description": "Assert queue/gRPC/AI/outbound remain untouched",
+          "status": "completed",
+          "started_at": "2026-07-14T20:32:24.750629",
+          "completed_at": "2026-07-14T20:40:44.920927",
+          "duration_seconds": 500.17,
+          "updated_at": "2026-07-14T20:40:44.920927"
+        }
+      },
+      "started_at": "2026-07-14T20:26:00.046757",
+      "completed_at": "2026-07-14T20:40:44.920927",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG5": {
+      "status": "completed",
+      "subtasks": {
+        "MCG5.1": {
+          "description": "Add ten-request concurrency and restart tests",
+          "status": "completed",
+          "started_at": "2026-07-14T20:48:21.610521",
+          "completed_at": "2026-07-14T20:50:04.179878",
+          "duration_seconds": 102.57,
+          "updated_at": "2026-07-14T20:50:04.179878"
+        },
+        "MCG5.2": {
+          "description": "Add persistence/readiness failure tests",
+          "status": "completed",
+          "started_at": "2026-07-14T20:50:04.342081",
+          "completed_at": "2026-07-14T20:51:54.137508",
+          "duration_seconds": 109.8,
+          "updated_at": "2026-07-14T20:51:54.137508"
+        },
+        "MCG5.3": {
+          "description": "Validate safe metrics and PII-free logs",
+          "status": "completed",
+          "started_at": "2026-07-14T20:51:54.291165",
+          "completed_at": "2026-07-14T21:15:13.527950",
+          "duration_seconds": 1399.24,
+          "updated_at": "2026-07-14T21:15:13.527950"
+        }
+      },
+      "started_at": "2026-07-14T20:48:21.610521",
+      "completed_at": "2026-07-14T21:15:13.527950",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    },
+    "MCG6": {
+      "status": "completed",
+      "subtasks": {
+        "MCG6.1": {
+          "description": "Link implementation evidence and update canonical status",
+          "status": "completed",
+          "started_at": "2026-07-14T22:07:22.569931",
+          "completed_at": "2026-07-14T22:09:29.510839",
+          "duration_seconds": 126.94,
+          "updated_at": "2026-07-14T22:09:29.510839"
+        },
+        "MCG6.2": {
+          "description": "Preserve deferred work and next slice",
+          "status": "completed",
+          "started_at": "2026-07-14T22:09:46.005901",
+          "completed_at": "2026-07-14T22:10:21.205708",
+          "duration_seconds": 35.2,
+          "updated_at": "2026-07-14T22:10:21.205708"
+        },
+        "MCG6.3": {
+          "description": "Run discovery contract check",
+          "status": "completed",
+          "started_at": "2026-07-14T22:10:21.362999",
+          "completed_at": "2026-07-14T22:15:08.125112",
+          "duration_seconds": 286.76,
+          "updated_at": "2026-07-14T22:15:08.125112"
+        }
+      },
+      "started_at": "2026-07-14T22:07:22.569931",
+      "completed_at": "2026-07-14T22:15:08.125112",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/multi-channel-gateway/todo.md"
+    }
+  },
+  "updated_at": "2026-07-14T22:40:45.140678",
+  "bootstrapped_from_artifacts": true
+}

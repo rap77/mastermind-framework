@@ -1,5 +1,27 @@
 schema_version: '1'
 routing_cases:
+- case_id: adaptive-delivery-basic
+  prompt: Deliver an approved objective through domain adapter capabilities
+  objective_profile:
+    objective_id: adaptive-delivery-basic
+    complexity: medium
+    risk_level: medium
+    requires_fresh_context: false
+    requires_memory: false
+    requires_mcp: false
+    domain: delivery
+    phase: implementation
+    output_type: artifact
+    verifiability: medium
+    requires_write: true
+    requires_review: false
+    requires_recovery: false
+  expected_primary_harness: adaptive-delivery-lead
+  expected_supporting_harnesses: []
+  expected_skills: []
+  forbidden_skills: []
+  expected_references: []
+  max_context_budget: 4000
 - case_id: software-implementation-basic
   prompt: Implement a safe API change
   objective_profile:

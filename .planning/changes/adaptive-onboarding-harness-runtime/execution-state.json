@@ -1,0 +1,19 @@
+{
+  "objective_slug": "adaptive-onboarding-harness-runtime",
+  "status": "planned",
+  "active_task": null,
+  "plan_path": ".planning/changes/adaptive-onboarding-harness-runtime/tasks.md",
+  "todo_path": ".planning/changes/adaptive-onboarding-harness-runtime/todo.md",
+  "tasks": {
+    "AOH1": {"status": "pending", "depends_on": ["domain-security-assurance-plane", "harness-stage-execution-runtime"]},
+    "AOH2": {"status": "pending", "depends_on": ["AOH1"]},
+    "AOH3": {"status": "pending", "depends_on": ["AOH2"]},
+    "AOH4": {"status": "pending", "depends_on": ["AOH3"]},
+    "AOH5": {"status": "pending", "depends_on": ["AOH4"]},
+    "AOH6": {"status": "pending", "depends_on": ["AOH5"]},
+    "AOH7": {"status": "pending", "depends_on": ["AOH6"]},
+    "AOH8": {"status": "pending", "depends_on": ["AOH7"]}
+  },
+  "updated_at": "2026-07-14T00:00:00Z",
+  "bootstrapped_from_artifacts": false
+}

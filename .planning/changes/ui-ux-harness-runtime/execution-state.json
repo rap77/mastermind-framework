@@ -1,0 +1,19 @@
+{
+  "objective_slug": "ui-ux-harness-runtime",
+  "status": "planned",
+  "active_task": null,
+  "plan_path": ".planning/changes/ui-ux-harness-runtime/tasks.md",
+  "todo_path": ".planning/changes/ui-ux-harness-runtime/todo.md",
+  "tasks": {
+    "UXH1": {"status": "pending", "depends_on": ["harness-stage-execution-runtime"]},
+    "UXH2": {"status": "pending", "depends_on": ["UXH1"]},
+    "UXH3": {"status": "pending", "depends_on": ["UXH2"]},
+    "UXH4": {"status": "pending", "depends_on": ["UXH3", "harness-stage-execution-runtime"]},
+    "UXH5": {"status": "pending", "depends_on": ["UXH4"]},
+    "UXH6": {"status": "pending", "depends_on": ["UXH5"]},
+    "UXH7": {"status": "pending", "depends_on": ["UXH6"]},
+    "UXH8": {"status": "pending", "depends_on": ["UXH7"]}
+  },
+  "updated_at": "2026-07-14T00:00:00Z",
+  "bootstrapped_from_artifacts": false
+}

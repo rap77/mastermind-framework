@@ -84,22 +84,28 @@ Selecciona el harness correcto y luego aplica el loop mínimo suficiente.
 - contract outline
 - implementation boundaries
 
-### 3.5 Implementation Harness
+### 3.5 Adaptive Delivery Harness
 
-**Uso:** ejecutar slices de código con pruebas, commits y verificación.
+**Uso:** ejecutar DeliveryUnits trazables mediante domain adapters, producción,
+verificación, integración, review y recovery.
+
+`Implementation Harness` permanece como alias de compatibilidad para software.
+La implementación concreta de código pertenece al `software-delivery` adapter,
+no al core universal.
 
 **Entradas típicas:**
 
-- design
-- task slice
+- approved delivery intent
+- delivery unit o task slice
 - acceptance criteria
+- domain adapter
 
 **Salidas típicas:**
 
-- code changes
-- tests
-- commit-ready diff
-- implementation notes
+- produced artifacts
+- unit e integration evidence
+- acceptance verdict
+- delivery/recovery notes
 
 ### 3.6 Verification Harness
 

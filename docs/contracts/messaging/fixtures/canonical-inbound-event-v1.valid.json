@@ -1,0 +1,17 @@
+{
+  "schema_version": "messaging.inbound.v1",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "channel": "whatsapp",
+  "account_external_id": "test-phone-number-id",
+  "external_message_id": "wamid.test-message-001",
+  "direction": "inbound",
+  "sender_external_id": "test-sender-id",
+  "recipient_external_id": "test-phone-number-id",
+  "message_type": "text",
+  "content_text": "Hello from the shared contract fixture",
+  "occurred_at": "2024-04-11T10:00:00Z",
+  "received_at": "2024-04-11T10:00:01Z",
+  "payload_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "processing_status": "accepted",
+  "retention_expires_at": "2024-05-11T10:00:01Z"
+}

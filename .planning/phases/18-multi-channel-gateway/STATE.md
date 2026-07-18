@@ -1,5 +1,8 @@
 # Phase 18 State Tracker — Multi-channel Gateway
 
+> **Historical phase tracker.** It is not the active execution ledger. Current
+> authority is `.planning/changes/multi-channel-gateway/execution-state.json`.
+
 **Phase Number:** 18
 **Status:** ⚠️ EXECUTION_COMPLETE_WITH_GAPS
 **Verification Status:** ⚠️ VERIFICATION_PASSED (20/28 truths, 15 gaps identified)

@@ -1,0 +1,18 @@
+{
+  "objective_slug": "software-delivery-domain-adapter",
+  "status": "planned",
+  "active_task": null,
+  "plan_path": ".planning/changes/software-delivery-domain-adapter/tasks.md",
+  "todo_path": ".planning/changes/software-delivery-domain-adapter/todo.md",
+  "tasks": {
+    "SDA1": {"status": "pending", "depends_on": ["adaptive-delivery-harness-runtime", "harness-stage-execution-runtime", "domain-security-assurance-plane"]},
+    "SDA2": {"status": "pending", "depends_on": ["SDA1"]},
+    "SDA3": {"status": "pending", "depends_on": ["SDA2"]},
+    "SDA4": {"status": "pending", "depends_on": ["SDA3"]},
+    "SDA5": {"status": "pending", "depends_on": ["SDA4"]},
+    "SDA6": {"status": "pending", "depends_on": ["SDA5"]},
+    "SDA7": {"status": "pending", "depends_on": ["SDA6"]}
+  },
+  "updated_at": "2026-07-14T00:00:00Z",
+  "bootstrapped_from_artifacts": false
+}

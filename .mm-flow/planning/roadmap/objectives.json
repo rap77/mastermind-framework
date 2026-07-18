@@ -146,19 +146,20 @@
   },
   {
     "rank": 7,
-    "stable_id": "project-state-mvp",
-    "slug": "project-state-mvp",
-    "name": "Project State Mvp",
-    "summary": "Planning package present in .mm-flow/planning/changes/project-state-mvp.",
+    "stable_id": "multi-channel-gateway",
+    "slug": "multi-channel-gateway",
+    "name": "Multi Channel Gateway",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/multi-channel-gateway.",
     "status": "active",
     "ready_now": true,
-    "priority_score": 40,
+    "priority_score": 58,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [],
     "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      ".mm-flow/planning/changes/project-state-mvp"
+      ".mm-flow/planning/archive/objectives/multi-channel-gateway",
+      ".mm-flow/planning/changes/multi-channel-gateway"
     ],
     "gate_status": "NO_CANONICAL",
     "gate_guidance": "",
@@ -168,6 +169,29 @@
   },
   {
     "rank": 8,
+    "stable_id": "rag-evaluation-gate",
+    "slug": "rag-evaluation-gate",
+    "name": "Rag Evaluation Gate",
+    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rag-evaluation-gate.",
+    "status": "active",
+    "ready_now": true,
+    "priority_score": 54,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/archive/objectives/rag-evaluation-gate",
+      ".mm-flow/planning/changes/rag-evaluation-gate"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 9,
     "stable_id": "backend-service-boundary-for-agents",
     "slug": "backend-service-boundary-for-agents",
     "name": "Backend Service Boundary For Agents",
@@ -191,7 +215,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 9,
+    "rank": 10,
     "stable_id": "postgres-hybrid-data-model",
     "slug": "postgres-hybrid-data-model",
     "name": "Postgres Hybrid Data Model",
@@ -215,7 +239,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 10,
+    "rank": 11,
     "stable_id": "engineering-doctrine-layer",
     "slug": "engineering-doctrine-layer",
     "name": "Engineering Doctrine Layer",
@@ -239,7 +263,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 11,
+    "rank": 12,
     "stable_id": "token-cost-quality-telemetry",
     "slug": "token-cost-quality-telemetry",
     "name": "Token Cost and Quality Telemetry",
@@ -263,7 +287,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 12,
+    "rank": 13,
     "stable_id": "collaboration-rbac",
     "slug": "collaboration-rbac",
     "name": "Collaboration and RBAC",
@@ -287,7 +311,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 13,
+    "rank": 14,
     "stable_id": "dashboard-realtime",
     "slug": "dashboard-realtime",
     "name": "Dashboard Realtime",
@@ -311,7 +335,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 14,
+    "rank": 15,
     "stable_id": "artifact-versioning-and-lineage",
     "slug": "artifact-versioning-and-lineage",
     "name": "Artifact Versioning and Lineage",
@@ -335,7 +359,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 15,
+    "rank": 16,
     "stable_id": "window-scheduler",
     "slug": "window-scheduler",
     "name": "Window Scheduler",
@@ -359,7 +383,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 16,
+    "rank": 17,
     "stable_id": "context-window-management",
     "slug": "context-window-management",
     "name": "Context Window Management",
@@ -376,28 +400,6 @@
     "evidence_sources": [
       ".mm-flow/planning/archive/objectives/context-window-management",
       "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 17,
-    "stable_id": "multi-channel-gateway",
-    "slug": "multi-channel-gateway",
-    "name": "Multi Channel Gateway",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/multi-channel-gateway.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 58,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/multi-channel-gateway"
     ],
     "gate_status": "NO_CANONICAL",
     "gate_guidance": "",
@@ -454,28 +456,6 @@
   },
   {
     "rank": 20,
-    "stable_id": "rag-evaluation-gate",
-    "slug": "rag-evaluation-gate",
-    "name": "Rag Evaluation Gate",
-    "summary": "Planning package present in .mm-flow/planning/archive/objectives/rag-evaluation-gate.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 54,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Structured planning package already exists.",
-    "evidence_sources": [
-      ".mm-flow/planning/archive/objectives/rag-evaluation-gate"
-    ],
-    "gate_status": "NO_CANONICAL",
-    "gate_guidance": "",
-    "gate_artifact": null,
-    "recommended_blocked_fallback": false,
-    "unblock_priority_reason": ""
-  },
-  {
-    "rank": 21,
     "stable_id": "rag-pilot-brain-1-only",
     "slug": "rag-pilot-brain-1-only",
     "name": "Rag Pilot Brain 1 Only",
@@ -497,7 +477,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 22,
+    "rank": 21,
     "stable_id": "rag-scale-out-brains-2-7",
     "slug": "rag-scale-out-brains-2-7",
     "name": "Rag Scale Out Brains 2 7",
@@ -519,7 +499,7 @@
     "unblock_priority_reason": ""
   },
   {
-    "rank": 23,
+    "rank": 22,
     "stable_id": "vertical-slice",
     "slug": "vertical-slice",
     "name": "Vertical Slice",
@@ -533,6 +513,28 @@
     "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
       ".mm-flow/planning/archive/objectives/vertical-slice"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 23,
+    "stable_id": "project-state-mvp",
+    "slug": "project-state-mvp",
+    "name": "Project State Mvp",
+    "summary": "Planning package present in .mm-flow/planning/changes/project-state-mvp.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".mm-flow/planning/changes/project-state-mvp"
     ],
     "gate_status": "NO_CANONICAL",
     "gate_guidance": "",

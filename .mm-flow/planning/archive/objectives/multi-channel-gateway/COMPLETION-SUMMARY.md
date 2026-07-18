@@ -1,5 +1,9 @@
 # Completion Summary — multi-channel-gateway
 
+> **Superseded legacy mirror.** This 2026-06-06 archive did not close the current
+> authoritative objective. Use `.planning/changes/multi-channel-gateway/`; do not
+> infer production readiness or run commands from this snapshot.
+
 - Archived at: 2026-06-06T22:29:23
 - Completion basis: todo.md shows all checklist items completed
 - Source moved from: /home/rpadron/proy/mastermind/.mm-flow/planning/changes/multi-channel-gateway

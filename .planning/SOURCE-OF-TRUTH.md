@@ -3,7 +3,7 @@
 > **Este archivo es la fuente operativa de verdad del proyecto.**
 > Para narrativa, visión y arquitectura canónica de largo plazo, ver `docs/canonical/README.md`.
 > Reemplaza operativamente: `PROJECT.md`, `STATE.md`, `ROADMAP.md`
-> Última actualización: 2026-05-12
+> Última actualización: 2026-07-14
 
 ---
 
@@ -43,11 +43,11 @@ A cognitive architecture framework for building specialized AI-powered solutions
 ```yaml
 milestone: v3.0
 current_phase: 19
-overall_status: VERIFICATION_COMPLETE   # all 6 phases (13-18) complete
+overall_status: SLICE_CLOSURE_PENDING_ARCHIVE
 last_action:
   actor: "Verification Update (2026-04-15)"
   what: "Updated all verification reports — 818/827 Python (99.0%), 628/628 TypeScript, 0 Rust errors"
-  next_step: "Phase 19-05 execution or v3.1 milestone planning"
+  next_step: "Archive multi-channel-gateway, then activate the next objective through the dedicated command"
 ```
 
 | Phase | Name | Plans | Status | Date |
@@ -57,8 +57,8 @@ last_action:
 | 15 | Rust Control Plane | 6/4 | ✅ COMPLETE | 2026-04-07 |
 | 16 | Observability + Real-time Hub | 7/7 | ✅ COMPLETE | — |
 | 17 | UI Evolution | — | ✅ COMPLETE | — |
-| 18 | Multi-channel Gateway | 10/10 | ✅ COMPLETE | 2026-04-11 |
-| 19 | MM-Flow + Audit Trail | 4/5 | 🔄 IN PROGRESS | — |
+| 18 | Multi-channel Gateway | legacy 10/10 | ⚠️ HISTORICAL CLAIM; canonical ingest slice validated, broader gateway deferred | 2026-07-14 reconciliation |
+| 19 | MM-Flow + Audit Trail | 5/5 | ✅ COMPLETE | 2026-04-26 |
 
 **Phase 19 detail:**
 
@@ -68,7 +68,7 @@ last_action:
 | 19-02 | CLI Skills Bridge (FASE 2) | ✅ COMPLETE — 2026-04-14 |
 | 19-03 | Context Persistence (FASE 3) | ✅ COMPLETE — 2026-04-14 |
 | 19-04 | Audit Trail + JWT (FASE 4) | ✅ COMPLETE — 2026-04-14 |
-| 19-05 | (next) | 🔄 PENDING |
+| 19-05 | Phase 19 formal closure | ✅ COMPLETE |
 
 **Blocker:** Phase 20 requires Phase 19 completion.
 
@@ -108,11 +108,11 @@ last_action:
 - ✓ **OBS** (OBS-01) — Observability: structured logging + distributed tracing — v3.0 Phase 16
 - ✓ **RTU** (RTU-01) — Real-time Hub: Rust WebSocket — v3.0 Phase 16
 - ✓ **UIE** (UIE-01–UIE-03) — UI Evolution: Paperclip patterns in Next.js — v3.0 Phase 17
-- ✓ **MCG** (MCG-01) — Multi-channel Gateway: WhatsApp + Instagram + Email — v3.0 Phase 18
+- ◐ **MCG** (MCG-01) — WhatsApp canonical inbound text slice implemented/tested; broader channels, outbound, inbox/read APIs and data lifecycle remain deferred
 
-### Active (v3.0 Phase 19)
+### Active objective
 
-- [ ] **MM-Flow 19-05** — Next plan in Phase 19 (TBD)
+- [~] **multi-channel-gateway** — MCG0-MCG6 complete; archive next, production rollout disabled
 
 ### Deferred (v3.1+)
 
@@ -198,25 +198,32 @@ last_action:
 
 ---
 
-#### Phase 18: Multi-channel Gateway ✅ COMPLETE (2026-04-11)
+#### Phase 18: Multi-channel Gateway ⚠️ HISTORICAL COMPLETION CLAIM RECONCILED (2026-07-14)
 
 **Goal:** Unified inbox across WhatsApp + Instagram + Email with webhook reliability.
 
-**Plans:** 10/10 complete (18-01 through 18-10, including 3 gap-closure plans).
+**Historical plans:** 18-01 through 18-10 produced parsers, senders, queue/DLQ
+scaffolding and an inbox shell, but those artifacts do not prove the broad runtime
+claim below. The authoritative active package is
+`.planning/changes/multi-channel-gateway/`.
 
-**Success Criteria (met):**
-1. WhatsApp Business Cloud API + Instagram Graph API + Email (aiosmtplib) — Rust handles webhooks + routing, Python handles AI
-2. Webhook queue with DLQ (dead letter queue), exponential backoff — no dropped messages
-3. Unified inbox UI across all channels
-4. Channel Router brain agent selects optimal channel for responses
+**Proven now:** secure WhatsApp inbound text normalization, atomic PostgreSQL
+deduplication, durable accepted state before ACK, fail-closed readiness, and safe
+observability. `WHATSAPP_CANONICAL_INGEST_ENABLED=false` remains the default.
+
+**Not proven / deferred:** Instagram and Email ingress, outbound delivery, unified
+inbox and message-read APIs, durable dispatcher/worker recovery, deletion worker,
+subject access, application-level encryption, production retention approval and
+at-rest verification. Therefore this is implementation/test completion of one
+slice, not production enablement or completion of the original broad MCG-01 claim.
 
 ---
 
-#### Phase 19: MM-Flow + Audit Trail 🔄 IN PROGRESS
+#### Phase 19: MM-Flow + Audit Trail ✅ COMPLETE
 
 **Goal:** MM-Flow infrastructure, CLI Skills Bridge, Context Persistence, and Audit Trail + JWT.
 
-**Plans:** 4/5 complete.
+**Plans:** 5/5 complete.
 
 | Plan | Status |
 |------|--------|
@@ -224,7 +231,7 @@ last_action:
 | 19-02 CLI Skills Bridge | ✅ COMPLETE |
 | 19-03 Context Persistence | ✅ COMPLETE |
 | 19-04 Audit Trail + JWT | ✅ COMPLETE |
-| 19-05 (next) | 🔄 PENDING |
+| 19-05 (closure) | ✅ COMPLETE |
 
 **Key decisions from Phase 19:**
 - **TDD for audit auth enforcement:** RED phase (26 failing tests) → GREEN phase (13 routes) ensures complete coverage
@@ -255,9 +262,10 @@ last_action:
 | UIE-01 | Phase 17 | ✅ Complete |
 | UIE-02 | Phase 17 | ✅ Complete |
 | UIE-03 | Phase 17 | ✅ Complete |
-| MCG-01 | Phase 18 | ✅ Complete |
+| MCG-01 | Phase 18 | ◐ Canonical WhatsApp ingest slice validated; broad gateway deferred |
 
-**Coverage:** 15/15 requirements mapped and delivered ✓
+**Coverage:** 15/15 historical requirements mapped. Delivery status is per-row;
+MCG-01 remains partial beyond the validated canonical WhatsApp ingest slice.
 
 ---
 

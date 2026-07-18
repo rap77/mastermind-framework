@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -409,6 +410,57 @@ def is_stale_bootstrapped_done_objective(root_dir: Path, objective_dir: Path) ->
     return True
 
 
+def change_objective_status(root_dir: Path, objective_dir: Path) -> str:
+    """Classify a changes package from durable execution and runtime state."""
+    if is_stale_bootstrapped_done_objective(root_dir, objective_dir):
+        return "done"
+
+    slug = objective_dir.name
+    if runtime_objective_slug(root_dir) == slug:
+        return "active"
+
+    state = load_execution_state(objective_dir)
+    if state is None:
+        return "active"
+
+    tasks = state.get("tasks")
+    if not isinstance(tasks, dict) or not tasks:
+        return "active"
+    statuses: dict[str, str] = {}
+    for task_id, task in tasks.items():
+        if not isinstance(task_id, str) or not isinstance(task, dict):
+            return "active"
+        task_status = task.get("status")
+        if not isinstance(task_status, str):
+            return "active"
+        statuses[task_id] = task_status
+
+    tasks_path = objective_dir / "tasks.md"
+    try:
+        tasks_text = (
+            tasks_path.read_text(encoding="utf-8") if tasks_path.is_file() else ""
+        )
+    except OSError:
+        tasks_text = ""
+    planned_roots = set(re.findall(r"^##\s+([A-Z]{1,4}\d+):", tasks_text, re.MULTILINE))
+    if (
+        planned_roots
+        and set(statuses) == planned_roots
+        and all(status == "completed" for status in statuses.values())
+    ):
+        return "done"
+
+    if (
+        state.get("status") == "planned"
+        and "active_task" in state
+        and state["active_task"] is None
+        and all(status == "pending" for status in statuses.values())
+    ):
+        return "planned"
+
+    return "active"
+
+
 def active_objective_dirs(root_dir: Path) -> list[Path]:
     """Return blocking active objective directories under planning/changes."""
     changes_dir = get_planning_dir(root_dir) / "changes"
@@ -418,5 +470,6 @@ def active_objective_dirs(root_dir: Path) -> list[Path]:
     return [
         path
         for path in dirs
-        if not is_stale_bootstrapped_done_objective(root_dir, path)
+        if change_objective_status(root_dir, path) != "planned"
+        and not is_stale_bootstrapped_done_objective(root_dir, path)
     ]

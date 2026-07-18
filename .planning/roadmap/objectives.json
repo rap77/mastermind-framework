@@ -1,211 +1,12 @@
 [
   {
     "rank": 1,
-    "stable_id": "token-cost-quality-telemetry",
-    "slug": "token-cost-quality-telemetry",
-    "name": "Token Cost and Quality Telemetry",
-    "summary": "Track token usage, cost, and output quality trends by project and task.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 84,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md"
-    ]
-  },
-  {
-    "rank": 2,
-    "stable_id": "collaboration-rbac",
-    "slug": "collaboration-rbac",
-    "name": "Collaboration and RBAC",
-    "summary": "Human + agent participation model with explicit roles and permissions.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 82,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md"
-    ]
-  },
-  {
-    "rank": 3,
-    "stable_id": "dashboard-realtime",
-    "slug": "dashboard-realtime",
-    "name": "Dashboard Realtime",
-    "summary": "Realtime events and live visibility for project operations.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 78,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md"
-    ]
-  },
-  {
-    "rank": 4,
-    "stable_id": "window-scheduler",
-    "slug": "window-scheduler",
-    "name": "Window Scheduler",
-    "summary": "Subscription-window-aware backend switching, checkpointing, and morning reports.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 76,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md",
-      "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md"
-    ]
-  },
-  {
-    "rank": 5,
-    "stable_id": "context-projection",
-    "slug": "context-projection",
-    "name": "Context Projection",
-    "summary": "Build model-ready context from structured project state instead of chat history.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 72,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "postgres-hybrid-data-model",
-      "project-state-mvp"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
-    ]
-  },
-  {
-    "rank": 6,
-    "stable_id": "rust-control-plane-hardening",
-    "slug": "rust-control-plane-hardening",
-    "name": "Rust Control Plane Hardening",
-    "summary": "Stabilize and harden the canonical Rust control plane before further expansion.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 70,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [
-      "backend-service-boundary-for-agents"
-    ],
-    "why_it_matters": "Captured in canonical implementation docs.",
-    "evidence_sources": [
-      "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
-    ]
-  },
-  {
-    "rank": 7,
-    "stable_id": "rust-control-plane",
-    "slug": "rust-control-plane",
-    "name": "Rust Control Plane",
-    "summary": "State management, auth, and event sourcing migrated to Rust with PostgreSQL",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 68,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
-  },
-  {
-    "rank": 8,
-    "stable_id": "observability-real-time-hub",
-    "slug": "observability-real-time-hub",
-    "name": "Observability + Real-time Hub",
-    "summary": "Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 66,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
-  },
-  {
-    "rank": 9,
-    "stable_id": "knowledge-distillation",
-    "slug": "knowledge-distillation",
-    "name": "Knowledge Distillation",
-    "summary": "Brains learn from every interaction and accumulate expertise over time",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 62,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
-  },
-  {
-    "rank": 10,
-    "stable_id": "knowledge-ingestion-manual",
-    "slug": "knowledge-ingestion-manual",
-    "name": "Knowledge Ingestion (Manual)",
-    "summary": "Cargar el corpus de conocimiento en cada brain's vector store.",
-    "status": "done",
-    "ready_now": false,
-    "priority_score": 60,
-    "recommended_next": false,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP-v3.2.md"
-    ]
-  },
-  {
-    "rank": 11,
-    "stable_id": "multi-channel-gateway",
-    "slug": "multi-channel-gateway",
-    "name": "Multi-channel Gateway",
-    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability",
-    "status": "planned",
-    "ready_now": true,
-    "priority_score": 58,
-    "recommended_next": true,
-    "mvp": true,
-    "dependencies": [],
-    "why_it_matters": "Declared roadmap phase in planning sources.",
-    "evidence_sources": [
-      ".planning/ROADMAP.md"
-    ]
-  },
-  {
-    "rank": 12,
     "stable_id": "pgvector-schema-langsmith-foundation-paralelo",
     "slug": "pgvector-schema-langsmith-foundation-paralelo",
     "name": "pgvector Schema + LangSmith Foundation (paralelo)",
     "summary": "Embeddings table, vector index, asyncpg utilities, LangSmith instrumentation — todo en una fase paralela. pgvector ya live.",
-    "status": "planned",
-    "ready_now": true,
+    "status": "done",
+    "ready_now": false,
     "priority_score": 56,
     "recommended_next": false,
     "mvp": true,
@@ -213,10 +14,15 @@
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
       ".planning/ROADMAP-v3.2.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 13,
+    "rank": 2,
     "stable_id": "task-time-and-estimation",
     "slug": "task-time-and-estimation",
     "name": "Task Time and Estimation",
@@ -224,7 +30,7 @@
     "status": "planned",
     "ready_now": true,
     "priority_score": 55,
-    "recommended_next": false,
+    "recommended_next": true,
     "mvp": true,
     "dependencies": [
       "project-state-mvp"
@@ -232,10 +38,15 @@
     "why_it_matters": "Captured in canonical implementation docs.",
     "evidence_sources": [
       "docs/canonical/24-TASK-TIME-AND-ESTIMATION-MODEL.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 14,
+    "rank": 3,
     "stable_id": "rag-evaluation-gate",
     "slug": "rag-evaluation-gate",
     "name": "RAG Evaluation Gate",
@@ -249,10 +60,15 @@
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
       ".planning/ROADMAP-v3.2.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 15,
+    "rank": 4,
     "stable_id": "rag-pilot-brain-1-only",
     "slug": "rag-pilot-brain-1-only",
     "name": "RAG Pilot — Brain #1 Only",
@@ -266,10 +82,15 @@
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
       ".planning/ROADMAP-v3.2.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 16,
+    "rank": 5,
     "stable_id": "rag-scale-out-brains-2-7",
     "slug": "rag-scale-out-brains-2-7",
     "name": "RAG Scale-Out — Brains 2–7",
@@ -283,10 +104,15 @@
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
       ".planning/ROADMAP-v3.2.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 17,
+    "rank": 6,
     "stable_id": "vertical-slice",
     "slug": "vertical-slice",
     "name": "Vertical Slice",
@@ -300,29 +126,112 @@
     "why_it_matters": "Declared roadmap phase in planning sources.",
     "evidence_sources": [
       ".planning/ROADMAP.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 18,
-    "stable_id": "context-window-management",
-    "slug": "context-window-management",
-    "name": "Context Window Management",
-    "summary": "Manage context-fit, packing, and compression across model backends.",
+    "rank": 7,
+    "stable_id": "adaptive-onboarding-harness-runtime",
+    "slug": "adaptive-onboarding-harness-runtime",
+    "name": "Adaptive Onboarding Harness Runtime",
+    "summary": "Planning package present in .planning/changes/adaptive-onboarding-harness-runtime.",
     "status": "planned",
-    "ready_now": false,
-    "priority_score": 74,
+    "ready_now": true,
+    "priority_score": 40,
     "recommended_next": false,
     "mvp": true,
     "dependencies": [
-      "window-scheduler"
+      "domain-security-assurance-plane",
+      "harness-stage-execution-runtime"
     ],
-    "why_it_matters": "Captured in canonical implementation docs.",
+    "why_it_matters": "Structured planning package already exists.",
     "evidence_sources": [
-      "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
-    ]
+      ".planning/changes/adaptive-onboarding-harness-runtime"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 19,
+    "rank": 8,
+    "stable_id": "multi-channel-gateway-historical-completion-claim-reconciled-2026-07-14",
+    "slug": "multi-channel-gateway-historical-completion-claim-reconciled-2026-07-14",
+    "name": "Multi-channel Gateway ⚠️ HISTORICAL COMPLETION CLAIM RECONCILED (2026-07-14)",
+    "summary": "Unified inbox across WhatsApp + Instagram + Email with webhook reliability.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Declared roadmap phase in planning sources.",
+    "evidence_sources": [
+      ".planning/SOURCE-OF-TRUTH.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 9,
+    "stable_id": "software-delivery-domain-adapter",
+    "slug": "software-delivery-domain-adapter",
+    "name": "Software Delivery Domain Adapter",
+    "summary": "Planning package present in .planning/changes/software-delivery-domain-adapter.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "adaptive-delivery-harness-runtime",
+      "domain-security-assurance-plane",
+      "harness-stage-execution-runtime"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/changes/software-delivery-domain-adapter"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 10,
+    "stable_id": "ui-ux-harness-runtime",
+    "slug": "ui-ux-harness-runtime",
+    "name": "Ui Ux Harness Runtime",
+    "summary": "Planning package present in .planning/changes/ui-ux-harness-runtime.",
+    "status": "planned",
+    "ready_now": true,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "harness-stage-execution-runtime"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/changes/ui-ux-harness-runtime"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 11,
     "stable_id": "backend-service-boundary-for-agents",
     "slug": "backend-service-boundary-for-agents",
     "name": "Backend Service Boundary For Agents",
@@ -339,10 +248,15 @@
     "evidence_sources": [
       ".planning/archive/objectives/backend-service-boundary-for-agents",
       "docs/canonical/34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 20,
+    "rank": 12,
     "stable_id": "postgres-hybrid-data-model",
     "slug": "postgres-hybrid-data-model",
     "name": "Postgres Hybrid Data Model",
@@ -359,10 +273,87 @@
     "evidence_sources": [
       ".planning/archive/objectives/postgres-hybrid-data-model",
       "docs/canonical/27-POSTGRES-HYBRID-DATA-MODEL.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 21,
+    "rank": 13,
+    "stable_id": "harness-stage-execution-runtime",
+    "slug": "harness-stage-execution-runtime",
+    "name": "Harness Stage Execution Runtime",
+    "summary": "Planning package present in .planning/archive/objectives/harness-stage-execution-runtime.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 89,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "artifact-versioning-and-lineage",
+      "engineering-doctrine-layer"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/harness-stage-execution-runtime"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 14,
+    "stable_id": "domain-security-assurance-plane",
+    "slug": "domain-security-assurance-plane",
+    "name": "Domain Security Assurance Plane",
+    "summary": "Planning package present in .planning/archive/objectives/domain-security-assurance-plane.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 88,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/domain-security-assurance-plane"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 15,
+    "stable_id": "adaptive-delivery-harness-runtime",
+    "slug": "adaptive-delivery-harness-runtime",
+    "name": "Adaptive Delivery Harness Runtime",
+    "summary": "Planning package present in .planning/archive/objectives/adaptive-delivery-harness-runtime.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 87,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "domain-security-assurance-plane",
+      "harness-stage-execution-runtime"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/adaptive-delivery-harness-runtime"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 16,
     "stable_id": "engineering-doctrine-layer",
     "slug": "engineering-doctrine-layer",
     "name": "Engineering Doctrine Layer",
@@ -379,10 +370,305 @@
     "evidence_sources": [
       ".planning/archive/objectives/engineering-doctrine-layer",
       "docs/canonical/22-ENGINEERING-DOCTRINE-LAYER.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 17,
+    "stable_id": "token-cost-quality-telemetry",
+    "slug": "token-cost-quality-telemetry",
+    "name": "Token Cost Quality Telemetry",
+    "summary": "Planning package present in .planning/archive/objectives/token-cost-quality-telemetry.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 84,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/token-cost-quality-telemetry",
+      "docs/canonical/25-TOKEN-COST-AND-QUALITY-TELEMETRY.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 18,
+    "stable_id": "collaboration-rbac",
+    "slug": "collaboration-rbac",
+    "name": "Collaboration Rbac",
+    "summary": "Planning package present in .planning/archive/objectives/collaboration-rbac.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 82,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/collaboration-rbac",
+      "docs/canonical/23-COLLABORATION-AND-RBAC-MODEL.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 19,
+    "stable_id": "dashboard-realtime",
+    "slug": "dashboard-realtime",
+    "name": "Dashboard Realtime",
+    "summary": "Planning package present in .planning/archive/objectives/dashboard-realtime.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 78,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/dashboard-realtime",
+      "docs/canonical/33-DASHBOARD-REALTIME-EVENTS.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 20,
+    "stable_id": "window-scheduler",
+    "slug": "window-scheduler",
+    "name": "Window Scheduler",
+    "summary": "Subscription-window-aware backend switching, checkpointing, and morning reports.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 76,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/window-scheduler",
+      "docs/canonical/16-WINDOW-SCHEDULER-ARCHITECTURE.md",
+      "docs/canonical/19-WINDOW-SCHEDULER-DATA-SCHEMA.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 21,
+    "stable_id": "context-window-management",
+    "slug": "context-window-management",
+    "name": "Context Window Management",
+    "summary": "Planning package present in .planning/archive/objectives/context-window-management.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 74,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "window-scheduler"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/context-window-management",
+      "docs/canonical/20-CONTEXT-WINDOW-MANAGEMENT-ARCHITECTURE.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
     "rank": 22,
+    "stable_id": "context-projection",
+    "slug": "context-projection",
+    "name": "Context Projection",
+    "summary": "Build model-ready context from structured project state instead of chat history.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 72,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "postgres-hybrid-data-model",
+      "project-state-mvp"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/context-projection",
+      "docs/canonical/28-CONTEXT-PROJECTION-STRATEGY.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 23,
+    "stable_id": "rust-control-plane-hardening",
+    "slug": "rust-control-plane-hardening",
+    "name": "Rust Control Plane Hardening",
+    "summary": "Planning package present in .planning/archive/objectives/rust-control-plane-hardening.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 70,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [
+      "backend-service-boundary-for-agents"
+    ],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/rust-control-plane-hardening",
+      "docs/canonical/44-RUST-CONTROL-PLANE-HARDENING-PLAN.md"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 24,
+    "stable_id": "rust-control-plane",
+    "slug": "rust-control-plane",
+    "name": "Rust Control Plane",
+    "summary": "Planning package present in .planning/archive/objectives/rust-control-plane.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 68,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/archive/objectives/rust-control-plane"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 25,
+    "stable_id": "observability-real-time-hub",
+    "slug": "observability-real-time-hub",
+    "name": "Observability Real Time Hub",
+    "summary": "Cross-service debugging visibility + real-time WebSocket infrastructure for monitoring",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 66,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/archive/objectives/observability-real-time-hub"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 26,
+    "stable_id": "knowledge-distillation",
+    "slug": "knowledge-distillation",
+    "name": "Knowledge Distillation",
+    "summary": "Planning package present in .planning/archive/objectives/knowledge-distillation.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 62,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/archive/objectives/knowledge-distillation"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 27,
+    "stable_id": "knowledge-ingestion-manual",
+    "slug": "knowledge-ingestion-manual",
+    "name": "Knowledge Ingestion Manual",
+    "summary": "Planning package present in .planning/archive/objectives/knowledge-ingestion-manual.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 60,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/ROADMAP-v3.2.md",
+      ".planning/archive/objectives/knowledge-ingestion-manual"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 28,
+    "stable_id": "multi-channel-gateway",
+    "slug": "multi-channel-gateway",
+    "name": "Multi Channel Gateway",
+    "summary": "Planning package present in .planning/archive/objectives/multi-channel-gateway.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 58,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/ROADMAP.md",
+      ".planning/archive/objectives/multi-channel-gateway"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 29,
     "stable_id": "project-state-mvp",
     "slug": "project-state-mvp",
     "name": "Project State Mvp",
@@ -397,10 +683,15 @@
     "evidence_sources": [
       ".planning/HANDOFF-PROJECT-STATE-2026-05-24.md",
       ".planning/archive/objectives/project-state-mvp"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   },
   {
-    "rank": 23,
+    "rank": 30,
     "stable_id": "artifact-versioning-and-lineage",
     "slug": "artifact-versioning-and-lineage",
     "name": "Artifact Versioning And Lineage",
@@ -417,6 +708,121 @@
     "evidence_sources": [
       ".planning/archive/objectives/artifact-versioning-and-lineage",
       "docs/canonical/26-ARTIFACT-VERSIONING-AND-LINEAGE.md"
-    ]
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 31,
+    "stable_id": "harness-memory-unification",
+    "slug": "harness-memory-unification",
+    "name": "Harness Memory Unification",
+    "summary": "Planning package present in .planning/archive/objectives/harness-memory-unification.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/harness-memory-unification"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 32,
+    "stable_id": "memory-graph-recall-v1",
+    "slug": "memory-graph-recall-v1",
+    "name": "Memory Graph Recall V1",
+    "summary": "Planning package present in .planning/archive/objectives/memory-graph-recall-v1.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/memory-graph-recall-v1"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 33,
+    "stable_id": "memory-layer-v1",
+    "slug": "memory-layer-v1",
+    "name": "Memory Layer V1",
+    "summary": "Planning package present in .planning/archive/objectives/memory-layer-v1.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/memory-layer-v1"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 34,
+    "stable_id": "memory-reranking-v1",
+    "slug": "memory-reranking-v1",
+    "name": "Memory Reranking V1",
+    "summary": "Planning package present in .planning/archive/objectives/memory-reranking-v1.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/memory-reranking-v1"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
+  },
+  {
+    "rank": 35,
+    "stable_id": "memory-retrieval-v1",
+    "slug": "memory-retrieval-v1",
+    "name": "Memory Retrieval V1",
+    "summary": "Planning package present in .planning/archive/objectives/memory-retrieval-v1.",
+    "status": "done",
+    "ready_now": false,
+    "priority_score": 40,
+    "recommended_next": false,
+    "mvp": true,
+    "dependencies": [],
+    "why_it_matters": "Structured planning package already exists.",
+    "evidence_sources": [
+      ".planning/archive/objectives/memory-retrieval-v1"
+    ],
+    "gate_status": "NO_CANONICAL",
+    "gate_guidance": "",
+    "gate_artifact": null,
+    "recommended_blocked_fallback": false,
+    "unblock_priority_reason": ""
   }
 ]

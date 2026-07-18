@@ -12,7 +12,7 @@
 - [x] **Phase 15: Rust Control Plane** — PostgreSQL + JWT auth + event sourcing (completed 2026-04-07)
 - [ ] **Phase 16: Observability + Real-time Hub** — Cross-service logging + WebSocket infrastructure
 - [ ] **Phase 17: UI Evolution** — Extract Paperclip UX patterns, rebuild in Next.js
-- [x] **Phase 18: Multi-channel Gateway** — WhatsApp + Instagram + Email unified inbox (completed 2026-04-11)
+- [~] **Phase 18: Multi-channel Gateway** — canonical WhatsApp inbound text slice validated; broader gateway remains deferred
 
 ## Phase Details
 
@@ -134,6 +134,11 @@
 
 ### Phase 18: Multi-channel Gateway
 
+> Reconciled 2026-07-14: the historical Phase 18 artifacts are not evidence that
+> the broad goal below works end-to-end. The authoritative active slice is
+> `.planning/changes/multi-channel-gateway/` and
+> `docs/canonical/116-MULTI-CHANNEL-GATEWAY-CANONICAL-INGEST-SLICE.md`.
+
 **Goal:** Unified inbox across WhatsApp + Instagram + Email with webhook reliability
 
 **Depends on:** Phase 16 (Real-time Hub for webhook processing)
@@ -167,6 +172,12 @@
 - **Wave 1 (18-08):** Critical infrastructure blockers (queue depth, route registration, compilation)
 - **Wave 2 (18-09):** gRPC bridge and integration gaps (AI worker, delivery status, E2E latency)
 - **Wave 3 (18-10):** Feature gaps and security (DLQ API, DOMPurify, thread merge, Channel Router)
+
+**Current verified boundary:** secure WhatsApp inbound text canonical ingest is
+implemented and tested behind `WHATSAPP_CANONICAL_INGEST_ENABLED=false`. Broader
+channel expansion, outbound, inbox/read APIs, deletion worker, subject access,
+application-level encryption, production retention approval and at-rest
+verification remain deferred or blocking production rollout.
 ---
 
 ## Progress
@@ -178,7 +189,7 @@
 | 15. Rust Control Plane | 6/4 | Complete    | 2026-04-07 |
 | 16. Observability + Real-time Hub | 0/7 | Not started | - |
 | 17. UI Evolution | 0/3 | Not started | - |
-| 18. Multi-channel Gateway | 9/10 | In Progress|  |
+| 18. Multi-channel Gateway | canonical ingest slice | Implementation/test complete; production disabled and broad scope deferred | 2026-07-14 |
 
 **Overall Progress:** 3/15 requirements delivered (20%)
 
@@ -204,7 +215,7 @@ All v3.0 requirements mapped to phases:
 | UIE-01 | Phase 17 | Pending |
 | UIE-02 | Phase 17 | Pending |
 | UIE-03 | Phase 17 | Pending |
-| MCG-01 | Phase 18 | Pending |
+| MCG-01 | Phase 18 | Partial: canonical WhatsApp ingest validated; broad gateway deferred |
 
 **Coverage:** 15/15 requirements mapped ✓
 
@@ -223,5 +234,5 @@ From Brain #1 + Brain #7 validation:
 
 ---
 *Roadmap created: 2026-04-05*
-*Last updated: 2026-04-07 (Phase 16 plans: 7 plans ready)*
-*Ready for execution: `/mm:execute-phase 16`*
+*Last reconciled: 2026-07-14 for the canonical WhatsApp ingest slice*
+*Next action: `/mm:archive-objective multi-channel-gateway`; activate another objective only afterward.*

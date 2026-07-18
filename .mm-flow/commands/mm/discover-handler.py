@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from planning_paths import planning_relpath
+from planning_paths import get_planning_dir, planning_relpath
 
 
 def emit(
@@ -103,6 +103,15 @@ def slugify(value: str) -> str:
     while "--" in slug:
         slug = slug.replace("--", "-")
     return slug.strip("-")
+
+
+def validate_objective_slug(value: str) -> str:
+    """Return a safe objective slug or reject ambiguous filesystem input."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", value):
+        raise ValueError(
+            "Objective slug must use lowercase letters, numbers, and hyphens"
+        )
+    return value
 
 
 def find_canonical_doc_for_objective(
@@ -319,6 +328,7 @@ _GATE_STATUS_HELPERS = load_gate_status_helpers()
 infer_objective_gate_status = _GATE_STATUS_HELPERS.infer_objective_gate_status
 _ACTIVE_OBJECTIVE_HELPERS = load_active_objective_helpers()
 active_objective_dirs = _ACTIVE_OBJECTIVE_HELPERS.active_objective_dirs
+change_objective_status = _ACTIVE_OBJECTIVE_HELPERS.change_objective_status
 find_active_objective_exception = (
     _ACTIVE_OBJECTIVE_HELPERS.find_active_objective_exception
 )
@@ -327,7 +337,7 @@ find_active_objective_exception = (
 def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
     """Collect active objective hints from handoff files."""
     candidates: list[ObjectiveCandidate] = []
-    handoff_dir = root_dir / ".mm-flow" / "planning"
+    handoff_dir = get_planning_dir(root_dir)
     for handoff_path in sorted(handoff_dir.glob("HANDOFF-*.md")):
         if handoff_path.name == "HANDOFF-CURRENT.md":
             continue
@@ -371,9 +381,10 @@ def collect_handoff_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
 def collect_change_directory_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
     """Collect objectives from active and archived per-objective planning directories."""
     candidates: list[ObjectiveCandidate] = []
+    planning_dir = get_planning_dir(root_dir)
     for state_dir, status in (
-        (root_dir / ".mm-flow" / "planning" / "changes", "active"),
-        (root_dir / ".mm-flow" / "planning" / "archive" / "objectives", "done"),
+        (planning_dir / "changes", "active"),
+        (planning_dir / "archive" / "objectives", "done"),
     ):
         if not state_dir.exists():
             continue
@@ -384,29 +395,8 @@ def collect_change_directory_candidates(root_dir: Path) -> list[ObjectiveCandida
             summary = f"Planning package present in {child.relative_to(root_dir)}."
             child_status = status
             if state_dir.name == "changes":
-                execution_state_path = child / "execution-state.json"
-                handoff_path = child / "HANDOFF-CURRENT.md"
-                execution_state_text = read_text(execution_state_path)
-                handoff_text = read_text(handoff_path)
-                if execution_state_text:
-                    try:
-                        execution_state = json.loads(execution_state_text)
-                        task_statuses = [
-                            task.get("status", "pending")
-                            for task in execution_state.get("tasks", {}).values()
-                        ]
-                        if task_statuses and all(
-                            status == "completed" for status in task_statuses
-                        ):
-                            child_status = "done"
-                    except json.JSONDecodeError:
-                        pass
-                if (
-                    child_status != "done"
-                    and "## Current objective" in handoff_text
-                    and "**COMPLETE**" in handoff_text
-                ):
-                    child_status = "done"
+                child_status = change_objective_status(root_dir, child)
+            dependencies = execution_state_objective_dependencies(child)
             candidates.append(
                 ObjectiveCandidate(
                     slug=slug,
@@ -415,19 +405,69 @@ def collect_change_directory_candidates(root_dir: Path) -> list[ObjectiveCandida
                     why_it_matters="Structured planning package already exists.",
                     status=child_status,
                     mvp=True,
+                    dependencies=dependencies,
                     evidence_sources=[str(child.relative_to(root_dir))],
                 )
             )
     return candidates
 
 
+def execution_state_objective_dependencies(objective_dir: Path) -> list[str]:
+    """Return external objective dependencies declared by root tasks."""
+    state_path = objective_dir / "execution-state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(state, dict) or not isinstance(state.get("tasks"), dict):
+        return []
+
+    tasks = state["tasks"]
+    task_ids = set(tasks)
+    dependencies: set[str] = set()
+    for task in tasks.values():
+        if not isinstance(task, dict) or not isinstance(task.get("depends_on"), list):
+            continue
+        dependencies.update(
+            canonical_objective_slug(dependency)
+            for dependency in task["depends_on"]
+            if isinstance(dependency, str) and dependency not in task_ids
+        )
+    return sorted(dependencies)
+
+
+def completed_legacy_phase_sources(root_dir: Path) -> dict[str, list[str]]:
+    """Return legacy task files that prove a phase completed in the old ledger."""
+    planning_dir = get_planning_dir(root_dir)
+    sources: dict[str, list[str]] = {}
+    for todo_path in sorted((planning_dir / "archive" / "legacy").glob("**/todo.md")):
+        text = read_text(todo_path)
+        for match in re.finditer(
+            r"^##\s+PHASE\s+(?P<id>[0-9.]+):.*?(?=^##\s+PHASE\s+|\Z)",
+            text,
+            re.MULTILINE | re.DOTALL,
+        ):
+            phase_id = match.group("id")
+            if re.search(
+                rf"^-\s+\[x\]\s+{re.escape(phase_id)}:",
+                match.group(0),
+                re.MULTILINE,
+            ):
+                sources.setdefault(phase_id, []).append(
+                    str(todo_path.relative_to(root_dir))
+                )
+    return sources
+
+
 def collect_phase_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
     """Collect major workstreams from roadmap/source-of-truth phase headings."""
     candidates: list[ObjectiveCandidate] = []
+    planning_dir = get_planning_dir(root_dir)
+    legacy_completed = completed_legacy_phase_sources(root_dir)
     candidate_files = [
-        root_dir / ".mm-flow" / "planning" / "SOURCE-OF-TRUTH.md",
-        root_dir / ".mm-flow" / "planning" / "ROADMAP.md",
-        root_dir / ".mm-flow" / "planning" / "ROADMAP-v3.2.md",
+        planning_dir / "SOURCE-OF-TRUTH.md",
+        planning_dir / "ROADMAP.md",
+        planning_dir / "ROADMAP-v3.2.md",
     ]
     phase_pattern = re.compile(
         r"^#{2,6}\s+Phase\s+(?P<id>[0-9.]+):\s+(?P<name>.+?)(?:\s+[✅🔄⏳].*)?$",
@@ -438,6 +478,7 @@ def collect_phase_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
         if not text:
             continue
         for match in phase_pattern.finditer(text):
+            phase_id = match.group("id")
             phase_name = match.group("name").strip()
             phase_slug = canonical_objective_slug(slugify(phase_name))
             block = text[match.start() : match.start() + 600]
@@ -446,8 +487,9 @@ def collect_phase_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
                 status = "done"
             elif "in progress" in block.lower() or "🔄" in block:
                 status = "active"
-            if status == "done":
-                continue
+            legacy_sources = legacy_completed.get(phase_id, [])
+            if legacy_sources:
+                status = "done"
             goal_match = re.search(r"\*\*Goal:\*\*\s*(.+)", block)
             summary = (
                 goal_match.group(1).strip()
@@ -459,10 +501,14 @@ def collect_phase_candidates(root_dir: Path) -> list[ObjectiveCandidate]:
                     slug=phase_slug,
                     name=phase_name,
                     summary=summary,
-                    why_it_matters="Declared roadmap phase in planning sources.",
+                    why_it_matters=(
+                        "Completed in the legacy task ledger."
+                        if legacy_sources
+                        else "Declared roadmap phase in planning sources."
+                    ),
                     status=status,
                     mvp=True,
-                    evidence_sources=[str(path.relative_to(root_dir))],
+                    evidence_sources=[str(path.relative_to(root_dir)), *legacy_sources],
                 )
             )
     return candidates
@@ -590,6 +636,9 @@ def priority_hints(slug: str) -> int:
     hints: dict[str, int] = {
         "backend-service-boundary-for-agents": 95,
         "postgres-hybrid-data-model": 92,
+        "harness-stage-execution-runtime": 89,
+        "domain-security-assurance-plane": 88,
+        "adaptive-delivery-harness-runtime": 87,
         "engineering-doctrine-layer": 86,
         "token-cost-quality-telemetry": 84,
         "collaboration-rbac": 82,
@@ -908,7 +957,7 @@ def write_roadmap_files(root_dir: Path, payload: dict[str, object]) -> list[Path
         json.dumps(objective_payload, indent=2), encoding="utf-8"
     )
 
-    current_handoff_path = root_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md"
+    current_handoff_path = get_planning_dir(root_dir) / "HANDOFF-CURRENT.md"
     if objectives:
         next_objective = recommended_next or display_order[0]
         next_gate_status, next_gate_guidance, _ = infer_objective_gate_status(
@@ -979,11 +1028,10 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
     objective_name = str(payload["objective_name"])
     objective_slug = str(payload["objective_slug"])
     objective_brief = str(payload.get("objective_brief") or "").strip()
-    source_of_truth = read_text(
-        root_dir / ".mm-flow" / "planning" / "SOURCE-OF-TRUTH.md"
-    )
+    planning_dir = get_planning_dir(root_dir)
+    source_of_truth = read_text(planning_dir / "SOURCE-OF-TRUTH.md")
     project_state_handoff = read_text(
-        root_dir / ".mm-flow" / "planning" / "HANDOFF-PROJECT-STATE-2026-05-24.md"
+        planning_dir / "HANDOFF-PROJECT-STATE-2026-05-24.md"
     )
 
     # Check for a canonical doc to enrich the objective
@@ -1079,54 +1127,6 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
                     "`/api/projects` write-side routes are no longer hidden behind a transitional audit skip.",
                     "project_state-native activity/audit events capture the key write-side actions.",
                     "The change is validated without regressing existing project_state flows.",
-                ],
-            },
-        ]
-    elif "realtime" in objective_slug or "websocket" in objective_slug:
-        task_sections = [
-            {
-                "id": "RT1",
-                "title": "Event contract",
-                "purpose": "Define the realtime contract before implementation diverges.",
-                "depends_on": [],
-                "parallelizable": False,
-                "files_touched": ["docs/canonical/35-WEBSOCKET-EVENT-CONTRACT.md"],
-                "validation_commands": [
-                    "Review event contract for explicit payload fields and event names."
-                ],
-                "acceptance": [
-                    "Event names, payloads, and source boundaries are documented.",
-                    "The backend has a clear authority boundary for publishing events.",
-                ],
-            },
-            {
-                "id": "RT2",
-                "title": "Backend publication path",
-                "purpose": "Add a minimal publication path for the target objective.",
-                "depends_on": ["RT1"],
-                "parallelizable": False,
-                "files_touched": ["apps/api/mastermind_cli"],
-                "validation_commands": [
-                    "Run targeted backend tests for realtime publication."
-                ],
-                "acceptance": [
-                    "A minimal backend publication path exists for the target objective.",
-                    "Tests or targeted validation cover the publication path.",
-                ],
-            },
-            {
-                "id": "RT3",
-                "title": "Frontend consumption",
-                "purpose": "Consume the realtime signal safely in the UI.",
-                "depends_on": ["RT2"],
-                "parallelizable": False,
-                "files_touched": ["apps/web/src/components"],
-                "validation_commands": [
-                    "Run frontend lint/typecheck for the affected realtime components."
-                ],
-                "acceptance": [
-                    "The frontend consumes the event signal safely.",
-                    "The UI degrades gracefully if no live events arrive.",
                 ],
             },
         ]
@@ -1337,10 +1337,20 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
         "",
     ]
     for section in task_sections:
+        execution_subtasks: list[str] = []
         task_lines.extend(
             [
                 f"## {section['id']}: {section['title']}",
                 "",
+                *(
+                    [
+                        "### Execution Subtasks",
+                        *[f"- {item}" for item in execution_subtasks],
+                        "",
+                    ]
+                    if execution_subtasks
+                    else []
+                ),
                 "### Purpose",
                 str(section["purpose"]),
                 "",
@@ -1397,8 +1407,41 @@ def objective_template(payload: dict[str, object], root_dir: Path) -> dict[str, 
 
 def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[Path]:
     """Materialize the objective package for objective discovery mode."""
+    objective_slug = validate_objective_slug(str(payload["objective_slug"]))
+    changes_dir = (get_planning_dir(root_dir) / "changes").resolve()
+    changes_dir.mkdir(parents=True, exist_ok=True)
     target_dir = Path(str(payload["target_dir"]))
+    resolved_target = target_dir.resolve(strict=False)
+    try:
+        relative = resolved_target.relative_to(changes_dir)
+    except ValueError as exc:
+        raise ValueError(
+            "Objective target failed changes-directory containment"
+        ) from exc
+    if relative.parts != (objective_slug,):
+        raise ValueError("Objective target failed changes-directory containment")
     ensure_directory(target_dir)
+    existing_paths = sorted(path for path in target_dir.iterdir() if path.is_file())
+    if existing_paths:
+        required = {
+            "requirements.md",
+            "design.md",
+            "tasks.md",
+            "todo.md",
+            "HANDOFF-CURRENT.md",
+        }
+        missing = sorted(required - {path.name for path in existing_paths})
+        if missing:
+            raise ValueError(
+                "Partial objective package is missing required files: "
+                + ", ".join(missing)
+            )
+        for path in existing_paths:
+            try:
+                path.resolve().relative_to(resolved_target)
+            except ValueError as exc:
+                raise ValueError("Objective artifact failed containment") from exc
+        return existing_paths
     files = objective_template(payload, root_dir)
     written_paths: list[Path] = []
     for filename, content in files.items():
@@ -1413,6 +1456,8 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
     if task_matches:
         todo_lines = [
             f"# Todo — {payload['objective_name']}",
+            "",
+            "<!-- topology-source: tasks.md -->",
             "",
             "## Execution Checklist",
             "",
@@ -1431,6 +1476,11 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
                 block,
                 re.DOTALL,
             )
+            subtasks_match = re.search(
+                r"### Execution Subtasks\n(.*?)(?=\n###|\Z)",
+                block,
+                re.DOTALL,
+            )
             depends_on_text = (
                 depends_match.group(1).strip() if depends_match else "None"
             )
@@ -1440,6 +1490,13 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
                 for line in validation_block.splitlines()
                 if line.strip().startswith("- ")
             ]
+            execution_subtasks = [
+                line.strip()[2:]
+                for line in (
+                    subtasks_match.group(1) if subtasks_match else ""
+                ).splitlines()
+                if line.strip().startswith("- ")
+            ]
             details_by_task[task_id] = {
                 "depends_on": []
                 if depends_on_text.lower() == "none"
@@ -1447,17 +1504,17 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
                     part.strip() for part in depends_on_text.split(",") if part.strip()
                 ],
                 "validation_commands": validation_commands,
+                "execution_subtasks": execution_subtasks,
             }
         for task_id, task_title in task_matches:
             detail = details_by_task.get(task_id, {})
             depends_on = detail.get("depends_on", [])
             validation_commands = detail.get("validation_commands", [])
+            execution_subtasks = detail.get("execution_subtasks", [])
             todo_lines.extend(
                 [
                     f"- [ ] {task_id}: {task_title.strip()}",
-                    f"  - [ ] {task_id}.1: Review requirements and design context for {task_id}",
-                    f"  - [ ] {task_id}.2: Implement {task_id} end-to-end",
-                    f"  - [ ] {task_id}.3: Run validation for {task_id}",
+                    *[f"  - [ ] {subtask}" for subtask in execution_subtasks],
                     f"  - depends_on: {', '.join(depends_on) if depends_on else 'none'}",
                     f"  - validation: {' | '.join(validation_commands) if validation_commands else 'document validation command'}",
                     "",
@@ -1467,7 +1524,7 @@ def write_objective_package(root_dir: Path, payload: dict[str, object]) -> list[
         todo_path.write_text("\n".join(todo_lines), encoding="utf-8")
         written_paths.append(todo_path)
 
-    current_handoff_path = root_dir / ".mm-flow" / "planning" / "HANDOFF-CURRENT.md"
+    current_handoff_path = get_planning_dir(root_dir) / "HANDOFF-CURRENT.md"
     current_handoff_path.write_text(files["HANDOFF-CURRENT.md"], encoding="utf-8")
     return written_paths
 
@@ -1538,14 +1595,12 @@ def read_context_files(root_dir: Path) -> dict[str, object]:
         if (root_dir / file_path).exists():
             context[key] = True
 
-    planning_dir = root_dir / ".mm-flow" / "planning"
+    planning_dir = get_planning_dir(root_dir)
     if planning_dir.exists() and any(planning_dir.iterdir()):
         context["has_planning"] = True
-    context["has_active_objectives"] = any(
-        (root_dir / ".mm-flow" / "planning" / "changes").glob("*/")
-    )
+    context["has_active_objectives"] = any((planning_dir / "changes").glob("*/"))
     context["has_archived_objectives"] = any(
-        (root_dir / ".mm-flow" / "planning" / "archive" / "objectives").glob("*/")
+        (planning_dir / "archive" / "objectives").glob("*/")
     )
 
     context["has_docs_prd"] = (root_dir / "docs" / "PRD").exists()
@@ -1640,7 +1695,7 @@ def generate_roadmap_payload(
         "context": context,
         "discovery_mode": mode,
         "working_dir": str(root_dir),
-        "roadmap_dir": str(root_dir / ".mm-flow" / "planning" / "roadmap"),
+        "roadmap_dir": str(get_planning_dir(root_dir) / "roadmap"),
         "source_priority": [
             "explicit_intent",
             "planning_state",
@@ -1661,7 +1716,7 @@ def generate_objective_payload(
     root_dir: Path,
 ) -> dict[str, object]:
     """Generate payload for one objective planning package."""
-    objective_slug = slugify(objective_name)
+    objective_slug = validate_objective_slug(objective_name)
     return {
         "mode": "objective",
         "objective_name": objective_name,
@@ -1671,9 +1726,7 @@ def generate_objective_payload(
         "quick_mode": quick,
         "context": context,
         "working_dir": str(root_dir),
-        "target_dir": str(
-            root_dir / ".mm-flow" / "planning" / "changes" / objective_slug
-        ),
+        "target_dir": str(get_planning_dir(root_dir) / "changes" / objective_slug),
         "required_files": [
             "requirements.md",
             "design.md",
@@ -1733,6 +1786,11 @@ def main() -> None:
             return
 
         if args.objective:
+            try:
+                validate_objective_slug(args.objective)
+            except ValueError as exc:
+                emit(f"ERROR: {exc}")
+                sys.exit(1)
             active_dirs = active_objective_dirs(root_dir)
             conflicting_dirs = [
                 path for path in active_dirs if path.name != args.objective
@@ -1773,15 +1831,19 @@ def main() -> None:
                 emit(f"- {gate_guidance}")
                 sys.exit(2)
 
-            payload = generate_objective_payload(
-                args.objective,
-                args.idea,
-                context,
-                args.mode,
-                args.quick,
-                root_dir,
-            )
-            written_paths = write_objective_package(root_dir, payload)
+            try:
+                payload = generate_objective_payload(
+                    args.objective,
+                    args.idea,
+                    context,
+                    args.mode,
+                    args.quick,
+                    root_dir,
+                )
+                written_paths = write_objective_package(root_dir, payload)
+            except (OSError, ValueError) as exc:
+                emit(f"ERROR: {exc}")
+                sys.exit(1)
             sync_ok, sync_message = sync_gap_registry_for_discovered_objective(
                 root_dir, str(payload["objective_slug"])
             )

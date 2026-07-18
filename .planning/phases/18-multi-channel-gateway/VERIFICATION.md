@@ -1,5 +1,12 @@
 # Phase 18: Multi-Channel Gateway — Verification Report
 
+> **Superseded as current runtime evidence (2026-07-14).** This historical report
+> verifies UI/scaffolding artifacts and explicitly records that 628 frontend tests
+> were not executed. Its production-ready and broad completion conclusions are not
+> authoritative. Current status lives in
+> `docs/canonical/116-MULTI-CHANNEL-GATEWAY-CANONICAL-INGEST-SLICE.md` and
+> `.planning/changes/multi-channel-gateway/`.
+
 **Phase:** 18 - Multi-Channel Gateway
 **Verification Date:** 2026-04-15
 **Plans:** 18-01 through 18-07 (7 plans total)

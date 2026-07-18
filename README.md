@@ -35,6 +35,13 @@ Cerebro #7 (Evaluador Crítico - meta-cerebro)
 Aprobado → Entrega | Rechazado → Iteración
 ```
 
+### Canon Documental
+
+- `docs/architecture/index.md` — índice canónico de arquitectura.
+- `docs/decisions/ADR-001-dynamic-loop-selector.md` — decisión sobre selector dinámico de loops.
+- `docs/contracts/loop-envelope.md` — contrato estándar de salida del runtime.
+- `docs/registry/roles.yaml` — registry canónico de roles y brains.
+
 ### Los 8 Cerebros (Nicho: Software Development)
 
 | # | Cerebro | Rol | Expertos Clave |

@@ -1,0 +1,300 @@
+{
+  "objective_slug": "adaptive-delivery-harness-runtime",
+  "status": "active",
+  "active_task": null,
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md",
+  "tasks": {
+    "ADH1": {
+      "status": "completed",
+      "depends_on": [
+        "harness-stage-execution-runtime",
+        "domain-security-assurance-plane"
+      ],
+      "subtasks": {
+        "ADH1.1": {
+          "description": "Write request/unit/route/verdict tests",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-16T20:50:35.739437"
+        },
+        "ADH1.2": {
+          "description": "Add additive typed models",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-16T20:52:54.170294"
+        },
+        "ADH1.3": {
+          "description": "Validate invalid boundaries",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-16T20:53:50.434899"
+        }
+      },
+      "started_at": "2026-07-16T20:50:35.739437",
+      "completed_at": "2026-07-16T20:53:50.434899",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH2": {
+      "status": "completed",
+      "depends_on": [
+        "ADH1"
+      ],
+      "subtasks": {
+        "ADH2.1": {
+          "description": "Write readiness/dependency/ownership tests",
+          "status": "completed",
+          "started_at": "2026-07-17T21:03:04.476734",
+          "completed_at": "2026-07-17T21:04:20.396956",
+          "duration_seconds": 75.92,
+          "updated_at": "2026-07-17T21:04:20.396956"
+        },
+        "ADH2.2": {
+          "description": "Implement services",
+          "status": "completed",
+          "started_at": "2026-07-17T21:04:50.238722",
+          "completed_at": "2026-07-17T21:06:03.629736",
+          "duration_seconds": 73.39,
+          "updated_at": "2026-07-17T21:06:03.629736"
+        },
+        "ADH2.3": {
+          "description": "Validate blocker paths",
+          "status": "completed",
+          "started_at": "2026-07-17T21:06:22.151699",
+          "completed_at": "2026-07-17T21:07:39.722662",
+          "duration_seconds": 77.57,
+          "updated_at": "2026-07-17T21:07:39.722662"
+        }
+      },
+      "started_at": "2026-07-17T21:03:04.476734",
+      "completed_at": "2026-07-17T21:07:39.722662",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH3": {
+      "status": "completed",
+      "depends_on": [
+        "ADH2"
+      ],
+      "subtasks": {
+        "ADH3.1": {
+          "description": "Write conformance and resolution tests",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T21:18:00.446132"
+        },
+        "ADH3.2": {
+          "description": "Implement adapter protocol and registry",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T21:18:07.732333"
+        },
+        "ADH3.3": {
+          "description": "Validate missing capability behavior",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T21:18:13.026932"
+        }
+      },
+      "started_at": "2026-07-17T21:18:00.446132",
+      "completed_at": "2026-07-17T21:18:13.026932",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH4": {
+      "status": "completed",
+      "depends_on": [
+        "ADH3"
+      ],
+      "subtasks": {
+        "ADH4.1": {
+          "description": "Write stage decision/depth/prerequisite tests",
+          "status": "completed",
+          "started_at": "2026-07-17T21:22:29.323305",
+          "completed_at": "2026-07-17T21:23:38.063374",
+          "duration_seconds": 68.74,
+          "updated_at": "2026-07-17T21:23:38.063374"
+        },
+        "ADH4.2": {
+          "description": "Implement planner and bundle projection",
+          "status": "completed",
+          "started_at": "2026-07-17T21:23:38.221426",
+          "completed_at": "2026-07-17T21:25:42.512045",
+          "duration_seconds": 124.29,
+          "updated_at": "2026-07-17T21:25:42.512045"
+        },
+        "ADH4.3": {
+          "description": "Validate route determinism",
+          "status": "completed",
+          "started_at": "2026-07-17T21:25:42.668283",
+          "completed_at": "2026-07-17T21:28:31.886461",
+          "duration_seconds": 169.22,
+          "updated_at": "2026-07-17T21:28:31.886461"
+        }
+      },
+      "started_at": "2026-07-17T21:22:29.323305",
+      "completed_at": "2026-07-17T21:28:31.886461",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH5": {
+      "status": "completed",
+      "depends_on": [
+        "ADH4"
+      ],
+      "subtasks": {
+        "ADH5.1": {
+          "description": "Write production plan and scheduling tests",
+          "status": "completed",
+          "started_at": "2026-07-17T22:12:49.925789",
+          "completed_at": "2026-07-17T22:15:04.676131",
+          "duration_seconds": 134.75,
+          "updated_at": "2026-07-17T22:15:04.676131"
+        },
+        "ADH5.2": {
+          "description": "Register harness and implement orchestration",
+          "status": "completed",
+          "started_at": "2026-07-17T22:15:04.853717",
+          "completed_at": "2026-07-17T22:17:54.503491",
+          "duration_seconds": 169.65,
+          "updated_at": "2026-07-17T22:17:54.503491"
+        },
+        "ADH5.3": {
+          "description": "Validate atomic checkpoints",
+          "status": "completed",
+          "started_at": "2026-07-17T22:17:54.670358",
+          "completed_at": "2026-07-17T22:23:06.035622",
+          "duration_seconds": 311.37,
+          "updated_at": "2026-07-17T22:23:06.035622"
+        }
+      },
+      "started_at": "2026-07-17T22:12:49.925789",
+      "completed_at": "2026-07-17T22:23:06.035622",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH6": {
+      "status": "completed",
+      "depends_on": [
+        "ADH5"
+      ],
+      "subtasks": {
+        "ADH6.1": {
+          "description": "Write verdict/security/review tests",
+          "status": "completed",
+          "started_at": "2026-07-17T22:28:19.129259",
+          "completed_at": "2026-07-17T22:29:54.257620",
+          "duration_seconds": 95.13,
+          "updated_at": "2026-07-17T22:29:54.257620"
+        },
+        "ADH6.2": {
+          "description": "Implement acceptance composition",
+          "status": "completed",
+          "started_at": "2026-07-17T22:29:54.403697",
+          "completed_at": "2026-07-17T22:33:08.819290",
+          "duration_seconds": 194.42,
+          "updated_at": "2026-07-17T22:33:08.819290"
+        },
+        "ADH6.3": {
+          "description": "Validate independent blockers",
+          "status": "completed",
+          "started_at": "2026-07-17T22:33:08.989015",
+          "completed_at": "2026-07-17T22:35:02.467329",
+          "duration_seconds": 113.48,
+          "updated_at": "2026-07-17T22:35:02.467329"
+        }
+      },
+      "started_at": "2026-07-17T22:28:19.129259",
+      "completed_at": "2026-07-17T22:35:02.467329",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH7": {
+      "status": "completed",
+      "depends_on": [
+        "ADH6"
+      ],
+      "subtasks": {
+        "ADH7.1": {
+          "description": "Write recovery/replan/resume tests",
+          "status": "completed",
+          "started_at": "2026-07-17T22:44:40.621835",
+          "completed_at": "2026-07-17T22:44:40.763603",
+          "duration_seconds": 0.14,
+          "updated_at": "2026-07-17T22:44:40.763603"
+        },
+        "ADH7.2": {
+          "description": "Implement persistence and invalidation",
+          "status": "completed",
+          "started_at": "2026-07-17T22:44:40.903479",
+          "completed_at": "2026-07-17T22:44:41.048191",
+          "duration_seconds": 0.14,
+          "updated_at": "2026-07-17T22:44:41.048191"
+        },
+        "ADH7.3": {
+          "description": "Validate exact continuation",
+          "status": "completed",
+          "started_at": "2026-07-17T22:44:41.198196",
+          "completed_at": "2026-07-17T22:44:41.349065",
+          "duration_seconds": 0.15,
+          "updated_at": "2026-07-17T22:44:41.349065"
+        }
+      },
+      "started_at": "2026-07-17T22:44:40.621835",
+      "completed_at": "2026-07-17T22:44:41.349065",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    },
+    "ADH8": {
+      "status": "completed",
+      "depends_on": [
+        "ADH7"
+      ],
+      "subtasks": {
+        "ADH8.1": {
+          "description": "Run cross-domain and routing matrix",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T22:52:08.813592"
+        },
+        "ADH8.2": {
+          "description": "Reconcile canonical/planning state",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T22:52:16.213474"
+        },
+        "ADH8.3": {
+          "description": "Run discovery contract check",
+          "status": "completed",
+          "started_at": null,
+          "completed_at": null,
+          "duration_seconds": 0,
+          "updated_at": "2026-07-17T22:52:27.057250"
+        }
+      },
+      "started_at": "2026-07-17T22:52:08.813592",
+      "completed_at": "2026-07-17T22:52:59.481641",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/adaptive-delivery-harness-runtime/todo.md"
+    }
+  },
+  "updated_at": "2026-07-17T22:52:59.481641",
+  "bootstrapped_from_artifacts": false
+}

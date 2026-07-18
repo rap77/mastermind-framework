@@ -1,5 +1,9 @@
 # Code Verification Report - UAT Tests #11-14
 
+> **Superseded as broad gateway evidence (2026-07-14).** The manual UI checks below
+> do not prove provider ingress, outbound, inbox APIs, data lifecycle or production
+> readiness. Use the active canonical objective package for current status.
+
 **Generated:** 2026-04-11
 **Purpose:** Verify code implementation for manual UAT tests
 

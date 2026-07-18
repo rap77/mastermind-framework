@@ -1,0 +1,262 @@
+{
+  "objective_slug": "domain-security-assurance-plane",
+  "status": "active",
+  "active_task": null,
+  "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+  "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md",
+  "tasks": {
+    "SAP1": {
+      "status": "completed",
+      "depends_on": [],
+      "subtasks": {
+        "SAP1.1": {
+          "description": "Write profile composition tests",
+          "status": "completed",
+          "started_at": "2026-07-16T18:09:36.113500",
+          "completed_at": "2026-07-16T18:11:01.615481",
+          "duration_seconds": 85.5,
+          "updated_at": "2026-07-16T18:11:01.615481"
+        },
+        "SAP1.2": {
+          "description": "Implement typed contracts and precedence",
+          "status": "completed",
+          "started_at": "2026-07-16T18:11:05.027324",
+          "completed_at": "2026-07-16T18:12:43.446483",
+          "duration_seconds": 98.42,
+          "updated_at": "2026-07-16T18:12:43.446483"
+        },
+        "SAP1.3": {
+          "description": "Run targeted validation",
+          "status": "completed",
+          "started_at": "2026-07-16T18:12:49.179528",
+          "completed_at": "2026-07-16T18:13:18.572937",
+          "duration_seconds": 29.39,
+          "updated_at": "2026-07-16T18:13:18.572937"
+        }
+      },
+      "started_at": "2026-07-16T18:09:36.113500",
+      "completed_at": "2026-07-16T18:13:18.572937",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP2": {
+      "status": "completed",
+      "depends_on": [
+        "SAP1"
+      ],
+      "subtasks": {
+        "SAP2.1": {
+          "description": "Write security gap persistence tests",
+          "status": "completed",
+          "started_at": "2026-07-16T18:38:38.210041",
+          "completed_at": "2026-07-16T18:39:53.884326",
+          "duration_seconds": 75.67,
+          "updated_at": "2026-07-16T18:39:53.884326"
+        },
+        "SAP2.2": {
+          "description": "Implement shared schema extensions",
+          "status": "completed",
+          "started_at": "2026-07-16T18:39:54.100472",
+          "completed_at": "2026-07-16T18:41:19.798541",
+          "duration_seconds": 85.7,
+          "updated_at": "2026-07-16T18:41:19.798541"
+        },
+        "SAP2.3": {
+          "description": "Validate redaction and queries",
+          "status": "completed",
+          "started_at": "2026-07-16T18:41:19.946153",
+          "completed_at": "2026-07-16T18:42:59.927513",
+          "duration_seconds": 99.98,
+          "updated_at": "2026-07-16T18:42:59.927513"
+        }
+      },
+      "started_at": "2026-07-16T18:38:38.210041",
+      "completed_at": "2026-07-16T18:42:59.927513",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP3": {
+      "status": "completed",
+      "depends_on": [
+        "SAP1"
+      ],
+      "subtasks": {
+        "SAP3.1": {
+          "description": "Define minimal domain overlay fixtures",
+          "status": "completed",
+          "started_at": "2026-07-16T18:54:15.506797",
+          "completed_at": "2026-07-16T18:55:02.661157",
+          "duration_seconds": 47.15,
+          "updated_at": "2026-07-16T18:55:02.661157"
+        },
+        "SAP3.2": {
+          "description": "Implement source/jurisdiction resolution",
+          "status": "completed",
+          "started_at": "2026-07-16T18:55:02.822019",
+          "completed_at": "2026-07-16T18:56:34.342729",
+          "duration_seconds": 91.52,
+          "updated_at": "2026-07-16T18:56:34.342729"
+        },
+        "SAP3.3": {
+          "description": "Validate stale-source escalation",
+          "status": "completed",
+          "started_at": "2026-07-16T18:56:34.485354",
+          "completed_at": "2026-07-16T18:57:10.692117",
+          "duration_seconds": 36.21,
+          "updated_at": "2026-07-16T18:57:10.692117"
+        }
+      },
+      "started_at": "2026-07-16T18:54:15.506797",
+      "completed_at": "2026-07-16T18:57:10.692117",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP4": {
+      "status": "completed",
+      "depends_on": [
+        "SAP2",
+        "SAP3"
+      ],
+      "subtasks": {
+        "SAP4.1": {
+          "description": "Write bounded pass and evidence tests",
+          "status": "completed",
+          "started_at": "2026-07-16T19:02:31.105021",
+          "completed_at": "2026-07-16T19:04:05.459901",
+          "duration_seconds": 94.35,
+          "updated_at": "2026-07-16T19:04:05.459901"
+        },
+        "SAP4.2": {
+          "description": "Implement assurance passes",
+          "status": "completed",
+          "started_at": "2026-07-16T19:04:05.608836",
+          "completed_at": "2026-07-16T19:07:04.101696",
+          "duration_seconds": 178.49,
+          "updated_at": "2026-07-16T19:07:04.101696"
+        },
+        "SAP4.3": {
+          "description": "Validate unperformed-check behavior",
+          "status": "completed",
+          "started_at": "2026-07-16T19:07:04.275856",
+          "completed_at": "2026-07-16T19:09:31.092178",
+          "duration_seconds": 146.82,
+          "updated_at": "2026-07-16T19:09:31.092178"
+        }
+      },
+      "started_at": "2026-07-16T19:02:31.105021",
+      "completed_at": "2026-07-16T19:09:31.092178",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP5": {
+      "status": "completed",
+      "depends_on": [
+        "SAP4"
+      ],
+      "subtasks": {
+        "SAP5.1": {
+          "description": "Write veto and expiry tests",
+          "status": "completed",
+          "started_at": "2026-07-16T19:16:34.007870",
+          "completed_at": "2026-07-16T19:18:04.996194",
+          "duration_seconds": 90.99,
+          "updated_at": "2026-07-16T19:18:04.996194"
+        },
+        "SAP5.2": {
+          "description": "Implement readiness and acceptance rules",
+          "status": "completed",
+          "started_at": "2026-07-16T19:18:26.848149",
+          "completed_at": "2026-07-16T19:21:36.680535",
+          "duration_seconds": 189.83,
+          "updated_at": "2026-07-16T19:21:36.680535"
+        },
+        "SAP5.3": {
+          "description": "Validate reopen on expiry",
+          "status": "completed",
+          "started_at": "2026-07-16T19:21:57.278428",
+          "completed_at": "2026-07-16T19:26:48.727488",
+          "duration_seconds": 291.45,
+          "updated_at": "2026-07-16T19:26:48.727488"
+        }
+      },
+      "started_at": "2026-07-16T19:16:34.007870",
+      "completed_at": "2026-07-16T19:26:48.727488",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP6": {
+      "status": "completed",
+      "depends_on": [
+        "SAP5"
+      ],
+      "subtasks": {
+        "SAP6.1": {
+          "description": "Write integration persistence tests",
+          "status": "completed",
+          "started_at": "2026-07-16T19:52:29.699014",
+          "completed_at": "2026-07-16T19:54:24.806543",
+          "duration_seconds": 115.11,
+          "updated_at": "2026-07-16T19:54:24.806543"
+        },
+        "SAP6.2": {
+          "description": "Persist verdicts, decisions and checkpoint",
+          "status": "completed",
+          "started_at": "2026-07-16T19:55:00.461864",
+          "completed_at": "2026-07-16T19:58:45.158246",
+          "duration_seconds": 224.7,
+          "updated_at": "2026-07-16T19:58:45.158246"
+        },
+        "SAP6.3": {
+          "description": "Verify sensitive-data exclusion",
+          "status": "completed",
+          "started_at": "2026-07-16T19:59:04.209431",
+          "completed_at": "2026-07-16T20:01:51.872227",
+          "duration_seconds": 167.66,
+          "updated_at": "2026-07-16T20:01:51.872227"
+        }
+      },
+      "started_at": "2026-07-16T19:52:29.699014",
+      "completed_at": "2026-07-16T20:01:51.872227",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    },
+    "SAP7": {
+      "status": "completed",
+      "depends_on": [
+        "SAP6"
+      ],
+      "subtasks": {
+        "SAP7.1": {
+          "description": "Run full domain matrix",
+          "status": "completed",
+          "started_at": "2026-07-16T20:26:32.811697",
+          "completed_at": "2026-07-16T20:27:12.327441",
+          "duration_seconds": 39.52,
+          "updated_at": "2026-07-16T20:27:12.327441"
+        },
+        "SAP7.2": {
+          "description": "Run regressions and contract check",
+          "status": "completed",
+          "started_at": "2026-07-16T20:27:12.549151",
+          "completed_at": "2026-07-16T20:29:24.666638",
+          "duration_seconds": 132.12,
+          "updated_at": "2026-07-16T20:29:24.666638"
+        },
+        "SAP7.3": {
+          "description": "Reconcile canonical and planning status",
+          "status": "completed",
+          "started_at": "2026-07-16T20:29:24.865742",
+          "completed_at": "2026-07-16T20:30:42.960964",
+          "duration_seconds": 78.1,
+          "updated_at": "2026-07-16T20:30:42.960964"
+        }
+      },
+      "started_at": "2026-07-16T20:26:32.811697",
+      "completed_at": "2026-07-16T20:30:42.960964",
+      "plan_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/tasks.md",
+      "todo_path": "/home/rpadron/proy/mastermind/.planning/changes/domain-security-assurance-plane/todo.md"
+    }
+  },
+  "updated_at": "2026-07-16T20:30:42.960964",
+  "bootstrapped_from_artifacts": false
+}

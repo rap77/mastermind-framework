@@ -1,11 +1,11 @@
 # Handoff — no active objective
 
 ## Last archived
-- `knowledge-ingestion-manual` — archived at 2026-07-10T19:35:46
+- `pgvector-schema-langsmith-foundation-paralelo` — archived at 2026-07-18T12:07:02
 
 ## Next recommended objective
-- `multi-channel-gateway` — Multi-channel Gateway
-- Unified inbox across WhatsApp + Instagram + Email with webhook reliability
+- `task-time-and-estimation` — Task Time and Estimation
+- Track effort, ETA, and estimation quality over time.
 
 ## Next command
 - `/mm:activate-next-objective`

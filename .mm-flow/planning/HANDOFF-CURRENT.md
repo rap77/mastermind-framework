@@ -1,19 +1,21 @@
-# Handoff — multi-channel-gateway
+# Handoff — legacy mirror
 
 ## Current objective
-- `multi-channel-gateway`
+- See `.planning/HANDOFF-CURRENT.md` for the canonical active objective.
 
 ## Decisions already made
-- Use a per-objective planning package instead of relying on a single root planning surface forever.
-- Another model should be able to resume from artifacts, not from chat memory alone.
+- Roadmap is derived from explicit intent, planning state, decision history, and implementation reality.
+- Only one objective package should be actively expanded at a time unless parallel tracks are explicitly justified.
 
 ## Blockers / risks
-- The package is scaffolded from repository evidence and may need refinement for deeper implementation context.
-- Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
+- Roadmap is heuristic and should be refined when new canonical docs or handoffs appear.
+- Legacy global discovery files still coexist with the target per-objective package model.
 
 ## Exact next recommended task
-- Start with `T1` from `tasks.md`.
+- Follow `.planning/HANDOFF-CURRENT.md`; after MCG6 the canonical next action is
+  `/mm:archive-objective multi-channel-gateway`.
+- This `.mm-flow/planning` tree is retained for legacy reference only.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective multi-channel-gateway`
-- Run targeted tests for touched files before handing off again
+- Verify `.planning/HANDOFF-CURRENT.md` and `.planning/roadmap/objectives.md` are the active source of truth

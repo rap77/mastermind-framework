@@ -39,7 +39,7 @@
 
 ### Multi-channel Gateway (MCG) — LATAM Focus
 
-- [x] **MCG-01**: WhatsApp Business Cloud API + Instagram Graph API + Email (aiosmtplib) adapters. Rust handles webhooks + routing, Python handles AI processing. Webhook queue with dead-letter queue (DLQ) for reliability. Unified inbox across all channels. Channel Router (new brain agent) for optimal channel selection.
+- [ ] **MCG-01**: WhatsApp Business Cloud API + Instagram Graph API + Email (aiosmtplib) adapters. Rust handles webhooks + routing, Python handles AI processing. Webhook queue with dead-letter queue (DLQ) for reliability. Unified inbox across all channels. Channel Router (new brain agent) for optimal channel selection. Only the canonical WhatsApp inbound text slice is currently implemented/tested.
 
 ## v3.1+ Requirements (Deferred)
 
@@ -85,7 +85,7 @@
 | UIE-01 | Phase 17 | Pending |
 | UIE-02 | Phase 17 | Pending |
 | UIE-03 | Phase 17 | Pending |
-| MCG-01 | Phase 18 | Complete |
+| MCG-01 | Phase 18 | Partial: canonical WhatsApp ingest validated; broad gateway deferred |
 
 **Coverage:**
 - v3.0 requirements: 15 total
@@ -94,4 +94,4 @@
 
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 after roadmap creation with 6 phases (13-18)*
+*Last updated: 2026-07-14 after MCG canonical-ingest reconciliation*

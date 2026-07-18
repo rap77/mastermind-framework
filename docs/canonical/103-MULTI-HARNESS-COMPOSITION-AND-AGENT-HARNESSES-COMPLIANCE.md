@@ -41,7 +41,8 @@ Objective
   -> HarnessCompositionPlan
   -> RunBundleComposer
   -> Agent Harness compliant RunBundle
-  -> HarnessCore execution
+  -> RunBundleStageExecutor
+  -> HarnessCore execution envelope
 ```
 
 ## 5. Biblioteca de harnesses
@@ -196,6 +197,11 @@ memory-retrieval/
 └── scripts/
 ```
 
+### 7.6 Review Harness
+
+Añade fresh-context o adversarial review sin sustituir verification ni approval.
+Puede bloquear por findings según project policy, risk o segregation of duties.
+
 ## 8. ObjectiveProfile
 
 El selector debe normalizar cada objetivo antes de elegir harnesses.
@@ -284,6 +290,10 @@ El composer materializa un bundle efímero por ejecución.
 
 El RunBundle también debe ser un Agent Harness válido.
 
+Cuando el harness declara stages, el bundle debe materializar además el stage
+graph, policies, selected capabilities y content hash definidos en
+`113-HARNESS-STAGE-EXECUTION-RUNTIME-CONTRACT.md`.
+
 ## 11. `bundle.yaml`
 
 El bundle debe conservar lineage:
@@ -312,6 +322,8 @@ precedence:
   - selected_skills
   - selected_references
 created_at: "<iso8601>"
+stage_graph_ref: stages.yaml
+content_hash: "<sha256>"
 ```
 
 ## 12. Precedencia
@@ -489,6 +501,7 @@ Cada selección y composición debe registrar:
 - bundle path
 - context budget estimate
 - final execution envelope
+- stage decisions, evidence, approvals y checkpoint refs
 
 ## 19. Failure modes
 
@@ -568,6 +581,16 @@ Agregar tests para:
 - precedencia
 - failure modes
 
+### Slice 6 — Stage execution
+
+Implementar `RunBundleStageExecutor` como foundation compartida:
+
+- valida y ejecuta el stage graph
+- invoca sólo capabilities seleccionadas
+- registra evidence, approvals y checkpoints
+- enruta review/recovery y safe replanning
+- mantiene domain semantics fuera del executor
+
 ## 21. Exit criteria
 
 La arquitectura multi-harness está lista cuando:
@@ -578,6 +601,9 @@ La arquitectura multi-harness está lista cuando:
 - cada bundle preserva lineage
 - los tests de routing pasan
 - no se carga contexto fuera del plan seleccionado
+
+La ejecución detallada se rige por
+`113-HARNESS-STAGE-EXECUTION-RUNTIME-CONTRACT.md`.
 
 ## 22. No-goals
 

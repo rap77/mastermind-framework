@@ -7,6 +7,7 @@ import importlib.util
 import json
 import logging
 import subprocess
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
@@ -39,6 +40,7 @@ ARCHIVE_DIR = PLANNING_DIR / "archive"
 COMMANDS_DIR = Path(__file__).resolve().parent
 DISCOVER_HANDLER = COMMANDS_DIR / "discover-handler.py"
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
 
 
 def load_gate_status_helpers() -> object:

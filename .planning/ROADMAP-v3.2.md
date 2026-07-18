@@ -125,13 +125,13 @@
 
 | Phase | Name | Status | Completed |
 |-------|------|--------|-----------|
-| 20 | pgvector Schema + LangSmith | ⏳ Pending | — |
+| 20 | pgvector Schema + LangSmith | ✅ Complete | Verified 2026-07-18 |
 | 21 | RAG Pilot — Brain #1 | ⏳ Pending | — |
 | 21.5 | RAG Evaluation Gate | ⏳ Pending | — |
 | 22 | Knowledge Ingestion | ⏳ Pending | — |
 | 23 | RAG Scale-Out | ⏳ Pending | — |
 
-**Overall Progress:** 0/5 phases delivered
+**Overall Progress:** 1/5 phases delivered
 
 ---
 

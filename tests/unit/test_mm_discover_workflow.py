@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -114,6 +115,26 @@ class DiscoverWorkflowTest(unittest.TestCase):
             check=False,
         )
 
+    def _refine_objective_topology(
+        self, objective_dir: Path, task_ids: tuple[str, ...]
+    ) -> None:
+        """Add explicit test-owned topology to a discovery scaffold."""
+        tasks_path = objective_dir / "tasks.md"
+        content = tasks_path.read_text(encoding="utf-8")
+        for task_id in task_ids:
+            content, count = re.subn(
+                rf"(^## {re.escape(task_id)}:.*?\n\n)(?=### Purpose)",
+                rf"\g<1>### Execution Subtasks\n"
+                rf"- {task_id}.1: Review requirements and design context for {task_id}\n"
+                rf"- {task_id}.2: Implement {task_id} end-to-end\n"
+                rf"- {task_id}.3: Run validation for {task_id}\n\n",
+                content,
+                count=1,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+            self.assertEqual(count, 1)
+        tasks_path.write_text(content, encoding="utf-8")
+
     def run_neutral_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
         """Run the neutral `mm` entrypoint in the temporary workspace."""
         self._link_framework_commands()
@@ -197,6 +218,69 @@ class DiscoverWorkflowTest(unittest.TestCase):
             encoding="utf-8",
         )
         return artifact_path
+
+    def _make_backend_service_recommended(self) -> None:
+        """Provide canonical evidence so activation refresh selects this fixture."""
+        (
+            self.temp_dir / "docs" / "canonical" / "33-DASHBOARD-REALTIME-EVENTS.md"
+        ).unlink(missing_ok=True)
+        (
+            self.temp_dir
+            / "docs"
+            / "canonical"
+            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
+        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
+
+    def _refresh_backend_activation_recommendation(self) -> None:
+        """Generate the backend recommendation from canonical discovery inputs."""
+        (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        ).mkdir(parents=True, exist_ok=True)
+        self._make_backend_service_recommended()
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+
+    @staticmethod
+    def _command_output(result: subprocess.CompletedProcess[str]) -> str:
+        """Return command diagnostics regardless of the handler's output stream."""
+        return result.stdout + result.stderr
+
+    def test_roadmap_treats_completed_legacy_phase_as_done(self) -> None:
+        """A completed legacy phase must not be rediscovered as planned work."""
+        planning_dir = self.temp_dir / ".mm-flow" / "planning"
+        (planning_dir / "ROADMAP-v3.2.md").write_text(
+            "# Roadmap\n\n"
+            "### Phase 20: pgvector Schema + LangSmith Foundation (paralelo)\n\n"
+            "**Goal:** Preserve the existing pgvector and LangSmith foundation.\n",
+            encoding="utf-8",
+        )
+        legacy_todo = planning_dir / "archive" / "legacy" / "root-tasks" / "todo.md"
+        legacy_todo.parent.mkdir(parents=True, exist_ok=True)
+        legacy_todo.write_text(
+            "## PHASE 20: pgvector Schema + LangSmith\n\n"
+            "- [x] 20: pgvector Schema + LangSmith\n",
+            encoding="utf-8",
+        )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--existing", "--roadmap")
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        roadmap = json.loads(
+            (planning_dir / "roadmap" / "objectives.json").read_text(encoding="utf-8")
+        )
+        objectives = roadmap if isinstance(roadmap, list) else roadmap["objectives"]
+        phase = next(
+            item
+            for item in objectives
+            if item["slug"] == "pgvector-schema-langsmith-foundation-paralelo"
+        )
+        self.assertEqual(phase["status"], "done")
+        self.assertFalse(phase["ready_now"])
 
     def _write_active_objective_command_bundles_artifact(
         self, payload: dict[str, object]
@@ -412,6 +496,73 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertIn("| Rank | Objective |", objectives_md)
         self.assertIn("`backend-service-boundary-for-agents`", objectives_md)
 
+    def test_roadmap_preserves_planned_package_dependencies_and_recommends_hsr(
+        self,
+    ) -> None:
+        """Planned harness packages should retain their declared execution order."""
+        planning_dir = self.temp_dir / ".mm-flow" / "planning"
+        changes_dir = planning_dir / "changes"
+        archive_dir = planning_dir / "archive" / "objectives"
+
+        for slug in ("engineering-doctrine-layer", "artifact-versioning-and-lineage"):
+            (archive_dir / slug).mkdir(parents=True, exist_ok=True)
+
+        states = {
+            "harness-stage-execution-runtime": {
+                "HSR1": {
+                    "status": "pending",
+                    "depends_on": [
+                        "engineering-doctrine-layer",
+                        "artifact-versioning-and-lineage",
+                    ],
+                }
+            },
+            "domain-security-assurance-plane": {
+                "SAP1": {"status": "pending", "depends_on": []}
+            },
+            "adaptive-delivery-harness-runtime": {
+                "ADH1": {
+                    "status": "pending",
+                    "depends_on": [
+                        "harness-stage-execution-runtime",
+                        "domain-security-assurance-plane",
+                    ],
+                }
+            },
+        }
+        for slug, tasks in states.items():
+            objective_dir = changes_dir / slug
+            objective_dir.mkdir(parents=True, exist_ok=True)
+            (objective_dir / "execution-state.json").write_text(
+                json.dumps(
+                    {
+                        "objective_slug": slug,
+                        "status": "planned",
+                        "active_task": None,
+                        "tasks": tasks,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        objectives = json.loads(
+            (planning_dir / "roadmap" / "objectives.json").read_text(encoding="utf-8")
+        )
+        by_slug = {item["slug"]: item for item in objectives}
+        self.assertEqual(
+            by_slug["harness-stage-execution-runtime"]["dependencies"],
+            ["artifact-versioning-and-lineage", "engineering-doctrine-layer"],
+        )
+        self.assertEqual(
+            by_slug["adaptive-delivery-harness-runtime"]["dependencies"],
+            ["domain-security-assurance-plane", "harness-stage-execution-runtime"],
+        )
+        recommended = next(item for item in objectives if item["recommended_next"])
+        self.assertEqual(recommended["slug"], "harness-stage-execution-runtime")
+
     def test_activate_next_objective_materializes_recommended_package(self) -> None:
         """activate-next-objective should create the package for the roadmap recommendation."""
         archived_project_state_dir = (
@@ -440,17 +591,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (
-            self.temp_dir
-            / "docs"
-            / "canonical"
-            / "34-BACKEND-SERVICE-BOUNDARY-FOR-AGENTS.md"
-        ).write_text("# Backend Service Boundary For Agents\n", encoding="utf-8")
-
-        roadmap_result = self.run_command(
-            str(DISCOVER_HANDLER), "--roadmap", "--existing"
-        )
-        self.assertEqual(roadmap_result.returncode, 0, msg=roadmap_result.stderr)
+        self._refresh_backend_activation_recommendation()
 
         # Simulate a stale roadmap snapshot that disagrees with the canonical JSON.
         roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
@@ -463,8 +604,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: PASSED", result.stdout)
-        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: PASSED", output)
+        self.assertIn("backend-service-boundary-for-agents", output)
 
         refreshed_objectives_md = (roadmap_dir / "objectives.md").read_text(
             encoding="utf-8"
@@ -487,27 +629,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self,
     ) -> None:
         """activate-next-objective should keep the single-active block when not explicitly allowed."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -530,35 +657,21 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: FAILED", result.stdout)
-        self.assertIn(active_slug, result.stdout)
-        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: FAILED", output)
+        self.assertIn(active_slug, output)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", output)
 
     def test_activate_next_objective_blocks_when_bundle_artifact_is_missing(
         self,
     ) -> None:
         """activate-next-objective should fail closed when delegated bundle metadata is missing."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -581,35 +694,21 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: FAILED", result.stdout)
-        self.assertIn("bundle metadata", result.stdout)
-        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: FAILED", output)
+        self.assertIn("bundle metadata", output)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", output)
 
     def test_activate_next_objective_blocks_when_bundle_artifact_is_invalid(
         self,
     ) -> None:
         """activate-next-objective should fail closed when bundle metadata is invalid."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -645,35 +744,21 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: FAILED", result.stdout)
-        self.assertIn("bundle metadata", result.stdout)
-        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: FAILED", output)
+        self.assertIn("bundle metadata", output)
+        self.assertNotIn("ACTIVE_OBJECTIVE_EXCEPTION", output)
 
     def test_activate_next_objective_allows_valid_matching_active_exception(
         self,
     ) -> None:
         """activate-next-objective should honor a valid matching multi-active exception."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -697,38 +782,24 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: PASSED", result.stdout)
-        self.assertIn("ACTIVE_OBJECTIVE_EXCEPTION: activate-pair", result.stdout)
-        self.assertIn(recommended_slug, result.stdout)
-        self.assertIn(active_slug, result.stdout)
-        self.assertIn("Allow coordinated activation", result.stdout)
-        self.assertIn("Expires when:", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: PASSED", output)
+        self.assertIn("ACTIVE_OBJECTIVE_EXCEPTION: activate-pair", output)
+        self.assertIn(recommended_slug, output)
+        self.assertIn(active_slug, output)
+        self.assertIn("Allow coordinated activation", output)
+        self.assertIn("Expires when:", output)
 
     def test_activate_next_objective_allows_named_bundle_reference_exception(
         self,
     ) -> None:
         """activate-next-objective should resolve named bundle refs deterministically."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -752,36 +823,20 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: PASSED", result.stdout)
-        self.assertIn(
-            "ACTIVE_OBJECTIVE_EXCEPTION: activate-pair-bundle-ref", result.stdout
-        )
+        output = self._command_output(result)
+        self.assertIn("STATUS: PASSED", output)
+        self.assertIn("ACTIVE_OBJECTIVE_EXCEPTION: activate-pair-bundle-ref", output)
 
     def test_activate_next_objective_blocks_on_unknown_named_bundle_reference(
         self,
     ) -> None:
         """Unknown named bundle refs should fail closed."""
-        active_slug = "parallel-helper-objective"
+        active_slug = "_parallel-helper-objective"
         (self.temp_dir / ".mm-flow" / "planning" / "changes" / active_slug).mkdir(
             parents=True, exist_ok=True
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
         recommended_slug = "backend-service-boundary-for-agents"
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": recommended_slug,
-                        "title": "Backend Service Boundary For Agents",
-                        "recommended_next": True,
-                    }
-                ],
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._refresh_backend_activation_recommendation()
         self._write_active_objective_exceptions_artifact(
             self._with_default_exception_expiry(
                 {
@@ -805,8 +860,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 1, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: FAILED", result.stdout)
-        self.assertIn(active_slug, result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: FAILED", output)
+        self.assertIn(active_slug, output)
 
     def test_render_active_objective_exception_fails_when_artifact_is_missing(
         self,
@@ -1499,7 +1555,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("dashboard-realtime", result.stdout)
+        self.assertIn("dashboard-realtime", self._command_output(result))
 
     def test_roadmap_marks_blocked_fallback_when_all_ready_candidates_are_gate_blocked(
         self,
@@ -1687,8 +1743,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: BLOCKED", result.stdout)
-        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: BLOCKED", output)
+        self.assertIn("backend-service-boundary-for-agents", output)
 
     def test_activate_next_objective_blocks_when_recommended_gate_not_run(self) -> None:
         """activate-next-objective should stop early when the recommended objective has not passed the gate yet."""
@@ -1757,11 +1814,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: BLOCKED", result.stdout)
-        self.assertIn("GATE_STATUS: NOT_RUN", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: BLOCKED", output)
+        self.assertIn("GATE_STATUS: NOT_RUN", output)
         self.assertIn(
             "/mm:objective-context-check --objective backend-service-boundary-for-agents",
-            result.stdout,
+            output,
         )
 
     def test_activate_next_objective_blocks_when_recommended_gate_needs_input(
@@ -1844,9 +1902,10 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 2, msg=result.stdout + result.stderr)
-        self.assertIn("STATUS: BLOCKED", result.stdout)
-        self.assertIn("GATE_STATUS: NEEDS_INPUT", result.stdout)
-        self.assertIn("Answer the open questions", result.stdout)
+        output = self._command_output(result)
+        self.assertIn("STATUS: BLOCKED", output)
+        self.assertIn("GATE_STATUS: NEEDS_INPUT", output)
+        self.assertIn("Answer the open questions", output)
 
     def test_discover_objective_blocks_when_another_active_objective_exists(
         self,
@@ -2107,6 +2166,16 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self,
     ) -> None:
         """Activation should ignore a bootstrapped ghost objective when roadmap already marks it done."""
+        archived_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "archive"
+            / "objectives"
+            / "project-state-mvp"
+        )
+        archived_dir.mkdir(parents=True, exist_ok=True)
+        self._refresh_backend_activation_recommendation()
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
@@ -2132,32 +2201,12 @@ class DiscoverWorkflowTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
-        roadmap_dir.mkdir(parents=True, exist_ok=True)
-        (roadmap_dir / "objectives.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "slug": "project-state-mvp",
-                        "status": "done",
-                        "ready_now": False,
-                        "recommended_next": False,
-                    },
-                    {
-                        "slug": "backend-service-boundary-for-agents",
-                        "name": "Backend Service Boundary For Agents",
-                        "status": "planned",
-                        "ready_now": True,
-                        "recommended_next": True,
-                    },
-                ]
-            ),
-            encoding="utf-8",
-        )
 
         result = self.run_command(str(ACTIVATE_NEXT_OBJECTIVE_HANDLER))
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("backend-service-boundary-for-agents", result.stdout)
+        self.assertIn(
+            "backend-service-boundary-for-agents", self._command_output(result)
+        )
 
     def test_context_to_canonical_writes_project_adapter_directly(self) -> None:
         """context-to-canonical should write a project-adapter doc without agent help."""
@@ -2632,6 +2681,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         tasks_text = (objective_dir / "tasks.md").read_text(encoding="utf-8")
         self.assertIn("### Purpose", tasks_text)
+        self.assertNotIn("### Execution Subtasks", tasks_text)
         self.assertIn("### Validation Commands", tasks_text)
         self.assertIn("### Files / Areas Likely Touched", tasks_text)
 
@@ -2645,7 +2695,221 @@ class DiscoverWorkflowTest(unittest.TestCase):
         self.assertEqual(
             check_result.returncode, 0, msg=check_result.stdout + check_result.stderr
         )
-        self.assertIn("STATUS: PASSED", check_result.stdout)
+
+    def test_objective_discovery_uses_preferred_planning_surface(self) -> None:
+        """Discovery and execution must resolve the same planning directory."""
+        (self.temp_dir / ".planning" / "changes").mkdir(parents=True)
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "preferred-surface",
+            "Preferred Surface",
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertTrue(
+            (self.temp_dir / ".planning" / "changes" / "preferred-surface").exists()
+        )
+        self.assertFalse(
+            (
+                self.temp_dir
+                / ".mm-flow"
+                / "planning"
+                / "changes"
+                / "preferred-surface"
+            ).exists()
+        )
+        objective_dir = self.temp_dir / ".planning" / "changes" / "preferred-surface"
+        tasks_path = objective_dir / "tasks.md"
+        tasks_text = tasks_path.read_text(encoding="utf-8")
+        tasks_text, count = re.subn(
+            r"(^## T1:.*?\n\n)(?=### Purpose)",
+            r"\g<1>### Execution Subtasks\n"
+            "- T1.1: Inspect preferred-surface requirements\n"
+            "- T1.2: Implement preferred-surface behavior\n"
+            "- T1.3: Validate preferred-surface behavior\n\n",
+            tasks_text,
+            count=1,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertEqual(count, 1)
+        tasks_path.write_text(tasks_text, encoding="utf-8")
+
+        brief = self.run_command(
+            str(COMPLETE_TASK_HANDLER), "--brief", "preferred-surface/T1"
+        )
+        self.assertEqual(brief.returncode, 0, msg=brief.stdout + brief.stderr)
+        self.assertIn(".planning/changes/preferred-surface/tasks.md", brief.stdout)
+
+    def test_objective_rediscovery_preserves_refined_package_and_ledger(self) -> None:
+        """Normal rediscovery is non-destructive for an existing objective package."""
+        first = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "refined-objective",
+            "Refined Objective",
+        )
+        self.assertEqual(first.returncode, 0, msg=first.stdout + first.stderr)
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "refined-objective"
+        )
+        tracked = {
+            objective_dir / "requirements.md": b"refined requirements\n",
+            objective_dir / "design.md": b"refined design\n",
+            objective_dir / "tasks.md": b"refined tasks\n",
+            objective_dir / "todo.md": b"refined todo\n",
+            objective_dir / "HANDOFF-CURRENT.md": b"refined handoff\n",
+            objective_dir / "execution-state.json": b'{"refined": true}\n',
+        }
+        for path, content in tracked.items():
+            path.write_bytes(content)
+
+        second = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "refined-objective",
+            "Refined Objective",
+        )
+
+        self.assertEqual(second.returncode, 0, msg=second.stdout + second.stderr)
+        for path, content in tracked.items():
+            self.assertEqual(path.read_bytes(), content)
+
+    def test_generic_discovery_scaffold_is_not_executable(self) -> None:
+        """Generic discovery requires refinement instead of synthetic child work."""
+        discovered = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "generic-scaffold",
+            "Generic Scaffold",
+        )
+        self.assertEqual(
+            discovered.returncode, 0, msg=discovered.stdout + discovered.stderr
+        )
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "generic-scaffold"
+        )
+        tasks_before = (objective_dir / "tasks.md").read_bytes()
+        todo_before = (objective_dir / "todo.md").read_bytes()
+
+        result = self.run_command(str(COMPLETE_TASK_HANDLER), "generic-scaffold/T1")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refine", result.stderr.lower())
+        self.assertFalse((objective_dir / "execution-state.json").exists())
+        self.assertEqual((objective_dir / "tasks.md").read_bytes(), tasks_before)
+        self.assertEqual((objective_dir / "todo.md").read_bytes(), todo_before)
+
+    def test_discovery_rejects_unsafe_empty_and_symlinked_objective_targets(
+        self,
+    ) -> None:
+        """Objective targeting stays inside the resolved preferred changes directory."""
+        for unsafe in ("...", "../escape", "UPPERCASE"):
+            with self.subTest(unsafe=unsafe):
+                result = self.run_command(
+                    str(DISCOVER_HANDLER), "--existing", "--objective", unsafe
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("Traceback", result.stderr)
+        changes = self.temp_dir / ".mm-flow" / "planning" / "changes"
+        changes.mkdir(parents=True, exist_ok=True)
+        external = Path(tempfile.mkdtemp(prefix="mm-discover-external-"))
+        self.addCleanup(shutil.rmtree, external)
+        (changes / "symlink-objective").symlink_to(external, target_is_directory=True)
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "symlink-objective",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("containment", result.stdout.lower() + result.stderr.lower())
+        self.assertEqual(list(external.iterdir()), [])
+
+    def test_partial_objective_rediscovery_fails_without_overwrite(self) -> None:
+        """A partial package is an error, not a successful preserved package."""
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "partial-objective"
+        )
+        objective_dir.mkdir(parents=True)
+        tasks_path = objective_dir / "tasks.md"
+        tasks_path.write_text("refined partial tasks\n", encoding="utf-8")
+
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "partial-objective",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "missing required files", result.stdout.lower() + result.stderr.lower()
+        )
+        self.assertEqual(
+            tasks_path.read_text(encoding="utf-8"), "refined partial tasks\n"
+        )
+
+    def test_discovery_completion_requires_exact_durable_root_set(self) -> None:
+        """Completed durable subsets or stale roots cannot mark an objective done."""
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "exact-roots"
+        )
+        objective_dir.mkdir(parents=True)
+        (objective_dir / "tasks.md").write_text(
+            "# Tasks\n\n## T1: First\n\n## T2: Second\n", encoding="utf-8"
+        )
+        (objective_dir / "HANDOFF-CURRENT.md").write_text(
+            "# Handoff\n", encoding="utf-8"
+        )
+        (objective_dir / "execution-state.json").write_text(
+            json.dumps(
+                {
+                    "tasks": {
+                        "T1": {"status": "completed"},
+                        "STALE": {"status": "completed"},
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = self.run_command(str(DISCOVER_HANDLER), "--roadmap", "--existing")
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        objectives = json.loads(
+            (
+                self.temp_dir / ".mm-flow" / "planning" / "roadmap" / "objectives.json"
+            ).read_text(encoding="utf-8")
+        )
+        candidate = next(item for item in objectives if item["slug"] == "exact-roots")
+        self.assertNotEqual(candidate["status"], "done")
+
+    def test_keyword_slug_does_not_invent_executable_topology(self) -> None:
+        """Realtime/websocket words do not bypass generic scaffold refinement."""
+        result = self.run_command(
+            str(DISCOVER_HANDLER),
+            "--existing",
+            "--objective",
+            "realtime-websocket-widget",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        tasks = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "changes"
+            / "realtime-websocket-widget"
+            / "tasks.md"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("### Execution Subtasks", tasks)
 
     def test_complete_task_handler_resolves_objective_package(self) -> None:
         """complete-task should execute against an objective package source."""
@@ -2657,6 +2921,10 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
 
         result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
@@ -2766,6 +3034,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         runtime_state = {
             "task_id": "PS1",
             "plan_path": str(objective_dir / "tasks.md"),
@@ -2801,6 +3070,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         runtime_state = {
             "task_id": "PS1",
             "plan_path": str(objective_dir / "tasks.md"),
@@ -2840,15 +3110,29 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         runtime_state = {
             "task_id": "PS1",
             "objective_slug": "project-state-mvp",
+            "session_id": "legacy-reconcile-session",
             "plan_path": str(objective_dir / "tasks.md"),
             "todo_path": str(objective_dir / "todo.md"),
             "subtasks": {
-                "PS1.1": {"status": "completed", "duration_seconds": 30},
-                "PS1.2": {"status": "pending", "duration_seconds": 0},
-                "PS1.3": {"status": "pending", "duration_seconds": 0},
+                "PS1.1": {
+                    "description": "Review requirements and design context for PS1",
+                    "status": "completed",
+                    "duration_seconds": 30,
+                },
+                "PS1.2": {
+                    "description": "Implement PS1 end-to-end",
+                    "status": "pending",
+                    "duration_seconds": 0,
+                },
+                "PS1.3": {
+                    "description": "Run validation for PS1",
+                    "status": "pending",
+                    "duration_seconds": 0,
+                },
             },
         }
         (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
@@ -2912,15 +3196,23 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         runtime_state = {
             "task_id": "PS2",
             "objective_slug": "project-state-mvp",
+            "session_id": "previous-task-session",
             "plan_path": str(objective_dir / "tasks.md"),
             "todo_path": str(objective_dir / "todo.md"),
             "subtasks": {
-                "PS2.1": {"status": "completed"},
-                "PS2.2": {"status": "pending"},
-                "PS2.3": {"status": "pending"},
+                "PS2.1": {
+                    "description": "Review requirements and design context for PS2",
+                    "status": "completed",
+                },
+                "PS2.2": {
+                    "description": "Implement PS2 end-to-end",
+                    "status": "pending",
+                },
+                "PS2.3": {"description": "Run validation for PS2", "status": "pending"},
             },
         }
         (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
@@ -2944,6 +3236,11 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
 
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
@@ -2999,6 +3296,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
         objective_state_path = objective_dir / "execution-state.json"
@@ -3042,6 +3340,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
         objective_state_path = objective_dir / "execution-state.json"
@@ -3077,6 +3376,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
         objective_dir = (
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
         runtime_state = {
@@ -3154,6 +3454,7 @@ class DiscoverWorkflowTest(unittest.TestCase):
             self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
         )
         objective_state_path = objective_dir / "execution-state.json"
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
 
         start_ps1 = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_ps1.returncode, 0, msg=start_ps1.stderr)
@@ -3221,16 +3522,48 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Artifact Versioning and Lineage",
         )
         self.assertEqual(second.returncode, 0, msg=second.stderr)
+        second_dir = (
+            self.temp_dir
+            / ".mm-flow"
+            / "planning"
+            / "changes"
+            / "artifact-versioning-and-lineage"
+        )
+        tasks_path = second_dir / "tasks.md"
+        tasks_text = tasks_path.read_text(encoding="utf-8")
+        for task_id in ("T1", "T2", "T3"):
+            tasks_text, count = re.subn(
+                rf"(^## {task_id}:.*?\n\n)(?=### Purpose)",
+                rf"\g<1>### Execution Subtasks\n"
+                rf"- {task_id}.1: Inspect lineage requirements for {task_id}\n"
+                rf"- {task_id}.2: Implement lineage behavior for {task_id}\n"
+                rf"- {task_id}.3: Validate lineage behavior for {task_id}\n\n",
+                tasks_text,
+                count=1,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+            self.assertEqual(count, 1)
+        tasks_path.write_text(tasks_text, encoding="utf-8")
 
         runtime_state = {
             "task_id": "PS1",
             "objective_slug": "project-state-mvp",
+            "session_id": "archived-stale-session",
             "plan_path": str(first_dir / "tasks.md"),
             "todo_path": str(first_dir / "todo.md"),
             "subtasks": {
-                "PS1.1": {"status": "completed"},
-                "PS1.2": {"status": "completed"},
-                "PS1.3": {"status": "completed"},
+                "PS1.1": {
+                    "description": "Review requirements and design context for PS1",
+                    "status": "completed",
+                },
+                "PS1.2": {
+                    "description": "Implement PS1 end-to-end",
+                    "status": "completed",
+                },
+                "PS1.3": {
+                    "description": "Run validation for PS1",
+                    "status": "completed",
+                },
             },
         }
         (self.temp_dir / ".mm-flow" / "planning" / "task-progress.json").write_text(
@@ -3276,6 +3609,35 @@ class DiscoverWorkflowTest(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        roadmap_dir = self.temp_dir / ".mm-flow" / "planning" / "roadmap"
+        roadmap_dir.mkdir(parents=True, exist_ok=True)
+        (roadmap_dir / "objectives.json").write_text(
+            json.dumps(
+                {
+                    "objectives": [
+                        {
+                            "stable_id": "project-state-mvp",
+                            "status": "active",
+                            "ready_now": True,
+                            "recommended_next": True,
+                            "summary": "Implementation complete. Archive this objective before activating the next roadmap objective.",
+                            "evidence_sources": [
+                                ".mm-flow/planning/changes/project-state-mvp"
+                            ],
+                        }
+                    ]
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        (roadmap_dir / "objectives.md").write_text(
+            "| Rank | Objective | Status | Evidence |\n"
+            "| --- | --- | --- | --- |\n"
+            "| 1 | `project-state-mvp` | active (archive next) | "
+            ".mm-flow/planning/changes/project-state-mvp |\n",
+            encoding="utf-8",
+        )
 
         archive_result = self.run_command(
             str(ARCHIVE_OBJECTIVE_HANDLER), "--objective", "project-state-mvp"
@@ -3292,6 +3654,32 @@ class DiscoverWorkflowTest(unittest.TestCase):
         )
         self.assertTrue(archived_dir.exists())
         self.assertTrue((archived_dir / "COMPLETION-SUMMARY.md").exists())
+        roadmap_json = json.loads(
+            (roadmap_dir / "objectives.json").read_text(encoding="utf-8")
+        )
+        objectives = (
+            roadmap_json
+            if isinstance(roadmap_json, list)
+            else roadmap_json["objectives"]
+        )
+        archived_entry = next(
+            item for item in objectives if item["stable_id"] == "project-state-mvp"
+        )
+        self.assertEqual(archived_entry["status"], "done")
+        self.assertIn(
+            ".mm-flow/planning/archive/objectives/project-state-mvp",
+            archived_entry["evidence_sources"],
+        )
+        roadmap_markdown = (roadmap_dir / "objectives.md").read_text(encoding="utf-8")
+        self.assertIn("## Recommended next objective", roadmap_markdown)
+        self.assertIn("| `project-state-mvp` | done |", roadmap_markdown)
+        self.assertIn(
+            ".mm-flow/planning/archive/objectives/project-state-mvp",
+            roadmap_markdown,
+        )
+        self.assertNotIn(
+            ".mm-flow/planning/changes/project-state-mvp", roadmap_markdown
+        )
 
     def test_archive_objective_infers_single_active_objective_by_default(self) -> None:
         """archive-objective should default to the sole active objective without requiring --objective."""
@@ -3553,6 +3941,10 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
 
@@ -3580,7 +3972,9 @@ class DiscoverWorkflowTest(unittest.TestCase):
 
         result = self.run_command(str(CHECKPOINT_GUARD))
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("no durable task progress advancement", result.stdout)
+        self.assertIn(
+            "no durable task progress advancement", result.stdout + result.stderr
+        )
 
     def test_checkpoint_guard_allows_commit_when_execution_state_advances(
         self,
@@ -3594,6 +3988,10 @@ class DiscoverWorkflowTest(unittest.TestCase):
             "Project State MVP",
         )
         self.assertEqual(discover_result.returncode, 0, msg=discover_result.stderr)
+        objective_dir = (
+            self.temp_dir / ".mm-flow" / "planning" / "changes" / "project-state-mvp"
+        )
+        self._refine_objective_topology(objective_dir, ("PS1", "PS2", "PS3"))
         start_result = self.run_command(str(COMPLETE_TASK_HANDLER), "PS1")
         self.assertEqual(start_result.returncode, 0, msg=start_result.stderr)
 

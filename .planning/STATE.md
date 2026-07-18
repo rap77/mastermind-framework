@@ -7,6 +7,12 @@
 
 ## Current Status
 
+**Operational objective overlay (2026-07-14):** `multi-channel-gateway` remains
+active until its canonical WhatsApp ingest slice is archived. MCG0-MCG6 are
+implemented/tested; production rollout remains disabled pending retention approval
+and at-rest verification. After MCG6, archive this objective and then run the
+dedicated next-objective activation command.
+
 ```yaml
 ---
 milestone: v3.2
@@ -16,7 +22,7 @@ last_action:
   actor: "Milestone v3.1 closed (2026-05-14)"
   what: "All 98 subtasks complete, 100% acceptance criteria verified, services running live"
   timestamp: "2026-05-14T00:00:00Z"
-  next_step: "Define v3.2 scope — RAG per agent + Phase 19-05 completion"
+  next_step: "Archive multi-channel-gateway, then activate the next objective through the dedicated command"
 ```
 
 ---
@@ -46,9 +52,12 @@ last_action:
 - `/orchestrate` — three-column War Room (BrainList + OrchestrationCanvas + OutputPanel + StatusTimeline)
 - Auto backend-switch when token budget depleted
 
-### v3.0 — CLOSED ✅ (2026-04-15)
+### v3.0 — HISTORICAL MILESTONE CLOSURE (2026-04-15)
 
-Phases 13–18 complete. Phase 19 partial (plans 01–04 done, plan 05 pending).
+The original milestone was closed from phase artifacts. The broad Phase 18 claim
+was later superseded: only the canonical WhatsApp inbound text slice is currently
+implemented/tested, while production enablement and broader gateway scope remain
+deferred. Phase 19 subsequently closed 5/5.
 
 ### v2.2 — CLOSED ✅ (2026-03-30)
 
@@ -60,7 +69,7 @@ Brain agents + BRAIN-FEED two-level architecture. Tag: `v2.2`.
 
 | Priority | Item | Description |
 |----------|------|-------------|
-| 🔴 HIGH | Phase 19-05 | Complete the MM-Flow milestone (one pending plan) |
+| 🔴 HIGH | Phase 20 | Start v3.2 execution (pgvector schema + LangSmith foundation) |
 | 🔴 HIGH | RAG per agent | Each brain manages its own vector store (ChromaDB/Qdrant) |
 | 🟡 MEDIUM | Patterns dashboard | Brain #7 accumulated data — visualize in UI |
 | 🟡 MEDIUM | Cross-brain learning | Brains share successful patterns via BRAIN-FEED |

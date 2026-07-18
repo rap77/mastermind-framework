@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mastermind.local/contracts/messaging/canonical-inbound-event-v1.schema.json",
+  "title": "CanonicalInboundEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "channel",
+    "account_external_id",
+    "external_message_id",
+    "direction",
+    "sender_external_id",
+    "recipient_external_id",
+    "message_type",
+    "content_text",
+    "occurred_at",
+    "received_at",
+    "payload_sha256",
+    "processing_status",
+    "retention_expires_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "messaging.inbound.v1"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "channel": {
+      "const": "whatsapp"
+    },
+    "account_external_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "external_message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "const": "inbound"
+    },
+    "sender_external_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recipient_external_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_type": {
+      "const": "text"
+    },
+    "content_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "processing_status": {
+      "const": "accepted"
+    },
+    "retention_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

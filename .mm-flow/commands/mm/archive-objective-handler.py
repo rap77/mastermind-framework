@@ -222,6 +222,22 @@ def mark_objective_done_in_roadmap(objective: str) -> None:
                     entry["status"] = "done"
                     entry["ready_now"] = False
                     entry["recommended_next"] = False
+                    summary = entry.get("summary")
+                    if isinstance(summary, str):
+                        entry["summary"] = summary.replace(
+                            " Archive this objective before activating the next roadmap objective.",
+                            "",
+                        )
+                    active_evidence = f"{PLANNING_LABEL}/changes/{objective}"
+                    archived_evidence = (
+                        f"{PLANNING_LABEL}/archive/objectives/{objective}"
+                    )
+                    evidence_sources = entry.get("evidence_sources")
+                    if isinstance(evidence_sources, list):
+                        entry["evidence_sources"] = [
+                            archived_evidence if source == active_evidence else source
+                            for source in evidence_sources
+                        ]
                     changed = True
                     break
             if changed:
@@ -246,13 +262,39 @@ def mark_objective_done_in_roadmap(objective: str) -> None:
         try:
             text = objectives_md.read_text(encoding="utf-8")
             text = _re.sub(
-                rf"(\| \d+ \| `{_re.escape(objective)}` \| )planned(\b)",
-                r"\1done\2",
+                rf"(^\|\s*\d+\s*\|\s*`{_re.escape(objective)}`\s*\|\s*)[^|]+(\|)",
+                r"\1done \2",
                 text,
+                flags=_re.MULTILINE,
+            )
+            text = text.replace(
+                f"{PLANNING_LABEL}/changes/{objective}",
+                f"{PLANNING_LABEL}/archive/objectives/{objective}",
             )
             objectives_md.write_text(text, encoding="utf-8")
         except OSError:
             pass
+
+
+def refresh_roadmap_projection() -> tuple[bool, str]:
+    """Regenerate derived roadmap files after an objective archive."""
+    discover_handler = Path(__file__).with_name("discover-handler.py")
+    if not discover_handler.is_file():
+        return False, "discover handler not found"
+    try:
+        result = subprocess.run(
+            [sys.executable, str(discover_handler), "--existing", "--roadmap"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except OSError as exc:
+        return False, str(exc)
+    if result.returncode != 0:
+        return False, result.stderr.strip() or result.stdout.strip() or "refresh failed"
+    return True, "roadmap projection refreshed"
 
 
 def find_next_objective() -> dict | None:
@@ -403,6 +445,11 @@ def main() -> int:
     shutil.move(str(objective_dir), str(archive_dir))
     write_completion_summary(objective_dir, archive_dir, reason)
     mark_objective_done_in_roadmap(objective)
+    projection_ok, projection_message = refresh_roadmap_projection()
+    if not projection_ok:
+        sys.stdout.write(
+            f"- Roadmap projection refresh warning: {projection_message}\n"
+        )
     update_global_handoff(objective)
     sys.stdout.write(f"- Archived to: {archive_dir}\n")
     sync_ok, sync_message = sync_gap_registry_for_archived_objective(objective)

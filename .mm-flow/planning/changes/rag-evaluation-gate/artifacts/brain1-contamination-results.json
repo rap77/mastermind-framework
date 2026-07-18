@@ -1,0 +1,9 @@
+{
+  "brain_id": "brain-01-product-strategy",
+  "passed": false,
+  "contaminated_chunk_refs": [
+    "brain-01-product-strategy-answer-1"
+  ],
+  "checked_pairs": 1,
+  "measured_at": "2026-07-18T20:49:58Z"
+}

@@ -1,5 +1,14 @@
 schema_version: '1'
 harnesses:
+  - id: adaptive-delivery-lead
+    path: roles/adaptive-delivery-lead
+    type: role
+    domains: [delivery]
+    phases: [implementation]
+    outputs: [artifact]
+    supported_loops: [goal-loop, verification-loop]
+    skills: []
+    references: []
   - id: implementation-lead
     path: roles/implementation-lead
     type: role

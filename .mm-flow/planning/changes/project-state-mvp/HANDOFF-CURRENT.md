@@ -12,7 +12,7 @@
 - Historical legacy material may still exist under archive/legacy, but it is not part of the active workflow.
 
 ## Exact next recommended task
-- `PS1` from `tasks.md` — depends on None.
+- Objective complete; archive `project-state-mvp` and activate the next objective.
 
 ## Validation commands
 - `/mm:discover-contract-check --objective project-state-mvp`

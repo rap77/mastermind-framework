@@ -26,9 +26,9 @@ no
 - cd apps/web && pnpm exec tsc --noEmit
 
 ### Acceptance Criteria
-- [ ] Backend emits project_state-relevant realtime events through an explicit contract.
-- [ ] `/project-state` can subscribe or refresh from realtime signals without degrading current functionality.
-- [ ] Validation commands for API/web changes are documented and pass.
+- [x] Backend emits project_state-relevant realtime events through an explicit contract.
+- [x] `/project-state` can subscribe or refresh from realtime signals without degrading current functionality.
+- [x] Validation commands for API/web changes are documented and pass.
 
 ## PS2: Richer write-side operations
 
@@ -51,9 +51,9 @@ no
 - cd apps/web && pnpm exec eslint src/app/actions/project-state.ts src/components/project-state/ProjectStateWritePanel.tsx
 
 ### Acceptance Criteria
-- [ ] At least one additional write-side action exists (task status, notes, or handoff).
-- [ ] The action respects backend authority and is visible in the dashboard.
-- [ ] Tests or targeted validation cover the new action.
+- [x] At least one additional write-side action exists (task status, notes, or handoff).
+- [x] The action respects backend authority and is visible in the dashboard.
+- [x] Tests or targeted validation cover the new action.
 
 ## PS3: Replace transitional audit gap
 
@@ -75,6 +75,6 @@ no
 - cd apps/api && . .venv/bin/activate && pytest -q tests/api/test_project_write_side.py tests/api/test_project_activity_feed.py
 
 ### Acceptance Criteria
-- [ ] `/api/projects` write-side routes are no longer hidden behind a transitional audit skip.
-- [ ] project_state-native activity/audit events capture the key write-side actions.
-- [ ] The change is validated without regressing existing project_state flows.
+- [x] `/api/projects` write-side routes are no longer hidden behind a transitional audit skip.
+- [x] project_state-native activity/audit events capture the key write-side actions.
+- [x] The change is validated without regressing existing project_state flows.

@@ -100,9 +100,17 @@ If `NEXT_COMMAND` is missing from the result, run `python3 .claude/commands/mm/c
 
 **`--brief <TASK_ID>` flag**: Dry-run preview — prints the exact brief the agent will receive without launching execution. Use to review before committing to a run.
 
-**`STATUS: TASK COMPLETE`**: Handler syncs `todo.md` from the durable ledger. No agent needed.
+**`STATUS: TASK COMPLETE`**: Handler has verified exact durable completion and the acceptance projection in `tasks.md`, then syncs derived artifacts. No agent needed.
 
 **Handler ERROR**: Show error to user, suggest next steps.
+
+**Malformed `execution-state.json`**: Normal start, resume, checkpoint, reconcile, and status commands fail closed without rewriting state or projections. Only explicit `--resync-objective <objective>` may salvage valid fields and rebuild malformed durable state.
+
+**Artifact containment**: `tasks.md`, `todo.md`, `execution-state.json`, and `HANDOFF-CURRENT.md` must resolve inside their objective directory. Symlink escapes fail before reads or writes.
+
+**Topology migration**: Refined executable packages declare exactly one non-empty `### Execution Subtasks` block per root with unique `<TASK>.<number>` IDs, and mark `todo.md` as a projection of `tasks.md`. A legacy package without that marker may derive topology only from explicit child IDs and descriptions scoped under the matching todo root. Every child-like line in that root scope must match the legacy child grammar; mixed valid and malformed/unrecognized children fail the whole parse. No generic children are synthesized. Malformed/duplicate topology, absent topology in both sources, and conflicting dual-source legacy topology fail closed.
+
+**Discovery scaffolds**: Discovery uses the same preferred planning surface as execution. Generic objective output is intentionally non-executable until task-specific `### Execution Subtasks` are refined; placeholder review/implement/validate children are not executable work. Rediscovery preserves an existing objective package, todo, and ledger. Destructive replacement requires a separate explicit flow.
 
 **Agent returns with subtask stuck `in_progress`**: This means the agent ran out of context or failed mid-subtask before calling `--mark-done`. The ONLY valid recovery path is:
 ```bash
@@ -163,14 +171,35 @@ Resume reads `task-progress.json` and continues from last checkpoint.
 
 `/mm:complete-task` is the execution phase of an already-planned task. It must:
 
-1. read `.planning/changes/<objective>/tasks.md`
-2. read `.planning/changes/<objective>/todo.md`
+1. read task/subtask topology and descriptions from `.planning/changes/<objective>/tasks.md`, or from explicit scoped legacy todo children when the plan has no topology block
+2. read durable statuses and execution metadata from `.planning/changes/<objective>/execution-state.json`
 3. respect dependency ordering
 4. execute only the pending subtasks of the requested task
 5. validate before marking progress
 6. leave resumable state for the next model/session
 
 If the plan is ambiguous or contradictory, stop and escalate instead of redesigning the architecture mid-execution.
+
+## Execution Authority
+
+Authority is ordered and scoped to the selected objective:
+
+1. `tasks.md` owns root-task/subtask topology, order, and descriptions.
+2. `execution-state.json` owns durable status and validated execution metadata.
+3. `task-progress.json` is session runtime evidence. It may advance a matching durable subtask but cannot regress durable completion.
+4. `todo.md`, acceptance checkboxes in `tasks.md`, and handoff files are projections, never independent completion evidence.
+
+On resume, checkpoint mutation, reconcile, reset-stale, or resync, runtime and durable task/subtask sets are normalized exactly to the resolved topology: stale entries are pruned and missing planned entries are materialized as `pending`. Parent status is recomputed from current children. Fresh start, resume, reconcile, and stale reset use caller-owned transactions across runtime, durable state, acceptance, todo, and handoff. A reset with no stale children is byte-for-byte read-only. Resync consumes runtime only when the normal loader accepts it; invalid runtime is removed after successful recovery so later commands are not poisoned. Todo is rendered as one exact deterministic checklist, and duplicate checklist sections fail before mutation.
+
+Resume requires both a valid durable ledger and an existing valid runtime checkpoint; neither one alone authorizes `--continue`. Without runtime, start explicitly without `--continue` or resync first. Legacy todo checkbox state contributes no completion evidence. Generated resume/checkpoint timestamps preserve the runtime's aware or legacy-naive timezone semantics.
+
+Checkpoint mutations snapshot runtime, durable state, acceptance, todo, and objective handoff. Expected reconcile, persistence, acceptance, projection, or readback failure restores all snapshots byte-for-byte and exits nonzero. Initialization seeds durable state successfully before runtime is written or execution is launched. A task is complete only when the durable parent is `completed`, the durable child set exactly equals current planned children, every child is completed, and acceptance, todo, and handoff projections pass readback verification before `TASK COMPLETE` is emitted. Unknown or malformed acceptance checkbox tokens invalidate the whole acceptance block; partial rewrites are forbidden.
+
+Git history is informational only. Matching conventional commit subjects may be displayed as `GIT_INFO`, but commits never mutate runtime, durable status, acceptance, todo, or handoff and can never emit `TASK COMPLETE`.
+
+Every mutating complete-task CLI flow, including status projection, acquires the nonblocking planning lock at `<planning-dir>/.complete-task.lock`. Contention fails controlled and nonzero before state mutation. Help and brief remain read-only and unlocked.
+
+Completion notification metadata is best-effort operational state, not execution truth. Its runtime checkpoint uses atomic replacement. Notification or metadata persistence failures emit a controlled warning, never corrupt runtime JSON, and never roll back verified durable completion.
 
 ## Architecture
 
@@ -179,7 +208,7 @@ If the plan is ambiguous or contradictory, stop and escalate instead of redesign
     ↓
 Python handler (complete-task-handler.py)
     ↓
-Reads objective `tasks.md` + `todo.md`
+Reads objective `tasks.md` + `execution-state.json`
     ↓
 Checks git for existing commits
     ↓

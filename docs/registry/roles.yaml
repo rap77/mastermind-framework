@@ -1,0 +1,76 @@
+version: 1
+
+roles:
+  - name: classifier
+    kind: overlay
+    purpose: Classify objective type, ambiguity, and risk before a loop is selected.
+    default_use: true
+
+  - name: chairman
+    kind: overlay
+    purpose: Synthesize outputs into a decision or final answer.
+    default_use: true
+
+  - name: contrarian
+    kind: overlay
+    purpose: Find failure modes and challenge assumptions.
+    default_use: false
+
+  - name: first_principles
+    kind: overlay
+    purpose: Reduce the problem to fundamentals and validate the framing.
+    default_use: false
+
+  - name: outsider
+    kind: overlay
+    purpose: Respond without project bias and expose blind spots.
+    default_use: false
+
+  - name: executor
+    kind: overlay
+    purpose: Convert a decision into the next concrete action.
+    default_use: false
+
+  - name: verifier
+    kind: loop_role
+    purpose: Check whether the output satisfies the expected contract.
+    default_use: true
+
+  - name: red-team
+    kind: loop_role
+    purpose: Stress test the proposal under adverse assumptions.
+    default_use: false
+
+  - name: memory-steward
+    kind: brain
+    purpose: Manage checkpoints, resume state, and continuity.
+    default_use: false
+
+brains:
+  - id: brain-01-product-strategy
+    domain: product
+    default_roles: [classifier, chairman]
+
+  - id: brain-02-ux-research
+    domain: ux
+    default_roles: [classifier, chairman]
+
+  - id: brain-03-ui-design
+    domain: ui
+    default_roles: [classifier, chairman]
+
+  - id: brain-04-frontend
+    domain: frontend
+    default_roles: [executor, verifier, chairman]
+
+  - id: brain-05-backend
+    domain: backend
+    default_roles: [executor, verifier, chairman]
+
+  - id: brain-06-qa-devops
+    domain: qa-devops
+    default_roles: [verifier, red-team, chairman]
+
+  - id: brain-07-growth-data
+    domain: growth
+    default_roles: [classifier, contrarian, chairman]

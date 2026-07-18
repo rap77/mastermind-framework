@@ -5,15 +5,15 @@
 - Source: `Product-Definition/`
 - Project Type: Brownfield feature on existing system
 - Current Phase: CONSTRUCTION
-- Current Stage: Completed UOW-5 verification-review-recovery-v1 build and test
+- Current Stage: MCG6 complete; objective archive pending
 
 ## Project Manifest
 - project_name: MasterMind Unified Harness + Memory
 - canonical_scope: reusable harness core, memory core, and project adapters
 - source_of_truth_ai_dlc: true
 - source_of_truth_planning: true
-- active_objective: manifest-contract-bridge-v1
-- active_uow: UOW-1
+- active_objective: multi-channel-gateway
+- active_uow: MCG6
 - project_root: /home/rpadron/proy/mastermind
 - operational_layer: .planning
 - design_layer: aidlc-docs
@@ -59,8 +59,8 @@
 
 ## Current Status
 - Last completed stage: Slice 5 — Project Adapter cross-project reuse (UOW-5 closed and pushed as `d5f3561a`)
-- Current working stage: `manifest-contract-bridge-v1` / `harness-memory-unification` active
-- Next recommended stage: formalize the manifest contract and then expand harness + memory runtime slices
+- Current working stage: `multi-channel-gateway` complete but still active pending archive
+- Next recommended stage: archive `multi-channel-gateway`, then activate the next roadmap objective through the dedicated command
 - Unified initiative kickoff: `manifest-contract-bridge-v1` defined for harness + memory reuse across projects
 - Draft artifacts created for the unified initiative: project manifest, harness contract, memory contract, planning bridge contract, and adapter boundary
 - Application design drafted for the unified harness + memory architecture
@@ -100,6 +100,9 @@
   - `envelope-contract-loop-selector-v1` is now implemented in the API runtime with deterministic registries, loop policy selection, stable execution envelopes, coordinator metadata wiring, focused unit coverage, and no disruption to existing orchestration flows.
   - Build and Test artifacts for UOW-5 now define focused verification for runtime contracts, stateless coordinator wiring, bounded-control regression checks, and the local `UV_CACHE_DIR=/tmp/uv-cache` workaround required in this environment.
   - Operations remains a placeholder in AI-DLC for this repo; no deployment workflow was executed in this run.
+  - MCG0-MCG5 implement and validate the WhatsApp inbound text canonical ingest slice; this is not production enablement.
+  - `WHATSAPP_CANONICAL_INGEST_ENABLED=false` remains the default. Production requires approved retention and verified at-rest protection.
+  - Instagram/Email expansion, outbound, inbox/read APIs, deletion worker, subject access and application-level encryption remain deferred.
   - The next intended UOW-5 slice is `verification-review-recovery-v1`, focused on making verification, maker-checker, and bounded recovery executable rather than declarative.
   - Functional design for the next UOW-5 slice now defines deterministic local verification, rubric-based maker-checker review, and bounded recovery decisions over the existing stateless runtime seam.
   - NFR requirements for the next UOW-5 slice now constrain verification/review/recovery to remain local, bounded, deterministic, and incrementally integrated into the stateless coordinator seam.

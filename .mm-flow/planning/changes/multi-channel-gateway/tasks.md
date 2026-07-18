@@ -1,5 +1,8 @@
 # Tasks — multi-channel-gateway
 
+> Legacy compatibility mirror only. The authoritative package is
+> `.planning/changes/multi-channel-gateway/`.
+
 ## Execution Rules
 - Execute tasks in dependency order unless parallelization is explicitly safe.
 - Update this file and the handoff when a task is completed or blocked.
@@ -22,13 +25,11 @@ no
 - tasks.md
 
 ### Validation Commands
-- Review requirements/design/tasks package for consistency with the canonical inbound event contract.
-- Confirm the objective is narrowed to reliability semantics on the existing contract, not a full gateway rebuild.
+- Review requirements/design/tasks package for consistency.
 
 ### Acceptance Criteria
-- [x] The exact boundary of the objective is implemented or tightened.
-- [x] Existing architecture constraints are preserved and documented.
-- [x] The package explicitly narrows to canonical inbound idempotency / verification follow-up work.
+- [ ] The exact boundary of the objective is implemented or tightened.
+- [ ] Existing architecture constraints are preserved and documented.
 
 ## T2: Implement the smallest coherent deliverable
 
@@ -42,9 +43,7 @@ T1
 no
 
 ### Files / Areas Likely Touched
-- `apps/api/routers/canonical_events.py`
-- `apps/api/routers/internal.py`
-- `apps/api/tests/test_canonical_events.py`
+- implementation-specific files
 
 ### Validation Commands
 - Run targeted validation commands for the touched area.
@@ -52,7 +51,6 @@ no
 ### Acceptance Criteria
 - [ ] The main user-visible or system-visible behavior exists.
 - [ ] Tests or validation commands demonstrate the behavior.
-- [ ] Reliability semantics are attached to the canonical inbound contract without widening scope.
 
 ## T3: Close the continuity loop
 

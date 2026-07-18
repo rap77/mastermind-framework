@@ -75,15 +75,31 @@ Salidas:
 
 Objetivo:
 
-- implementar slices
-- mantener el alcance controlado
+- completar cada Unit of Work mediante stages seleccionados
+- planificar antes de producir artifacts
+- mantener alcance, dependencies, approvals y trazabilidad controlados
 
 Salidas:
 
-- code changes
-- tests
-- commit-ready artifacts
-- notes for recovery/review
+- unit plans y stage decisions
+- produced artifacts y tests
+- evidence de unidad e integración
+- approvals, checkpoints y notes for recovery/review
+
+Construction se delega a `adaptive-delivery-lead` mediante el adapter
+`software-delivery` y el profile `aidlc-construction`. AI-DLC conserva ownership
+del macro lifecycle, Workflow Planning y approval policy; Adaptive Delivery
+ejecuta units, producción, integración y aceptación; MM-flow conserva progreso,
+checkpoints y handoff operacional.
+
+El profile debe preservar:
+
+- Functional Design, NFR Requirements, NFR Design e Infrastructure Design como stages condicionales por unit
+- production planning y production siempre que la unit se ejecute
+- approval del plan y de cada stage/artifact exigido por AI-DLC
+- stage-level state y step-level progress
+- session continuity y safe workflow changes
+- Build and Test global con evidencia real, no instruction artifacts solamente
 
 ### 4.5 Verification
 
@@ -159,7 +175,7 @@ AI-DLC puede delegar a sub-harnesses internos:
 - Discovery Harness
 - Research Harness
 - Design Harness
-- Implementation Harness
+- Adaptive Delivery Harness mediante el Software Delivery Adapter
 - Verification Harness
 - Archive Harness
 
@@ -233,3 +249,6 @@ AI-DLC debe operar con:
 - `67-HARNESS-SELECTION-POLICY.md`
 - `71-HARNESS-RUNTIME-CONTRACT.md`
 - `73-HARNESS-SELECTOR-SERVICE.md`
+- `113-HARNESS-STAGE-EXECUTION-RUNTIME-CONTRACT.md`
+- `114-ADAPTIVE-DELIVERY-HARNESS-RUNTIME-CONTRACT.md`
+- `115-SOFTWARE-DELIVERY-DOMAIN-ADAPTER.md`

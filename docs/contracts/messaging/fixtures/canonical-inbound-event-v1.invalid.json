@@ -1,0 +1,103 @@
+[
+  {
+    "name": "rejects-provider-metadata",
+    "event": {
+      "schema_version": "messaging.inbound.v1",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "channel": "whatsapp",
+      "account_external_id": "test-phone-number-id",
+      "external_message_id": "wamid.test-message-001",
+      "direction": "inbound",
+      "sender_external_id": "test-sender-id",
+      "recipient_external_id": "test-phone-number-id",
+      "message_type": "text",
+      "content_text": "Hello",
+      "occurred_at": "2024-04-11T10:00:00Z",
+      "received_at": "2024-04-11T10:00:01Z",
+      "payload_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "processing_status": "accepted",
+      "retention_expires_at": "2024-05-11T10:00:01Z",
+      "raw_payload": {"provider": "metadata"}
+    }
+  },
+  {
+    "name": "rejects-non-whatsapp-channel",
+    "event": {
+      "schema_version": "messaging.inbound.v1",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "channel": "instagram",
+      "account_external_id": "test-phone-number-id",
+      "external_message_id": "wamid.test-message-001",
+      "direction": "inbound",
+      "sender_external_id": "test-sender-id",
+      "recipient_external_id": "test-phone-number-id",
+      "message_type": "text",
+      "content_text": "Hello",
+      "occurred_at": "2024-04-11T10:00:00Z",
+      "received_at": "2024-04-11T10:00:01Z",
+      "payload_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "processing_status": "accepted",
+      "retention_expires_at": "2024-05-11T10:00:01Z"
+    }
+  },
+  {
+    "name": "rejects-empty-content",
+    "event": {
+      "schema_version": "messaging.inbound.v1",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "channel": "whatsapp",
+      "account_external_id": "test-phone-number-id",
+      "external_message_id": "wamid.test-message-001",
+      "direction": "inbound",
+      "sender_external_id": "test-sender-id",
+      "recipient_external_id": "test-phone-number-id",
+      "message_type": "text",
+      "content_text": "",
+      "occurred_at": "2024-04-11T10:00:00Z",
+      "received_at": "2024-04-11T10:00:01Z",
+      "payload_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "processing_status": "accepted",
+      "retention_expires_at": "2024-05-11T10:00:01Z"
+    }
+  },
+  {
+    "name": "rejects-non-lowercase-digest",
+    "event": {
+      "schema_version": "messaging.inbound.v1",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "channel": "whatsapp",
+      "account_external_id": "test-phone-number-id",
+      "external_message_id": "wamid.test-message-001",
+      "direction": "inbound",
+      "sender_external_id": "test-sender-id",
+      "recipient_external_id": "test-phone-number-id",
+      "message_type": "text",
+      "content_text": "Hello",
+      "occurred_at": "2024-04-11T10:00:00Z",
+      "received_at": "2024-04-11T10:00:01Z",
+      "payload_sha256": "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF",
+      "processing_status": "accepted",
+      "retention_expires_at": "2024-05-11T10:00:01Z"
+    }
+  },
+  {
+    "name": "rejects-numeric-timestamp",
+    "event": {
+      "schema_version": "messaging.inbound.v1",
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "channel": "whatsapp",
+      "account_external_id": "test-phone-number-id",
+      "external_message_id": "wamid.test-message-001",
+      "direction": "inbound",
+      "sender_external_id": "test-sender-id",
+      "recipient_external_id": "test-phone-number-id",
+      "message_type": "text",
+      "content_text": "Hello",
+      "occurred_at": 1712829600,
+      "received_at": "2024-04-11T10:00:01Z",
+      "payload_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "processing_status": "accepted",
+      "retention_expires_at": "2024-05-11T10:00:01Z"
+    }
+  }
+]
