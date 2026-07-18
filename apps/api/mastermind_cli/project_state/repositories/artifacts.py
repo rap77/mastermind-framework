@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import asc, or_, select
+from sqlalchemy import asc, func, or_, select
 from sqlalchemy.orm import Session
 
 from mastermind_cli.project_state.models.artifact import ArtifactLink, ArtifactVersion
@@ -93,3 +93,84 @@ class ArtifactRepository:
             )
         )
         return list(result.scalars().all())
+
+    def stage_version(
+        self,
+        *,
+        version_id: str,
+        artifact_id: str,
+        project_id: str,
+        artifact_type: str,
+        version: int,
+        content_hash: str,
+        created_at: datetime,
+        metadata_json: dict[str, object],
+    ) -> ArtifactVersion:
+        """Add an artifact version to the caller-owned transaction."""
+        record = ArtifactVersion(
+            version_id=version_id,
+            artifact_id=artifact_id,
+            project_id=project_id,
+            artifact_type=artifact_type,
+            version=version,
+            content_hash=content_hash,
+            created_at=created_at,
+            metadata_json=metadata_json,
+        )
+        self.session.add(record)
+        return record
+
+    def stage_link(
+        self,
+        *,
+        link_id: str,
+        source_artifact_id: str,
+        target_artifact_id: str,
+        link_type: str,
+        created_at: datetime,
+    ) -> ArtifactLink:
+        """Add a causal link to the caller-owned transaction."""
+        link = ArtifactLink(
+            link_id=link_id,
+            source_artifact_id=source_artifact_id,
+            target_artifact_id=target_artifact_id,
+            link_type=link_type,
+            created_at=created_at,
+        )
+        self.session.add(link)
+        return link
+
+    def get_project_version(
+        self, project_id: str, version_id: str
+    ) -> ArtifactVersion | None:
+        """Return a version only when it belongs to the requested project."""
+        return self.session.scalar(
+            select(ArtifactVersion).where(
+                ArtifactVersion.project_id == project_id,
+                ArtifactVersion.version_id == version_id,
+            )
+        )
+
+    def list_project_history(
+        self, project_id: str, artifact_type: str
+    ) -> list[ArtifactVersion]:
+        """Return a project's artifact history ordered by logical ID and version."""
+        result = self.session.execute(
+            select(ArtifactVersion)
+            .where(
+                ArtifactVersion.project_id == project_id,
+                ArtifactVersion.artifact_type == artifact_type,
+            )
+            .order_by(ArtifactVersion.artifact_id, ArtifactVersion.version)
+        )
+        return list(result.scalars().all())
+
+    def next_version(self, project_id: str, artifact_id: str) -> int:
+        """Return the next immutable version number within a project artifact."""
+        latest = self.session.scalar(
+            select(func.max(ArtifactVersion.version)).where(
+                ArtifactVersion.project_id == project_id,
+                ArtifactVersion.artifact_id == artifact_id,
+            )
+        )
+        return latest + 1 if isinstance(latest, int) else 1
